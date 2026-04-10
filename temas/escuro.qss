@@ -1,0 +1,23 @@
+/* Estilo específico para o botão de home no canto das abas */
+QToolButton#botaoHomeWorkspace {
+    background-color: transparent;
+    border: none;
+    color: white;
+    font-size: 18px;
+    margin-left: 5px;
+}
+
+QToolButton#botaoHomeWorkspace:hover {
+    background-color: #3d3d3d; /* Um cinza leve ao passar o mouse */
+    border-radius: 5px;
+}
+
+/* Garante que as abas não fiquem coladas no botão */
+QTabBar {
+    background-color: #1a1a1a;
+    border: none;
+}
+
+QTabWidget::pane {
+    border-top: 1px solid #333; /* Linha sutil separando a aba do conteúdo */
+}
