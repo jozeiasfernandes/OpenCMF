@@ -1,15 +1,93 @@
-/*
- * claro - Qt Style Sheet
- * Created: 09/04/2026
- *
- * QSS Toolkit Quick Tips:
- * - Press Ctrl+Space (Cmd+Space) for intelligent auto-completion
- * - Use Ctrl+/ (Cmd+/) to comment/uncomment code blocks
- * - Click color gutter icons to open the visual color picker
- * - Type :: for sub-controls (e.g., QScrollBar::handle)
- * - Type : for pseudo-states (e.g., QPushButton:hover)
- * - RGB/RGBA colors: rgb(255, 0, 0) or rgba(255, 0, 0, 128)
- */
+QWidget {
+    background-color: #F8F9FA;
+    color: #212529;
+    font-family: "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+    font-size: 10pt;
+    selection-background-color: #A9D0F5;
+    selection-color: #212529;
+}
 
-/* Add your QSS styles here */
+QLabel {
+    background-color: transparent;
+    color: #212529;
+}
 
+QLabel[text^="<h3>"], QLabel[text^="<h2>"] {
+    color: #2C3E50;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+QFrame[frameShape="StyledPanel"] {
+    background-color: #FFFFFF;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+    padding: 5px;
+}
+
+QFrame {
+    border: none;
+}
+
+QScrollArea {
+    background-color: transparent;
+    border: none;
+}
+
+QScrollBar:vertical {
+    background-color: #F1F1F1;
+    width: 12px;
+    margin: 0px;
+    border-radius: 6px;
+}
+
+QScrollBar::handle:vertical {
+    background-color: #C1C1C1;
+    min-height: 20px;
+    border-radius: 6px;
+    margin: 2px;
+}
+
+QScrollBar::handle:vertical:hover {
+    background-color: #A0A0A0;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+    border: none;
+    background: none;
+}
+
+QPushButton {
+    background-color: #FFFFFF;
+    border: 1px solid #D0D0D0;
+    border-radius: 4px;
+    color: #212529;
+    font-weight: bold;
+    padding: 8px 15px;
+    min-height: 20px;
+}
+
+QPushButton:hover {
+    background-color: #F0F0F0;
+    border: 1px solid #C0C0C0;
+}
+
+QPushButton:pressed {
+    background-color: #E0E0E0;
+}
+
+QPushButton:disabled {
+    background-color: #F5F5F5;
+    color: #A0A0A0;
+    border: 1px solid #E0E0E0;
+}
+
+QPushButton[styleSheet*="#2ecc71"] {
+    background-color: #27AE60;
+    color: white;
+    border: none;
+}
+
+QPushButton[styleSheet*="#2ecc71"]:hover {
+    background-color: #219150;
+}

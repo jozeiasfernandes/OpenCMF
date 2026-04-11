@@ -1,5 +1,5 @@
 {
     "nome": "Cadastro de Paciente",
-    "sequencia": ["mod_paciente"],
+    "sequencia": ["Paciente"],
     "cor_fundo": {"r": 30, "g": 30, "b": 30}
 }
