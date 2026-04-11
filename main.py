@@ -3,7 +3,7 @@ import json
 import logging
 import ctypes
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 from PySide6 import QtWidgets, QtCore, QtGui
 
@@ -14,8 +14,7 @@ from gui.workspace import WorkspaceManager
 from gui.editor_fluxo import PaginaEditorFluxo
 from gui.config import PaginaConfig
 
-APP_ID = 'opencmf.surgicalplanning.version.1.0'
-DIR_FLUXOS = Path("fluxos")
+APP_ID = 'opencmf.surgicalplanning.1.0'
 TITULO_APP = "OpenCMF - Modular Surgical Planning"
 
 
@@ -23,6 +22,8 @@ class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.pasta_paciente_atual = None
+        # Lista para impedir que os módulos sejam deletados da memória pelo Python
+        self.modulos_instanciados: List[Any] = []
         self._setup_ui()
         self._setup_connections()
 
@@ -34,20 +35,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stack = QtWidgets.QStackedWidget()
         self.setCentralWidget(self.stack)
 
-        # Inicialização das Páginas
         self.home = Tela_Inicial()
         self.editor_fluxo = PaginaEditorFluxo()
         self.workspace = WorkspaceManager()
         self.config = PaginaConfig()
 
-        # Adição ao Stack
         self.stack.addWidget(self.home)
         self.stack.addWidget(self.editor_fluxo)
         self.stack.addWidget(self.workspace)
         self.stack.addWidget(self.config)
 
+    def _log_debug(self, msg: str, dados: Any = None):
+        print(f">>> [DEBUG SYSTEM] {msg}")
+        if dados: print(f"    Conteúdo: {dados}")
+
     def _carregar_icone(self):
-        """Carrega o ícone principal do sistema."""
         caminho_icone = Path(__file__).parent / "icones" / "cmf.png"
         if caminho_icone.exists():
             icone = QtGui.QIcon(str(caminho_icone))
@@ -55,138 +57,109 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QApplication.setWindowIcon(icone)
 
     def _setup_connections(self):
-        """Conecta os sinais das páginas à lógica da MainWindow."""
-        # Sinais da Home
-        self.home.fluxo_escolhido.connect(self.iniciar_novo_fluxo)
-        self.home.projeto_selecionado.connect(self.abrir_projeto_existente)
-        self.home.editor_solicitado.connect(self.exibir_editor)
-        self.home.config_solicitada.connect(self.exibir_config)
-
-        # Sinais de Navegação (Voltar)
+        self.home.projeto_selecionado.connect(self.selecionar_paciente)
+        self.home.fluxo_escolhido.connect(self.iniciar_fluxo_trabalho)
+        self.home.editor_solicitado.connect(lambda: self.stack.setCurrentWidget(self.editor_fluxo))
+        self.home.config_solicitada.connect(lambda: self.stack.setCurrentWidget(self.config))
         self.editor_fluxo.voltar_solicitado.connect(self.exibir_home)
         self.workspace.home_solicitada.connect(self.exibir_home)
         self.config.voltar_solicitado.connect(self.exibir_home)
-
-        # Sinais de Configuração
         self.config.tema_alterado.connect(self.aplicar_tema)
-        self.config.idioma_alterado.connect(self.aplicar_idioma)
-
-    # --- Navegação ---
 
     def exibir_home(self):
         self.home.atualizar_listas()
         self.stack.setCurrentWidget(self.home)
 
-    def exibir_editor(self):
-        self.stack.setCurrentWidget(self.editor_fluxo)
+    def selecionar_paciente(self, caminho_pasta: str, modo: str):
+        self._log_debug("Paciente selecionado na lista", caminho_pasta)
+        self.pasta_paciente_atual = caminho_pasta
 
-    def exibir_config(self):
-        self.stack.setCurrentWidget(self.config)
+    def iniciar_fluxo_trabalho(self, caminho_json: str):
+        self._log_debug("Iniciando fluxo", caminho_json)
+        # Permite avançar se for cadastro ou se já houver paciente selecionado
+        if "cadastro" not in str(caminho_json).lower() and not self.pasta_paciente_atual:
+            QtWidgets.QMessageBox.warning(self, "Atenção", "Selecione um paciente na lista antes de iniciar.")
+            return
 
-    # --- Lógica de Estilo e Sistema ---
-
-    def aplicar_tema(self, caminho_qss: str):
-        """Aplica o arquivo de folha de estilo globalmente."""
-        if not caminho_qss: return
-
-        path = Path(caminho_qss)
-        if path.exists():
-            try:
-                css = path.read_text(encoding="utf-8")
-                QtWidgets.QApplication.instance().setStyleSheet(css)
-                logging.info(f"Tema aplicado: {path.name}")
-            except Exception as e:
-                logging.error(f"Erro ao carregar QSS: {e}")
-
-    def aplicar_idioma(self, novo_idioma: str):
-        logging.info(f"Idioma alterado para: {novo_idioma}")
-        # QTranslator será implementado aqui futuramente
-
-    # --- Lógica de Fluxos e Projetos ---
-
-    def iniciar_novo_fluxo(self, caminho_json: str):
-        """Prepara o workspace para um novo paciente baseado em um fluxo JSON."""
         try:
-            config = self._carregar_configuracao(Path(caminho_json))
-            self._configurar_fluxo_trabalho(config)
+            dados = json.loads(Path(caminho_json).read_text(encoding="utf-8"))
+            self._configurar_workspace(dados)
             self.stack.setCurrentWidget(self.workspace)
-        except Exception as e:
-            self._notificar_erro("Falha ao iniciar novo fluxo", e)
-
-    def abrir_projeto_existente(self, caminho_pasta: str, modo: str):
-        """Retoma um projeto salvo no disco."""
-        try:
-            pasta_projeto = Path(caminho_pasta)
-            info_projeto = self._carregar_configuracao(pasta_projeto / "projeto" / "info.json")
-
-            # Tenta encontrar o fluxo original que gerou este projeto
-            nome_fluxo = info_projeto.get("fluxo_origem", "ortog.json")
-            config_fluxo = self._carregar_configuracao(DIR_FLUXOS / nome_fluxo)
-
-            self._configurar_fluxo_trabalho(config_fluxo)
-            self.pasta_paciente_atual = str(pasta_projeto)
             self._inicializar_modulo_ativo()
-            self.stack.setCurrentWidget(self.workspace)
         except Exception as e:
-            self._notificar_erro("Não foi possível abrir o projeto", e)
+            self._notificar_erro("Falha ao carregar fluxo", e)
 
-    def _carregar_configuracao(self, caminho: Path) -> Dict[str, Any]:
-        if not caminho.exists():
-            raise FileNotFoundError(f"Arquivo não encontrado: {caminho}")
-        return json.loads(caminho.read_text(encoding="utf-8"))
-
-    def _configurar_fluxo_trabalho(self, dados: Dict[str, Any]):
-        """Limpa o workspace e carrega os módulos dinamicamente."""
+    def _configurar_workspace(self, dados: Dict[str, Any]):
+        # Limpa o workspace e as referências antigas
         self.workspace.clear()
-        self.pasta_paciente_atual = None
+        self.modulos_instanciados.clear()
+
         self.fluxo = FluxoBase(dados)
+        self._log_debug("Sequência", self.fluxo.sequencia)
 
         for id_modulo in self.fluxo.sequencia:
             instancia = ModuloFactory.carregar_modulo(id_modulo)
             if instancia:
-                # Conecta o sinal de conclusão do módulo para avançar a aba
+                # Importante: conectar sinais ANTES de adicionar ao layout
                 instancia.concluido.connect(self._on_modulo_concluido)
+
+                # Guarda a referência física para o Garbage Collector não matar o objeto
+                self.modulos_instanciados.append(instancia)
+
+                # Adiciona à interface
                 self.workspace.adicionar_modulo(id_modulo, instancia)
-
-    def _on_modulo_concluido(self):
-        """Callback acionado quando um módulo termina seu processamento."""
-        modulo_emissor = self.sender()
-        if hasattr(modulo_emissor, 'pasta_paciente'):
-            self.pasta_paciente_atual = modulo_emissor.pasta_paciente
-
-        if self.workspace.avancar_aba() and self.pasta_paciente_atual:
-            self._inicializar_modulo_ativo()
+                self._log_debug(f"Conectado: {id_modulo}")
 
     def _inicializar_modulo_ativo(self):
-        """Passa o contexto do paciente para o módulo que acabou de ser focado."""
-        proximo_modulo = self.workspace.get_modulo_ativo()
-        if proximo_modulo:
-            proximo_modulo.inicializar(self.pasta_paciente_atual)
+        modulo = self.workspace.get_modulo_ativo()
+        if modulo:
+            self._log_debug(f"Inicializando: {type(modulo).__name__}")
+            # Garante que o widget exista e força o layout a se atualizar
+            ws = modulo.get_workspace()
+            if ws:
+                ws.updateGeometry()
+                ws.repaint()
+                self._log_debug("Workspace Widget: OK")
+
+            # Chama a lógica de carregamento de dados do módulo
+            modulo.inicializar(self.pasta_paciente_atual)
+        else:
+            self._log_debug("ERRO: Módulo ativo não encontrado")
+
+    def _on_modulo_concluido(self):
+        modulo_origem = self.sender()
+        self._log_debug(f"Módulo {type(modulo_origem).__name__} concluído.")
+
+        # Atualiza o paciente atual caso o módulo de cadastro tenha gerado um novo ID
+        if hasattr(modulo_origem, 'pasta_paciente') and modulo_origem.pasta_paciente:
+            self.pasta_paciente_atual = modulo_origem.pasta_paciente
+            self._log_debug("Pasta do paciente atualizada", self.pasta_paciente_atual)
+
+        if self.workspace.avancar_aba():
+            self._inicializar_modulo_ativo()
+        else:
+            self._log_debug("Fim do fluxo. Retornando.")
+            self.exibir_home()
+
+    def aplicar_tema(self, caminho_qss: str):
+        path = Path(caminho_qss)
+        if path.exists():
+            QtWidgets.QApplication.instance().setStyleSheet(path.read_text(encoding="utf-8"))
 
     def _notificar_erro(self, titulo: str, erro: Exception):
         logging.error(f"{titulo}: {erro}")
-        QtWidgets.QMessageBox.critical(self, "Erro de Sistema", f"{titulo}\n\nDetalhes: {erro}")
+        QtWidgets.QMessageBox.critical(self, "Erro", f"{titulo}\n{erro}")
 
-
-# --- Ponto de Entrada ---
 
 if __name__ == "__main__":
-    # Configurações de DPI e Identificação no Windows
+    # Garante que o ícone apareça na barra de tarefas do Windows
     if sys.platform == "win32":
         ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(APP_ID)
 
     app = QtWidgets.QApplication(sys.argv)
-
-    # Define o estilo base antes de aplicar o QSS
     app.setStyle("Fusion")
 
-    # Carrega o tema inicial (Escuro por padrão)
-    tema_padrao = Path("temas") / "escuro_moderno.qss"
-    if tema_padrao.exists():
-        app.setStyleSheet(tema_padrao.read_text(encoding="utf-8"))
-    else:
-        logging.warning("Tema padrão não encontrado. Usando estilo nativo.")
-
+    # Referência global da janela
     main_win = MainWindow()
     main_win.show()
 

@@ -1,9 +1,10 @@
-import json
 import logging
 from pathlib import Path
-from typing import Dict, Any
 from PySide6 import QtWidgets, QtCore, QtGui
+
 from gui.cmf_creditos import Janela_Creditos
+from gui.widgets.fluxo_card import FluxoCard
+from gui.logic.project_manager import ProjectManager
 
 PASTA_PACIENTES = Path("pacientes")
 PASTA_FLUXOS = Path("fluxos")
@@ -18,7 +19,8 @@ class Tela_Inicial(QtWidgets.QWidget):
 
     def __init__(self):
         super().__init__()
-        PASTA_PACIENTES.mkdir(exist_ok=True)
+        # Inicializa o gerenciador de lógica
+        self.manager = ProjectManager(PASTA_PACIENTES, PASTA_FLUXOS)
         self._setup_ui()
         self.atualizar_listas()
 
@@ -36,31 +38,32 @@ class Tela_Inicial(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(painel)
         layout.setContentsMargins(0, 0, 0, 0)
 
+        # Logo / Botão Créditos
         self.btn_cmf = QtWidgets.QPushButton()
         self.btn_cmf.setFixedSize(90, 40)
         self.btn_cmf.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_cmf.setStyleSheet("background: transparent; border: none;")
 
         path_icones = Path(__file__).parent.parent / "icones"
+        logo_path = path_icones / "OpenCFM_Logo_Branco.png"
 
-        caminho_cmf = path_icones / "OpenCFM_Logo_Branco.png"
-        if caminho_cmf.exists():
-            self.btn_cmf.setIcon(QtGui.QIcon(str(caminho_cmf)))
+        if logo_path.exists():
+            self.btn_cmf.setIcon(QtGui.QIcon(str(logo_path)))
             self.btn_cmf.setIconSize(QtCore.QSize(80, 50))
 
         self.btn_cmf.clicked.connect(self._abrir_creditos)
         layout.addWidget(self.btn_cmf)
-
         layout.addStretch()
 
+        # Botão Configurações
         self.btn_settings = QtWidgets.QPushButton()
         self.btn_settings.setObjectName("btn_settings")
         self.btn_settings.setFixedSize(40, 40)
         self.btn_settings.setCursor(QtCore.Qt.PointingHandCursor)
 
-        caminho_config = path_icones / "config.png"
-        if caminho_config.exists():
-            self.btn_settings.setIcon(QtGui.QIcon(str(caminho_config)))
+        config_path = path_icones / "config.png"
+        if config_path.exists():
+            self.btn_settings.setIcon(QtGui.QIcon(str(config_path)))
             self.btn_settings.setIconSize(QtCore.QSize(24, 24))
         else:
             self.btn_settings.setText("⚙")
@@ -69,48 +72,6 @@ class Tela_Inicial(QtWidgets.QWidget):
         layout.addWidget(self.btn_settings)
 
         return painel
-
-    def _abrir_creditos(self):
-        self.janela_creditos = Janela_Creditos(self)
-        self.janela_creditos.exec()
-
-    def atualizar_listas(self):
-        self._carregar_projetos_do_disco()
-        self._carregar_fluxos_do_disco()
-
-    def _carregar_projetos_do_disco(self):
-        self.lista_projetos.clear()
-        if not PASTA_PACIENTES.exists():
-            return
-
-        for info_path in PASTA_PACIENTES.glob("**/info.json"):
-            try:
-                dados = json.loads(info_path.read_text(encoding="utf-8"))
-                nome = dados.get("paciente", {}).get("nome", "Desconhecido")
-                item = QtWidgets.QListWidgetItem(nome)
-                item.setData(QtCore.Qt.UserRole, str(info_path.parent))
-                self.lista_projetos.addItem(item)
-            except Exception as e:
-                logging.error(f"Erro no projeto {info_path.name}: {e}")
-
-    def _carregar_fluxos_do_disco(self):
-        while self.layout_cards.count():
-            item = self.layout_cards.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-
-        if not PASTA_FLUXOS.exists():
-            return
-
-        for path in PASTA_FLUXOS.glob("*.json"):
-            if path.name == Path(FLUXO_CADASTRO).name:
-                continue
-            try:
-                dados = json.loads(path.read_text(encoding="utf-8"))
-                card = self._gerar_widget_card(dados, str(path))
-                self.layout_cards.addWidget(card)
-            except Exception as e:
-                logging.error(f"Erro no fluxo {path.name}: {e}")
 
     def _renderizar_secao_projetos(self) -> QtWidgets.QFrame:
         painel = QtWidgets.QFrame()
@@ -124,7 +85,9 @@ class Tela_Inicial(QtWidgets.QWidget):
         self.btn_novo_projeto.setObjectName("btn_novo_projeto")
         self.btn_novo_projeto.setProperty("class", "botao-acao")
         self.btn_novo_projeto.setFixedSize(180, 40)
-        self.btn_novo_projeto.clicked.connect(lambda: self.fluxo_escolhido.emit(FLUXO_CADASTRO))
+        self.btn_novo_projeto.clicked.connect(
+            lambda: self.fluxo_escolhido.emit(FLUXO_CADASTRO)
+        )
 
         header.addWidget(self.btn_novo_projeto)
 
@@ -165,53 +128,39 @@ class Tela_Inicial(QtWidgets.QWidget):
         layout.addWidget(self.scroll_fluxos)
         return painel
 
-    def _gerar_widget_card(self, dados: Dict[str, Any], caminho: str) -> QtWidgets.QFrame:
-        card = QtWidgets.QFrame()
-        card.setObjectName("card_container")
-        card.setCursor(QtCore.Qt.PointingHandCursor)
+    def atualizar_listas(self):
+        self._carregar_projetos()
+        self._carregar_fluxos()
 
-        layout_h = QtWidgets.QHBoxLayout(card)
-        layout_h.setContentsMargins(8, 8, 8, 8)
-        layout_h.setSpacing(12)
+    def _carregar_projetos(self):
+        self.lista_projetos.clear()
+        projetos = self.manager.listar_projetos_recentes()
 
-        cor = dados.get("cor_fundo", {"r": 52, "g": 73, "b": 94})
+        for proj in projetos:
+            nome = proj.get("paciente", {}).get("nome", "Desconhecido")
+            item = QtWidgets.QListWidgetItem(nome)
+            # Usamos a chave auxiliar criada no ProjectManager
+            item.setData(QtCore.Qt.UserRole, proj.get("_caminho_local"))
+            self.lista_projetos.addItem(item)
 
-        layout_h.addWidget(self._criar_bloco_destaque(dados.get("nome", "Sem Nome"), cor))
+    def _carregar_fluxos(self):
+        # Limpa widgets antigos
+        while self.layout_cards.count():
+            item = self.layout_cards.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
 
-        for modulo in dados.get("sequencia", []):
-            layout_h.addWidget(self._criar_bloco_modulo(modulo, cor))
+        fluxos = self.manager.listar_fluxos_disponiveis(ignorar_arquivo=FLUXO_CADASTRO)
 
-        layout_h.addStretch()
-        card.mousePressEvent = lambda _: self.fluxo_escolhido.emit(caminho)
-        return card
+        for dados in fluxos:
+            # Instancia o card refatorado
+            card = FluxoCard(dados, dados["_caminho_arquivo"])
+            card.clicado.connect(self.fluxo_escolhido.emit)
+            self.layout_cards.addWidget(card)
 
-    def _criar_bloco_destaque(self, texto: str, cor: Dict[str, int]) -> QtWidgets.QFrame:
-        bloco = QtWidgets.QFrame()
-        bloco.setFixedSize(180, 80)
-        bloco.setStyleSheet(
-            f"background-color: rgb({cor['r']}, {cor['g']}, {cor['b']}); "
-            f"border-radius: 6px;"
-        )
-
-        lay = QtWidgets.QVBoxLayout(bloco)
-        lbl = QtWidgets.QLabel(texto)
-        lbl.setObjectName("label_fluxo")
-        lbl.setWordWrap(True)
-        lbl.setAlignment(QtCore.Qt.AlignCenter)
-
-        lay.addWidget(lbl)
-        return bloco
-
-    def _criar_bloco_modulo(self, texto: str, cor: Dict[str, int]) -> QtWidgets.QLabel:
-        lbl = QtWidgets.QLabel(texto)
-        lbl.setObjectName("label_modulo")
-        lbl.setFixedSize(130, 80)
-        lbl.setAlignment(QtCore.Qt.AlignCenter)
-        lbl.setStyleSheet(
-            f"background-color: rgba({cor['r']}, {cor['g']}, {cor['b']}, 150); "
-            f"border-radius: 6px;"
-        )
-        return lbl
+    def _abrir_creditos(self):
+        self.janela_creditos = Janela_Creditos(self)
+        self.janela_creditos.exec()
 
     def _ao_clicar_projeto(self, item):
         self.projeto_selecionado.emit(item.data(QtCore.Qt.UserRole), "abrir")
