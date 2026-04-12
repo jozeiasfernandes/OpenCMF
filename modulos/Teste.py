@@ -9,17 +9,31 @@ class Modulo(ModuloBase):
     def __init__(self):
         super().__init__()
         self.log_erros = []
+
+        # --- CORREÇÃO: Criar o container e os widgets fixos no __init__ ---
+        self.container_principal = QtWidgets.QWidget()
+        self.area_texto = QtWidgets.QTextEdit()
+
         self._init_ui()
 
     def _init_ui(self):
-        self.area_texto = QtWidgets.QTextEdit()
+        # Configuração da área de texto (Terminal Visual)
         self.area_texto.setReadOnly(True)
-        # Estilo para parecer um terminal
-        self.area_texto.setStyleSheet("background-color: #1b1e23; color: #2ecc71; font-family: 'Consolas';")
+        self.area_texto.setStyleSheet(
+            "background-color: #1b1e23; color: #2ecc71; font-family: 'Consolas';"
+        )
+
+        # --- CORREÇÃO: Montar o layout uma única vez aqui ---
+        layout = QtWidgets.QVBoxLayout(self.container_principal)
+        layout.addWidget(QtWidgets.QLabel("<b>Verificação de Sistema (Check Terminal for details)</b>"))
+        layout.addWidget(self.area_texto)
 
     def inicializar(self, caminho_paciente: str) -> None:
-        """Executa a validação e espelha o resultado no Terminal."""
+        """Executa a validação e espelha o resultado na UI e no Terminal."""
         super().inicializar(caminho_paciente)
+
+        # Limpa a interface para o novo paciente
+        self.area_texto.clear()
         self.log_erros = []
 
         # --- LOG NO TERMINAL (PRINT) ---
@@ -29,23 +43,21 @@ class Modulo(ModuloBase):
         print("=" * 50)
 
         if not caminho_paciente:
-            msg = "ERRO: Caminho do paciente veio VAZIO para o módulo."
+            msg = "ERRO: Caminho do paciente veio VAZIO."
             print(f"[!] {msg}")
             self._adicionar_log(msg, "erro")
             return
 
         path_raiz = Path(caminho_paciente)
 
-        # Validação da existência da pasta
         if not path_raiz.exists():
-            msg = f"ERRO: A pasta física não existe: {path_raiz.absolute()}"
+            msg = f"ERRO: Pasta física não encontrada: {path_raiz.absolute()}"
             print(f"[!] {msg}")
             self._adicionar_log(msg, "erro")
         else:
             print(f"[OK] Pasta raiz encontrada: {path_raiz.name}")
             self._adicionar_log(f"Pasta raiz verificada: {path_raiz.name}", "sucesso")
 
-        # Validação do JSON
         path_json = path_raiz / "projeto" / "info.json"
         print(f"PROCURANDO JSON EM: {path_json.absolute()}")
 
@@ -53,9 +65,8 @@ class Modulo(ModuloBase):
 
         if dados:
             self._validar_pastas_terminal(path_raiz)
-            print("[OK] Validação concluída com sucesso no terminal.")
-            self._adicionar_log("JSON lido com sucesso. Veja os detalhes no terminal.", "sucesso")
-            # Mostra o JSON formatado no terminal para inspeção rápida
+            print("[OK] Validação concluída com sucesso.")
+            self._adicionar_log("JSON lido com sucesso. Verifique o terminal para detalhes.", "sucesso")
             print("\nCONTEÚDO DO JSON:")
             print(json.dumps(dados, indent=2, ensure_ascii=False))
 
@@ -84,14 +95,12 @@ class Modulo(ModuloBase):
                 self._adicionar_log(f"Pasta {p} faltando.", "aviso")
 
     def _adicionar_log(self, mensagem, tipo):
-        # Apenas para a interface visual
+        """Adiciona mensagens à interface visual de terminal."""
         cores = {"erro": "#e74c3c", "sucesso": "#2ecc71", "aviso": "#f1c40f"}
         cor = cores.get(tipo, "#ffffff")
+        # Como area_texto agora é persistente, o texto aparecerá na tela
         self.area_texto.append(f"<span style='color:{cor};'>{mensagem}</span>")
 
     def get_workspace(self) -> QtWidgets.QWidget:
-        container = QtWidgets.QWidget()
-        layout = QtWidgets.QVBoxLayout(container)
-        layout.addWidget(QtWidgets.QLabel("<b>Verificação de Sistema (Check Terminal for details)</b>"))
-        layout.addWidget(self.area_texto)
-        return container
+        # --- CORREÇÃO: Retornar sempre a mesma referência fixa ---
+        return self.container_principal
