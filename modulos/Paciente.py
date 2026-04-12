@@ -1,3 +1,5 @@
+# Módulo Paciente
+
 import json
 import time
 from pathlib import Path
@@ -287,7 +289,7 @@ class Modulo(ModuloBase):
         btn = QtWidgets.QPushButton(" Limpar Formulário")
         btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogDiscardButton))
         btn.setStyleSheet(
-            "background-color: #e74c3c; color: white; font-weight: bold; padding: 10px; border-radius: 4px;")
+            "background-color: #e74c3c; color: white; padding: 5px; border-radius: 4px;")
         btn.clicked.connect(self._limpar_formulario)
         lay.addWidget(btn)
         lay.addStretch()

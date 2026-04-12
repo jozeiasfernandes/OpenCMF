@@ -1,5 +1,5 @@
+# Editor de fluxo
 from PySide6 import QtWidgets, QtCore
-
 
 class PaginaEditorFluxo(QtWidgets.QWidget):
     voltar_solicitado = QtCore.Signal()

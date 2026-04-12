@@ -1,111 +1,124 @@
-from functools import partial
-from PySide6 import QtWidgets, QtCore, QtGui
+# WorkspaceManager: Gerencia as abas dos módulos, integrando a área central e a sidebar de ferramentas.
 
+from functools import partial
+from pathlib import Path
+from typing import Optional, Any
+
+from PySide6 import QtWidgets, QtCore, QtGui
 
 class WorkspaceManager(QtWidgets.QTabWidget):
     home_solicitada = QtCore.Signal()
 
+    TOOLBOX_MIN_WIDTH = 35
+    TOOLBOX_MAX_WIDTH = 250
+    HOME_ICON_SIZE = QtCore.QSize(20, 20)
+    HOME_BTN_SIZE = QtCore.QSize(32, 32)
+
     def __init__(self):
         super().__init__()
-        self._configurar_visual()
-        self._inicializar_interface()
+        self._configurar_estilo_abas()
+        self._criar_botao_home()
 
-    def _configurar_visual(self):
+    def _configurar_estilo_abas(self):
         self.setDocumentMode(True)
         self.setTabsClosable(False)
         self.setMovable(False)
-        self.TOOLBOX_MIN = 35  # Aumentado levemente para não cortar o ícone
-        self.TOOLBOX_MAX = 300
-        self.ICONE_HOME = "icones/home.png"
 
-    def _inicializar_interface(self):
+    def _criar_botao_home(self):
         self.btn_home = QtWidgets.QToolButton()
         self.btn_home.setObjectName("botaoHomeWorkspace")
         self.btn_home.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_home.setFixedSize(32, 32)
+        self.btn_home.setFixedSize(self.HOME_BTN_SIZE)
 
-        # Fallback caso o ícone não exista
-        if QtGui.QPixmap(self.ICONE_HOME).isNull():
-            self.btn_home.setText("H")
+        # Caminho absoluto baseado na raiz do projeto conforme sua estrutura
+        raiz = Path(__file__).parent.parent
+        caminho_icone = raiz / "icones" / "home.png"
+
+        if caminho_icone.exists():
+            self.btn_home.setIcon(QtGui.QIcon(str(caminho_icone)))
+            self.btn_home.setIconSize(self.HOME_ICON_SIZE)
         else:
-            self.btn_home.setIcon(QtGui.QIcon(self.ICONE_HOME))
-            self.btn_home.setIconSize(QtCore.QSize(20, 20))
+            self.btn_home.setText("H")
 
         self.btn_home.clicked.connect(self.home_solicitada.emit)
         self.setCornerWidget(self.btn_home, QtCore.Qt.TopLeftCorner)
 
-    def get_modulo_ativo(self):
-        container_atual = self.currentWidget()
-        if container_atual:
-            # Retorna a instância da classe Modulo guardada na propriedade
-            return container_atual.property("modulo_instancia")
-        return None
+    def get_modulo_ativo(self) -> Optional[Any]:
+        container = self.currentWidget()
+        return container.property("modulo_instancia") if container else None
 
-    def adicionar_modulo(self, id_modulo, modulo):
-        # Evita nomes de abas vazios ou estranhos
+    def adicionar_modulo(self, id_modulo: str, modulo_obj: Any):
         titulo = id_modulo.replace("_", " ").capitalize()
-        container = self._criar_container_modulo(modulo)
+        container = self._montar_container_modulo(modulo_obj)
         self.addTab(container, titulo)
 
-    def _criar_container_modulo(self, modulo):
-        widget = QtWidgets.QWidget()
-        widget.setProperty("modulo_instancia", modulo)
+    def _montar_container_modulo(self, modulo_obj: Any) -> QtWidgets.QWidget:
+        page_container = QtWidgets.QWidget()
+        page_container.setProperty("modulo_instancia", modulo_obj)
 
-        layout = QtWidgets.QHBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(0)
+        layout_principal = QtWidgets.QHBoxLayout(page_container)
+        layout_principal.setContentsMargins(0, 0, 0, 0)
+        layout_principal.setSpacing(0)
 
-        # O segredo: Pegar o widget de interface do módulo
-        interface_modulo = modulo.get_workspace()
+        # Container da Área Central (Toolbar + Workspace)
+        centro_widget = QtWidgets.QWidget()
+        centro_layout = QtWidgets.QVBoxLayout(centro_widget)
+        centro_layout.setContentsMargins(0, 0, 0, 0)
+        centro_layout.setSpacing(0)
 
-        # IMPORTANTE: Forçar o widget a ocupar o máximo de espaço possível
-        interface_modulo.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        # Integração da Toolbar (Inconsistência corrigida)
+        toolbar = modulo_obj.get_workspace_toolbar()
+        if toolbar:
+            centro_layout.addWidget(toolbar)
 
-        layout.addWidget(interface_modulo, stretch=1)
+        workspace_widget = modulo_obj.get_workspace()
+        workspace_widget.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+        centro_layout.addWidget(workspace_widget)
 
-        # Sidebar de Ferramentas
-        toolbox_widget = modulo.get_toolbox()
-        sidebar = self._montar_sidebar(toolbox_widget)
-        layout.addWidget(sidebar)
+        layout_principal.addWidget(centro_widget, stretch=1)
 
-        return widget
+        # Sidebar Inteligente (Só adiciona se houver conteúdo real)
+        toolbox_widget = modulo_obj.get_toolbox()
+        if self._validar_toolbox(toolbox_widget):
+            sidebar = self._criar_sidebar_retratil(toolbox_widget)
+            layout_principal.addWidget(sidebar)
 
-    def avancar_aba(self) -> bool:
-        proximo_indice = self.currentIndex() + 1
-        if proximo_indice < self.count():
-            self.setCurrentIndex(proximo_indice)
-            return True
-        return False
+        return page_container
 
-    def _montar_sidebar(self, widget_ferramentas):
+    def _validar_toolbox(self, widget: QtWidgets.QWidget) -> bool:
+        """Verifica se o widget de ferramentas é válido e não apenas um QWidget vazio."""
+        if widget is None:
+            return False
+        # Se for um QWidget puro sem filhos, assumimos que está vazio
+        if type(widget) == QtWidgets.QWidget and not widget.children():
+            return False
+        return True
+
+    def _criar_sidebar_retratil(self, widget_ferramentas: QtWidgets.QWidget) -> QtWidgets.QTabWidget:
         sidebar = QtWidgets.QTabWidget()
         sidebar.setTabPosition(QtWidgets.QTabWidget.East)
-        sidebar.setFixedWidth(self.TOOLBOX_MIN)
+        sidebar.setFixedWidth(self.TOOLBOX_MIN_WIDTH)
 
-        # Garante que o widget de ferramentas não inicie invisível internamente
-        widget_ferramentas.setMinimumWidth(self.TOOLBOX_MAX - 40)
+        widget_ferramentas.setMinimumWidth(self.TOOLBOX_MAX_WIDTH - self.TOOLBOX_MIN_WIDTH)
+        widget_ferramentas.setHidden(True)
 
-        # Adiciona a aba de Ferramentas
         sidebar.addTab(widget_ferramentas, "Ferramentas")
-
-        # Começa com o conteúdo interno escondido
-        widget_ferramentas.setVisible(False)
-
         sidebar.tabBarClicked.connect(partial(self._alternar_sidebar, sidebar))
+
         return sidebar
 
-    def _alternar_sidebar(self, sidebar, indice):
-        conteudo = sidebar.widget(indice)
+    def _alternar_sidebar(self, sidebar: QtWidgets.QTabWidget, index: int):
+        ferramentas = sidebar.widget(index)
+        esta_fechada = sidebar.width() <= self.TOOLBOX_MIN_WIDTH
 
-        # Lógica de toggle (Abrir/Fechar)
-        if sidebar.width() <= self.TOOLBOX_MIN:
-            # Está fechado, vamos abrir
-            sidebar.setFixedWidth(self.TOOLBOX_MAX)
-            conteudo.setVisible(True)
+        if esta_fechada:
+            sidebar.setFixedWidth(self.TOOLBOX_MAX_WIDTH)
+            ferramentas.setHidden(False)
         else:
-            # Está aberto, vamos fechar
-            sidebar.setFixedWidth(self.TOOLBOX_MIN)
-            conteudo.setVisible(False)
+            sidebar.setFixedWidth(self.TOOLBOX_MIN_WIDTH)
+            ferramentas.setHidden(True)
 
-        # Força o layout da janela a se reajustar
         self.updateGeometry()
