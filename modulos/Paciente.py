@@ -1,8 +1,9 @@
 import json
 import time
-from datetime import date
+import re
+import requests
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore, QtGui
 from core.base import ModuloBase
 
 PASTA_PACIENTES = Path("pacientes")
@@ -58,37 +59,74 @@ class Modulo(ModuloBase):
         # --- Dados Principais ---
         self.edit_nome = QtWidgets.QLineEdit()
         self.edit_nome.setPlaceholderText("Nome completo...")
-
         self.edit_cpf = QtWidgets.QLineEdit()
-        self.edit_cpf.setPlaceholderText("000.000.000-00")
-
+        self.edit_cpf.setInputMask("000.000.000-00;_")
+        self.check_estrangeiro = QtWidgets.QCheckBox("Estrangeiro")
+        self.check_estrangeiro.stateChanged.connect(self._toggle_estrangeiro)
         self.edit_email = QtWidgets.QLineEdit()
-        self.edit_email.setPlaceholderText("exemplo@email.com")
-
+        self.edit_celular = QtWidgets.QLineEdit()
+        self.edit_celular.setInputMask("(00) 00000-0000;_")
         self.edit_nascimento = QtWidgets.QDateEdit(calendarPopup=True)
         self.edit_nascimento.setDisplayFormat("dd/MM/yyyy")
         self.edit_nascimento.setDate(QtCore.QDate.currentDate())
-
         self.combo_sexo = QtWidgets.QComboBox()
         self.combo_sexo.addItems(["Masculino", "Feminino", "Outro"])
 
         # --- Endereço ---
+        self.edit_cep = QtWidgets.QLineEdit()
+        self.edit_cep.setInputMask("00000-000;_")
+        self.btn_buscar_cep = QtWidgets.QPushButton("Buscar")
+        self.btn_buscar_cep.clicked.connect(self._buscar_cep)
         self.edit_logradouro = QtWidgets.QLineEdit()
         self.edit_cidade = QtWidgets.QLineEdit()
         self.edit_estado = QtWidgets.QLineEdit()
+        self.edit_pais = QtWidgets.QLineEdit()
+        self.edit_pais.setText("Brasil")
 
         # --- Dados Clínicos ---
-        self.edit_diagnostico = QtWidgets.QTextEdit()
-        self.edit_diagnostico.setMaximumHeight(80)
+        self.edit_diagnostico = QtWidgets.QLineEdit()
+        self.edit_historia_medica = QtWidgets.QTextEdit()
+        self.edit_historia_medica.setMaximumHeight(60)
         self.edit_alergias = QtWidgets.QLineEdit()
+        self.edit_medicacoes = QtWidgets.QLineEdit()
+        self.edit_habitos = QtWidgets.QLineEdit()
+        self.edit_planejamento = QtWidgets.QTextEdit()
+        self.edit_planejamento.setMaximumHeight(80)
 
         # --- Arquivos ---
+        self.edit_fotos = QtWidgets.QLineEdit()  # Adicionado
         self.edit_tomografia = QtWidgets.QLineEdit()
         self.edit_maxila = QtWidgets.QLineEdit()
         self.edit_mandibula = QtWidgets.QLineEdit()
         self.edit_face = QtWidgets.QLineEdit()
 
         self.btn_salvar = QtWidgets.QPushButton("Salvar Projeto")
+
+    def _toggle_estrangeiro(self, state):
+        is_estrangeiro = state == QtCore.Qt.Checked.value
+        self.edit_cpf.setEnabled(not is_estrangeiro)
+        if is_estrangeiro:
+            self.edit_cpf.setInputMask("")
+            self.edit_cpf.setText("ISENTO")
+            self.edit_pais.setText("")
+        else:
+            self.edit_cpf.setInputMask("000.000.000-00;_")
+            self.edit_cpf.clear()
+            self.edit_pais.setText("Brasil")
+
+    def _buscar_cep(self):
+        cep = re.sub(r'\D', '', self.edit_cep.text())
+        if len(cep) != 8: return
+        try:
+            response = requests.get(f"https://viacep.com.br/ws/{cep}/json/")
+            if response.status_code == 200 and "erro" not in response.json():
+                dados = response.json()
+                self.edit_logradouro.setText(dados.get("logradouro", ""))
+                self.edit_cidade.setText(dados.get("localidade", ""))
+                self.edit_estado.setText(dados.get("uf", ""))
+                self.edit_pais.setText("Brasil")
+        except:
+            pass
 
     def inicializar(self, caminho_paciente: str) -> None:
         super().inicializar(caminho_paciente)
@@ -98,183 +136,185 @@ class Modulo(ModuloBase):
         if path_json.exists():
             try:
                 with open(path_json, "r", encoding="utf-8") as f:
-                    dados = json.load(f)
+                    d = json.load(f)
 
-                p = dados.get("paciente", {})
-                e = dados.get("endereco", {})
-                c = dados.get("clinico", {})
-                paths = dados.get("caminhos", {})
+                p, e, c, paths = d.get("paciente", {}), d.get("endereco", {}), d.get("clinico", {}), d.get("caminhos",
+                                                                                                           {})
 
-                # Set Dados Principais
                 self.edit_nome.setText(p.get("nome", ""))
                 self.edit_cpf.setText(p.get("cpf", ""))
+                self.check_estrangeiro.setChecked(p.get("estrangeiro", False))
                 self.edit_email.setText(p.get("email", ""))
+                self.edit_celular.setText(p.get("celular", ""))
                 self.combo_sexo.setCurrentText(p.get("sexo", "Masculino"))
                 if p.get("nascimento"):
                     self.edit_nascimento.setDate(QtCore.QDate.fromString(p["nascimento"], "yyyy-MM-dd"))
 
-                # Set Endereço
+                self.edit_cep.setText(e.get("cep", ""))
                 self.edit_logradouro.setText(e.get("logradouro", ""))
                 self.edit_cidade.setText(e.get("cidade", ""))
                 self.edit_estado.setText(e.get("estado", ""))
+                self.edit_pais.setText(e.get("pais", "Brasil"))
 
-                # Set Clínico
-                self.edit_diagnostico.setPlainText(c.get("diagnostico", ""))
+                self.edit_diagnostico.setText(c.get("diagnostico", ""))
+                self.edit_historia_medica.setPlainText(c.get("historia_medica", ""))
                 self.edit_alergias.setText(c.get("alergias", ""))
+                self.edit_medicacoes.setText(c.get("medicacoes", ""))
+                self.edit_habitos.setText(c.get("habitos", ""))
+                self.edit_planejamento.setPlainText(c.get("planejamento", ""))
 
-                # Set Arquivos
+                self.edit_fotos.setText(paths.get("fotos", ""))
                 self.edit_tomografia.setText(paths.get("dicom", ""))
                 self.edit_maxila.setText(paths.get("maxila", ""))
                 self.edit_mandibula.setText(paths.get("mandibula", ""))
                 self.edit_face.setText(paths.get("face", ""))
-
-            except Exception as e:
-                print(f"Erro carga: {e}")
+            except Exception as ex:
+                print(f"Erro ao carregar: {ex}")
 
     def _processar_cadastro(self):
         nome = self.edit_nome.text().strip()
         if not nome:
-            QtWidgets.QMessageBox.warning(self.main_container, "Atenção", "O nome é obrigatório.")
+            QtWidgets.QMessageBox.warning(self.main_container, "Erro", "Nome é obrigatório.")
             return
 
         try:
             if self.pasta_paciente and Path(self.pasta_paciente).exists():
                 diretorio = Path(self.pasta_paciente)
             else:
-                projeto_id = f"PRJ_{int(time.time())}_{nome.replace(' ', '_').upper()}"
-                diretorio = PASTA_PACIENTES / projeto_id
+                diretorio = PASTA_PACIENTES / f"PRJ_{int(time.time())}_{nome.replace(' ', '_').upper()}"
 
             for sub in ["projeto", "modulo_tomografia", "modulo_osteotomia"]:
                 (diretorio / sub).mkdir(parents=True, exist_ok=True)
 
-            info_path = diretorio / "projeto" / "info.json"
-            dados_finais = {}
-            if info_path.exists():
-                with open(info_path, "r", encoding="utf-8") as f: dados_finais = json.load(f)
-
-            dados_finais["paciente"] = {
-                "nome": nome,
-                "cpf": self.edit_cpf.text(),
-                "email": self.edit_email.text(),
-                "nascimento": self.edit_nascimento.date().toString("yyyy-MM-dd"),
-                "sexo": self.combo_sexo.currentText()
+            dados = {
+                "paciente": {
+                    "nome": nome, "cpf": self.edit_cpf.text(), "email": self.edit_email.text(),
+                    "celular": self.edit_celular.text(), "estrangeiro": self.check_estrangeiro.isChecked(),
+                    "nascimento": self.edit_nascimento.date().toString("yyyy-MM-dd"),
+                    "sexo": self.combo_sexo.currentText()
+                },
+                "endereco": {
+                    "cep": self.edit_cep.text(), "logradouro": self.edit_logradouro.text(),
+                    "cidade": self.edit_cidade.text(), "estado": self.edit_estado.text(), "pais": self.edit_pais.text()
+                },
+                "clinico": {
+                    "diagnostico": self.edit_diagnostico.text(),
+                    "historia_medica": self.edit_historia_medica.toPlainText(),
+                    "alergias": self.edit_alergias.text(), "medicacoes": self.edit_medicacoes.text(),
+                    "habitos": self.edit_habitos.text(), "planejamento": self.edit_planejamento.toPlainText()
+                },
+                "caminhos": {
+                    "workspace": str(diretorio.absolute()), "fotos": self.edit_fotos.text(),
+                    "dicom": self.edit_tomografia.text(), "maxila": self.edit_maxila.text(),
+                    "mandibula": self.edit_mandibula.text(), "face": self.edit_face.text()
+                }
             }
-            dados_finais["endereco"] = {
-                "logradouro": self.edit_logradouro.text(),
-                "cidade": self.edit_cidade.text(),
-                "estado": self.edit_estado.text()
-            }
-            dados_finais["clinico"] = {
-                "diagnostico": self.edit_diagnostico.toPlainText(),
-                "alergias": self.edit_alergias.text()
-            }
 
-            if "caminhos" not in dados_finais: dados_finais["caminhos"] = {}
-            dados_finais["caminhos"].update({
-                "workspace": str(diretorio.absolute()),
-                "dicom": self.edit_tomografia.text(),
-                "maxila": self.edit_maxila.text(),
-                "mandibula": self.edit_mandibula.text(),
-                "face": self.edit_face.text()
-            })
-
-            with open(info_path, "w", encoding="utf-8") as f:
-                json.dump(dados_finais, f, indent=4, ensure_ascii=False)
+            with open(diretorio / "projeto" / "info.json", "w", encoding="utf-8") as f:
+                json.dump(dados, f, indent=4, ensure_ascii=False)
 
             self.pasta_paciente = str(diretorio)
             QtWidgets.QMessageBox.information(self.main_container, "Sucesso", "Dados salvos!")
             self.concluido.emit()
-
         except Exception as e:
             QtWidgets.QMessageBox.critical(self.main_container, "Erro", str(e))
 
     def get_workspace(self) -> QtWidgets.QWidget:
         if self.main_container.layout(): return self.main_container
-
         layout = QtWidgets.QVBoxLayout(self.main_container)
 
-        # --- 1. Informações do Paciente (Dados Principais) ---
-        group_pessoal = QtWidgets.QGroupBox("Informações do Paciente")
-        layout_pessoal = QtWidgets.QVBoxLayout(group_pessoal)
+        # 1. Informações Paciente
+        gp = QtWidgets.QGroupBox("Informações do Paciente");
+        lp = QtWidgets.QVBoxLayout(gp)
+        r1 = QtWidgets.QHBoxLayout();
+        r1.addWidget(QtWidgets.QLabel("Nome:"));
+        r1.addWidget(self.edit_nome);
+        r1.addWidget(self.check_estrangeiro)
+        r2 = QtWidgets.QHBoxLayout();
+        r2.addWidget(QtWidgets.QLabel("CPF:"));
+        r2.addWidget(self.edit_cpf);
+        r2.addWidget(QtWidgets.QLabel("Celular:"));
+        r2.addWidget(self.edit_celular)
+        r3 = QtWidgets.QHBoxLayout();
+        r3.addWidget(QtWidgets.QLabel("E-mail:"));
+        r3.addWidget(self.edit_email);
+        r3.addWidget(QtWidgets.QLabel("Nasc.:"));
+        r3.addWidget(self.edit_nascimento);
+        r3.addWidget(QtWidgets.QLabel("Sexo:"));
+        r3.addWidget(self.combo_sexo)
+        lp.addLayout(r1);
+        lp.addLayout(r2);
+        lp.addLayout(r3);
+        layout.addWidget(gp)
 
-        # 1ª Linha: Nome
-        row1 = QtWidgets.QHBoxLayout()
-        row1.addWidget(QtWidgets.QLabel("Nome:"))
-        row1.addWidget(self.edit_nome)
-        layout_pessoal.addLayout(row1)
+        # 2. Endereço
+        sec_end = SecaoRetratil("Endereço", False);
+        f_end = QtWidgets.QFormLayout()
+        row_cep = QtWidgets.QHBoxLayout();
+        row_cep.addWidget(self.edit_cep);
+        row_cep.addWidget(self.btn_buscar_cep)
+        f_end.addRow("CEP:", row_cep);
+        f_end.addRow("Logradouro:", self.edit_logradouro);
+        f_end.addRow("Cidade:", self.edit_cidade);
+        f_end.addRow("Estado:", self.edit_estado);
+        f_end.addRow("País:", self.edit_pais)
+        sec_end.layout_interno().addLayout(f_end);
+        layout.addWidget(sec_end)
 
-        # 2ª Linha: CPF e E-mail
-        row2 = QtWidgets.QHBoxLayout()
-        row2.addWidget(QtWidgets.QLabel("CPF:"))
-        row2.addWidget(self.edit_cpf)
-        row2.addSpacing(10)
-        row2.addWidget(QtWidgets.QLabel("E-mail:"))
-        row2.addWidget(self.edit_email)
-        layout_pessoal.addLayout(row2)
+        # 3. Dados Clínicos
+        sec_clin = SecaoRetratil("Dados clínicos", False);
+        f_clin = QtWidgets.QFormLayout()
+        f_clin.addRow("Diagnóstico:", self.edit_diagnostico);
+        f_clin.addRow("História Médica:", self.edit_historia_medica)
+        f_clin.addRow("Alergias:", self.edit_alergias);
+        f_clin.addRow("Medicações:", self.edit_medicacoes)
+        f_clin.addRow("Hábitos/Vícios:", self.edit_habitos);
+        f_clin.addRow("Planejamento:", self.edit_planejamento)
+        sec_clin.layout_interno().addLayout(f_clin);
+        layout.addWidget(sec_clin)
 
-        # 3ª Linha: Nascimento e Sexo
-        row3 = QtWidgets.QHBoxLayout()
-        row3.addWidget(QtWidgets.QLabel("Nascimento:"))
-        row3.addWidget(self.edit_nascimento)
-        row3.addSpacing(10)
-        row3.addWidget(QtWidgets.QLabel("Sexo:"))
-        row3.addWidget(self.combo_sexo)
-        row3.addStretch()
-        layout_pessoal.addLayout(row3)
+        # 4. Arquivos Base (Visível por padrão)
+        sec_arq = SecaoRetratil("Arquivos do paciente", True);
+        f_arq = QtWidgets.QFormLayout()
+        f_arq.addRow("Tomografia:", self._criar_linha_arquivo(self.edit_tomografia, True))
+        f_arq.addRow("Scan Maxila:", self._criar_linha_arquivo(self.edit_maxila, False))
+        f_arq.addRow("Scan Mandíbula:", self._criar_linha_arquivo(self.edit_mandibula, False))
+        f_arq.addRow("Scan Face:", self._criar_linha_arquivo(self.edit_face, False))
+        f_arq.addRow("Fotografias:", self._criar_linha_arquivo(self.edit_fotos, True))
+        sec_arq.layout_interno().addLayout(f_arq);
+        layout.addWidget(sec_arq)
 
-        layout.addWidget(group_pessoal)
-
-        # --- 2. Seção Endereço (Oculta) ---
-        secao_end = SecaoRetratil("ENDEREÇO", False)
-        form_end = QtWidgets.QFormLayout()
-        form_end.addRow("Logradouro:", self.edit_logradouro)
-        form_end.addRow("Cidade:", self.edit_cidade)
-        form_end.addRow("Estado:", self.edit_estado)
-        secao_end.layout_interno().addLayout(form_end)
-        layout.addWidget(secao_end)
-
-        # --- 3. Seção Dados Clínicos (Oculta) ---
-        secao_clin = SecaoRetratil("DADOS CLÍNICOS", False)
-        form_clin = QtWidgets.QFormLayout()
-        form_clin.addRow("Diagnóstico:", self.edit_diagnostico)
-        form_clin.addRow("Alergias:", self.edit_alergias)
-        secao_clin.layout_interno().addLayout(form_clin)
-        layout.addWidget(secao_clin)
-
-        # --- 4. Arquivos Base ---
-        group_arq = QtWidgets.QGroupBox("Arquivos Base")
-        form_arq = QtWidgets.QFormLayout(group_arq)
-        form_arq.addRow("Tomografia:", self._criar_linha_arquivo(self.edit_tomografia, True))
-        form_arq.addRow("STL Maxila:", self._criar_linha_arquivo(self.edit_maxila, False))
-        form_arq.addRow("STL Mandíbula:", self._criar_linha_arquivo(self.edit_mandibula, False))
-        form_arq.addRow("STL Face:", self._criar_linha_arquivo(self.edit_face, False))
-        layout.addWidget(group_arq)
-
-        self.btn_salvar.setMinimumHeight(40)
+        self.btn_salvar.setMinimumHeight(40);
         self.btn_salvar.clicked.connect(self._processar_cadastro)
-        layout.addStretch()
+        layout.addStretch();
         layout.addWidget(self.btn_salvar)
-
         return self.main_container
 
-    def _criar_linha_arquivo(self, line_edit, folder=True):
-        widget = QtWidgets.QWidget()
-        lay = QtWidgets.QHBoxLayout(widget)
-        lay.setContentsMargins(0, 0, 0, 0)
-        lay.addWidget(line_edit)
-        btn = QtWidgets.QToolButton()
-        btn.setText("...")
-        btn.clicked.connect(lambda: self._buscar_caminho(line_edit, folder))
-        lay.addWidget(btn)
-        return widget
+    def _criar_linha_arquivo(self, edit, folder=True):
+        w = QtWidgets.QWidget();
+        l = QtWidgets.QHBoxLayout(w);
+        l.setContentsMargins(0, 0, 0, 0);
+        l.addWidget(edit)
+        b = QtWidgets.QToolButton();
+        b.setText("...");
+        b.clicked.connect(lambda: self._buscar_caminho(edit, folder));
+        l.addWidget(b)
+        return w
 
-    def _buscar_caminho(self, target_edit, folder=True):
-        if folder:
-            path = QtWidgets.QFileDialog.getExistingDirectory(self.main_container, "Pasta")
-        else:
-            path, _ = QtWidgets.QFileDialog.getOpenFileName(self.main_container, "Arquivo", "",
-                                                            "Malhas (*.stl *.obj *.ply)")
-        if path: target_edit.setText(path)
+    def _buscar_caminho(self, target, folder=True):
+        p = QtWidgets.QFileDialog.getExistingDirectory(self.main_container, "Selecionar Pasta") if folder else \
+            QtWidgets.QFileDialog.getOpenFileName(self.main_container, "Selecionar Arquivo", "",
+                                                  "Malhas (*.stl *.obj *.ply)")[0]
+        if p: target.setText(p)
 
-    def get_toolbox(self):
-        return QtWidgets.QWidget()
+    def get_toolbox(self) -> QtWidgets.QWidget:
+        toolbox = QtWidgets.QWidget();
+        lay = QtWidgets.QVBoxLayout(toolbox)
+        btn = QtWidgets.QPushButton(" Limpar Formulário")
+        btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogDiscardButton))
+        btn.setStyleSheet(
+            "background-color: #e74c3c; color: white; font-weight: bold; padding: 10px; border-radius: 4px;")
+        btn.clicked.connect(lambda: self._limpar_formulario())
+        lay.addWidget(btn);
+        lay.addStretch()
+        return toolbox
