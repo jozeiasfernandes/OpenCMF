@@ -19,7 +19,6 @@ class Tela_Inicial(QtWidgets.QWidget):
 
     def __init__(self):
         super().__init__()
-        # Inicializa o gerenciador de lógica
         self.manager = ProjectManager(PASTA_PACIENTES, PASTA_FLUXOS)
         self._setup_ui()
         self.atualizar_listas()
@@ -38,7 +37,6 @@ class Tela_Inicial(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(painel)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Logo / Botão Créditos
         self.btn_cmf = QtWidgets.QPushButton()
         self.btn_cmf.setFixedSize(90, 40)
         self.btn_cmf.setCursor(QtCore.Qt.PointingHandCursor)
@@ -55,7 +53,6 @@ class Tela_Inicial(QtWidgets.QWidget):
         layout.addWidget(self.btn_cmf)
         layout.addStretch()
 
-        # Botão Configurações
         self.btn_settings = QtWidgets.QPushButton()
         self.btn_settings.setObjectName("btn_settings")
         self.btn_settings.setFixedSize(40, 40)
@@ -80,19 +77,42 @@ class Tela_Inicial(QtWidgets.QWidget):
 
         header = QtWidgets.QHBoxLayout()
         header.addWidget(QtWidgets.QLabel("<h3>Projetos recentes</h3>"))
+        header.addStretch()
 
-        self.btn_novo_projeto = QtWidgets.QPushButton("+ NOVO PROJETO")
+        layout_botoes = QtWidgets.QHBoxLayout()
+        layout_botoes.setSpacing(5)
+
+        self.btn_novo_projeto = QtWidgets.QPushButton("Novo projeto")
         self.btn_novo_projeto.setObjectName("btn_novo_projeto")
-        self.btn_novo_projeto.setProperty("class", "botao-acao")
-        self.btn_novo_projeto.setFixedSize(180, 40)
+        self.btn_novo_projeto.setFixedSize(100, 30)
         self.btn_novo_projeto.clicked.connect(
             lambda: self.fluxo_escolhido.emit(FLUXO_CADASTRO)
         )
 
-        header.addWidget(self.btn_novo_projeto)
+        self.btn_remover_projeto = QtWidgets.QPushButton("Excluir")
+        self.btn_remover_projeto.setObjectName("btn_remover_projeto")
+        self.btn_remover_projeto.setFixedSize(100, 30)
+        self.btn_remover_projeto.setStyleSheet("""
+            QPushButton#btn_remover_projeto {
+                background-color: #c0392b;
+                color: white;
+                font-weight: bold;
+                border-radius: 4px;
+            }
+            QPushButton#btn_remover_projeto:hover {
+                background-color: #e74c3c;
+            }
+        """)
+        self.btn_remover_projeto.clicked.connect(self._ao_clicar_remover_botao)
+
+        layout_botoes.addWidget(self.btn_novo_projeto)
+        layout_botoes.addWidget(self.btn_remover_projeto)
+        header.addLayout(layout_botoes)
 
         self.lista_projetos = QtWidgets.QListWidget()
         self.lista_projetos.setMinimumHeight(120)
+        self.lista_projetos.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.lista_projetos.customContextMenuRequested.connect(self._mostrar_menu_contexto)
         self.lista_projetos.itemDoubleClicked.connect(self._ao_clicar_projeto)
 
         layout.addLayout(header)
@@ -106,13 +126,36 @@ class Tela_Inicial(QtWidgets.QWidget):
 
         header = QtWidgets.QHBoxLayout()
         header.addWidget(QtWidgets.QLabel("<h3>Fluxos Disponíveis</h3>"))
+        header.addStretch()
 
-        btn_novo_fluxo = QtWidgets.QPushButton("CRIAR NOVO FLUXO")
-        btn_novo_fluxo.setProperty("class", "botao-acao")
-        btn_novo_fluxo.setFixedSize(180, 40)
+        layout_botoes_fluxo = QtWidgets.QHBoxLayout()
+        layout_botoes_fluxo.setSpacing(5)
+
+        btn_novo_fluxo = QtWidgets.QPushButton("Novo fluxo")
+        btn_novo_fluxo.setFixedSize(100, 30)
         btn_novo_fluxo.clicked.connect(self.editor_solicitado.emit)
 
-        header.addWidget(btn_novo_fluxo, alignment=QtCore.Qt.AlignRight)
+        # Novo botão para excluir fluxo seguindo o padrão visual da seção acima
+        self.btn_remover_fluxo = QtWidgets.QPushButton("Excluir")
+        self.btn_remover_fluxo.setFixedSize(100, 30)
+        self.btn_remover_fluxo.setStyleSheet("""
+            QPushButton {
+                background-color: #c0392b;
+                color: white;
+                font-weight: bold;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e74c3c;
+            }
+        """)
+        # Nota: Idealmente, a exclusão de fluxos deve ser feita via menu de contexto no Card.
+        # Mas para o botão do header, vamos conectar a um método de aviso/instrução.
+        self.btn_remover_fluxo.clicked.connect(self._instruir_exclusao_fluxo)
+
+        layout_botoes_fluxo.addWidget(btn_novo_fluxo)
+        layout_botoes_fluxo.addWidget(self.btn_remover_fluxo)
+        header.addLayout(layout_botoes_fluxo)
 
         self.scroll_fluxos = QtWidgets.QScrollArea()
         self.scroll_fluxos.setWidgetResizable(True)
@@ -121,7 +164,8 @@ class Tela_Inicial(QtWidgets.QWidget):
         self.container_cards = QtWidgets.QWidget()
         self.layout_cards = QtWidgets.QVBoxLayout(self.container_cards)
         self.layout_cards.setAlignment(QtCore.Qt.AlignTop)
-        self.layout_cards.setSpacing(10)
+        self.layout_cards.setSpacing(0)
+        self.layout_cards.setContentsMargins(5, 5, 5, 5)
 
         self.scroll_fluxos.setWidget(self.container_cards)
         layout.addLayout(header)
@@ -135,28 +179,79 @@ class Tela_Inicial(QtWidgets.QWidget):
     def _carregar_projetos(self):
         self.lista_projetos.clear()
         projetos = self.manager.listar_projetos_recentes()
-
         for proj in projetos:
             nome = proj.get("paciente", {}).get("nome", "Desconhecido")
             item = QtWidgets.QListWidgetItem(nome)
-            # Usamos a chave auxiliar criada no ProjectManager
             item.setData(QtCore.Qt.UserRole, proj.get("_caminho_local"))
             self.lista_projetos.addItem(item)
 
+    def _mostrar_menu_contexto(self, posicao):
+        item = self.lista_projetos.itemAt(posicao)
+        if not item: return
+        menu = QtWidgets.QMenu()
+        acao_abrir = menu.addAction("Abrir Projeto")
+        acao_remover = menu.addAction("Remover Projeto")
+        acao_remover.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TrashIcon))
+        escolha = menu.exec(self.lista_projetos.mapToGlobal(posicao))
+        if escolha == acao_abrir:
+            self._ao_clicar_projeto(item)
+        elif escolha == acao_remover:
+            self._confirmar_remocao(item)
+
+    def _ao_clicar_remover_botao(self):
+        item_selecionado = self.lista_projetos.currentItem()
+        if not item_selecionado:
+            QtWidgets.QMessageBox.warning(self, "Aviso", "Selecione um projeto na lista para excluir.")
+            return
+        self._confirmar_remocao(item_selecionado)
+
+    def _confirmar_remocao(self, item):
+        nome_paciente = item.text()
+        caminho = item.data(QtCore.Qt.UserRole)
+        pergunta = QtWidgets.QMessageBox.question(
+            self, "Confirmar Exclusão",
+            f"Deseja apagar permanentemente o projeto de: {nome_paciente}?\nEsta ação não pode ser desfeita.",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+        )
+        if pergunta == QtWidgets.QMessageBox.Yes:
+            if self.manager.remover_projeto(caminho):
+                self._carregar_projetos()
+            else:
+                QtWidgets.QMessageBox.critical(self, "Erro", "Não foi possível remover a pasta do projeto.")
+
+    def _instruir_exclusao_fluxo(self):
+        QtWidgets.QMessageBox.information(
+            self, "Como excluir fluxos",
+            "Para excluir um fluxo, clique com o botão direito sobre o card desejado e selecione 'Remover'."
+        )
+
     def _carregar_fluxos(self):
-        # Limpa widgets antigos
         while self.layout_cards.count():
             item = self.layout_cards.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+            if item.widget(): item.widget().deleteLater()
 
         fluxos = self.manager.listar_fluxos_disponiveis(ignorar_arquivo=FLUXO_CADASTRO)
-
         for dados in fluxos:
-            # Instancia o card refatorado
             card = FluxoCard(dados, dados["_caminho_arquivo"])
             card.clicado.connect(self.fluxo_escolhido.emit)
+            # Conecta um sinal customizado do seu FluxoCard para a lógica de deleção
+            if hasattr(card, 'exclusao_solicitada'):
+                card.exclusao_solicitada.connect(self._confirmar_remocao_fluxo)
+
             self.layout_cards.addWidget(card)
+
+        self.layout_cards.addStretch()
+
+    def _confirmar_remocao_fluxo(self, caminho_arquivo):
+        nome_fluxo = Path(caminho_arquivo).stem
+        pergunta = QtWidgets.QMessageBox.question(
+            self, "Confirmar Exclusão",
+            f"Deseja apagar o fluxo: {nome_fluxo}?\nEsta ação não pode ser desfeita.",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+        )
+        if pergunta == QtWidgets.QMessageBox.Yes:
+            if self.manager.remover_fluxo(caminho_arquivo):
+                self._carregar_fluxos()
 
     def _abrir_creditos(self):
         self.janela_creditos = Janela_Creditos(self)

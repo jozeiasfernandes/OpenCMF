@@ -26,7 +26,7 @@ QTabWidget::pane {
 /* Botão de Configurações (Engrenagem) */
 QPushButton#btn_settings {
     background-color: transparent;
-    border-radius: 20px;
+    border-radius: 10px;
     color: white;
 }
 
@@ -50,7 +50,7 @@ QPushButton[class="botao-acao"]:hover {
 QFrame#card_container {
     background-color: #1e1e1e;
     border: 1px solid #333;
-    border-radius: 8px;
+    border-radius: 5px;
 }
 
 QFrame#card_container:hover {
