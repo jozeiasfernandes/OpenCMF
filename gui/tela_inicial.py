@@ -160,8 +160,16 @@ class Tela_Inicial(QtWidgets.QWidget):
     def _carregar_projetos(self):
         self.lista_projetos.clear()
         projetos = self.manager.listar_projetos_recentes()
+
         for proj in projetos:
-            nome = proj.get("paciente", {}).get("nome", "Desconhecido")
+            # Tenta pegar o nome do JSON, se não existir usa o nome da pasta (que é o ID)
+            paciente_info = proj.get("paciente") or {}
+            nome = paciente_info.get("nome")
+
+            if not nome:
+                # Fallback para o nome da pasta caso o JSON esteja incompleto
+                nome = Path(proj.get("_caminho_local", "")).name or "Paciente sem nome"
+
             item = QtWidgets.QListWidgetItem(nome)
             item.setData(QtCore.Qt.UserRole, proj.get("_caminho_local"))
             self.lista_projetos.addItem(item)

@@ -35,23 +35,46 @@ class ProjectManager:
 
     def listar_projetos_recentes(self) -> List[Dict[str, Any]]:
         projetos = []
-
-        # Padrão de busca: pacientes/*/projeto/info.json
         arquivos_info = self.pasta_pacientes.glob("*/projeto/info.json")
 
         for caminho in arquivos_info:
             dados = self._carregar_json(caminho)
             if dados:
-                # Armazena a raiz do paciente (dois níveis acima de info.json)
                 dados["_caminho_local"] = str(caminho.parents[1])
+
+                # FALLBACK: Se não houver data_criacao no JSON, usa a data do sistema
+                if "data_criacao" not in dados:
+                    dados["data_criacao"] = caminho.stat().st_mtime
+
                 projetos.append(dados)
 
+        # Ordenação decrescente (mais recentes primeiro)
         return self._ordenar_projetos(projetos)
 
     def _ordenar_projetos(self, projetos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        # reverse=True coloca o maior valor (data mais recente) no topo
         return sorted(
             projetos,
             key=lambda x: x.get("data_criacao", ""),
+            reverse=True
+        )
+
+    def _ordenar_projetos(self, projetos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Ordena os projetos garantindo que todos os tipos de data sejam comparáveis."""
+
+        def chave_ordenacao(proj):
+            data = proj.get("data_criacao", "")
+            # Se a data for um número (float/int), converte para string
+            if isinstance(data, (int, float)):
+                return str(data)
+            # Se for None ou algo vazio, retorna uma string vazia para ir pro final da lista
+            if data is None:
+                return ""
+            return str(data)
+
+        return sorted(
+            projetos,
+            key=chave_ordenacao,
             reverse=True
         )
 

@@ -66,6 +66,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.config.voltar_solicitado.connect(self.exibir_home)
 
         self.config.tema_alterado.connect(self.aplicar_tema)
+        # Sincroniza o módulo sempre que o usuário trocar de aba no Workspace
         self.workspace.currentChanged.connect(self._inicializar_modulo_ativo)
 
     def _carregar_configuracoes_iniciais(self):
@@ -96,6 +97,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def selecionar_paciente(self, caminho_pasta: str, modo: str):
         self.pasta_paciente_atual = str(Path(caminho_pasta).resolve())
+        print(f">>> [PACIENTE] Selecionado: {self.pasta_paciente_atual}")
 
     def iniciar_fluxo_trabalho(self, caminho_json: str):
         path_fluxo = Path(caminho_json)
@@ -109,12 +111,12 @@ class MainWindow(QtWidgets.QMainWindow):
             dados = json.loads(path_fluxo.read_text(encoding="utf-8"))
             self._configurar_workspace(dados)
             self.stack.setCurrentWidget(self.workspace)
-            self._inicializar_modulo_ativo()
+            # Garante que o primeiro módulo carregue os dados
+            QtCore.QTimer.singleShot(100, self._inicializar_modulo_ativo)
         except Exception as e:
             self._notificar_erro("Falha ao carregar fluxo", e)
 
     def _configurar_workspace(self, dados: Dict[str, Any]):
-        """Carrega os módulos como abas independentes no Workspace."""
         self.workspace.blockSignals(True)
         self.workspace.clear()
         self.modulos_instanciados.clear()
@@ -123,7 +125,6 @@ class MainWindow(QtWidgets.QMainWindow):
         for id_modulo in self.fluxo.sequencia:
             instancia = ModuloFactory.carregar_modulo(id_modulo)
             if instancia:
-                # Conecta o sinal de conclusão para salvar dados, mas não para mudar de aba
                 instancia.concluido.connect(self._on_modulo_concluido)
                 self.modulos_instanciados.append(instancia)
                 self.workspace.adicionar_modulo(id_modulo, instancia)
@@ -131,30 +132,37 @@ class MainWindow(QtWidgets.QMainWindow):
         self.workspace.blockSignals(False)
 
     def _inicializar_modulo_ativo(self):
+        """Injeta o caminho do paciente e valida o módulo ao ativar a aba."""
         modulo = self.workspace.get_modulo_ativo()
         if not modulo:
             return
 
-        self.workspace.blockSignals(True)
-        try:
-            if self.pasta_paciente_atual:
-                sucesso, msg = modulo.verificar_pre_requisitos()
-                if sucesso:
-                    modulo.inicializar(self.pasta_paciente_atual)
-                else:
-                    QtWidgets.QMessageBox.warning(self, "Pré-requisitos", msg)
-        finally:
-            self.workspace.blockSignals(False)
+        if self.pasta_paciente_atual:
+            # Sincroniza a pasta do paciente no objeto do módulo
+            modulo.pasta_paciente = self.pasta_paciente_atual
+
+            sucesso, msg = modulo.verificar_pre_requisitos()
+
+            # Obtém um nome legível para o log (evita AttributeError)
+            nome_modulo = getattr(modulo, 'nome', modulo.__class__.__name__)
+
+            if sucesso:
+                print(f">>> [SISTEMA] Inicializando módulo: {nome_modulo}")
+                modulo.inicializar(self.pasta_paciente_atual)
+            else:
+                print(f">>> [AVISO] Pré-requisitos não atendidos para {nome_modulo}: {msg}")
+                # Não exibe warning para o módulo de cadastro
+                if "cadastro" not in str(modulo.__class__.__name__).lower():
+                    QtWidgets.QMessageBox.warning(self, "Atenção", msg)
 
     def _on_modulo_concluido(self):
-        """Ação ao clicar em salvar/concluir dentro de um módulo."""
+        """Atualiza o estado global quando um módulo termina uma tarefa."""
         modulo_origem = self.sender()
-
-        # Sincroniza a pasta do paciente se o módulo gerou um novo diretório (ex: Cadastro)
         if hasattr(modulo_origem, 'pasta_paciente') and modulo_origem.pasta_paciente:
             self.pasta_paciente_atual = str(Path(modulo_origem.pasta_paciente).resolve())
 
-        print(f">>> [SUCESSO] Progresso salvo no módulo: {modulo_origem.nome}")
+        nome_modulo = getattr(modulo_origem, 'nome', modulo_origem.__class__.__name__)
+        print(f">>> [SUCESSO] Módulo '{nome_modulo}' finalizado.")
 
     def _notificar_erro(self, titulo: str, erro: Exception):
         logging.error(f"{titulo}: {erro}", exc_info=True)
