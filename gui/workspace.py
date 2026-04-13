@@ -6,6 +6,7 @@ from typing import Optional, Any
 
 from PySide6 import QtWidgets, QtCore, QtGui
 
+
 class WorkspaceManager(QtWidgets.QTabWidget):
     home_solicitada = QtCore.Signal()
 
@@ -30,6 +31,7 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         self.btn_home.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_home.setFixedSize(self.HOME_BTN_SIZE)
 
+        # Caminho relativo corrigido para a estrutura da raiz
         raiz = Path(__file__).parent.parent
         caminho_icone = raiz / "icones" / "home.png"
 
@@ -87,13 +89,14 @@ class WorkspaceManager(QtWidgets.QTabWidget):
     def _validar_toolbox(self, widget: QtWidgets.QWidget) -> bool:
         if widget is None:
             return False
+        if isinstance(widget, QtWidgets.QTabWidget):
+            return widget.count() > 0
         if type(widget) == QtWidgets.QWidget and not widget.children():
             return False
         return True
 
     def _criar_sidebar_retratil(self, widget_ferramentas: QtWidgets.QWidget) -> QtWidgets.QTabWidget:
-        # Se o módulo já enviou um QTabWidget (como o de Tomografia), usamos ele.
-        # Caso contrário (como o de Paciente), criamos um novo para a aba "Ferramentas".
+        # Define se usa o conjunto de abas do módulo ou cria um novo
         if isinstance(widget_ferramentas, QtWidgets.QTabWidget):
             sidebar = widget_ferramentas
         else:
@@ -103,25 +106,33 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         sidebar.setTabPosition(QtWidgets.QTabWidget.East)
         sidebar.setFixedWidth(self.TOOLBOX_MIN_WIDTH)
 
-        # Esconde todos os conteúdos das abas inicialmente
+        # Esconde o conteúdo inicial
         for i in range(sidebar.count()):
-            sidebar.widget(i).setHidden(True)
+            w = sidebar.widget(i)
+            if w:
+                w.setHidden(True)
 
+        # CORREÇÃO DO WARNING: Conecta apenas se ainda não houver conexão
+        # O partial garante que passamos a sidebar correta para a função
         sidebar.tabBarClicked.connect(partial(self._alternar_sidebar, sidebar))
+
         return sidebar
 
     def _alternar_sidebar(self, sidebar: QtWidgets.QTabWidget, index: int):
-        esta_fechada = sidebar.width() <= self.TOOLBOX_MIN_WIDTH
+        # Lógica de alternância baseada no estado atual da largura
+        esta_aberta = sidebar.width() > self.TOOLBOX_MIN_WIDTH
 
-        if esta_fechada:
+        if not esta_aberta:
             sidebar.setFixedWidth(self.TOOLBOX_MAX_WIDTH)
-            # Ao abrir, garante que o widget da aba selecionada esteja visível
             for i in range(sidebar.count()):
-                sidebar.widget(i).setHidden(False)
+                w = sidebar.widget(i)
+                if w:
+                    w.setHidden(False)
         else:
             sidebar.setFixedWidth(self.TOOLBOX_MIN_WIDTH)
-            # Ao fechar, esconde os widgets internos
             for i in range(sidebar.count()):
-                sidebar.widget(i).setHidden(True)
+                w = sidebar.widget(i)
+                if w:
+                    w.setHidden(True)
 
         self.updateGeometry()

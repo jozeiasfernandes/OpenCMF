@@ -1,5 +1,3 @@
-# main.py
-
 import sys
 import json
 import logging
@@ -25,13 +23,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.modulos_instanciados: List[Any] = []
         self.fluxo: Optional[FluxoBase] = None
 
-        # Define a base do projeto para caminhos relativos robustos
         self.base_dir = Path(__file__).parent.resolve()
 
         self._setup_ui()
         self._setup_connections()
-
-        # Carrega o tema imediatamente
         self._carregar_configuracoes_iniciais()
 
     def _setup_ui(self):
@@ -74,31 +69,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.workspace.currentChanged.connect(self._inicializar_modulo_ativo)
 
     def _carregar_configuracoes_iniciais(self):
-        """Busca o tema na pasta raiz 'temas/' conforme estrutura do projeto."""
         tema_salvo = settings.get("preferencias", "tema", "dark")
-
-        # CORREÇÃO DE CAMINHO: Removido 'gui/' pois a pasta está na raiz
         caminho_qss = self.base_dir / "temas" / f"{tema_salvo}.qss"
 
         if caminho_qss.exists():
             try:
                 qss_content = caminho_qss.read_text(encoding="utf-8")
                 QtWidgets.QApplication.instance().setStyleSheet(qss_content)
-                print(f">>> [TEMA] Aplicado: {tema_salvo}")
             except Exception as e:
                 logging.error(f"Erro ao carregar tema inicial: {e}")
-        else:
-            print(f">>> [AVISO] Arquivo não encontrado: {caminho_qss}")
 
     def aplicar_tema(self, caminho_qss: str):
-        """Aplica o tema e salva o nome (stem) no config.json."""
         path = Path(caminho_qss)
         if path.exists():
             try:
                 qss_content = path.read_text(encoding="utf-8")
                 QtWidgets.QApplication.instance().setStyleSheet(qss_content)
-
-                # Salva apenas o nome do arquivo (ex: 'roxo')
                 settings.set("preferencias", "tema", path.stem)
                 settings.save()
             except Exception as e:
@@ -128,6 +114,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self._notificar_erro("Falha ao carregar fluxo", e)
 
     def _configurar_workspace(self, dados: Dict[str, Any]):
+        """Carrega os módulos como abas independentes no Workspace."""
         self.workspace.blockSignals(True)
         self.workspace.clear()
         self.modulos_instanciados.clear()
@@ -136,6 +123,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for id_modulo in self.fluxo.sequencia:
             instancia = ModuloFactory.carregar_modulo(id_modulo)
             if instancia:
+                # Conecta o sinal de conclusão para salvar dados, mas não para mudar de aba
                 instancia.concluido.connect(self._on_modulo_concluido)
                 self.modulos_instanciados.append(instancia)
                 self.workspace.adicionar_modulo(id_modulo, instancia)
@@ -159,12 +147,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.workspace.blockSignals(False)
 
     def _on_modulo_concluido(self):
+        """Ação ao clicar em salvar/concluir dentro de um módulo."""
         modulo_origem = self.sender()
+
+        # Sincroniza a pasta do paciente se o módulo gerou um novo diretório (ex: Cadastro)
         if hasattr(modulo_origem, 'pasta_paciente') and modulo_origem.pasta_paciente:
             self.pasta_paciente_atual = str(Path(modulo_origem.pasta_paciente).resolve())
 
-        if not self.workspace.avancar_aba():
-            self.exibir_home()
+        print(f">>> [SUCESSO] Progresso salvo no módulo: {modulo_origem.nome}")
 
     def _notificar_erro(self, titulo: str, erro: Exception):
         logging.error(f"{titulo}: {erro}", exc_info=True)
