@@ -15,6 +15,9 @@ from gui.workspace import WorkspaceManager
 from gui.editor_fluxo import PaginaEditorFluxo
 from gui.config import PaginaConfig
 
+import vtk
+vtk.vtkObject.GlobalWarningDisplayOff()
+from PySide6 import QtOpenGLWidgets
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
