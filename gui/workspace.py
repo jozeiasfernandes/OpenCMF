@@ -135,6 +135,3 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
         self.updateGeometry()
 
-
-
-        Teste
