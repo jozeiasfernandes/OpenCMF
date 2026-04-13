@@ -6,8 +6,8 @@ from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.base import ModuloBase
 
-from modulos.Paciente_configs.ui_components import SecaoRetratil, criar_linha_arquivo
-from modulos.Paciente_configs.logic import buscar_cep_online, formatar_nome_diretorio
+from modulos.mod_Paciente.ui_components import SecaoRetratil, criar_linha_arquivo
+from modulos.mod_Paciente.logic import buscar_cep_online, formatar_nome_diretorio
 
 PASTA_PACIENTES = Path("pacientes")
 

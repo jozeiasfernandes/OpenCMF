@@ -91,17 +91,17 @@ class Tela_Inicial(QtWidgets.QWidget):
 
         self.btn_novo_projeto = QtWidgets.QPushButton("Novo projeto")
         self.btn_novo_projeto.setObjectName("btn_novo_projeto")
-        self.btn_novo_projeto.setFixedSize(100, 30)
+        self.btn_novo_projeto.setFixedSize(150, 35)
         self.btn_novo_projeto.clicked.connect(
             lambda: self.fluxo_escolhido.emit(FLUXO_CADASTRO)
         )
 
         self.btn_remover_projeto = QtWidgets.QPushButton("Excluir")
         self.btn_remover_projeto.setObjectName("btn_remover_projeto")
-        self.btn_remover_projeto.setFixedSize(100, 30)
+        self.btn_remover_projeto.setFixedSize(150, 35)
         self.btn_remover_projeto.setStyleSheet("""
             QPushButton#btn_remover_projeto {
-                background-color: #c0392b;
+                background-color: #f05748;
                 color: white;
                 font-weight: bold;
                 border-radius: 4px;
@@ -133,7 +133,7 @@ class Tela_Inicial(QtWidgets.QWidget):
         header.addStretch()
 
         btn_novo_fluxo = QtWidgets.QPushButton("Novo fluxo")
-        btn_novo_fluxo.setFixedSize(100, 30)
+        btn_novo_fluxo.setFixedSize(150, 35)
         btn_novo_fluxo.clicked.connect(self.editor_solicitado.emit)
 
         header.addWidget(btn_novo_fluxo)
