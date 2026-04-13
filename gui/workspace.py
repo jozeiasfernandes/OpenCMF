@@ -134,3 +134,7 @@ class WorkspaceManager(QtWidgets.QTabWidget):
                 sidebar.widget(i).setVisible(False)
 
         self.updateGeometry()
+
+
+
+        Teste
