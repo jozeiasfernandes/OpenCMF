@@ -136,3 +136,7 @@ class WorkspaceManager(QtWidgets.QTabWidget):
                     w.setHidden(True)
 
         self.updateGeometry()
+
+
+
+        Teste
