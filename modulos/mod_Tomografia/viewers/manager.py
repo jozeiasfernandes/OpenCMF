@@ -5,7 +5,6 @@ from typing import Dict, Optional
 from .planar import Janela2D
 from .volume import Janela3D
 
-
 class VolumeViewerWidget(QtWidgets.QWidget):
     sliceChanged = QtCore.Signal(str, int)
     PLANOS = ["Axial", "Sagital", "Coronal"]
@@ -19,30 +18,26 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.volume_data: Optional[vtk.vtkImageData] = None
         self.opacity_function = vtk.vtkPiecewiseFunction()
 
-        # Define o caminho dos ícones (ajustado para a estrutura OpenCMF)
-        self.path_icones = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
-                                        "icones")
+        self.path_icones = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+            "icones"
+        )
 
-        # Layout Raiz
         self.root_layout = QtWidgets.QVBoxLayout(self)
         self.root_layout.setContentsMargins(0, 0, 0, 0)
         self.root_layout.setSpacing(0)
-
         self._setup_ui()
 
     def _setup_ui(self):
-        # 1. Toolbar com ComboBox
         self.toolbar = QtWidgets.QToolBar()
         self.toolbar.setStyleSheet("""
             QToolBar { background: #222; border-bottom: 1px solid #333; spacing: 10px; padding: 4px; }
             QComboBox { 
-                background: #333; color: white; border: 1px solid #555; 
-                border-radius: 3px; padding: 2px 5px; min-width: 140px; 
+                background: #333; color: white; border: 0px solid #555; 
+                border-radius: 2px; padding: 1px 2px; min-width: 120px; 
             }
             QComboBox:hover { border: 1px solid #3ea6fa; }
         """)
-
-        self.toolbar.addWidget(QtWidgets.QLabel(" Layout: "))
 
         self.combo_layout = QtWidgets.QComboBox()
         layouts = [
@@ -59,34 +54,31 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.toolbar.addWidget(self.combo_layout)
         self.root_layout.addWidget(self.toolbar)
 
-        # 2. Grid de Visualização
         self.grid_container = QtWidgets.QWidget()
         self.grid_layout = QtWidgets.QGridLayout(self.grid_container)
         self.grid_layout.setContentsMargins(2, 2, 2, 2)
         self.grid_layout.setSpacing(2)
         self.root_layout.addWidget(self.grid_container)
 
-        # 3. INICIALIZA AS JANELAS (ESTA PARTE ESTAVA FALTANDO)
         for nome in self.PLANOS:
             pane = Janela2D(nome)
-            # Conecta o sinal da fatia
+            # Correção aqui: fechamento do parêntese no lambda
             pane.sliceChanged.connect(lambda v, n=nome: self.sliceChanged.emit(n, v))
+            pane.windowLevelChanged.connect(self.update_window_level)
             self.vistas[nome] = pane
 
         pane_3d = Janela3D("3D")
-        # Conecta o sinal do threshold
         pane_3d.thresholdChanged.connect(self.update_threshold)
         self.vistas["3D"] = pane_3d
 
-        # Aplica o layout inicial
         self.configurar_layout("4 Quadrantes")
 
     def configurar_layout(self, modo: str):
-        # Limpa o grid sem deletar os widgets
         for i in reversed(range(self.grid_layout.count())):
             self.grid_layout.itemAt(i).widget().setParent(None)
 
-        for p in self.vistas.values(): p.hide()
+        for p in self.vistas.values():
+            p.hide()
 
         if modo == "4 Quadrantes":
             self.grid_layout.addWidget(self.vistas["Axial"], 0, 0)
@@ -109,7 +101,6 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         extent = volume.GetExtent()
 
         for nome, pane in self.vistas.items():
-            # Cria o renderer apenas se ainda não existir um
             if pane.vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer() is None:
                 renderer = vtk.vtkRenderer()
                 pane.vtkWidget.GetRenderWindow().AddRenderer(renderer)
@@ -130,18 +121,17 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             renderer.ResetCamera()
             pane.vtkWidget.Initialize()
 
-        # FORÇA O RENDER DE FORMA SEGURA
         self.refresh_display()
 
     def refresh_display(self):
-        """Atualiza todas as janelas que estão atualmente visíveis no layout."""
         for nome, pane in self.vistas.items():
-            # Só renderiza se o widget estiver visível e anexado a algo
             if pane.isVisible():
-                try:
-                    pane.vtkWidget.GetRenderWindow().Render()
-                except Exception as e:
-                    print(f"[AVISO] Erro ao renderizar {nome}: {e}")
+                rw = pane.vtkWidget.GetRenderWindow()
+                if rw:
+                    # Força o VTK a ler o tamanho real do container Qt
+                    rw.SetSize(pane.vtkWidget.width(), pane.vtkWidget.height())
+                    # Renderiza
+                    rw.Render()
 
     def _configure_mpr_renderer(self, renderer, plano: str):
         mapper = vtk.vtkImageResliceMapper()
@@ -158,15 +148,16 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         actor.SetMapper(mapper)
         renderer.AddActor(actor)
 
-        # Setup câmera
         bounds = self.volume_data.GetBounds()
         center = [(bounds[i * 2] + bounds[i * 2 + 1]) / 2.0 for i in range(3)]
         camera = renderer.GetActiveCamera()
         camera.ParallelProjectionOn()
         camera.SetFocalPoint(center)
+
         pos = list(center)
         pos[self.DIM_MAP[plano]] += 1000 if plano != "Coronal" else -1000
         camera.SetPosition(pos)
+
         ups = {"Axial": (0, -1, 0), "Sagital": (0, 0, 1), "Coronal": (0, 0, 1)}
         camera.SetViewUp(ups[plano])
 
@@ -210,6 +201,19 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         camera.SetFocalPoint(focal)
         camera.SetPosition(pos)
         self.vistas[plano].vtkWidget.GetRenderWindow().Render()
+
+
+    def update_window_level(self, window: float, level: float):
+        for nome in self.PLANOS:
+            if nome in self.vistas:
+                renderer = self.vistas[nome].vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer()
+                # Localiza especificamente o ator de imagem (ImageSlice)
+                actor = renderer.GetActors().GetLastActor()
+                if isinstance(actor, vtk.vtkImageSlice):
+                    prop = actor.GetProperty()
+                    prop.SetColorWindow(window)
+                    prop.SetColorLevel(level)
+                    self.vistas[nome].vtkWidget.GetRenderWindow().Render()
 
     def cleanup(self):
         for pane in self.vistas.values():
