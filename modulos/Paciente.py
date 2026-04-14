@@ -14,7 +14,7 @@ PASTA_PACIENTES = Path("pacientes")
 class Modulo(ModuloBase):
     def __init__(self):
         super().__init__()
-        self.nome = "Cadastro de Paciente"
+        self.nome = "Paciente"
         self.id = "modulo.paciente"
         self.pasta_paciente = None
         PASTA_PACIENTES.mkdir(exist_ok=True)
