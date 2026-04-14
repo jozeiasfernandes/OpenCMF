@@ -19,10 +19,10 @@ class PlanarViewer(QtWidgets.QWidget):
 
         self.indicator = QtWidgets.QLabel(nome, self.vtkWidget)
         self.indicator.setStyleSheet("color: #3ea6fa; background: rgba(0,0,0,150); font-weight: bold; padding: 2px;")
-        self.indicator.move(5, 5)
+        self.indicator.move(0, 0)
 
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slider.setStyleSheet("height: 20px;")  # Aumentado para garantir visibilidade/clique
+        self.slider.setStyleSheet("height: 15px;")  # Aumentado para garantir visibilidade/clique
         self.slider.hide()
 
         self.layout.addWidget(self.vtkWidget, stretch=1)
@@ -54,11 +54,19 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
         for i, nome in enumerate(self.PLANOS + ["3D"]):
             pane = PlanarViewer(nome)
+
             if nome != "3D":
-                # Uso de functools ou default argument para evitar problemas de closure do lambda
-                pane.sliceChanged.connect(lambda v, n=nome: self.sliceChanged.emit(n, v))
                 pane.vtkWidget.AddObserver("MouseWheelForwardEvent", self._handle_scroll)
                 pane.vtkWidget.AddObserver("MouseWheelBackwardEvent", self._handle_scroll)
+                pane.sliceChanged.connect(lambda v, n=nome: self.sliceChanged.emit(n, v))
+            else:
+                # Configura o slider do 3D para Threshold em vez de Slices
+                pane.indicator.setText("3D - Threshold")
+                pane.slider.setRange(0, 3000)  # Range comum para HU (Hounsfield Units)
+                pane.slider.setValue(200)
+                pane.slider.show()
+                # Conecta o slider diretamente à função de threshold interna
+                pane.slider.valueChanged.connect(self.update_threshold)
 
             self.vistas[nome] = pane
             layout.addWidget(pane, i // 2, i % 2)
