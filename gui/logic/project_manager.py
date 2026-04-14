@@ -132,3 +132,8 @@ class ProjectManager:
         except Exception as e:
             logging.error(f"Falha ao remover fluxo {caminho_fluxo}: {e}")
             return False
+
+    def _ao_mudar_aba(self, index: int):
+        modulo_obj = self.get_modulo_ativo()
+        if modulo_obj and hasattr(modulo_obj, 'viewer'):  # Verifica se o viewer já existe
+            QtCore.QTimer.singleShot(50, lambda: self._refresh_workspace_modulo(modulo_obj))
