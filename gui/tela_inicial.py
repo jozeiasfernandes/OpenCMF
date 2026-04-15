@@ -1,18 +1,14 @@
-# Tela inicial
-import logging
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from gui.cmf_creditos import Janela_Creditos
-from gui.widgets.fluxo_card import FluxoCard
+from gui.paginas_extras.tela_creditos import Janela_Creditos
+from gui.fluxo.fluxo_card import FluxoCard
 from gui.logic.project_manager import ProjectManager
 
-# --- CONFIGURAÇÕES GLOBAIS ---
 BASE_DIR = Path(__file__).parent.parent
 PASTA_PACIENTES = BASE_DIR / "pacientes"
 PASTA_FLUXOS = BASE_DIR / "fluxos"
 FLUXO_CADASTRO = str(PASTA_FLUXOS / "cadastro_novo_paciente.json")
-
 
 class Tela_Inicial(QtWidgets.QWidget):
     projeto_selecionado = QtCore.Signal(str, str)
@@ -31,7 +27,6 @@ class Tela_Inicial(QtWidgets.QWidget):
         self.layout_principal.setContentsMargins(10, 50, 10, 10)
         self.layout_principal.setSpacing(10)
 
-        # Ordem de empilhamento visual
         self.layout_principal.addWidget(self.barra_icones_sup())
         self.layout_principal.addWidget(self.projetos())
         self.layout_principal.addWidget(self.fluxos())
@@ -40,14 +35,12 @@ class Tela_Inicial(QtWidgets.QWidget):
         self._carregar_projetos()
         self._carregar_fluxos()
 
-    # --- 1. ELEMENTOS DO TOPO (BARRA SUPERIOR) ---
     def barra_icones_sup(self) -> QtWidgets.QFrame:
         painel = QtWidgets.QFrame()
         layout = QtWidgets.QHBoxLayout(painel)
         layout.setContentsMargins(0, 0, 0, 0)
         path_icones = BASE_DIR / "icones"
 
-        # Botão Logo/Créditos
         self.btn_cmf = QtWidgets.QPushButton()
         self.btn_cmf.setFixedSize(120, 40)
         self.btn_cmf.setCursor(QtCore.Qt.PointingHandCursor)
@@ -63,7 +56,6 @@ class Tela_Inicial(QtWidgets.QWidget):
         layout.addWidget(self.btn_cmf)
         layout.addStretch()
 
-        # Botão Configurações
         self.btn_settings = QtWidgets.QPushButton()
         self.btn_settings.setObjectName("btn_settings")
         self.btn_settings.setFixedSize(40, 40)
@@ -84,7 +76,6 @@ class Tela_Inicial(QtWidgets.QWidget):
         self.janela_creditos = Janela_Creditos(self)
         self.janela_creditos.exec()
 
-    # --- 2. ELEMENTOS DA LISTA DE PROJETOS ---
     def projetos(self) -> QtWidgets.QFrame:
         painel = QtWidgets.QFrame()
         painel.setFrameShape(QtWidgets.QFrame.StyledPanel)
@@ -170,7 +161,6 @@ class Tela_Inicial(QtWidgets.QWidget):
             else:
                 QtWidgets.QMessageBox.critical(self, "Erro", "Não foi possível remover a pasta do projeto.")
 
-    # --- 3. ELEMENTOS DE FLUXOS ---
     def fluxos(self) -> QtWidgets.QFrame:
         painel = QtWidgets.QFrame()
         painel.setFrameShape(QtWidgets.QFrame.StyledPanel)

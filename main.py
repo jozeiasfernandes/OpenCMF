@@ -11,8 +11,8 @@ from core.modulo_base.factory import ModuloFactory
 from core.settings import settings
 from gui.tela_inicial import Tela_Inicial
 from gui.workspace import WorkspaceManager
-from gui.editor_fluxo import PaginaEditorFluxo
-from gui.config import PaginaConfig
+from gui.fluxo.editor_fluxo import PaginaEditorFluxo
+from gui.paginas_extras.tela_config import PaginaConfig
 
 import vtk
 
@@ -28,11 +28,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.fluxo: Optional[FluxoBase] = None
         self.base_dir = Path(__file__).parent.resolve()
 
-        self._inicializar_interface()
+        self._interface()
         self._configurar_eventos()
         self._configs_user()
 
-    def _inicializar_interface(self):
+    def _interface(self):
         titulo = settings.get("app_info", "titulo", "OpenCMF")
         self.setWindowTitle(titulo)
         self.setGeometry(150, 50, 1024, 650)
@@ -60,7 +60,7 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QApplication.setWindowIcon(icone)
 
     def _configurar_eventos(self):
-        self.home.projeto_selecionado.connect(self.selecionar_paciente)
+        self.home.projeto_selecionado.connect(self.select_paciente)
         self.home.fluxo_escolhido.connect(self.iniciar_fluxo_trabalho)
         self.home.editor_solicitado.connect(lambda: self.stack.setCurrentWidget(self.editor_fluxo))
         self.home.config_solicitada.connect(lambda: self.stack.setCurrentWidget(self.config))
@@ -89,13 +89,13 @@ class MainWindow(QtWidgets.QMainWindow):
             settings.set("preferencias", "tema", path.stem)
             settings.save()
         except Exception as e:
-            self._lançar_alerta_erro("Erro de Estilização", e)
+            self._alerta_erro("Erro de Estilização", e)
 
     def navegar_para_home(self):
         self.home.atualizar_listas()
         self.stack.setCurrentWidget(self.home)
 
-    def selecionar_paciente(self, caminho_pasta: str, modo: str):
+    def select_paciente(self, caminho_pasta: str, modo: str):
         self.pasta_paciente_atual = str(Path(caminho_pasta).resolve())
         print(f">>> [PACIENTE] Ativo: {self.pasta_paciente_atual}")
 
@@ -115,7 +115,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             QtCore.QTimer.singleShot(100, self._sincronizar_modulo_visualizado)
         except Exception as e:
-            self._lançar_alerta_erro("Falha no Fluxo", e)
+            self._alerta_erro("Falha no Fluxo", e)
 
     def _montar_workspace(self, dados: Dict[str, Any]):
         self.workspace.blockSignals(True)
@@ -160,7 +160,7 @@ class MainWindow(QtWidgets.QMainWindow):
         nome = getattr(modulo_emissor, 'nome', modulo_emissor.__class__.__name__)
         print(f">>> [FLUXO] Etapa concluída: {nome}")
 
-    def _lançar_alerta_erro(self, titulo: str, erro: Exception):
+    def _alerta_erro(self, titulo: str, erro: Exception):
         logging.error(f"{titulo}: {erro}", exc_info=True)
         QtWidgets.QMessageBox.critical(self, "Erro Crítico", f"<b>{titulo}</b><br>{str(erro)}")
 
