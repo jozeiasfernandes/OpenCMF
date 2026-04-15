@@ -6,7 +6,7 @@ from PySide6 import QtWidgets, QtCore
 from core.base import ModuloBase
 from core.dicom_engine import DicomEngine
 from .ui import TomografiaUI
-from core.manager import VolumeViewerWidget
+from core.Volume.viewer import VolumeViewerWidget
 
 
 

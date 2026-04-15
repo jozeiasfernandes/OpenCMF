@@ -12,7 +12,7 @@
 # Herda de JanelaBase. Aqui moram as funções de GPUVolumeRayCast, Threshold e,
 # futuramente, os botões de Face de Orientação e Sombreamento.
 #
-# manager.py (O Maestro)
+# viewer.py (O Maestro)
 # Este arquivo importa as classes acima. Ele não sabe como renderizar,
 # ele apenas sabe onde colocar cada janela e como gerenciar o QComboBox de layout que você criou.
 

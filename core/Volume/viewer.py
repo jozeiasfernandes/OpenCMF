@@ -28,7 +28,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     def _init_paths(self):
         base_path = os.path.dirname(os.path.abspath(__file__))
         # Ajuste para localizar a pasta de ícones na raiz
-        self.path_icones = os.path.abspath(os.path.join(base_path, "..", "..", "icones"))
+        self.path_icones = os.path.abspath(os.path.join(base_path, "../..", "..", "icones"))
 
     def _setup_main_layout(self):
         self.root_layout = QtWidgets.QVBoxLayout(self)
