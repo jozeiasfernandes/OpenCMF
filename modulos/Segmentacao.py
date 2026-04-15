@@ -117,12 +117,14 @@ class Modulo(ModuloBase):
 
         self.list_objetos = QtWidgets.QListWidget()
         self.list_objetos.setAlternatingRowColors(True)
+        # CONEXÃO CRUCIAL: Liga a interação da lista com a workspace
+        self.list_objetos.itemChanged.connect(self._on_objeto_toggled)
 
         btn_refresh = QtWidgets.QPushButton(" Atualizar Lista")
         btn_refresh.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload))
         btn_refresh.clicked.connect(self._atualizar_lista_objetos)
 
-        lay_obj.addWidget(QtWidgets.QLabel("Arquivos STL na pasta:"))
+        lay_obj.addWidget(QtWidgets.QLabel("Gerenciar Visibilidade (3D):"))
         lay_obj.addWidget(self.list_objetos)
         lay_obj.addWidget(btn_refresh)
 
@@ -135,11 +137,10 @@ class Modulo(ModuloBase):
         if not self.list_objetos or not self.pasta_paciente:
             return
 
-        self.list_objetos.blockSignals(True)  # Evita disparar eventos enquanto popula
+        self.list_objetos.blockSignals(True)
         self.list_objetos.clear()
 
-        # Adiciona o "Volume DICOM" como primeiro item fixo
-        item_vol = QtWidgets.QListWidgetItem("Volume DICOM (Original)")
+        item_vol = QtWidgets.QListWidgetItem("Volume DICOM")
         item_vol.setFlags(item_vol.flags() | QtCore.Qt.ItemIsUserCheckable)
         item_vol.setCheckState(QtCore.Qt.Checked)
         self.list_objetos.addItem(item_vol)
@@ -149,11 +150,38 @@ class Modulo(ModuloBase):
             for arquivo in diretorio_stl.glob("*.stl"):
                 item = QtWidgets.QListWidgetItem(arquivo.name)
                 item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-                item.setCheckState(QtCore.Qt.Unchecked)  # Começa oculto
+                item.setCheckState(QtCore.Qt.Unchecked)
                 item.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_FileIcon))
                 self.list_objetos.addItem(item)
 
         self.list_objetos.blockSignals(False)
+
+    def _on_objeto_toggled(self, item):
+        """Reage ao clique no checkbox da lista."""
+        if not self.viewer: return
+
+        visivel = (item.checkState() == QtCore.Qt.Checked)
+        nome = item.text()
+
+        if nome == "Volume DICOM":
+            self.viewer.set_visibilidade_objeto(nome, visivel)
+        else:
+            self._gerenciar_visualizacao_stl(nome, visivel)
+
+    def _gerenciar_visualizacao_stl(self, nome_arquivo, visivel):
+        """Lógica de carregamento e exibição de malhas STL."""
+        # Se for para mostrar e o objeto ainda não estiver no viewer, carregamos do disco
+        if visivel and nome_arquivo not in self.viewer.objetos_3d:
+            caminho = Path(self.pasta_paciente) / "STL" / nome_arquivo
+            if caminho.exists():
+                reader = vtk.vtkSTLReader()
+                reader.SetFileName(str(caminho))
+                reader.Update()
+                # Chama o método que criamos no viewers.py
+                self.viewer.adicionar_malha_3d(nome_arquivo, reader.GetOutput())
+
+        # Atualiza visibilidade no motor gráfico
+        self.viewer.set_visibilidade_objeto(nome_arquivo, visivel)
 
     def _buscar_caminho(self, target, folder=True):
         p = QtWidgets.QFileDialog.getExistingDirectory(None, "Selecionar Pasta DICOM")
@@ -224,34 +252,8 @@ class Modulo(ModuloBase):
 
             self._atualizar_lista_objetos()
             QtWidgets.QApplication.restoreOverrideCursor()
-            QtWidgets.QMessageBox.information(None, "Sucesso", f"Malha salva com sucesso!")
+            QtWidgets.QMessageBox.information(None, "Sucesso", f"Malha salva e adicionada à lista!")
 
         except Exception as e:
             QtWidgets.QApplication.restoreOverrideCursor()
             QtWidgets.QMessageBox.critical(None, "Erro", f"Falha ao exportar STL: {e}")
-
-    def _on_objeto_toggled(self, item):
-        visivel = (item.checkState() == QtCore.Qt.Checked)
-        nome = item.text()
-
-        if nome == "Volume DICOM (Original)":
-            # Comando para o viewer ocultar o volume principal
-            if self.viewer:
-                self.viewer.set_volume_visibility(visivel)
-        else:
-            # Carregar o STL e enviar para o viewer se for a primeira vez,
-            # ou apenas alternar visibilidade
-            self._gerenciar_visualizacao_stl(nome, visivel)
-
-    def _gerenciar_visualizacao_stl(self, nome_arquivo, visivel):
-        caminho = Path(self.pasta_paciente) / "STL" / nome_arquivo
-
-        # Se estiver ligando e o objeto ainda não existe no viewer, carregamos
-        if visivel and nome_arquivo not in self.viewer.objetos_3d:
-            reader = vtk.vtkSTLReader()
-            reader.SetFileName(str(caminho))
-            reader.Update()
-            self.viewer.adicionar_malha(nome_arquivo, reader.GetOutput())
-
-        # Alterna a visibilidade no viewer
-        self.viewer.alternar_visibilidade(nome_arquivo, visivel)

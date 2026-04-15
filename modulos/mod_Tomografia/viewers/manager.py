@@ -163,7 +163,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def set_visibilidade_objeto(self, nome: str, visivel: bool):
         """Alterna a visibilidade do Volume DICOM ou de um STL específico."""
-        if nome == "Volume DICOM (Original)" and self.volume_actor:
+        if nome == "Volume DICOM" and self.volume_actor:
             self.volume_actor.SetVisibility(visivel)
         elif nome in self.objetos_3d:
             self.objetos_3d[nome].SetVisibility(visivel)
