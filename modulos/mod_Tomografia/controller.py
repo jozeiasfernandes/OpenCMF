@@ -8,6 +8,7 @@ from .ui import TomografiaUI
 from .viewers.manager import VolumeViewerWidget
 
 
+
 class Modulo(ModuloBase):
     def __init__(self):
         super().__init__()
@@ -46,7 +47,7 @@ class Modulo(ModuloBase):
             self.ui.update_status_validado()
         else:
             self.ui.update_status_erro()
-            QtWidgets.QMessageBox.warning(None, "Erro", "Pasta inválida.")
+            QtWidgets.QMessageBox.warning(None, "Erro", "Pasta inválida ou sem arquivos .dcm")
 
     def _acao_carregar_dicom(self):
         if not self.caminho_dicom: return
@@ -56,13 +57,6 @@ class Modulo(ModuloBase):
             if sucesso:
                 self._is_initialized = True
                 if self.viewer:
-                    # RE-CONECTA AQUI POR SEGURANÇA
-                    try:
-                        self.viewer.sliceChanged.disconnect()
-                    except:
-                        pass
-                    self.viewer.sliceChanged.connect(self._sincronizar_fatia)
-
                     self.viewer.set_volume(self.engine.vtk_volume)
                     self.ui.update_status_carregado()
             else:
@@ -71,20 +65,47 @@ class Modulo(ModuloBase):
             QtWidgets.QApplication.restoreOverrideCursor()
 
     def _sincronizar_fatia(self, plano: str, valor: int):
-        # PRINT DE EMERGÊNCIA - Se isso não aparecer, o sinal não chegou aqui.
-        print(f">>> SINCRONIZANDO: {plano} -> {valor}")
+        """Chamado quando o slider da Janela2D ou scroll do mouse muda."""
         if self.viewer:
             self.viewer.update_slice(plano, valor)
-            pane = self.viewer.vistas.get(plano)
-            if pane:
-                pane.slider.blockSignals(True)
-                pane.slider.setValue(valor)
-                pane.slider.blockSignals(False)
+
+    def _sincronizar_window_level_ui(self, window: float, level: float):
+        """
+        Sincronismo Inverso: Usuário arrastou o mouse na imagem ->
+        Atualiza os Sliders/Spins na barra lateral (UI).
+        """
+        # Em vez de self.ui.blockSignals (que não existe),
+        # acessamos o widget que contém os controles de brilho.
+        # Assumindo que na sua UI os controles estão dentro de um layout ou widget principal:
+        if hasattr(self.ui, 'group_wl'): # Substitua 'group_wl' pelo nome do seu container de W/L
+            self.ui.group_wl.blockSignals(True)
+            self.ui.update_wl_ui(window, level)
+            self.ui.group_wl.blockSignals(False)
+        else:
+            # Se não houver um container, atualizamos diretamente.
+            # O update_wl_ui da sua classe UI deve ser robusto o suficiente.
+            self.ui.update_wl_ui(window, level)
+
+    def _acao_wl_manual(self, window: float, level: float):
+        """
+        Sincronismo Direto: Usuário moveu os sliders na barra lateral ->
+        Atualiza o brilho/contraste no VolumeViewer.
+        """
+        if self.viewer:
+            self.viewer.update_window_level(window, level)
 
     def get_workspace(self) -> QtWidgets.QWidget:
-        if self.viewer: self.viewer.cleanup()
+        if self.viewer:
+            self.viewer.cleanup()
+
         self.viewer = VolumeViewerWidget()
+
+        # Conexões principais
         self.viewer.sliceChanged.connect(self._sincronizar_fatia)
+
+        # Conecta o sinal de Window/Level que o Manager emite
+        self.viewer.windowLevelChanged.connect(self._sincronizar_window_level_ui)
+
         return self.viewer
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
@@ -92,6 +113,6 @@ class Modulo(ModuloBase):
             on_buscar=self._acao_buscar_pasta,
             on_validar=self._acao_validar_dicom,
             on_carregar=self._acao_carregar_dicom,
-            on_threshold=lambda v: self.viewer.update_threshold(v) if self.viewer else None,
+            on_wl_manual=self._acao_wl_manual,
             on_finalizar=lambda: self.concluido.emit() if self._is_initialized else None
         )

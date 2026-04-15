@@ -1,40 +1,41 @@
+from PySide6 import QtWidgets, QtCore, QtGui
 from .base import JanelaBase
-from PySide6 import QtCore, QtGui
 
 
 class Janela2D(JanelaBase):
+    # Sinal emitido quando o slider de navegação de fatias é movido
     sliceChanged = QtCore.Signal(int)
-    windowLevelChanged = QtCore.Signal(float, float)  # Envia (Window, Level)
 
     def __init__(self, nome: str, parent=None):
+        # Inicializa a base (que cria o vtkWidget, indicator, etc)
         super().__init__(nome, parent)
+
+        # Layout para organizar o widget VTK e o Slider
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        # Adiciona o widget VTK (já configurado na JanelaBase)
+        layout.addWidget(self.vtkWidget, stretch=1)
+
+        # Slider de navegação de fatias (específico das janelas 2D)
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider.setMinimum(0)
+        self.slider.setStyleSheet("""
+            QSlider::handle:horizontal {
+                background: #3ea6fa;
+                width: 14px;
+                border-radius: 7px;
+            }
+        """)
+
+        # Conecta o slider ao sinal
         self.slider.valueChanged.connect(self.sliceChanged.emit)
-        self.slider.show()
 
-        self.ultimo_y = 0
-        self.ultimo_x = 0
-        self.window = 2000
-        self.level = 400
+        layout.addWidget(self.slider)
 
-    def mousePressEvent(self, event):
-        if event.button() == QtCore.Qt.LeftButton:
-            self.ultimo_x = event.position().x()
-            self.ultimo_y = event.position().y()
-        super().mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        if event.buttons() & QtCore.Qt.LeftButton:
-            dx = event.position().x() - self.ultimo_x
-            dy = event.position().y() - self.ultimo_y
-
-            # Sensibilidade do ajuste
-            self.window += dx * 2
-            self.level -= dy * 2
-
-            self.window = max(1, self.window)  # Window não pode ser <= 0
-
-            self.windowLevelChanged.emit(self.window, self.level)
-
-            self.ultimo_x = event.position().x()
-            self.ultimo_y = event.position().y()
-        super().mouseMoveEvent(event)
+    def _vtk_wheel_event(self, interactor, event):
+        """Sobrescreve o scroll da base para navegar nas fatias via mouse."""
+        delta = 1 if event == "MouseWheelForwardEvent" else -1
+        novo_valor = self.slider.value() + delta
+        self.slider.setValue(novo_valor)
