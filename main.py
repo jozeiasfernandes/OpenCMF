@@ -16,8 +16,12 @@ from gui.paginas_extras.tela_config import PaginaConfig
 
 import vtk
 
-vtk.vtkObject.GlobalWarningDisplayOff()
 
+vtk.vtkObject.GlobalWarningDisplayOff()
+vtk.vtkOutputWindow.GetInstance().SetInstance(vtk.vtkFileOutputWindow())
+vtk_log = vtk.vtkFileOutputWindow()
+vtk_log.SetFileName("vtk_debug.log") # Opcional: salva os erros num arquivo para você ler depois
+vtk.vtkOutputWindow.GetInstance().SetInstance(vtk_log)
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):

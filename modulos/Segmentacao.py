@@ -6,7 +6,7 @@ from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 
 from core.modulo_base.base import ModuloBase
-from modulos.mod_Tomografia.viewers import VolumeViewerWidget
+from core.volume.viewer import VolumeViewerWidget
 from modulos.mod_Paciente.ui_components import criar_linha_arquivo
 
 

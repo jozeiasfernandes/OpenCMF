@@ -2,9 +2,8 @@ import json
 import time
 from pathlib import Path
 from typing import Dict
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore, QtGui
 from core.modulo_base.base import ModuloBase
-
 from modulos.mod_Paciente.ui_components import SecaoRetratil, criar_linha_arquivo
 from modulos.mod_Paciente.logic import buscar_cep_online, formatar_nome_diretorio
 
@@ -19,7 +18,11 @@ class Modulo(ModuloBase):
         self.pasta_paciente = None
         PASTA_PACIENTES.mkdir(exist_ok=True)
 
-        self.main_container = QtWidgets.QWidget()
+        self.main_container = QtWidgets.QWidget(self)
+        self.layout_modulo = QtWidgets.QVBoxLayout(self)
+        self.layout_modulo.setContentsMargins(0, 0, 0, 0)
+        self.layout_modulo.addWidget(self.main_container)
+
         self._init_ui_components()
         self._setup_data_maps()
 
@@ -149,7 +152,7 @@ class Modulo(ModuloBase):
     def _processar_cadastro(self):
         nome = self.edit_nome.text().strip()
         if not nome:
-            QtWidgets.QMessageBox.warning(self.main_container, "Erro", "Nome é obrigatório.")
+            QtWidgets.QMessageBox.warning(self, "Erro", "Nome é obrigatório.")
             return
 
         try:
@@ -175,13 +178,12 @@ class Modulo(ModuloBase):
                 json.dump(dados, f, indent=4, ensure_ascii=False)
 
             self.pasta_paciente = str(diretorio)
-            QtWidgets.QMessageBox.information(self.main_container, "Sucesso", "Dados salvos!")
+            QtWidgets.QMessageBox.information(self, "Sucesso", "Dados salvos!")
             self.concluido.emit()
         except Exception as e:
-            QtWidgets.QMessageBox.critical(self.main_container, "Erro", str(e))
+            QtWidgets.QMessageBox.critical(self, "Erro", str(e))
 
     def get_workspace(self) -> QtWidgets.QWidget:
-        # Se já tiver layout, apenas retorna para evitar reconstrução
         if self.main_container.layout(): return self.main_container
 
         layout = QtWidgets.QVBoxLayout(self.main_container)
@@ -212,8 +214,8 @@ class Modulo(ModuloBase):
         for r in [r1, r2, r3]: lp.addLayout(r)
         lay_content.addWidget(gp)
 
-        # 2. Seções Retráteis
-        sec_end = SecaoRetratil("Endereço", False)
+        # 2. Seções Retráteis (Passar 'self' ou 'content' como pai para SecaoRetratil)
+        sec_end = SecaoRetratil("Endereço", False, content)
         f_end = QtWidgets.QFormLayout()
         row_cep = QtWidgets.QHBoxLayout();
         row_cep.addWidget(self.edit_cep);
@@ -226,7 +228,7 @@ class Modulo(ModuloBase):
         sec_end.layout_interno().addLayout(f_end);
         lay_content.addWidget(sec_end)
 
-        sec_clin = SecaoRetratil("Dados clínicos", False)
+        sec_clin = SecaoRetratil("Dados clínicos", False, content)
         f_clin = QtWidgets.QFormLayout()
         f_clin.addRow("Diagnóstico:", self.edit_diagnostico);
         f_clin.addRow("História Médica:", self.edit_historia_medica);
@@ -237,7 +239,7 @@ class Modulo(ModuloBase):
         sec_clin.layout_interno().addLayout(f_clin);
         lay_content.addWidget(sec_clin)
 
-        sec_arq = SecaoRetratil("Arquivos do paciente", True)
+        sec_arq = SecaoRetratil("Arquivos do paciente", True, content)
         f_arq = QtWidgets.QFormLayout()
         f_arq.addRow("Tomografia:", criar_linha_arquivo(self.edit_tomografia, self._buscar_caminho, True))
         f_arq.addRow("Scan Maxila:", criar_linha_arquivo(self.edit_maxila, self._buscar_caminho, False))
@@ -264,12 +266,8 @@ class Modulo(ModuloBase):
         return toolbar
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        """Adequação para a nova estrutura do WorkspaceManager (Multi-abas East)"""
-
-        # Aba de Ações/Ferramentas
         aba_acoes = QtWidgets.QWidget()
         lay_acoes = QtWidgets.QVBoxLayout(aba_acoes)
-
         lbl = QtWidgets.QLabel("<b>Ações</b>")
         lay_acoes.addWidget(lbl)
 
@@ -280,21 +278,17 @@ class Modulo(ModuloBase):
 
         lay_acoes.addWidget(btn_limpar)
         lay_acoes.addStretch()
-
-        return {
-            "Ferramentas": aba_acoes
-        }
+        return {"Ferramentas": aba_acoes}
 
     def _buscar_caminho(self, target, folder=True):
         if folder:
-            p = QtWidgets.QFileDialog.getExistingDirectory(self.main_container, "Selecionar Pasta")
+            p = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
         else:
-            p, _ = QtWidgets.QFileDialog.getOpenFileName(self.main_container, "Selecionar Arquivo", "",
-                                                         "Malhas (*.stl *.obj *.ply)")
+            p, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Selecionar Arquivo", "", "Malhas (*.stl *.obj *.ply)")
         if p: target.setText(p)
 
     def _limpar_formulario(self):
-        confirm = QtWidgets.QMessageBox.question(self.main_container, "Limpar", "Deseja limpar todos os campos?")
+        confirm = QtWidgets.QMessageBox.question(self, "Limpar", "Deseja limpar todos os campos?")
         if confirm == QtWidgets.QMessageBox.Yes:
             for w in self.main_container.findChildren(QtWidgets.QLineEdit): w.clear()
             for w in self.main_container.findChildren(QtWidgets.QTextEdit): w.clear()

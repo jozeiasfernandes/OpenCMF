@@ -34,20 +34,48 @@ QScrollArea {
     border: none;
 }
 
-QScrollBar:vertical {
+QScrollBar:vertical, QScrollBar:horizontal {
     background-color: #1E272E;
-    width: 10px;
+    border: none;
     margin: 0px;
 }
 
-QScrollBar::handle:vertical {
+QScrollBar:vertical {
+    width: 10px;
+}
+
+QScrollBar:horizontal {
+    height: 10px;
+}
+
+QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
     background-color: #485460;
-    min-height: 20px;
     border-radius: 5px;
 }
 
-QScrollBar::handle:vertical:hover {
+QScrollBar::handle:vertical {
+    min-height: 20px;
+}
+
+QScrollBar::handle:horizontal {
+    min-width: 20px;
+}
+
+QScrollBar::handle:vertical:hover, QScrollBar::handle:horizontal:hover {
     background-color: #576574;
+}
+
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+    border: none;
+    background: none;
+    width: 0px;
+    height: 0px;
+}
+
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical,
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+    background: none;
 }
 
 QPushButton {
@@ -154,4 +182,15 @@ QFrame[styleSheet*="#34495e"] QLabel {
 
 QFrame[styleSheet*="#34495e"]:hover QLabel {
     color: #FFFFFF !important;
+}
+
+QFrame#card_container {
+    background-color: transparent;
+    border: 1px solid rgba(255, 255, 255, 10);
+    border-radius: 8px;
+}
+
+QFrame#card_container:hover {
+    background-color: rgba(255, 255, 255, 15);
+    border: 1px solid #466990;
 }

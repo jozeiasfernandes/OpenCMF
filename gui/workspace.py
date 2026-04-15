@@ -40,22 +40,24 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
     def adicionar_modulo(self, id_modulo: str, modulo_obj: Any):
         titulo = getattr(modulo_obj, 'nome', id_modulo.replace("_", " ").capitalize())
-        container = self._montar_container_modulo(modulo_obj)
 
+        # 1. Criamos o container da página PRIMEIRO
+        page_container = QtWidgets.QWidget()
+        page_container.setProperty("modulo_instancia", modulo_obj)
+
+        # 2. Adicionamos a aba antes de preencher o conteúdo.
+        # Isso garante que qualquer widget criado pelo módulo já tenha um 'Parent' (a aba).
         self.blockSignals(True)
-        idx = self.addTab(container, titulo)
+        idx = self.addTab(page_container, titulo)
         self.blockSignals(False)
+
+        # 3. Agora preenchemos o layout com os componentes do módulo
+        self._preencher_container_modulo(page_container, modulo_obj)
 
         if self.count() == 1:
             self.setCurrentIndex(0)
 
-    def get_modulo_ativo(self) -> Optional[Any]:
-        container = self.currentWidget()
-        return container.property("modulo_instancia") if container else None
-
-    def _montar_container_modulo(self, modulo_obj: Any) -> QtWidgets.QWidget:
-        page_container = QtWidgets.QWidget()
-        page_container.setProperty("modulo_instancia", modulo_obj)
+    def _preencher_container_modulo(self, page_container: QtWidgets.QWidget, modulo_obj: Any):
         layout_principal = QtWidgets.QHBoxLayout(page_container)
         layout_principal.setContentsMargins(0, 0, 0, 0)
         layout_principal.setSpacing(0)
@@ -65,23 +67,28 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         centro_layout.setContentsMargins(0, 0, 0, 0)
         centro_layout.setSpacing(0)
 
+        # Toolbar
         toolbar = modulo_obj.get_workspace_toolbar()
         if toolbar:
             centro_layout.addWidget(toolbar)
 
+        # Solicita o Workspace (o main_container do módulo agora será filho de centro_widget)
         workspace_widget = modulo_obj.get_workspace()
         workspace_widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         centro_layout.addWidget(workspace_widget)
 
         layout_principal.addWidget(centro_widget, stretch=1)
 
+        # Sidebars (Toolboxes)
         if hasattr(modulo_obj, 'get_toolboxes'):
             dict_toolboxes = modulo_obj.get_toolboxes()
             if dict_toolboxes:
                 sidebar = self._sidebar_lateral(dict_toolboxes)
                 layout_principal.addWidget(sidebar)
 
-        return page_container
+    def get_modulo_ativo(self) -> Optional[Any]:
+        container = self.currentWidget()
+        return container.property("modulo_instancia") if container else None
 
     def _sidebar_lateral(self, toolboxes: Dict[str, QtWidgets.QWidget]) -> QtWidgets.QTabWidget:
         sidebar = QtWidgets.QTabWidget()
@@ -126,4 +133,4 @@ class WorkspaceManager(QtWidgets.QTabWidget):
     def _sincronizar_aba(self, index: int):
         modulo_obj = self.get_modulo_ativo()
         if modulo_obj:
-            QtCore.QTimer.singleShot(5, lambda: self._refresh_visual(modulo_obj))
+            QtCore.QTimer.singleShot(2, lambda: self._refresh_visual(modulo_obj))
