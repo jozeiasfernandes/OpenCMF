@@ -71,6 +71,7 @@ class Modulo(ModuloBase):
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.viewer = VolumeViewerWidget()
+        self.viewer.configurar_layout("Apenas 3D")
         if self.volume_data:
             self.viewer.set_volume(self.volume_data)
 
