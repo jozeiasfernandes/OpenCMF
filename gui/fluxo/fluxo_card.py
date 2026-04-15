@@ -26,7 +26,12 @@ class FluxoCard(QtWidgets.QFrame):
         layout.addWidget(self.bloco_titulo)
 
         # 2. Sequência de Módulos
-        for modulo in self.dados.get("sequencia", []):
+        for i, modulo in enumerate(self.dados.get("sequencia", [])):
+            if i > 0:
+                seta = QtWidgets.QLabel("➔")
+                seta.setStyleSheet("color: rgba(255,255,255,100); font-size: 13px;")
+                layout.addWidget(seta)
+
             widget_modulo = self._retang_modulo(modulo)
             layout.addWidget(widget_modulo)
 
