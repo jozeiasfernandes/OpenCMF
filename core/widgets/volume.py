@@ -1,4 +1,4 @@
-from .base import JanelaBase
+from modulos.mod_Tomografia.viewers.base import JanelaBase
 from PySide6 import QtWidgets, QtCore
 
 

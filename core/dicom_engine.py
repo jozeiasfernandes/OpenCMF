@@ -60,14 +60,20 @@ class DicomEngine:
             return False, f"Erro ao carregar DICOM: {str(e)}"
 
     def _numpy_to_vtk(self, nparray):
-        if not nparray.flags['C_CONTIGUOUS']:
-            nparray = np.ascontiguousarray(nparray)
-
-        vtk_array = numpy_support.numpy_to_vtk(num_array=nparray.flatten(), deep=True, array_type=vtk.VTK_SHORT)
-        img_data = vtk.vtkImageData()
+        # Garante que o array está no formato que o VTK espera (Z, Y, X)
         depth, height, width = nparray.shape
+
+        # O VTK armazena internamente como um vetor linear
+        vtk_array = numpy_support.numpy_to_vtk(
+            num_array=nparray.flatten(),
+            deep=True,
+            array_type=vtk.VTK_SHORT
+        )
+
+        img_data = vtk.vtkImageData()
         img_data.SetDimensions(width, height, depth)
         img_data.SetSpacing(self.spacing)
-        img_data.SetOrigin(0, 0, 0)
+        # Importante: Use a origem real extraída do DICOM para o Crosshair funcionar
+        img_data.SetOrigin(self.origin)
         img_data.GetPointData().SetScalars(vtk_array)
         return img_data

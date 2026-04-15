@@ -17,4 +17,3 @@
 # ele apenas sabe onde colocar cada janela e como gerenciar o QComboBox de layout que você criou.
 
 
-from .manager import VolumeViewerWidget

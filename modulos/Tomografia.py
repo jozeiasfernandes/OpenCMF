@@ -1,3 +1,4 @@
+#Tomografia.py
 from .mod_Tomografia.controller import Modulo
 
 # Este arquivo agora serve apenas como ponto de entrada (entry point)
