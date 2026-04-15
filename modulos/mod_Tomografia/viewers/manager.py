@@ -27,7 +27,11 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.volume_data: Optional[vtk.vtkImageData] = None
         self.opacity_function = vtk.vtkPiecewiseFunction()
 
-        # Caminho dos ícones (ajustado para a estrutura OpenCMF)
+        # --- NOVO: Rastreamento de objetos ---
+        self.objetos_3d: Dict[str, vtk.vtkActor] = {}
+        self.volume_actor: Optional[vtk.vtkVolume] = None
+        # -------------------------------------
+
         self.path_icones = os.path.join(
             os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
             "icones"
@@ -136,6 +140,36 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             pane.vtkWidget.Initialize()
         self.refresh_display()
 
+
+    def adicionar_malha_3d(self, nome: str, polydata: vtk.vtkPolyData, cor=(1.0, 0.9, 0.5)):
+        """Adiciona um arquivo STL (PolyData) à cena 3D."""
+        if "3D" not in self.vistas: return
+
+        renderer = self.vistas["3D"].vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer()
+
+        if nome in self.objetos_3d:
+            renderer.RemoveActor(self.objetos_3d[nome])
+
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputData(polydata)
+
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
+        actor.GetProperty().SetColor(cor)
+
+        renderer.AddActor(actor)
+        self.objetos_3d[nome] = actor
+        self.refresh_display()
+
+    def set_visibilidade_objeto(self, nome: str, visivel: bool):
+        """Alterna a visibilidade do Volume DICOM ou de um STL específico."""
+        if nome == "Volume DICOM (Original)" and self.volume_actor:
+            self.volume_actor.SetVisibility(visivel)
+        elif nome in self.objetos_3d:
+            self.objetos_3d[nome].SetVisibility(visivel)
+
+        self.refresh_display()
+
     def refresh_display(self):
         for pane in self.vistas.values():
             if pane.isVisible():
@@ -176,15 +210,20 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             camera.SetViewUp(0, 0, 1)
 
     def _configure_3d_renderer(self, renderer):
+        """Configura o volume rendering e salva a referência do ator para controle."""
         mapper = vtk.vtkGPUVolumeRayCastMapper()
         mapper.SetInputData(self.volume_data)
+
         prop = vtk.vtkVolumeProperty()
         prop.ShadeOn()
         prop.SetScalarOpacity(self.opacity_function)
-        vol = vtk.vtkVolume()
-        vol.SetMapper(mapper)
-        vol.SetProperty(prop)
-        renderer.AddActor(vol)
+
+        # Guardamos no self para poder usar o SetVisibility depois
+        self.volume_actor = vtk.vtkVolume()
+        self.volume_actor.SetMapper(mapper)
+        self.volume_actor.SetProperty(prop)
+
+        renderer.AddActor(self.volume_actor)
         self.update_threshold(200)
 
     def update_threshold(self, value: int):
