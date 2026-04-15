@@ -195,3 +195,22 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
         for v in self.vistas.values():
             if v.parent(): v.show()
+
+    def refresh_display(self):
+        """
+        Força a renderização de todas as janelas VTK.
+        Crucial para evitar telas pretas/artefatos ao carregar o módulo.
+        """
+        for nome, pane in self.vistas.items():
+            if pane.isVisible():
+                # Força o widget a processar eventos pendentes
+                pane.vtkWidget.repaint()
+                # Ordena ao VTK renderizar a cena atual
+                render_window = pane.vtkWidget.GetRenderWindow()
+                renderer = render_window.GetRenderers().GetFirstRenderer()
+                if renderer:
+                    renderer.ResetCameraClippingRange()  # Ajusta profundidade
+                render_window.Render()
+
+        # Sincroniza eventos do Qt para garantir que o desenho apareça
+        QtCore.QCoreApplication.processEvents()
