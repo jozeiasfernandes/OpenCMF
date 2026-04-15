@@ -1,4 +1,4 @@
-from core.base import ModuloBase
+from core.modulo_base.base import ModuloBase
 from PySide6 import QtWidgets, QtCore
 
 

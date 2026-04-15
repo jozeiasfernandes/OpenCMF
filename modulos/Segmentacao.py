@@ -3,9 +3,9 @@ import os
 import json
 from typing import Optional, Dict
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 
-from core.base import ModuloBase
+from core.modulo_base.base import ModuloBase
 from modulos.mod_Tomografia.viewers import VolumeViewerWidget
 from modulos.mod_Paciente.ui_components import criar_linha_arquivo
 
@@ -52,7 +52,7 @@ class Modulo(ModuloBase):
 
     def _carregar_volume_dicom(self, caminho: str):
         try:
-            from core.dicom_engine import DicomEngine
+            from core.volume.dicom_engine import DicomEngine
             engine = DicomEngine()
             self.volume_data = engine.carregar_volume(caminho)
 
@@ -141,7 +141,7 @@ class Modulo(ModuloBase):
         self.list_objetos.blockSignals(True)
         self.list_objetos.clear()
 
-        item_vol = QtWidgets.QListWidgetItem("Volume DICOM")
+        item_vol = QtWidgets.QListWidgetItem("volume DICOM")
         item_vol.setFlags(item_vol.flags() | QtCore.Qt.ItemIsUserCheckable)
         item_vol.setCheckState(QtCore.Qt.Checked)
         self.list_objetos.addItem(item_vol)
@@ -164,7 +164,7 @@ class Modulo(ModuloBase):
         visivel = (item.checkState() == QtCore.Qt.Checked)
         nome = item.text()
 
-        if nome == "Volume DICOM":
+        if nome == "volume DICOM":
             self.viewer.set_visibilidade_objeto(nome, visivel)
         else:
             self._gerenciar_visualizacao_stl(nome, visivel)

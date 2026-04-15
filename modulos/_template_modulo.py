@@ -1,6 +1,5 @@
-from typing import Tuple
 from PySide6 import QtWidgets, QtCore
-from core.base import ModuloBase
+from core.modulo_base.base import ModuloBase
 
 
 class ModuloTemplate(ModuloBase):

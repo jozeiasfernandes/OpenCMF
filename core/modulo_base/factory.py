@@ -1,8 +1,7 @@
 # Factory.py
 
 import importlib.util
-import os
-from core.base import ModuloBase
+from core.modulo_base.base import ModuloBase
 
 
 class ModuloFactory:

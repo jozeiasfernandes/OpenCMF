@@ -2,8 +2,8 @@ import json
 import time
 from pathlib import Path
 from typing import Dict
-from PySide6 import QtWidgets, QtCore, QtGui
-from core.base import ModuloBase
+from PySide6 import QtWidgets, QtCore
+from core.modulo_base.base import ModuloBase
 
 from modulos.mod_Paciente.ui_components import SecaoRetratil, criar_linha_arquivo
 from modulos.mod_Paciente.logic import buscar_cep_online, formatar_nome_diretorio

@@ -1,8 +1,7 @@
 import json
-import logging
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore
-from core.base import ModuloBase
+from PySide6 import QtWidgets
+from core.modulo_base.base import ModuloBase
 
 
 class Modulo(ModuloBase):

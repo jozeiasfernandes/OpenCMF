@@ -4,11 +4,9 @@ import logging
 import ctypes
 from pathlib import Path
 from typing import Dict, Any, List, Optional
-
 from PySide6 import QtWidgets, QtCore, QtGui
-
-from core.base import FluxoBase
-from core.factory import ModuloFactory
+from core.modulo_base.base import FluxoBase
+from core.modulo_base.factory import ModuloFactory
 from core.settings import settings
 from gui.tela_inicial import Tela_Inicial
 from gui.workspace import WorkspaceManager
@@ -17,7 +15,7 @@ from gui.config import PaginaConfig
 
 import vtk
 vtk.vtkObject.GlobalWarningDisplayOff()
-from PySide6 import QtOpenGLWidgets
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
