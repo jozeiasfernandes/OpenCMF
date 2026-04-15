@@ -13,11 +13,6 @@ class ModuloTemplate(ModuloBase):
         super().inicializar(caminho_paciente)
         self._is_initialized = True
 
-    def verificar_pre_requisitos(self) -> Tuple[bool, str]:
-        if not self.pasta_paciente:
-            return False, "Pasta do paciente não definida."
-        return True, ""
-
     def get_workspace(self) -> QtWidgets.QWidget:
         # Container principal que agrupa Toolbar Superior + Área de Visualização
         container = QtWidgets.QWidget()
@@ -69,11 +64,3 @@ class ModuloTemplate(ModuloBase):
 
         return toolbox
 
-    def validar_passagem(self) -> bool:
-        return self._is_initialized
-
-    def _on_conclude_clicked(self) -> None:
-        if self.validar_passagem():
-            self.concluido.emit()
-        else:
-            QtWidgets.QMessageBox.warning(self, "Aviso", "Ação obrigatória pendente.")

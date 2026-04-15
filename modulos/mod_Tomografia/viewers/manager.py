@@ -177,8 +177,10 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def update_threshold(self, value: int):
         self.opacity_function.RemoveAllPoints()
-        self.opacity_function.AddPoint(value - 100, 0)
-        self.opacity_function.AddPoint(value, 1)
+        self.opacity_function.AddPoint(-1000, 0.0)  # ar
+        self.opacity_function.AddPoint(0, 0.0)  # água
+        self.opacity_function.AddPoint(300, 0.2)  # tecido mole
+        self.opacity_function.AddPoint(1000, 0.8)  # osso
         if "3D" in self.vistas:
             self.vistas["3D"].vtkWidget.GetRenderWindow().Render()
 
