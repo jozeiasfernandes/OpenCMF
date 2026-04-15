@@ -5,6 +5,7 @@ import ctypes
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
+
 from core.modulo_base.base import FluxoBase
 from core.modulo_base.factory import ModuloFactory
 from core.settings import settings
@@ -14,27 +15,29 @@ from gui.editor_fluxo import PaginaEditorFluxo
 from gui.config import PaginaConfig
 
 import vtk
+
 vtk.vtkObject.GlobalWarningDisplayOff()
 
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
+
         self.pasta_paciente_atual: Optional[str] = None
         self.modulos_instanciados: List[Any] = []
         self.fluxo: Optional[FluxoBase] = None
-
         self.base_dir = Path(__file__).parent.resolve()
 
-        self._setup_ui()
-        self._setup_connections()
-        self._carregar_configuracoes_iniciais()
+        self._inicializar_interface()
+        self._configurar_eventos()
+        self._configs_user()
 
-    def _setup_ui(self):
+    def _inicializar_interface(self):
         titulo = settings.get("app_info", "titulo", "OpenCMF")
         self.setWindowTitle(titulo)
         self.setGeometry(150, 50, 1024, 650)
-        self._carregar_icone()
+
+        self._icone_janela()
 
         self.stack = QtWidgets.QStackedWidget()
         self.setCentralWidget(self.stack)
@@ -49,125 +52,117 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stack.addWidget(self.workspace)
         self.stack.addWidget(self.config)
 
-    def _carregar_icone(self):
+    def _icone_janela(self):
         caminho_icone = self.base_dir / "icones" / "cmf.png"
         if caminho_icone.exists():
             icone = QtGui.QIcon(str(caminho_icone))
             self.setWindowIcon(icone)
             QtWidgets.QApplication.setWindowIcon(icone)
 
-    def _setup_connections(self):
+    def _configurar_eventos(self):
         self.home.projeto_selecionado.connect(self.selecionar_paciente)
         self.home.fluxo_escolhido.connect(self.iniciar_fluxo_trabalho)
         self.home.editor_solicitado.connect(lambda: self.stack.setCurrentWidget(self.editor_fluxo))
         self.home.config_solicitada.connect(lambda: self.stack.setCurrentWidget(self.config))
 
-        self.editor_fluxo.voltar_solicitado.connect(self.exibir_home)
-        self.workspace.home_solicitada.connect(self.exibir_home)
-        self.config.voltar_solicitado.connect(self.exibir_home)
+        self.editor_fluxo.voltar_solicitado.connect(self.navegar_para_home)
+        self.workspace.home_solicitada.connect(self.navegar_para_home)
+        self.config.voltar_solicitado.connect(self.navegar_para_home)
 
-        self.config.tema_alterado.connect(self.aplicar_tema)
-        # Sincroniza o módulo sempre que o usuário trocar de aba no Workspace
-        self.workspace.currentChanged.connect(self._inicializar_modulo_ativo)
+        self.config.tema_alterado.connect(self.atualizar_estilo_visual)
+        self.workspace.currentChanged.connect(self._sincronizar_modulo_visualizado)
 
-    def _carregar_configuracoes_iniciais(self):
-        tema_salvo = settings.get("preferencias", "tema", "dark")
-        caminho_qss = self.base_dir / "temas" / f"{tema_salvo}.qss"
+    def _configs_user(self):
+        tema = settings.get("preferencias", "tema", "dark")
+        caminho_qss = self.base_dir / "temas" / f"{tema}.qss"
+        self.atualizar_estilo_visual(str(caminho_qss))
 
-        if caminho_qss.exists():
-            try:
-                qss_content = caminho_qss.read_text(encoding="utf-8")
-                QtWidgets.QApplication.instance().setStyleSheet(qss_content)
-            except Exception as e:
-                logging.error(f"Erro ao carregar tema inicial: {e}")
-
-    def aplicar_tema(self, caminho_qss: str):
+    def atualizar_estilo_visual(self, caminho_qss: str):
         path = Path(caminho_qss)
-        if path.exists():
-            try:
-                qss_content = path.read_text(encoding="utf-8")
-                QtWidgets.QApplication.instance().setStyleSheet(qss_content)
-                settings.set("preferencias", "tema", path.stem)
-                settings.save()
-            except Exception as e:
-                self._notificar_erro("Erro ao aplicar tema", e)
+        if not path.exists():
+            return
 
-    def exibir_home(self):
+        try:
+            estilo = path.read_text(encoding="utf-8")
+            QtWidgets.QApplication.instance().setStyleSheet(estilo)
+
+            settings.set("preferencias", "tema", path.stem)
+            settings.save()
+        except Exception as e:
+            self._lançar_alerta_erro("Erro de Estilização", e)
+
+    def navegar_para_home(self):
         self.home.atualizar_listas()
         self.stack.setCurrentWidget(self.home)
 
     def selecionar_paciente(self, caminho_pasta: str, modo: str):
         self.pasta_paciente_atual = str(Path(caminho_pasta).resolve())
-        print(f">>> [PACIENTE] Selecionado: {self.pasta_paciente_atual}")
+        print(f">>> [PACIENTE] Ativo: {self.pasta_paciente_atual}")
 
     def iniciar_fluxo_trabalho(self, caminho_json: str):
         path_fluxo = Path(caminho_json)
-        is_cadastro = "cadastro" in path_fluxo.name.lower()
+        eh_cadastro = "cadastro" in path_fluxo.name.lower()
 
-        if not is_cadastro and not self.pasta_paciente_atual:
-            QtWidgets.QMessageBox.warning(self, "Atenção", "Selecione um paciente na lista.")
+        if not eh_cadastro and not self.pasta_paciente_atual:
+            QtWidgets.QMessageBox.warning(self, "Atenção", "Selecione um paciente antes de prosseguir.")
             return
 
         try:
-            dados = json.loads(path_fluxo.read_text(encoding="utf-8"))
-            self._configurar_workspace(dados)
-            self.stack.setCurrentWidget(self.workspace)
-            # Garante que o primeiro módulo carregue os dados
-            QtCore.QTimer.singleShot(100, self._inicializar_modulo_ativo)
-        except Exception as e:
-            self._notificar_erro("Falha ao carregar fluxo", e)
+            config_fluxo = json.loads(path_fluxo.read_text(encoding="utf-8"))
 
-    def _configurar_workspace(self, dados: Dict[str, Any]):
+            self._montar_workspace(config_fluxo)
+            self.stack.setCurrentWidget(self.workspace)
+
+            QtCore.QTimer.singleShot(100, self._sincronizar_modulo_visualizado)
+        except Exception as e:
+            self._lançar_alerta_erro("Falha no Fluxo", e)
+
+    def _montar_workspace(self, dados: Dict[str, Any]):
         self.workspace.blockSignals(True)
         self.workspace.clear()
         self.modulos_instanciados.clear()
+
         self.fluxo = FluxoBase(dados)
 
         for id_modulo in self.fluxo.sequencia:
-            instancia = ModuloFactory.carregar_modulo(id_modulo)
-            if instancia:
-                instancia.concluido.connect(self._on_modulo_concluido)
-                self.modulos_instanciados.append(instancia)
-                self.workspace.adicionar_modulo(id_modulo, instancia)
+            modulo = ModuloFactory.carregar_modulo(id_modulo)
+            if modulo:
+                modulo.concluido.connect(self._processar_conclusao_modulo)
+                self.modulos_instanciados.append(modulo)
+                self.workspace.adicionar_modulo(id_modulo, modulo)
 
         self.workspace.blockSignals(False)
 
-    def _inicializar_modulo_ativo(self):
-        """Injeta o caminho do paciente e valida o módulo ao ativar a aba."""
+    def _sincronizar_modulo_visualizado(self):
         modulo = self.workspace.get_modulo_ativo()
-        if not modulo:
+        if not modulo or not self.pasta_paciente_atual:
             return
 
-        if self.pasta_paciente_atual:
-            # Sincroniza a pasta do paciente no objeto do módulo
-            modulo.pasta_paciente = self.pasta_paciente_atual
+        modulo.pasta_paciente = self.pasta_paciente_atual
+        apto, mensagem = modulo.verificar_pre_requisitos()
 
-            sucesso, msg = modulo.verificar_pre_requisitos()
+        identificador = getattr(modulo, 'nome', modulo.__class__.__name__)
 
-            # Obtém um nome legível para o log (evita AttributeError)
-            nome_modulo = getattr(modulo, 'nome', modulo.__class__.__name__)
+        if apto:
+            print(f">>> [CORE] Inicializando: {identificador}")
+            modulo.inicializar(self.pasta_paciente_atual)
+        else:
+            print(f">>> [AVISO] Bloqueio em {identificador}: {mensagem}")
+            if "cadastro" not in identificador.lower():
+                QtWidgets.QMessageBox.warning(self, "Requisito Faltante", mensagem)
 
-            if sucesso:
-                print(f">>> [SISTEMA] Inicializando módulo: {nome_modulo}")
-                modulo.inicializar(self.pasta_paciente_atual)
-            else:
-                print(f">>> [AVISO] Pré-requisitos não atendidos para {nome_modulo}: {msg}")
-                # Não exibe warning para o módulo de cadastro
-                if "cadastro" not in str(modulo.__class__.__name__).lower():
-                    QtWidgets.QMessageBox.warning(self, "Atenção", msg)
+    def _processar_conclusao_modulo(self):
+        modulo_emissor = self.sender()
 
-    def _on_modulo_concluido(self):
-        """Atualiza o estado global quando um módulo termina uma tarefa."""
-        modulo_origem = self.sender()
-        if hasattr(modulo_origem, 'pasta_paciente') and modulo_origem.pasta_paciente:
-            self.pasta_paciente_atual = str(Path(modulo_origem.pasta_paciente).resolve())
+        if hasattr(modulo_emissor, 'pasta_paciente') and modulo_emissor.pasta_paciente:
+            self.pasta_paciente_atual = str(Path(modulo_emissor.pasta_paciente).resolve())
 
-        nome_modulo = getattr(modulo_origem, 'nome', modulo_origem.__class__.__name__)
-        print(f">>> [SUCESSO] Módulo '{nome_modulo}' finalizado.")
+        nome = getattr(modulo_emissor, 'nome', modulo_emissor.__class__.__name__)
+        print(f">>> [FLUXO] Etapa concluída: {nome}")
 
-    def _notificar_erro(self, titulo: str, erro: Exception):
+    def _lançar_alerta_erro(self, titulo: str, erro: Exception):
         logging.error(f"{titulo}: {erro}", exc_info=True)
-        QtWidgets.QMessageBox.critical(self, "Erro", f"<b>{titulo}</b><br><br>{str(erro)}")
+        QtWidgets.QMessageBox.critical(self, "Erro Crítico", f"<b>{titulo}</b><br>{str(erro)}")
 
 
 if __name__ == "__main__":
@@ -178,7 +173,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    janela_principal = MainWindow()
-    janela_principal.show()
+    janela = MainWindow()
+    janela.show()
 
     sys.exit(app.exec())
