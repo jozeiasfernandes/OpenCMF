@@ -98,7 +98,7 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         for nome_aba, widget_aba in toolboxes.items():
             container = QtWidgets.QWidget()
             layout = QtWidgets.QVBoxLayout(container)
-            layout.setContentsMargins(5, 5, 5, 5)
+            layout.setContentsMargins(0, 0, 0, 0)
             layout.addWidget(widget_aba)
             sidebar.addTab(container, nome_aba)
             container.setVisible(False)
@@ -108,22 +108,18 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
     def _alternar_sidebar(self, sidebar: QtWidgets.QTabWidget, index: int):
         largura_atual = sidebar.width()
-        aba_atual = sidebar.currentIndex()
+        aba_ativa_no_momento = sidebar.currentIndex()
 
-        if largura_atual <= self.TOOLBOX_MIN_WIDTH or index != aba_atual:
-            sidebar.setFixedWidth(self.TOOLBOX_MAX_WIDTH + self.TOOLBOX_MIN_WIDTH)
-            for i in range(sidebar.count()):
-                sidebar.widget(i).setVisible(True)
-        else:
+        if largura_atual > self.TOOLBOX_MIN_WIDTH and index == aba_ativa_no_momento:
             sidebar.setFixedWidth(self.TOOLBOX_MIN_WIDTH)
             for i in range(sidebar.count()):
                 sidebar.widget(i).setVisible(False)
-
-        modulo = self.get_modulo_ativo()
-        if modulo:
-            QtCore.QTimer.singleShot(10, lambda: self._refresh_visual(modulo))
-
-        self.updateGeometry()
+        else:
+            sidebar.setFixedWidth(self.TOOLBOX_MAX_WIDTH + self.TOOLBOX_MIN_WIDTH)
+            for i in range(sidebar.count()):
+                sidebar.widget(i).setVisible(True)
+            sidebar.setCurrentIndex(index)
+        self.layout().activate()
 
     def _refresh_visual(self, modulo_obj: Any):
         viewer = getattr(modulo_obj, 'viewer', None)

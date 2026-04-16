@@ -8,9 +8,9 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.modulo_base.base import FluxoBase
 from core.modulo_base.factory import ModuloFactory
-from core.settings import settings
+from gui.settings import settings
 from gui.tela_inicial import Tela_Inicial
-from gui.workspace import WorkspaceManager
+from core.workspace import WorkspaceManager
 from gui.fluxo.editor_fluxo import PaginaEditorFluxo
 from gui.paginas_extras.tela_config import PaginaConfig
 

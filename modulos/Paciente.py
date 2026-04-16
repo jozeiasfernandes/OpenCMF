@@ -260,10 +260,7 @@ class Modulo(ModuloBase):
         return self.main_container
 
     def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
-        toolbar = QtWidgets.QToolBar("Ações do Paciente")
-        action_save = toolbar.addAction("Salvar")
-        action_save.triggered.connect(self._processar_cadastro)
-        return toolbar
+        pass
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         aba_acoes = QtWidgets.QWidget()
