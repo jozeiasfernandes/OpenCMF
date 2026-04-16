@@ -119,7 +119,7 @@ class WorkspaceManager(QtWidgets.QTabWidget):
             for i in range(sidebar.count()):
                 sidebar.widget(i).setVisible(True)
             sidebar.setCurrentIndex(index)
-        self.layout().activate()
+
 
     def _refresh_visual(self, modulo_obj: Any):
         viewer = getattr(modulo_obj, 'viewer', None)
