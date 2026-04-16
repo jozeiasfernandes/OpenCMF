@@ -20,8 +20,8 @@ class Janela2D(JanelaBase):
         self.slider_corte.setStyleSheet("""
             QSlider::handle:horizontal {
                 background: #3ea6fa;
-                width: 14px;
-                border-radius: 7px;
+                width: 4px;
+                border-radius: 4px;
             }
         """)
 
