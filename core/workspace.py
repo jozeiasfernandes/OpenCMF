@@ -8,7 +8,7 @@ class WorkspaceManager(QtWidgets.QTabWidget):
     home_solicitada = QtCore.Signal()
 
     TOOLBOX_MIN_WIDTH = 35
-    TOOLBOX_MAX_WIDTH = 250
+    TOOLBOX_EXPAND_WIDTH = 330
     HOME_ICON_SIZE = QtCore.QSize(30, 30)
     HOME_BTN_SIZE = QtCore.QSize(30, 30)
 
@@ -40,20 +40,14 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
     def adicionar_modulo(self, id_modulo: str, modulo_obj: Any):
         titulo = getattr(modulo_obj, 'nome', id_modulo.replace("_", " ").capitalize())
-
-        # 1. Criamos o container da página PRIMEIRO
         page_container = QtWidgets.QWidget()
         page_container.setProperty("modulo_instancia", modulo_obj)
 
-        # 2. Adicionamos a aba antes de preencher o conteúdo.
-        # Isso garante que qualquer widget criado pelo módulo já tenha um 'Parent' (a aba).
         self.blockSignals(True)
-        idx = self.addTab(page_container, titulo)
+        self.addTab(page_container, titulo)
         self.blockSignals(False)
 
-        # 3. Agora preenchemos o layout com os componentes do módulo
         self._preencher_container_modulo(page_container, modulo_obj)
-
         if self.count() == 1:
             self.setCurrentIndex(0)
 
@@ -62,38 +56,41 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         layout_principal.setContentsMargins(0, 0, 0, 0)
         layout_principal.setSpacing(0)
 
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        splitter.setObjectName("workspaceSplitter")
+        splitter.setHandleWidth(1)
+
         centro_widget = QtWidgets.QWidget()
         centro_layout = QtWidgets.QVBoxLayout(centro_widget)
         centro_layout.setContentsMargins(0, 0, 0, 0)
         centro_layout.setSpacing(0)
 
-        # Toolbar
         toolbar = modulo_obj.get_workspace_toolbar()
         if toolbar:
             centro_layout.addWidget(toolbar)
 
-        # Solicita o Workspace (o main_container do módulo agora será filho de centro_widget)
         workspace_widget = modulo_obj.get_workspace()
         workspace_widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         centro_layout.addWidget(workspace_widget)
 
-        layout_principal.addWidget(centro_widget, stretch=1)
+        splitter.addWidget(centro_widget)
 
-        # Sidebars (Toolboxes)
         if hasattr(modulo_obj, 'get_toolboxes'):
             dict_toolboxes = modulo_obj.get_toolboxes()
             if dict_toolboxes:
                 sidebar = self._sidebar_lateral(dict_toolboxes)
-                layout_principal.addWidget(sidebar)
+                splitter.addWidget(sidebar)
+                splitter.setStretchFactor(0, 1)
+                splitter.setStretchFactor(1, 0)
+                splitter.setSizes([page_container.width(), self.TOOLBOX_MIN_WIDTH])
 
-    def get_modulo_ativo(self) -> Optional[Any]:
-        container = self.currentWidget()
-        return container.property("modulo_instancia") if container else None
+        layout_principal.addWidget(splitter)
 
     def _sidebar_lateral(self, toolboxes: Dict[str, QtWidgets.QWidget]) -> QtWidgets.QTabWidget:
         sidebar = QtWidgets.QTabWidget()
         sidebar.setTabPosition(QtWidgets.QTabWidget.East)
-        sidebar.setFixedWidth(self.TOOLBOX_MIN_WIDTH)
+        sidebar.setMinimumWidth(self.TOOLBOX_MIN_WIDTH)
+        sidebar.setMaximumWidth(self.TOOLBOX_MIN_WIDTH)
 
         for nome_aba, widget_aba in toolboxes.items():
             container = QtWidgets.QWidget()
@@ -107,19 +104,36 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         return sidebar
 
     def _alternar_sidebar(self, sidebar: QtWidgets.QTabWidget, index: int):
-        largura_atual = sidebar.width()
-        aba_ativa_no_momento = sidebar.currentIndex()
+        splitter = sidebar.parent()
+        if not isinstance(splitter, QtWidgets.QSplitter):
+            splitter = sidebar.parentWidget().findChild(QtWidgets.QSplitter)
 
-        if largura_atual > self.TOOLBOX_MIN_WIDTH and index == aba_ativa_no_momento:
-            sidebar.setFixedWidth(self.TOOLBOX_MIN_WIDTH)
+        largura_atual = sidebar.width()
+        aba_ativa = sidebar.currentIndex()
+
+        if largura_atual > self.TOOLBOX_MIN_WIDTH and index == aba_ativa:
+            sidebar.setMaximumWidth(self.TOOLBOX_MIN_WIDTH)
             for i in range(sidebar.count()):
                 sidebar.widget(i).setVisible(False)
+            if splitter:
+                splitter.setSizes([10000, self.TOOLBOX_MIN_WIDTH])
         else:
-            sidebar.setFixedWidth(self.TOOLBOX_MAX_WIDTH + self.TOOLBOX_MIN_WIDTH)
+            sidebar.setMaximumWidth(16777215)
             for i in range(sidebar.count()):
                 sidebar.widget(i).setVisible(True)
             sidebar.setCurrentIndex(index)
 
+            if splitter:
+                largura_centro = splitter.width() - self.TOOLBOX_EXPAND_WIDTH
+                splitter.setSizes([largura_centro, self.TOOLBOX_EXPAND_WIDTH])
+
+        modulo = self.get_modulo_ativo()
+        if modulo:
+            QtCore.QTimer.singleShot(10, lambda: self._refresh_visual(modulo))
+
+    def get_modulo_ativo(self) -> Optional[Any]:
+        container = self.currentWidget()
+        return container.property("modulo_instancia") if container else None
 
     def _refresh_visual(self, modulo_obj: Any):
         viewer = getattr(modulo_obj, 'viewer', None)
@@ -129,4 +143,4 @@ class WorkspaceManager(QtWidgets.QTabWidget):
     def _sincronizar_aba(self, index: int):
         modulo_obj = self.get_modulo_ativo()
         if modulo_obj:
-            QtCore.QTimer.singleShot(2, lambda: self._refresh_visual(modulo_obj))
+            QtCore.QTimer.singleShot(5, lambda: self._refresh_visual(modulo_obj))
