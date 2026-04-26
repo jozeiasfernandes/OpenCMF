@@ -7,43 +7,43 @@ class Janela2D(JanelaBase):
 
     def __init__(self, titulo: str, cor: str, parent=None):
         super().__init__(titulo, cor, parent)
-        self._setup_controles_especificos()
-        self._configurar_interacao()
+        self._setup_specific_ui()
+        self._setup_interactions()
 
-    def _setup_controles_especificos(self):
+    def _setup_specific_ui(self):
         self.combo_proj = QtWidgets.QComboBox()
         self.combo_proj.addItems(["Axial", "Coronal", "Sagital"])
         self.combo_proj.setFixedWidth(85)
+        self.combo_proj.setCurrentText(self.titulo)
 
         self.slider_corte = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider_corte.setMinimum(0)
         self.slider_corte.setStyleSheet("""
             QSlider::handle:horizontal {
-                background: #3ea6fa;
-                width: 4px;
-                border-radius: 4px;
+                background: #3EA6FA;
+                width: 6px;
+                border-radius: 3px;
             }
         """)
 
         self.lbl_mm = QtWidgets.QLabel("0.0 mm")
-        self.lbl_mm.setFixedWidth(55)
+        self.lbl_mm.setFixedWidth(60)
         self.lbl_mm.setAlignment(QtCore.Qt.AlignCenter)
 
-        # Adiciona na barra inferior herdada
         self.adicionar_controle(self.combo_proj)
-        self.adicionar_controle(QtWidgets.QLabel("Corte:"))
+        self.adicionar_controle(QtWidgets.QLabel(" Corte:"))
         self.adicionar_controle(self.slider_corte)
         self.adicionar_controle(self.lbl_mm)
 
-        # Conecta o movimento do slider ao sinal de saída
         self.slider_corte.valueChanged.connect(self.sliceChanged.emit)
 
-    def _configurar_interacao(self):
-        # Habilita eventos de scroll do mouse no widget VTK para navegar fatias
-        self.vtkWidget.AddObserver("MouseWheelForwardEvent", self._vtk_wheel_event)
-        self.vtkWidget.AddObserver("MouseWheelBackwardEvent", self._vtk_wheel_event)
+    def _setup_interactions(self):
+        self.vtkWidget.AddObserver("MouseWheelForwardEvent", self._handle_wheel)
+        self.vtkWidget.AddObserver("MouseWheelBackwardEvent", self._handle_wheel)
 
-    def _vtk_wheel_event(self, obj, event):
-        delta = 1 if event == "MouseWheelForwardEvent" else -1
-        novo_valor = self.slider_corte.value() + delta
-        self.slider_corte.setValue(novo_valor)
+    def _handle_wheel(self, obj, event):
+        step = 1 if event == "MouseWheelForwardEvent" else -1
+        new_value = self.slider_corte.value() + step
+
+        if self.slider_corte.minimum() <= new_value <= self.slider_corte.maximum():
+            self.slider_corte.setValue(new_value)

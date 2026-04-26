@@ -7,7 +7,7 @@ from core.base_module.base import ModuloBase
 from core.volume.dicom_engine import DicomEngine
 from .ui import TomografiaUI
 from core.volume.viewer import VolumeViewerWidget
-from .validator import DicomValidator
+from core.volume.validator import DicomValidator
 
 
 class Modulo(ModuloBase):
