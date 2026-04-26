@@ -1,0 +1,35 @@
+{
+    "common": {
+        "warning": "Atención",
+        "error": "Error",
+        "critical_error": "Error Crítico",
+        "close_button": "Cerrar",
+        "theme_error": "Error de Estilo del Tema",
+        "flow_error": "Error al cargar el Flujo",
+        "missing_data": "Faltan Requisitos",
+        "open_project": "Abrir Proyecto",
+        "delete_project": "Eliminar Proyecto"
+    },
+    "home": {
+        "recent_projects_title": "Proyectos Recientes",
+        "new_project_button": "Nuevo Proyecto",
+        "delete_button": "Eliminar proyecto",
+        "select_patient_msg": "Por favor, seleccione un paciente antes de continuar.",
+        "select_patient_first": "Seleccione un paciente para iniciar este flujo de trabajo.",
+        "confirm_deletion_title": "Confirmar Eliminación",
+        "confirm_deletion_message": "¿Está seguro de que desea eliminar permanentemente el proyecto: {}?",
+        "available_flows_title": "Flujos Disponibles",
+        "new_flow_button": "Nuevo Flujo",
+        "unknown_patient": "Paciente Desconocido",
+        "delete_flow_msg": "¿Está seguro de que desea eliminar el flujo",
+        "delete_folder_error": "Error al eliminar la carpeta del proyecto."
+    },
+    "configs": {
+        "settings_title": "Configuración",
+        "theme_label": "Tema del Sistema",
+        "language_label": "Idioma",
+        "language_changed_title": "Idioma Cambiado",
+        "restart_required_msg": "Para aplicar los cambios en todo el sistema, por favor reinicie la aplicación.",
+        "default_theme": "Predeterminado"
+    }
+}
