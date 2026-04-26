@@ -6,9 +6,10 @@ from PySide6 import QtWidgets, QtCore
 from core.base_module.base import ModuloBase
 from core.volume.dicom_engine import DicomEngine
 from .ui import TomografiaUI
+
+# CORREÇÃO AQUI: O caminho deve refletir a nova pasta window_2d
 from core.volume.viewer import VolumeViewerWidget
 from core.volume.validator import DicomValidator
-
 
 class Modulo(ModuloBase):
     def __init__(self):
@@ -36,6 +37,23 @@ class Modulo(ModuloBase):
                     self.ui.edit_dicom.setText(self.caminho_dicom)
         except Exception as e:
             print(f"Erro ao carregar info.json: {e}")
+
+    def _atualizar_persistência_diretorio(self, novo_caminho: str):
+        path_info = Path(self.pasta_paciente) / "projeto" / "info.json"
+        try:
+            dados = {}
+            if path_info.exists():
+                with open(path_info, "r", encoding="utf-8") as f:
+                    dados = json.load(f)
+
+            dados.setdefault("caminhos", {})["dicom"] = novo_caminho
+            self.caminho_dicom = novo_caminho
+
+            path_info.parent.mkdir(parents=True, exist_ok=True)
+            with open(path_info, "w", encoding="utf-8") as f:
+                json.dump(dados, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Erro ao persistir caminho no JSON: {e}")
 
     def _atualizar_persistência_diretorio(self, novo_caminho: str):
         path_info = Path(self.pasta_paciente) / "projeto" / "info.json"

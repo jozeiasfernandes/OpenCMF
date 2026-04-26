@@ -1,7 +1,7 @@
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.windows.janelas import JanelaBase
-
+from .context_menu_2d import ContextMenu2D
 
 class Janela2D(JanelaBase):
     sliceChanged = QtCore.Signal(int)
@@ -15,10 +15,10 @@ class Janela2D(JanelaBase):
 
     def _setup_specific_ui(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.path_icons = os.path.abspath(os.path.join(base_dir, "..", "..", "icons"))
+        self.path_icons = os.path.abspath(os.path.join(base_dir, "..", "..", "..", "icons"))
 
         self.combo_proj = QtWidgets.QComboBox()
-        self.combo_proj.addItems(["Axial", "Coronal", "Sagital"])
+        self.combo_proj.addItems(["Axial", "Coronal", "Sagittal"])
         self.combo_proj.setFixedWidth(85)
         self.combo_proj.setCurrentText(self.titulo)
 
@@ -43,12 +43,19 @@ class Janela2D(JanelaBase):
         self._update_maximize_icon()
 
         self.adicionar_controle(self.combo_proj)
-        self.adicionar_controle(QtWidgets.QLabel(" Corte:"))
+        self.adicionar_controle(QtWidgets.QLabel(" Slice:"))
         self.adicionar_controle(self.slider_corte)
         self.adicionar_controle(self.lbl_mm)
         self.adicionar_controle(self.btn_maximize)
 
         self.slider_corte.valueChanged.connect(self.sliceChanged.emit)
+
+        self.vtkWidget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.vtkWidget.customContextMenuRequested.connect(self._show_context_menu)
+
+    def _show_context_menu(self, pos):
+        menu = ContextMenu2D(self)
+        menu.exec_(self.vtkWidget.mapToGlobal(pos))
 
     def _update_maximize_icon(self):
         icon_name = "minimizar.png" if self.is_maximized else "maximizar.png"

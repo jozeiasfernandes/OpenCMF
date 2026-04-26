@@ -3,8 +3,9 @@ import os
 import json
 from PySide6 import QtWidgets, QtCore, QtGui
 from typing import Dict, Optional
-from core.windows.janela2d import Janela2D
-from core.windows.janela3d import Janela3D
+from core.windows.window_2d.window_2d import Janela2D
+from core.windows.window_3d.window_3d import Janela3D
+
 
 class VolumeViewerWidget(QtWidgets.QWidget):
     sliceChanged = QtCore.Signal(str, int)
