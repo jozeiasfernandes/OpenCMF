@@ -27,7 +27,6 @@ class Modulo(ModuloBase):
         self._setup_data_maps()
 
     def _init_ui_components(self):
-        # --- Dados Principais ---
         self.edit_nome = QtWidgets.QLineEdit()
         self.edit_nome.setPlaceholderText("Nome completo...")
         self.edit_cpf = QtWidgets.QLineEdit()
@@ -47,7 +46,6 @@ class Modulo(ModuloBase):
         self.combo_sexo = QtWidgets.QComboBox()
         self.combo_sexo.addItems(["Masculino", "Feminino", "Outro"])
 
-        # --- Endereço ---
         self.edit_cep = QtWidgets.QLineEdit()
         self.edit_cep.setInputMask("00000-000;_")
         self.btn_buscar_cep = QtWidgets.QPushButton("Buscar")
@@ -59,7 +57,6 @@ class Modulo(ModuloBase):
         self.edit_pais = QtWidgets.QLineEdit()
         self.edit_pais.setText("Brasil")
 
-        # --- Dados Clínicos ---
         self.edit_diagnostico = QtWidgets.QLineEdit()
         self.edit_historia_medica = QtWidgets.QTextEdit()
         self.edit_historia_medica.setMaximumHeight(60)
@@ -69,7 +66,6 @@ class Modulo(ModuloBase):
         self.edit_planejamento = QtWidgets.QTextEdit()
         self.edit_planejamento.setMaximumHeight(80)
 
-        # --- Arquivos ---
         self.edit_fotos = QtWidgets.QLineEdit()
         self.edit_tomografia = QtWidgets.QLineEdit()
         self.edit_maxila = QtWidgets.QLineEdit()
@@ -158,7 +154,7 @@ class Modulo(ModuloBase):
         try:
             diretorio = Path(self.pasta_paciente) if self.pasta_paciente else PASTA_PACIENTES / formatar_nome_diretorio(
                 nome, time.time())
-            for sub in ["projeto", "modulo_tomografia", "modulo_osteotomia"]:
+            for sub in ["projeto", "STL"]:
                 (diretorio / sub).mkdir(parents=True, exist_ok=True)
 
             get_val = lambda w: w.text() if isinstance(w, QtWidgets.QLineEdit) else (
@@ -192,7 +188,6 @@ class Modulo(ModuloBase):
         content = QtWidgets.QWidget()
         lay_content = QtWidgets.QVBoxLayout(content)
 
-        # 1. Informações Paciente
         gp = QtWidgets.QGroupBox("Informações do Paciente")
         lp = QtWidgets.QVBoxLayout(gp)
         r1 = QtWidgets.QHBoxLayout();
@@ -214,7 +209,6 @@ class Modulo(ModuloBase):
         for r in [r1, r2, r3]: lp.addLayout(r)
         lay_content.addWidget(gp)
 
-        # 2. Seções Retráteis (Passar 'self' ou 'content' como pai para SecaoRetratil)
         sec_end = SecaoRetratil("Endereço", False, content)
         f_end = QtWidgets.QFormLayout()
         row_cep = QtWidgets.QHBoxLayout();
@@ -259,34 +253,35 @@ class Modulo(ModuloBase):
         layout.addWidget(scroll)
         return self.main_container
 
-    def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
-        pass
-
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         aba_acoes = QtWidgets.QWidget()
         lay_acoes = QtWidgets.QVBoxLayout(aba_acoes)
-        lbl = QtWidgets.QLabel("<b>Ações</b>")
-        lay_acoes.addWidget(lbl)
-
         btn_limpar = QtWidgets.QPushButton(" Limpar Formulário")
         btn_limpar.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogDiscardButton))
         btn_limpar.setStyleSheet("background-color: #e74c3c; color: white; padding: 8px; border-radius: 4px;")
         btn_limpar.clicked.connect(self._limpar_formulario)
-
         lay_acoes.addWidget(btn_limpar)
         lay_acoes.addStretch()
         return {"Ferramentas": aba_acoes}
 
     def _buscar_caminho(self, target, folder=True):
+        settings = QtCore.QSettings("OpenCMF", "Config")
+        chave = "ultimo_diretorio_dicom" if target == self.edit_tomografia else "ultimo_diretorio_geral"
+        ultimo = settings.value(chave, "")
+
         if folder:
-            p = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
+            p = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta", ultimo)
         else:
-            p, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Selecionar Arquivo", "", "Malhas (*.stl *.obj *.ply)")
-        if p: target.setText(p)
+            p, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Selecionar Arquivo", ultimo,
+                                                         "Malhas (*.stl *.obj *.ply)")
+
+        if p:
+            target.setText(p)
+            settings.setValue(chave, p)
 
     def _limpar_formulario(self):
-        confirm = QtWidgets.QMessageBox.question(self, "Limpar", "Deseja limpar todos os campos?")
-        if confirm == QtWidgets.QMessageBox.Yes:
+        if QtWidgets.QMessageBox.question(self, "Limpar",
+                                          "Deseja limpar todos os campos?") == QtWidgets.QMessageBox.Yes:
             for w in self.main_container.findChildren(QtWidgets.QLineEdit): w.clear()
             for w in self.main_container.findChildren(QtWidgets.QTextEdit): w.clear()
             self.edit_pais.setText("Brasil")

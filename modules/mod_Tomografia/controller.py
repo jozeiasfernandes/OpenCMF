@@ -7,6 +7,7 @@ from core.base_module.base import ModuloBase
 from core.volume.dicom_engine import DicomEngine
 from .ui import TomografiaUI
 from core.volume.viewer import VolumeViewerWidget
+from .validator import DicomValidator
 
 
 class Modulo(ModuloBase):
@@ -28,7 +29,6 @@ class Modulo(ModuloBase):
         path_info = Path(self.pasta_paciente) / "projeto" / "info.json"
         if not path_info.exists():
             return
-
         try:
             with open(path_info, "r", encoding="utf-8") as f:
                 dados = json.load(f)
@@ -38,14 +38,28 @@ class Modulo(ModuloBase):
         except Exception as e:
             print(f"Erro ao carregar info.json: {e}")
 
+    def _atualizar_persistência_diretorio(self, novo_caminho: str):
+        path_info = Path(self.pasta_paciente) / "projeto" / "info.json"
+        if not path_info.exists():
+            return
+        try:
+            with open(path_info, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+
+            dados.setdefault("caminhos", {})["dicom"] = novo_caminho
+            self.caminho_dicom = novo_caminho
+
+            with open(path_info, "w", encoding="utf-8") as f:
+                json.dump(dados, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Erro ao persistir caminho no JSON: {e}")
+
     def _buscar_pasta(self):
         settings = QtCore.QSettings("OpenCMF", "Config")
         ultimo_caminho = settings.value("ultimo_diretorio_dicom", "")
 
         pasta = QtWidgets.QFileDialog.getExistingDirectory(
-            None,
-            "Selecionar Pasta DICOM",
-            ultimo_caminho
+            None, "Selecionar Pasta DICOM ou ZIP", ultimo_caminho
         )
 
         if pasta:
@@ -53,31 +67,69 @@ class Modulo(ModuloBase):
             settings.setValue("ultimo_diretorio_dicom", pasta)
 
     def _validar_dicom(self):
-        caminho = self.ui.edit_dicom.text()
-        if Path(caminho).exists() and list(Path(caminho).glob("*.dcm")):
-            self.caminho_dicom = caminho
-            self.ui.update_status_validado()
-        else:
+        caminho_input = self.ui.edit_dicom.text()
+        if not caminho_input:
+            return
+
+        progress = QtWidgets.QProgressDialog("Iniciando análise...", "Cancelar", 0, 100, None)
+        progress.setWindowTitle("Validador DICOM")
+        progress.setWindowModality(QtCore.Qt.WindowModal)
+        progress.show()
+
+        def update_progress(msg, valor):
+            progress.setLabelText(msg)
+            progress.setValue(valor)
+            QtWidgets.QApplication.processEvents()
+
+        validador = DicomValidator(self.pasta_paciente)
+        resultado = validador.analisar_caminho(caminho_input, callback=update_progress)
+
+        progress.close()
+
+        if not resultado["sucesso"]:
             self.ui.update_status_erro()
-            QtWidgets.QMessageBox.warning(None, "Erro", "Pasta inválida ou sem arquivos DICOM.")
+            QtWidgets.QMessageBox.critical(None, "Erro de Validação", resultado["erro"])
+            return
+
+        series = resultado["series"]
+        ids_series = list(series.keys())
+
+        if len(ids_series) > 1:
+            opcoes = [f"{series[s][0]['desc']} ({len(series[s])} imagens)" for s in ids_series]
+            item, ok = QtWidgets.QInputDialog.getItem(
+                None, "Múltiplos Estudos",
+                "Selecione a série tomográfica correta:", opcoes, 0, False
+            )
+            if not ok: return
+            id_escolhido = ids_series[opcoes.index(item)]
+        else:
+            id_escolhido = ids_series[0]
+
+        caminho_final = str(Path(series[id_escolhido][0]["path"]).parent)
+        self._atualizar_persistência_diretorio(caminho_final)
+        self.ui.update_status_validado()
+
+        QtWidgets.QMessageBox.information(
+            None, "Sucesso",
+            f"Série '{series[id_escolhido][0]['desc']}' validada com sucesso."
+        )
 
     def _carregar_dicom(self):
         if not self.caminho_dicom:
+            QtWidgets.QMessageBox.warning(None, "Aviso", "Valide a pasta DICOM antes de carregar.")
             return
 
         progress = QtWidgets.QProgressDialog("Lendo arquivos DICOM...", "Cancelar", 0, 100, None)
         progress.setWindowTitle("Processando Tomografia")
         progress.setWindowModality(QtCore.Qt.WindowModal)
-        progress.setMinimumDuration(0)
         progress.show()
-        QtWidgets.QApplication.processEvents()
 
         try:
             progress.setValue(10)
             sucesso, msg = self.engine.carregar_pasta(self.caminho_dicom)
 
             if sucesso:
-                progress.setLabelText("Gerando volume VTI...")
+                progress.setLabelText("Gerando volume binário (VTI)...")
                 progress.setValue(40)
                 QtWidgets.QApplication.processEvents()
 
@@ -92,7 +144,7 @@ class Modulo(ModuloBase):
                     self.ui.update_status_carregado()
 
                 progress.setValue(100)
-                QtWidgets.QMessageBox.information(None, "Sucesso", "Volume processado e salvo com sucesso!")
+                QtWidgets.QMessageBox.information(None, "Sucesso", "Volume processado com sucesso!")
             else:
                 QtWidgets.QMessageBox.critical(None, "Erro", msg)
         finally:
@@ -101,7 +153,6 @@ class Modulo(ModuloBase):
     def _persistir_volume(self):
         if not self.engine.vtk_volume or not self.pasta_paciente:
             return
-
         try:
             path_vti = Path(self.pasta_paciente) / "projeto" / "volume.vti"
             writer = vtk.vtkXMLImageDataWriter()
