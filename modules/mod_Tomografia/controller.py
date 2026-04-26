@@ -172,8 +172,7 @@ class Modulo(ModuloBase):
         self.concluido.emit()
 
     def _sincronizar_fatia(self, plano: str, valor: int):
-        if self.viewer:
-            self.viewer.update_slice(plano, valor)
+        pass
 
     def _sincronizar_window_level_ui(self, window: float, level: float):
         self.ui.update_wl_ui(window, level)

@@ -23,7 +23,7 @@ class Janela2D(JanelaBase):
         self.combo_proj.setCurrentText(self.titulo)
 
         self.slider_corte = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slider_corte.setMinimum(0)
+        self.slider_corte.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.slider_corte.setStyleSheet("""
             QSlider::handle:horizontal {
                 background: #3EA6FA;
@@ -33,13 +33,12 @@ class Janela2D(JanelaBase):
         """)
 
         self.lbl_mm = QtWidgets.QLabel("0.0 mm")
-        self.lbl_mm.setFixedWidth(60)
+        self.lbl_mm.setFixedWidth(65)
         self.lbl_mm.setAlignment(QtCore.Qt.AlignCenter)
 
         self.btn_maximize = QtWidgets.QPushButton()
         self.btn_maximize.setFixedSize(24, 24)
         self.btn_maximize.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_maximize.setToolTip("Maximizar/Restaurar")
         self.btn_maximize.clicked.connect(self._toggle_maximize)
         self._update_maximize_icon()
 
@@ -57,10 +56,11 @@ class Janela2D(JanelaBase):
         if os.path.exists(icon_path):
             self.btn_maximize.setIcon(QtGui.QIcon(icon_path))
             self.btn_maximize.setIconSize(QtCore.QSize(16, 16))
-            self.btn_maximize.setStyleSheet("""
-                QPushButton { border: none; background: transparent; }
-                QPushButton:hover { background: #9e9d9d; border-radius: 3px; }
-            """)
+
+        self.btn_maximize.setStyleSheet("""
+            QPushButton { border: none; background: transparent; } 
+            QPushButton:hover { background: #444; border-radius: 3px; }
+        """)
 
     def _toggle_maximize(self):
         self.is_maximized = not self.is_maximized
@@ -68,12 +68,10 @@ class Janela2D(JanelaBase):
         self.maximizeRequested.emit(self.is_maximized)
 
     def _setup_interactions(self):
-        self.vtkWidget.AddObserver("MouseWheelForwardEvent", self._handle_wheel)
-        self.vtkWidget.AddObserver("MouseWheelBackwardEvent", self._handle_wheel)
+        if hasattr(self.vtkWidget, "AddObserver"):
+            self.vtkWidget.AddObserver("MouseWheelForwardEvent", self._handle_wheel)
+            self.vtkWidget.AddObserver("MouseWheelBackwardEvent", self._handle_wheel)
 
     def _handle_wheel(self, obj, event):
         step = 1 if event == "MouseWheelForwardEvent" else -1
-        new_value = self.slider_corte.value() + step
-
-        if self.slider_corte.minimum() <= new_value <= self.slider_corte.maximum():
-            self.slider_corte.setValue(new_value)
+        self.slider_corte.setValue(self.slider_corte.value() + step)
