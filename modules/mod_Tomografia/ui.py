@@ -138,7 +138,6 @@ class TomografiaUI:
         self.layout_filtros.addStretch()
         return aba
 
-    # --- MÉTODOS DE STATUS ---
 
     def update_status_validado(self):
         self.btn_validar.setText("✅ DICOM Validado")

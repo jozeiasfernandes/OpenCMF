@@ -1,16 +1,22 @@
+import os
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.windows.janelas import JanelaBase
 
 
 class Janela2D(JanelaBase):
     sliceChanged = QtCore.Signal(int)
+    maximizeRequested = QtCore.Signal(bool)
 
     def __init__(self, titulo: str, cor: str, parent=None):
         super().__init__(titulo, cor, parent)
+        self.is_maximized = False
         self._setup_specific_ui()
         self._setup_interactions()
 
     def _setup_specific_ui(self):
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.path_icons = os.path.abspath(os.path.join(base_dir, "..", "..", "icons"))
+
         self.combo_proj = QtWidgets.QComboBox()
         self.combo_proj.addItems(["Axial", "Coronal", "Sagital"])
         self.combo_proj.setFixedWidth(85)
@@ -30,12 +36,36 @@ class Janela2D(JanelaBase):
         self.lbl_mm.setFixedWidth(60)
         self.lbl_mm.setAlignment(QtCore.Qt.AlignCenter)
 
+        self.btn_maximize = QtWidgets.QPushButton()
+        self.btn_maximize.setFixedSize(24, 24)
+        self.btn_maximize.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_maximize.setToolTip("Maximizar/Restaurar")
+        self.btn_maximize.clicked.connect(self._toggle_maximize)
+        self._update_maximize_icon()
+
         self.adicionar_controle(self.combo_proj)
         self.adicionar_controle(QtWidgets.QLabel(" Corte:"))
         self.adicionar_controle(self.slider_corte)
         self.adicionar_controle(self.lbl_mm)
+        self.adicionar_controle(self.btn_maximize)
 
         self.slider_corte.valueChanged.connect(self.sliceChanged.emit)
+
+    def _update_maximize_icon(self):
+        icon_name = "minimizar.png" if self.is_maximized else "maximizar.png"
+        icon_path = os.path.join(self.path_icons, icon_name)
+        if os.path.exists(icon_path):
+            self.btn_maximize.setIcon(QtGui.QIcon(icon_path))
+            self.btn_maximize.setIconSize(QtCore.QSize(16, 16))
+            self.btn_maximize.setStyleSheet("""
+                QPushButton { border: none; background: transparent; }
+                QPushButton:hover { background: #9e9d9d; border-radius: 3px; }
+            """)
+
+    def _toggle_maximize(self):
+        self.is_maximized = not self.is_maximized
+        self._update_maximize_icon()
+        self.maximizeRequested.emit(self.is_maximized)
 
     def _setup_interactions(self):
         self.vtkWidget.AddObserver("MouseWheelForwardEvent", self._handle_wheel)

@@ -28,13 +28,8 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self._setup_main_layout()
 
     def _init_paths(self):
-        # Localização do viewer.py: core/volume/viewer.py
         base_path = os.path.dirname(os.path.abspath(__file__))
-
-        # presets está em core/presets (sobe um nível de volume)
         self.path_presets = os.path.abspath(os.path.join(base_path, "..", "presets"))
-
-        # icons costuma estar na raiz (sobe dois níveis de volume)
         self.path_icones = os.path.abspath(os.path.join(base_path, "..", "..", "icons"))
 
     def _setup_main_layout(self):
@@ -61,13 +56,20 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         """)
 
         self.combo_layout = QtWidgets.QComboBox()
-        layouts = [("4 Quadrantes", "4_janelas.png"), ("3D Destacado", "3_1.png"), ("Apenas 3D", "3D.png")]
-        for nome, img in layouts:
+        opcoes = [
+            ("4 Quadrantes", "4_janelas.png"),
+            ("3D Destacado", "3_1.png"),
+            ("3D", "3D.png"),
+            ("Axial", "axial.png"),
+            ("Sagital", "sagital.png"),
+            ("Coronal", "coronal.png")
+        ]
+
+        for nome, img in opcoes:
             icon_path = os.path.join(self.path_icones, img)
             self.combo_layout.addItem(QtGui.QIcon(icon_path), nome)
 
         self.combo_layout.currentTextChanged.connect(self.configurar_layout)
-        self.toolbar.addWidget(QtWidgets.QLabel("  Layout: "))
         self.toolbar.addWidget(self.combo_layout)
         self.root_layout.addWidget(self.toolbar)
 
@@ -76,13 +78,22 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         for nome in self.PLANOS:
             pane = Janela2D(nome, cores[nome])
             pane.sliceChanged.connect(lambda v, n=nome: self.update_slice(n, v))
+            pane.maximizeRequested.connect(lambda maximo, n=nome: self._handle_maximize(n, maximo))
             self.vistas[nome] = pane
 
         pane_3d = Janela3D("3D", "#1976D2")
         pane_3d.thresholdChanged.connect(self.update_threshold)
         pane_3d.viewChanged.connect(self.update_3d_view)
         pane_3d.presetChanged.connect(self.update_preset)
+        pane_3d.maximizeRequested.connect(lambda maximo: self._handle_maximize("3D", maximo))
         self.vistas["3D"] = pane_3d
+
+    def _handle_maximize(self, nome_vista, is_maximized):
+        if is_maximized:
+            texto = "Apenas 3D" if nome_vista == "3D" else nome_vista
+            self.combo_layout.setCurrentText(texto)
+        else:
+            self.combo_layout.setCurrentText("4 Quadrantes")
 
     def set_volume(self, volume: vtk.vtkImageData):
         self.volume_data = volume
@@ -121,7 +132,6 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.volume_actor.SetProperty(prop)
         renderer.AddActor(self.volume_actor)
 
-        # Pequeno delay para garantir que o preset carregue após o actor ser criado
         initial_preset = self.vistas["3D"].combo_presets.currentText()
         if initial_preset:
             QtCore.QTimer.singleShot(50, lambda: self.update_preset(initial_preset))
@@ -131,8 +141,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     def load_preset(self, nome: str):
         if not nome: return None
         path = os.path.join(self.path_presets, f"{nome}.json")
-        if not os.path.exists(path):
-            return None
+        if not os.path.exists(path): return None
         with open(path, "r") as f:
             return json.load(f)
 
@@ -143,7 +152,6 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
         prop = self.volume_actor.GetProperty()
         mapper = self.volume_actor.GetMapper()
-
         self.color_function.RemoveAllPoints()
         self.opacity_function.RemoveAllPoints()
 
@@ -158,20 +166,12 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
         self.update_threshold(threshold)
         prop.SetShade(preset.get("shade", True))
-
-        # Define o modo de renderização (MIP ou Composite)
-        if preset.get("mip", False):
-            mapper.SetBlendModeToMaximumIntensity()
-        else:
-            mapper.SetBlendModeToComposite()
-
+        mapper.SetBlendModeToMaximumIntensity() if preset.get("mip", False) else mapper.SetBlendModeToComposite()
         pane_3d.vtkWidget.GetRenderWindow().Render()
 
     def update_threshold(self, value: int):
         if not self.volume_actor: return
-        # Se for MIP, o threshold funciona de forma diferente (ou nem é usado)
         if "MIP" in self.vistas["3D"].combo_presets.currentText().upper(): return
-
         self.opacity_function.RemoveAllPoints()
         self.opacity_function.AddPoint(value - 100, 0.0)
         self.opacity_function.AddPoint(value, 0.2)
@@ -200,12 +200,20 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             widget = self.grid_layout.itemAt(i).widget()
             if widget: widget.setParent(None)
 
-        for v in self.vistas.values(): v.hide()
+        vistas_unicas = ["Axial", "Sagital", "Coronal", "Apenas 3D"]
+        for v_nome, v_obj in self.vistas.items():
+            v_obj.hide()
+            if hasattr(v_obj, 'is_maximized'):
+                v_obj.is_maximized = (modo == v_nome or (modo == "Apenas 3D" and v_nome == "3D"))
+                v_obj._update_maximize_icon()
 
         mapping = {
             "4 Quadrantes": [("Axial", 0, 0), ("Sagital", 0, 1), ("Coronal", 1, 0), ("3D", 1, 1)],
             "3D Destacado": [("Axial", 0, 0), ("Sagital", 0, 1), ("Coronal", 0, 2), ("3D", 1, 0, 1, 3)],
-            "Apenas 3D": [("3D", 0, 0)]
+            "Apenas 3D": [("3D", 0, 0)],
+            "Axial": [("Axial", 0, 0)],
+            "Sagital": [("Sagital", 0, 0)],
+            "Coronal": [("Coronal", 0, 0)]
         }
 
         for item in mapping.get(modo, []):
@@ -230,11 +238,9 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         mapper.SliceFacesCameraOn()
         mapper.SliceAtFocalPointOn()
         self.mappers_mpr[plano] = mapper
-
         plane = vtk.vtkPlane()
         plane.SetNormal(self.NORMALS[plano])
         mapper.SetSlicePlane(plane)
-
         actor = vtk.vtkImageSlice()
         actor.SetMapper(mapper)
         actor.GetProperty().SetColorWindow(2000)
