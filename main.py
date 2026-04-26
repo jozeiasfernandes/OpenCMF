@@ -2,177 +2,165 @@ import sys
 import json
 import logging
 import ctypes
+import vtk
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.base_module.base import FluxoBase
 from core.base_module.factory import ModuloFactory
-from gui.settings import settings
-from gui.home_page import Tela_Inicial
+from core.translator import tr
 from core.workspace import WorkspaceManager
-from gui.fluxo.flow_editor import PaginaEditorFluxo
-from gui.paginas_extras.settings_page import PaginaConfig
 
-import vtk
+from gui.settings import settings
+from gui.home_page import Home_page
+from gui.flow.flow_editor import PaginaEditorFluxo
+from gui.extra_pages.settings_page import PaginaConfig
 
 vtk.vtkObject.GlobalWarningDisplayOff()
-vtk.vtkOutputWindow.GetInstance().SetInstance(vtk.vtkFileOutputWindow())
 vtk_log = vtk.vtkFileOutputWindow()
 vtk_log.SetFileName("vtk_debug.log")
 vtk.vtkOutputWindow.GetInstance().SetInstance(vtk_log)
-
 
 def get_resource_path():
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
     return Path(__file__).parent.resolve()
 
-
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-
-        self.pasta_paciente_atual: Optional[str] = None
-        self.modulos_instanciados: List[Any] = []
-        self.fluxo: Optional[FluxoBase] = None
-
+        self.current_patient_path: Optional[str] = None
+        self.instantiated_modules: List[Any] = []
+        self.workflow: Optional[FluxoBase] = None
         self.base_dir = get_resource_path()
 
-        self.init_interface()
-        self.conectar_eventos()
-        self.carregar_preferencias()
+        self.init_ui()
+        self.retranslate_ui()
+        self.connect_signals()
+        self.load_settings()
 
-    def init_interface(self):
-        titulo = settings.get("app_info", "titulo", "OpenCMF")
-        self.setWindowTitle(titulo)
+    def init_ui(self):
         self.setGeometry(150, 50, 1024, 650)
-
-        self.configurar_icone_janela()
+        self.setup_icon()
 
         self.stack = QtWidgets.QStackedWidget()
         self.setCentralWidget(self.stack)
 
-        self.home = Tela_Inicial()
-        self.editor_fluxo = PaginaEditorFluxo()
+        self.home = Home_page()
+        self.flow_editor = PaginaEditorFluxo()
         self.workspace = WorkspaceManager()
-        self.config = PaginaConfig()
+        self.settings_page = PaginaConfig()
 
         self.stack.addWidget(self.home)
-        self.stack.addWidget(self.editor_fluxo)
+        self.stack.addWidget(self.flow_editor)
         self.stack.addWidget(self.workspace)
-        self.stack.addWidget(self.config)
+        self.stack.addWidget(self.settings_page)
 
-    def configurar_icone_janela(self):
-        caminho_icone = self.base_dir / "icons" / "cmf.png"
-        if caminho_icone.exists():
-            icone = QtGui.QIcon(str(caminho_icone))
-            self.setWindowIcon(icone)
-            QtWidgets.QApplication.setWindowIcon(icone)
+    def retranslate_ui(self):
+        title = settings.get("app_info", "titulo", "OpenCMF")
+        self.setWindowTitle(tr("main.window_title", title))
 
-    def conectar_eventos(self):
-        self.home.projeto_selecionado.connect(self.ao_selecionar_paciente)
-        self.home.fluxo_escolhido.connect(self.iniciar_fluxo_trabalho)
-        self.home.editor_solicitado.connect(lambda: self.stack.setCurrentWidget(self.editor_fluxo))
-        self.home.config_solicitada.connect(lambda: self.stack.setCurrentWidget(self.config))
+    def setup_icon(self):
+        icon_path = self.base_dir / "icons" / "cmf.png"
+        if icon_path.exists():
+            app_icon = QtGui.QIcon(str(icon_path))
+            self.setWindowIcon(app_icon)
+            QtWidgets.QApplication.setWindowIcon(app_icon)
 
-        self.editor_fluxo.voltar_solicitado.connect(self.retornar_para_home)
-        self.workspace.home_solicitada.connect(self.retornar_para_home)
-        self.config.voltar_solicitado.connect(self.retornar_para_home)
+    def connect_signals(self):
+        self.home.projeto_selecionado.connect(self.on_patient_selected)
+        self.home.fluxo_escolhido.connect(self.start_workflow)
+        self.home.editor_solicitado.connect(lambda: self.stack.setCurrentWidget(self.flow_editor))
+        self.home.config_solicitada.connect(lambda: self.stack.setCurrentWidget(self.settings_page))
 
-        self.config.tema_alterado.connect(self.aplicar_tema_visual)
-        self.workspace.currentChanged.connect(self.sincronizar_estado_modulo)
+        self.flow_editor.voltar_solicitado.connect(self.back_to_home)
+        self.workspace.home_solicitada.connect(self.back_to_home)
+        self.settings_page.voltar_solicitado.connect(self.back_to_home)
 
-    def carregar_preferencias(self):
-        tema = settings.get("preferencias", "tema", "dark")
-        caminho_qss = self.base_dir / "themes" / f"{tema}.qss"
-        self.aplicar_tema_visual(str(caminho_qss))
+        self.settings_page.tema_alterado.connect(self.update_theme)
+        self.workspace.currentChanged.connect(self.sync_module)
 
-    def aplicar_tema_visual(self, caminho_qss: str):
-        arquivo_qss = Path(caminho_qss)
-        if not arquivo_qss.exists():
-            return
+    def load_settings(self):
+        theme_name = settings.get("preferencias", "tema", "dark")
+        qss_path = self.base_dir / "themes" / f"{theme_name}.qss"
+        self.update_theme(str(qss_path))
 
+    def update_theme(self, qss_path: str):
+        file = Path(qss_path)
+        if not file.exists(): return
         try:
-            estilo = arquivo_qss.read_text(encoding="utf-8")
-            QtWidgets.QApplication.instance().setStyleSheet(estilo)
-            settings.set("preferencias", "tema", arquivo_qss.stem)
+            style = file.read_text(encoding="utf-8")
+            QtWidgets.QApplication.instance().setStyleSheet(style)
+            settings.set("preferencias", "tema", file.stem)
             settings.save()
         except Exception as e:
-            self.exibir_erro_critico("Erro de Estilização", e)
+            self.report_error(tr("common.theme_error"), e)
 
-    def retornar_para_home(self):
-        self.home.atualizar_listas()
+    def back_to_home(self):
+        self.home.update_list()
         self.stack.setCurrentWidget(self.home)
 
-    def ao_selecionar_paciente(self, caminho_pasta: str, modo: str):
-        self.pasta_paciente_atual = str(Path(caminho_pasta).resolve())
+    def on_patient_selected(self, path: str, mode: str):
+        self.current_patient_path = str(Path(path).resolve())
 
-    def iniciar_fluxo_trabalho(self, caminho_json: str):
-        arquivo_fluxo = Path(caminho_json)
-        eh_cadastro = "cadastro" in arquivo_fluxo.name.lower()
+    def start_workflow(self, path: str):
+        file = Path(path)
+        is_registration = any(w in file.name.lower() for w in ["registration", "cadastro"])
 
-        if not eh_cadastro and not self.pasta_paciente_atual:
-            QtWidgets.QMessageBox.warning(self, "Atenção", "Selecione um paciente antes de prosseguir.")
+        if not is_registration and not self.current_patient_path:
+            QtWidgets.QMessageBox.warning(self, tr("common.warning"), tr("home.select_patient_msg"))
             return
 
         try:
-            config_fluxo = json.loads(arquivo_fluxo.read_text(encoding="utf-8"))
-            self.montar_area_trabalho(config_fluxo)
+            config = json.loads(file.read_text(encoding="utf-8"))
+            self.build_workspace(config)
             self.stack.setCurrentWidget(self.workspace)
-            QtCore.QTimer.singleShot(100, self.sincronizar_estado_modulo)
+            QtCore.QTimer.singleShot(100, self.sync_module)
         except Exception as e:
-            self.exibir_erro_critico("Falha ao carregar Fluxo", e)
+            self.report_error(tr("common.flow_error"), e)
 
-    def montar_area_trabalho(self, dados: Dict[str, Any]):
+    def build_workspace(self, data: Dict[str, Any]):
         self.workspace.blockSignals(True)
         self.workspace.clear()
-        self.modulos_instanciados.clear()
+        self.instantiated_modules.clear()
+        self.workflow = FluxoBase(data)
 
-        self.fluxo = FluxoBase(dados)
-
-        for id_modulo in self.fluxo.sequencia:
-            modulo = ModuloFactory.carregar_modulo(id_modulo)
-            if modulo:
-                modulo.concluido.connect(self.ao_concluir_etapa)
-                self.modulos_instanciados.append(modulo)
-                self.workspace.adicionar_modulo(id_modulo, modulo)
-
+        for module_id in self.workflow.sequencia:
+            if module := ModuloFactory.carregar_modulo(module_id):
+                module.concluido.connect(self.on_step_done)
+                self.instantiated_modules.append(module)
+                self.workspace.adicionar_modulo(module_id, module)
         self.workspace.blockSignals(False)
 
-    def sincronizar_estado_modulo(self):
-        modulo = self.workspace.get_modulo_ativo()
-        if not modulo or not self.pasta_paciente_atual:
-            return
+    def sync_module(self):
+        active = self.workspace.get_modulo_ativo()
+        if not active or not self.current_patient_path: return
 
-        modulo.pasta_paciente = self.pasta_paciente_atual
-        apto, mensagem = modulo.verificar_pre_requisitos()
+        active.pasta_paciente = self.current_patient_path
+        valid, msg = active.verificar_pre_requisitos()
 
-        if apto:
-            modulo.inicializar(self.pasta_paciente_atual)
-        else:
-            if "cadastro" not in modulo.__class__.__name__.lower():
-                QtWidgets.QMessageBox.warning(self, "Requisito Faltante", mensagem)
+        if valid:
+            active.inicializar(self.current_patient_path)
+        elif "registration" not in active.__class__.__name__.lower():
+            QtWidgets.QMessageBox.warning(self, tr("common.missing_data"), msg)
 
-    def ao_concluir_etapa(self):
-        emissor = self.sender()
-        if hasattr(emissor, 'pasta_paciente') and emissor.pasta_paciente:
-            self.pasta_paciente_atual = str(Path(emissor.pasta_paciente).resolve())
+    def on_step_done(self):
+        if sender := self.sender():
+            if getattr(sender, 'pasta_paciente', None):
+                self.current_patient_path = str(Path(sender.pasta_paciente).resolve())
 
-    def exibir_erro_critico(self, titulo: str, erro: Exception):
-        logging.error(f"{titulo}: {erro}", exc_info=True)
-        QtWidgets.QMessageBox.critical(self, "Erro Crítico", f"<b>{titulo}</b><br>{str(erro)}")
-
+    def report_error(self, title: str, error: Exception):
+        logging.error(f"{title}: {error}", exc_info=True)
+        QtWidgets.QMessageBox.critical(self, tr("common.critical_error"), f"<b>{title}</b><br>{error}")
 
 if __name__ == "__main__":
-    id_aplicativo = settings.get("app_info", "id", "opencmf.surgicalplanning.1.0")
+    app_id = settings.get("app_info", "id", "opencmf.surgicalplanning.1.0")
     if sys.platform == "win32":
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(id_aplicativo)
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(app_id)
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
-
-    janela = MainWindow()
-    janela.show()
-
+    main_window = MainWindow()
+    main_window.show()
     sys.exit(app.exec())

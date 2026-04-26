@@ -1,0 +1,35 @@
+{
+    "common": {
+        "warning": "Warning",
+        "error": "Error",
+        "critical_error": "Critical Error",
+        "close_button": "Close",
+        "theme_error": "Theme Styling Error",
+        "flow_error": "Failed to load Flow",
+        "missing_data": "Requirement Missing",
+        "open_project": "Open Project",
+        "delete_project": "Delete Project"
+    },
+    "home": {
+        "recent_projects_title": "Recent Projects",
+        "new_project_button": "New Project",
+        "delete_button": "Delete project",
+        "select_patient_msg": "Please select a patient before proceeding.",
+        "select_patient_first": "Select a patient to start this workflow.",
+        "confirm_deletion_title": "Confirm Deletion",
+        "confirm_deletion_message": "Are you sure you want to permanently delete project: {}?",
+        "available_flows_title": "Available Flows",
+        "new_flow_button": "New Flow",
+        "unknown_patient": "Unknown Patient",
+        "delete_flow_msg": "Are you sure you want to delete flow",
+        "delete_folder_error": "Failed to remove project folder."
+    },
+    "configs": {
+        "settings_title": "Settings",
+        "theme_label": "System Theme",
+        "language_label": "Language",
+        "language_changed_title": "Language Changed",
+        "restart_required_msg": "To apply changes system-wide, please restart the application.",
+        "default_theme": "Default"
+    }
+}

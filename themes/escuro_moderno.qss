@@ -116,13 +116,13 @@ QPushButton[styleSheet*="#e74c3c"]:hover {
     background-color: #C0392B;
 }
 
-Tela_Inicial QPushButton#btn_settings {
+Home_page QPushButton#btn_settings {
     background-color: transparent;
     border: none;
     color: #D2D7D9;
 }
 
-Tela_Inicial QPushButton#btn_settings:hover {
+Home_page QPushButton#btn_settings:hover {
     background-color: rgba(255, 255, 255, 0.1);
 }
 

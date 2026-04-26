@@ -6,9 +6,9 @@ from PySide6 import QtWidgets, QtCore
 
 from core.base_module.base import ModuloBase
 from core.volume.viewer import VolumeViewerWidget
-from core.volume.segmentacao_engine import SegmentacaoEngine
-from core.toolboxes.objeto_manager_widget import ObjetoManagerWidget
-from core.toolboxes.segmentacao_widget import SegmentacaoWidget
+from core.volume.segmentation_engine import SegmentacaoEngine
+from core.toolboxes.object_manager_widget import ObjetoManagerWidget
+from core.toolboxes.segmentation_widget import SegmentacaoWidget
 
 
 class Modulo(ModuloBase):

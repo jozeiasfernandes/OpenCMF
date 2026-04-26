@@ -9,7 +9,7 @@ class Modulo(ModuloBase):
         super().__init__()
         self.log_erros = []
 
-        # --- CORREÇÃO: Criar o container e os fluxo fixos no __init__ ---
+        # --- CORREÇÃO: Criar o container e os flow fixos no __init__ ---
         self.container_principal = QtWidgets.QWidget()
         self.area_texto = QtWidgets.QTextEdit()
 

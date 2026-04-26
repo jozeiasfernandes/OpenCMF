@@ -1,4 +1,4 @@
-# Editor de fluxo
+# Editor de flow
 from PySide6 import QtWidgets, QtCore
 
 class PaginaEditorFluxo(QtWidgets.QWidget):
@@ -31,11 +31,11 @@ class PaginaEditorFluxo(QtWidgets.QWidget):
         self.canvas = QtWidgets.QFrame()
         self.canvas.setStyleSheet("background-color: #1e1e1e; border: 1px solid #333; border-radius: 4px;")
 
-        # Simulação visual do fluxo (Quadrados e Setas)
+        # Simulação visual do flow (Quadrados e Setas)
         canvas_layout = QtWidgets.QHBoxLayout(self.canvas)
         canvas_layout.setSpacing(20)
 
-        # Exemplo visual do fluxo conforme sua imagem de referência
+        # Exemplo visual do flow conforme sua imagem de referência
         for i in range(3):
             modulo_item = self._criar_box_modulo(f"Módulo {i + 1}")
             canvas_layout.addWidget(modulo_item)

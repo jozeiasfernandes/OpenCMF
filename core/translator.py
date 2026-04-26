@@ -3,12 +3,10 @@ import sys
 from pathlib import Path
 from gui.settings import settings
 
-
 def get_base_dir():
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
-    return Path(__file__).parent.parent
-
+    return Path(__file__).resolve().parent.parent
 
 class Translator:
     _instance = None
@@ -22,21 +20,28 @@ class Translator:
 
     @classmethod
     def initialize(cls):
-        lang = settings.get("preferencias", "idioma", "pt_BR")
-        file_path = get_base_dir() / "translations" / f"{lang}.json"
+        language = settings.get("preferencias", "idioma", "pt_BR")
+        translation_file = get_base_dir() / "translations" / f"{language}.json"
 
         try:
-            if file_path.exists():
-                content = file_path.read_text(encoding="utf-8")
-                cls._dictionary = json.loads(content)
+            if translation_file.exists():
+                cls._dictionary = json.loads(translation_file.read_text(encoding="utf-8"))
             else:
-                print(f"Warning: Translation file not found at {file_path}")
+                print(f"Translation error: File not found at {translation_file}")
         except Exception as error:
-            print(f"Error loading translation: {error}")
+            print(f"Translation error: {error}")
 
     def get_text(self, key, default=None):
-        fallback = default if default else key
-        return self._dictionary.get(key, fallback)
+        try:
+            keys = key.split('.')
+            result = self._dictionary
+            for k in keys:
+                result = result[k]
+            return result
+        except (KeyError, TypeError, AttributeError):
+            return default if default is not None else key
 
+_translator_instance = Translator()
 
-tr = Translator().get_text
+def tr(key, default=None):
+    return _translator_instance.get_text(key, default)

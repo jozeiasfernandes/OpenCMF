@@ -1,37 +1,37 @@
 import sys
-import os
+import logging
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from gui.paginas_extras.tela_creditos import Janela_Creditos
-from gui.fluxo.fluxo_card import FluxoCard
+from gui.extra_pages.tela_creditos import Janela_Creditos
+from gui.flow.fluxo_card import FluxoCard
 from gui.logic.project_manager import ProjectManager
+from core.translator import tr
 
 
 def get_resource_path():
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
-    return Path(__file__).parent.parent
+    return Path(__file__).parent.parent.resolve()
 
 
 def get_data_path():
     if getattr(sys, 'frozen', False):
-        return Path(sys.executable).parent
-    return Path(__file__).parent.parent
+        return Path(sys.executable).parent.resolve()
+    return Path(__file__).parent.parent.resolve()
 
 
 BASE_DIR = get_resource_path()
 DATA_DIR = get_data_path()
+PATIENTS_DIR = DATA_DIR / "patients"
+FLOWS_DIR = BASE_DIR / "flows"
+ICONS_DIR = BASE_DIR / "icons"
 
-PASTA_PACIENTES = DATA_DIR / "patients"
-PASTA_FLUXOS = BASE_DIR / "flows"
-PASTA_ICONES = BASE_DIR / "icons"
-
-PASTA_PACIENTES.mkdir(exist_ok=True)
-FLUXO_CADASTRO = str(PASTA_FLUXOS / "cadastro_novo_paciente.json")
+PATIENTS_DIR.mkdir(exist_ok=True)
+REGISTRATION_FLOW = str(FLOWS_DIR / "new_patient_registration.json")
 
 
-class Tela_Inicial(QtWidgets.QWidget):
+class Home_page(QtWidgets.QWidget):
     projeto_selecionado = QtCore.Signal(str, str)
     fluxo_escolhido = QtCore.Signal(str)
     editor_solicitado = QtCore.Signal()
@@ -39,215 +39,186 @@ class Tela_Inicial(QtWidgets.QWidget):
 
     def __init__(self):
         super().__init__()
-        self.manager = ProjectManager(PASTA_PACIENTES, PASTA_FLUXOS)
+        self.manager = ProjectManager(PATIENTS_DIR, FLOWS_DIR)
         self.init_ui()
-        self.atualizar_listas()
+        self.update_list()
 
     def init_ui(self):
-        self.layout_principal = QtWidgets.QVBoxLayout(self)
-        self.layout_principal.setContentsMargins(10, 50, 10, 10)
-        self.layout_principal.setSpacing(10)
+        self.main_layout = QtWidgets.QVBoxLayout(self)
+        self.main_layout.setContentsMargins(10, 50, 10, 10)
+        self.main_layout.setSpacing(10)
+        self.main_layout.addWidget(self.build_header())
+        self.main_layout.addWidget(self.build_projects_section())
+        self.main_layout.addWidget(self.build_flows_section())
 
-        self.layout_principal.addWidget(self.criar_barra_superior())
-        self.layout_principal.addWidget(self.criar_secao_projetos())
-        self.layout_principal.addWidget(self.criar_secao_fluxos())
+    def update_list(self):
+        self.refresh_projects()
+        self.refresh_flows()
 
-    def atualizar_listas(self):
-        self.listar_projetos()
-        self.listar_fluxos()
-
-    def criar_barra_superior(self) -> QtWidgets.QFrame:
-        painel = QtWidgets.QFrame()
-        layout = QtWidgets.QHBoxLayout(painel)
+    def build_header(self) -> QtWidgets.QFrame:
+        panel = QtWidgets.QFrame()
+        layout = QtWidgets.QHBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
 
         self.btn_logo = QtWidgets.QPushButton()
         self.btn_logo.setFixedSize(120, 40)
         self.btn_logo.setCursor(QtCore.Qt.PointingHandCursor)
 
-        caminho_logo = PASTA_ICONES / "OpenCFM_Logo_Branco.png"
-        if caminho_logo.exists():
-            self.btn_logo.setIcon(QtGui.QIcon(str(caminho_logo)))
+        logo_path = ICONS_DIR / "OpenCFM_Logo_Branco.png"
+        if logo_path.exists():
+            self.btn_logo.setIcon(QtGui.QIcon(str(logo_path)))
             self.btn_logo.setIconSize(QtCore.QSize(110, 40))
         else:
             self.btn_logo.setText("OpenCMF")
+        self.btn_logo.clicked.connect(self.show_credits)
 
-        self.btn_logo.clicked.connect(self.abrir_creditos)
+        self.btn_settings = QtWidgets.QPushButton()
+        self.btn_settings.setFixedSize(40, 40)
+        self.btn_settings.setCursor(QtCore.Qt.PointingHandCursor)
 
-        self.btn_config = QtWidgets.QPushButton()
-        self.btn_config.setObjectName("btn_settings")
-        self.btn_config.setFixedSize(40, 40)
-        self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
-
-        caminho_config = PASTA_ICONES / "config.png"
-        if caminho_config.exists():
-            self.btn_config.setIcon(QtGui.QIcon(str(caminho_config)))
-            self.btn_config.setIconSize(QtCore.QSize(24, 24))
-        else:
-            self.btn_config.setText("⚙")
-
-        self.btn_config.clicked.connect(self.config_solicitada.emit)
+        settings_icon = ICONS_DIR / "config.png"
+        if settings_icon.exists():
+            self.btn_settings.setIcon(QtGui.QIcon(str(settings_icon)))
+            self.btn_settings.setIconSize(QtCore.QSize(24, 24))
+        self.btn_settings.clicked.connect(self.config_solicitada.emit)
 
         layout.addWidget(self.btn_logo)
         layout.addStretch()
-        layout.addWidget(self.btn_config)
+        layout.addWidget(self.btn_settings)
+        return panel
 
-        return painel
+    def show_credits(self):
+        self.credits_window = Janela_Creditos(self)
+        self.credits_window.exec()
 
-    def abrir_creditos(self):
-        self.janela_creditos = Janela_Creditos(self)
-        self.janela_creditos.exec()
+    def build_projects_section(self) -> QtWidgets.QFrame:
+        panel = QtWidgets.QFrame()
+        panel.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        layout = QtWidgets.QVBoxLayout(panel)
 
-    def criar_secao_projetos(self) -> QtWidgets.QFrame:
-        painel = QtWidgets.QFrame()
-        painel.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        layout = QtWidgets.QVBoxLayout(painel)
+        header_layout = QtWidgets.QHBoxLayout()
+        header_layout.addWidget(QtWidgets.QLabel(f"<h3>{tr('home.recent_projects_title')}</h3>"))
+        header_layout.addStretch()
 
-        cabecalho = QtWidgets.QHBoxLayout()
-        cabecalho.addWidget(QtWidgets.QLabel("<h3>Projetos recentes</h3>"))
-        cabecalho.addStretch()
+        self.btn_new_project = QtWidgets.QPushButton(tr("home.new_project_button"))
+        self.btn_new_project.setFixedSize(150, 35)
+        self.btn_new_project.clicked.connect(lambda: self.fluxo_escolhido.emit(REGISTRATION_FLOW))
 
-        self.btn_novo_projeto = QtWidgets.QPushButton("Novo projeto")
-        self.btn_novo_projeto.setObjectName("btn_novo_projeto")
-        self.btn_novo_projeto.setFixedSize(150, 35)
-        self.btn_novo_projeto.clicked.connect(
-            lambda: self.fluxo_escolhido.emit(FLUXO_CADASTRO)
-        )
+        self.btn_delete_project = QtWidgets.QPushButton(tr("home.delete_button"))
+        self.btn_delete_project.setFixedSize(150, 35)
+        self.btn_delete_project.clicked.connect(self.on_delete_project_requested)
 
-        self.btn_excluir_projeto = QtWidgets.QPushButton("Excluir")
-        self.btn_excluir_projeto.setObjectName("btn_remover_projeto")
-        self.btn_excluir_projeto.setFixedSize(150, 35)
-        self.btn_excluir_projeto.setStyleSheet("""
-            QPushButton#btn_remover_projeto { 
-                background-color: #f05748; color: white; font-weight: bold; border-radius: 4px; 
-            }
-            QPushButton#btn_remover_projeto:hover { background-color: #e74c3c; }
-        """)
-        self.btn_excluir_projeto.clicked.connect(self.ao_solicitar_exclusao)
+        header_layout.addWidget(self.btn_new_project)
+        header_layout.addWidget(self.btn_delete_project)
 
-        cabecalho.addWidget(self.btn_novo_projeto)
-        cabecalho.addWidget(self.btn_excluir_projeto)
+        self.projects_view = QtWidgets.QListWidget()
+        self.projects_view.setMinimumHeight(150)
+        self.projects_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.projects_view.customContextMenuRequested.connect(self.show_context_menu)
+        self.projects_view.itemDoubleClicked.connect(self.open_selected_project)
 
-        self.view_projetos = QtWidgets.QListWidget()
-        self.view_projetos.setMinimumHeight(150)
-        self.view_projetos.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.view_projetos.customContextMenuRequested.connect(self.abrir_menu_contexto)
-        self.view_projetos.itemDoubleClicked.connect(self.ao_abrir_projeto)
+        layout.addLayout(header_layout)
+        layout.addWidget(self.projects_view)
+        return panel
 
-        layout.addLayout(cabecalho)
-        layout.addWidget(self.view_projetos)
-        return painel
-
-    def listar_projetos(self):
-        self.view_projetos.clear()
+    def refresh_projects(self):
+        self.projects_view.clear()
         try:
-            projetos = self.manager.listar_projetos_recentes()
-            for dados in projetos:
-                info = dados.get("paciente") or {}
-                nome = info.get("nome") or Path(dados.get("_caminho_local", "")).name
-
-                item = QtWidgets.QListWidgetItem(nome or "Paciente sem nome")
-                item.setData(QtCore.Qt.UserRole, dados.get("_caminho_local"))
-                self.view_projetos.addItem(item)
+            projects = self.manager.listar_projetos_recentes()
+            for data in projects:
+                info = data.get("paciente") or {}
+                name = info.get("nome") or Path(data.get("_caminho_local", "")).name
+                item = QtWidgets.QListWidgetItem(name or tr("home.unknown_patient"))
+                item.setData(QtCore.Qt.UserRole, data.get("_caminho_local"))
+                self.projects_view.addItem(item)
         except Exception as e:
-            print(f"Falha ao listar projetos: {e}")
+            logging.error(f"Error listing projects: {e}")
 
-    def ao_abrir_projeto(self, item):
-        self.projeto_selecionado.emit(item.data(QtCore.Qt.UserRole), "abrir")
+    def open_selected_project(self, item):
+        self.projeto_selecionado.emit(item.data(QtCore.Qt.UserRole), "open")
 
-    def ao_solicitar_exclusao(self):
-        item = self.view_projetos.currentItem()
-        if not item:
-            QtWidgets.QMessageBox.warning(self, "Aviso", "Selecione um projeto para excluir.")
-            return
-        self.confirmar_exclusao_projeto(item)
+    def on_delete_project_requested(self):
+        if item := self.projects_view.currentItem():
+            self.confirm_project_deletion(item)
+        else:
+            QtWidgets.QMessageBox.warning(self, tr("common.warning"), tr("home.select_patient_msg"))
 
-    def abrir_menu_contexto(self, posicao):
-        item = self.view_projetos.itemAt(posicao)
-        if not item:
-            return
+    def show_context_menu(self, position):
+        if item := self.projects_view.itemAt(position):
+            menu = QtWidgets.QMenu()
+            open_action = menu.addAction(tr("common.open_project"))
+            delete_action = menu.addAction(tr("common.delete_project"))
+            delete_action.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TrashIcon))
 
-        menu = QtWidgets.QMenu()
-        acao_abrir = menu.addAction("Abrir Projeto")
-        acao_remover = menu.addAction("Remover Projeto")
-        acao_remover.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TrashIcon))
+            choice = menu.exec(self.projects_view.mapToGlobal(position))
+            if choice == open_action:
+                self.open_selected_project(item)
+            elif choice == delete_action:
+                self.confirm_project_deletion(item)
 
-        escolha = menu.exec(self.view_projetos.mapToGlobal(posicao))
-
-        if escolha == acao_abrir:
-            self.ao_abrir_projeto(item)
-        elif escolha == acao_remover:
-            self.confirmar_exclusao_projeto(item)
-
-    def confirmar_exclusao_projeto(self, item):
-        caminho = item.data(QtCore.Qt.UserRole)
-        resposta = QtWidgets.QMessageBox.question(
-            self, "Confirmar Exclusão",
-            f"Deseja apagar permanentemente o projeto: {item.text()}?",
+    def confirm_project_deletion(self, item):
+        path = item.data(QtCore.Qt.UserRole)
+        confirm = QtWidgets.QMessageBox.question(
+            self, tr("home.confirm_deletion_title"),
+            tr("home.confirm_deletion_message").format(item.text()),
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         )
-
-        if resposta == QtWidgets.QMessageBox.Yes:
-            if self.manager.remover_projeto(caminho):
-                self.listar_projetos()
+        if confirm == QtWidgets.QMessageBox.Yes:
+            if self.manager.remover_projeto(path):
+                self.refresh_projects()
             else:
-                QtWidgets.QMessageBox.critical(self, "Erro", "Falha ao remover pasta do projeto.")
+                QtWidgets.QMessageBox.critical(self, tr("common.error"), tr("home.delete_folder_error"))
 
-    def criar_secao_fluxos(self) -> QtWidgets.QFrame:
-        painel = QtWidgets.QFrame()
-        painel.setFrameShape(QtWidgets.QFrame.StyledPanel)
-        layout = QtWidgets.QVBoxLayout(painel)
+    def build_flows_section(self) -> QtWidgets.QFrame:
+        panel = QtWidgets.QFrame()
+        panel.setFrameShape(QtWidgets.QFrame.StyledPanel)
+        layout = QtWidgets.QVBoxLayout(panel)
 
-        cabecalho = QtWidgets.QHBoxLayout()
-        cabecalho.addWidget(QtWidgets.QLabel("<h3>Fluxos Disponíveis</h3>"))
-        cabecalho.addStretch()
+        header = QtWidgets.QHBoxLayout()
+        header.addWidget(QtWidgets.QLabel(f"<h3>{tr('home.available_flows_title')}</h3>"))
+        header.addStretch()
 
-        btn_novo_fluxo = QtWidgets.QPushButton("Novo fluxo")
-        btn_novo_fluxo.setFixedSize(150, 35)
-        btn_novo_fluxo.clicked.connect(self.editor_solicitado.emit)
+        self.btn_new_flow = QtWidgets.QPushButton(tr("home.new_flow_button"))
+        self.btn_new_flow.setFixedSize(150, 35)
+        self.btn_new_flow.clicked.connect(self.editor_solicitado.emit)
 
-        cabecalho.addWidget(btn_novo_fluxo)
+        self.scroll_area = QtWidgets.QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
 
-        self.scroll_fluxos = QtWidgets.QScrollArea()
-        self.scroll_fluxos.setWidgetResizable(True)
-        self.scroll_fluxos.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.cards_container = QtWidgets.QWidget()
+        self.cards_layout = QtWidgets.QVBoxLayout(self.cards_container)
+        self.cards_layout.setAlignment(QtCore.Qt.AlignTop)
+        self.cards_layout.setSpacing(10)
 
-        self.container_cards = QtWidgets.QWidget()
-        self.layout_cards = QtWidgets.QVBoxLayout(self.container_cards)
-        self.layout_cards.setAlignment(QtCore.Qt.AlignTop)
-        self.layout_cards.setSpacing(10)
-        self.layout_cards.setContentsMargins(5, 5, 5, 5)
+        self.scroll_area.setWidget(self.cards_container)
+        header.addWidget(self.btn_new_flow)
+        layout.addLayout(header)
+        layout.addWidget(self.scroll_area)
+        return panel
 
-        self.scroll_fluxos.setWidget(self.container_cards)
-        layout.addLayout(cabecalho)
-        layout.addWidget(self.scroll_fluxos)
-        return painel
-
-    def listar_fluxos(self):
-        while self.layout_cards.count():
-            widget = self.layout_cards.takeAt(0).widget()
-            if widget:
-                widget.deleteLater()
-
+    def refresh_flows(self):
+        while self.cards_layout.count():
+            if child := self.cards_layout.takeAt(0).widget():
+                child.deleteLater()
         try:
-            fluxos = self.manager.listar_fluxos_disponiveis(ignorar_nome=FLUXO_CADASTRO)
-            for dados in fluxos:
-                card = FluxoCard(dados, dados["_caminho_arquivo"])
+            flows = self.manager.listar_fluxos_disponiveis(ignorar_nome=REGISTRATION_FLOW)
+            for data in flows:
+                card = FluxoCard(data, data["_caminho_arquivo"])
                 card.clicado.connect(self.fluxo_escolhido.emit)
                 if hasattr(card, 'exclusao_solicitada'):
-                    card.exclusao_solicitada.connect(self.confirmar_exclusao_fluxo)
-                self.layout_cards.addWidget(card)
-            self.layout_cards.addStretch()
+                    card.exclusao_solicitada.connect(self.confirm_delete_flow)
+                self.cards_layout.addWidget(card)
+            self.cards_layout.addStretch()
         except Exception as e:
-            print(f"Falha ao listar flows: {e}")
+            logging.error(f"Error listing flows: {e}")
 
-    def confirmar_exclusao_fluxo(self, caminho_arquivo):
-        resposta = QtWidgets.QMessageBox.question(
-            self, "Confirmar Exclusão",
-            f"Apagar o fluxo: {Path(caminho_arquivo).stem}?",
+    def confirm_delete_flow(self, file_path):
+        confirm = QtWidgets.QMessageBox.question(
+            self, tr("home.confirm_deletion_title"),
+            f"{tr('home.delete_flow_msg')}: {Path(file_path).stem}?",
             QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
         )
-
-        if resposta == QtWidgets.QMessageBox.Yes:
-            if self.manager.remover_fluxo(caminho_arquivo):
-                self.listar_fluxos()
+        if confirm == QtWidgets.QMessageBox.Yes:
+            if self.manager.remover_fluxo(file_path):
+                self.refresh_flows()
