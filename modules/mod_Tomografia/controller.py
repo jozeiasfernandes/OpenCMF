@@ -27,8 +27,7 @@ class Modulo(ModuloBase):
 
     def _carregar_configs_projeto(self):
         path_info = Path(self.pasta_paciente) / "projeto" / "info.json"
-        if not path_info.exists():
-            return
+        if not path_info.exists(): return
         try:
             with open(path_info, "r", encoding="utf-8") as f:
                 dados = json.load(f)
@@ -40,15 +39,16 @@ class Modulo(ModuloBase):
 
     def _atualizar_persistência_diretorio(self, novo_caminho: str):
         path_info = Path(self.pasta_paciente) / "projeto" / "info.json"
-        if not path_info.exists():
-            return
         try:
-            with open(path_info, "r", encoding="utf-8") as f:
-                dados = json.load(f)
+            dados = {}
+            if path_info.exists():
+                with open(path_info, "r", encoding="utf-8") as f:
+                    dados = json.load(f)
 
             dados.setdefault("caminhos", {})["dicom"] = novo_caminho
             self.caminho_dicom = novo_caminho
 
+            path_info.parent.mkdir(parents=True, exist_ok=True)
             with open(path_info, "w", encoding="utf-8") as f:
                 json.dump(dados, f, indent=4, ensure_ascii=False)
         except Exception as e:
@@ -56,141 +56,116 @@ class Modulo(ModuloBase):
 
     def _buscar_pasta(self):
         settings = QtCore.QSettings("OpenCMF", "Config")
-        ultimo_caminho = settings.value("ultimo_diretorio_dicom", "")
-
-        pasta = QtWidgets.QFileDialog.getExistingDirectory(
-            None, "Selecionar Pasta DICOM ou ZIP", ultimo_caminho
-        )
-
+        ultimo = settings.value("ultimo_diretorio_dicom", "")
+        pasta = QtWidgets.QFileDialog.getExistingDirectory(None, "Selecionar Pasta DICOM", ultimo)
         if pasta:
             self.ui.edit_dicom.setText(pasta)
             settings.setValue("ultimo_diretorio_dicom", pasta)
 
     def _validar_dicom(self):
         caminho_input = self.ui.edit_dicom.text()
-        if not caminho_input:
-            return
+        if not caminho_input: return
 
-        progress = QtWidgets.QProgressDialog("Iniciando análise...", "Cancelar", 0, 100, None)
-        progress.setWindowTitle("Validador DICOM")
-        progress.setWindowModality(QtCore.Qt.WindowModal)
-        progress.show()
-
-        def update_progress(msg, valor):
-            progress.setLabelText(msg)
-            progress.setValue(valor)
-            QtWidgets.QApplication.processEvents()
+        progresso = self._criar_progresso("Validador DICOM", "Analisando estrutura...")
 
         validador = DicomValidator(self.pasta_paciente)
-        resultado = validador.analisar_caminho(caminho_input, callback=update_progress)
-
-        progress.close()
+        resultado = validador.analisar_caminho(
+            caminho_input,
+            callback=lambda m, v: self._update_progresso(progresso, m, v)
+        )
+        progresso.close()
 
         if not resultado["sucesso"]:
             self.ui.update_status_erro()
-            QtWidgets.QMessageBox.critical(None, "Erro de Validação", resultado["erro"])
+            QtWidgets.QMessageBox.critical(None, "Erro", resultado["erro"])
             return
 
         series = resultado["series"]
-        ids_series = list(series.keys())
+        ids = list(series.keys())
+        id_escolhido = ids[0]
 
-        if len(ids_series) > 1:
-            opcoes = [f"{series[s][0]['desc']} ({len(series[s])} imagens)" for s in ids_series]
-            item, ok = QtWidgets.QInputDialog.getItem(
-                None, "Múltiplos Estudos",
-                "Selecione a série tomográfica correta:", opcoes, 0, False
-            )
+        if len(ids) > 1:
+            opcoes = [f"{series[s][0]['desc']} ({len(series[s])} fatias)" for s in ids]
+            item, ok = QtWidgets.QInputDialog.getItem(None, "Múltiplas Séries", "Escolha a série:", opcoes, 0, False)
             if not ok: return
-            id_escolhido = ids_series[opcoes.index(item)]
-        else:
-            id_escolhido = ids_series[0]
+            id_escolhido = ids[opcoes.index(item)]
 
-        # Pegamos o diretório pai do arquivo para passar para o engine
         caminho_final = str(Path(series[id_escolhido][0]["path"]).parent)
         self._atualizar_persistência_diretorio(caminho_final)
         self.ui.update_status_validado()
 
-        QtWidgets.QMessageBox.information(
-            None, "Sucesso",
-            f"Série '{series[id_escolhido][0]['desc']}' validada com sucesso."
-        )
-
     def _carregar_dicom(self):
-        if not self.caminho_dicom:
-            QtWidgets.QMessageBox.warning(None, "Aviso", "Valide a pasta DICOM antes de carregar.")
-            return
+        if not self.caminho_dicom: return
 
-        progress = QtWidgets.QProgressDialog("Lendo arquivos DICOM...", "Cancelar", 0, 100, None)
-        progress.setWindowTitle("Processando Tomografia")
-        progress.setWindowModality(QtCore.Qt.WindowModal)
-        progress.show()
-
+        progresso = self._criar_progresso("Carregador", "Lendo fatias DICOM...")
         try:
-            progress.setValue(10)
+            progresso.setValue(20)
             sucesso, msg = self.engine.carregar_pasta(self.caminho_dicom)
 
             if sucesso:
-                progress.setLabelText("Gerando volume binário (VTI)...")
-                progress.setValue(40)
-                QtWidgets.QApplication.processEvents()
-
-                self._is_initialized = True
-                self._persistir_volume()
-
-                progress.setLabelText("Renderizando visualização...")
-                progress.setValue(80)
-
-                # Se o viewer já existir na UI, injetamos o volume agora
+                progresso.setValue(70)
                 if self.viewer:
                     self.viewer.set_volume(self.engine.vtk_volume)
                     self.ui.update_status_carregado()
-
-                progress.setValue(100)
-                QtWidgets.QMessageBox.information(None, "Sucesso", "Volume processado com sucesso!")
+                progresso.setValue(100)
             else:
                 QtWidgets.QMessageBox.critical(None, "Erro", msg)
         finally:
-            progress.close()
+            progresso.close()
 
-    def _persistir_volume(self):
-        if not self.engine.vtk_volume or not self.pasta_paciente:
-            return
+    def _gerar_vti(self):
+        if not self.engine.vtk_volume: return
+
+        progresso = self._criar_progresso("Exportador", "Gerando arquivo VTI...")
         try:
+            progresso.setValue(30)
             path_vti = Path(self.pasta_paciente) / "projeto" / "volume.vti"
+            path_vti.parent.mkdir(parents=True, exist_ok=True)
+
             writer = vtk.vtkXMLImageDataWriter()
             writer.SetFileName(str(path_vti))
             writer.SetInputData(self.engine.vtk_volume)
             writer.SetCompressorTypeToZLib()
             writer.Write()
+
+            self._is_initialized = True
+            self.ui.update_status_vti_gerado()
+            progresso.setValue(100)
+            QtWidgets.QMessageBox.information(None, "Sucesso", "Volume persistido com sucesso!")
         except Exception as e:
-            print(f"Erro ao persistir VTI: {e}")
+            QtWidgets.QMessageBox.critical(None, "Erro", f"Falha ao salvar VTI: {e}")
+        finally:
+            progresso.close()
+
+    def _criar_progresso(self, titulo, msg):
+        pd = QtWidgets.QProgressDialog(msg, "Cancelar", 0, 100, None)
+        pd.setWindowTitle(titulo)
+        pd.setWindowModality(QtCore.Qt.WindowModal)
+        pd.show()
+        return pd
+
+    def _update_progresso(self, pd, msg, valor):
+        pd.setLabelText(msg)
+        pd.setValue(valor)
+        QtWidgets.QApplication.processEvents()
 
     def _finalizar_etapa(self):
         if not self._is_initialized:
-            QtWidgets.QMessageBox.warning(None, "Aviso", "Carregue a tomografia antes de finalizar.")
+            QtWidgets.QMessageBox.warning(None, "Aviso", "Gere o volume VTI antes de prosseguir.")
             return
         self.concluido.emit()
-
-    def _sincronizar_fatia(self, plano: str, valor: int):
-        pass
-
-    def _sincronizar_window_level_ui(self, window: float, level: float):
-        self.ui.update_wl_ui(window, level)
 
     def _wl_manual(self, window: float, level: float):
         if self.viewer:
             self.viewer.update_window_level(window, level)
 
     def get_workspace(self) -> QtWidgets.QWidget:
-
         if self.viewer:
             self.viewer.cleanup()
 
         self.viewer = VolumeViewerWidget()
-        self.viewer.sliceChanged.connect(self._sincronizar_fatia)
-        self.viewer.windowLevelChanged.connect(self._sincronizar_window_level_ui)
+        self.viewer.windowLevelChanged.connect(self.ui.update_wl_ui)
 
-        # Se o motor já tiver o volume (ex: carregado via botão), injeta no novo viewer
         if self.engine.vtk_volume:
             self.viewer.set_volume(self.engine.vtk_volume)
             self.ui.update_status_carregado()
@@ -202,6 +177,7 @@ class Modulo(ModuloBase):
             on_buscar=self._buscar_pasta,
             on_validar=self._validar_dicom,
             on_carregar=self._carregar_dicom,
+            on_gerar_vti=self._gerar_vti,
             on_wl_manual=self._wl_manual,
             on_finalizar=self._finalizar_etapa
         )

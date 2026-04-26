@@ -38,8 +38,8 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self._setup_toolbar()
         self.grid_container = QtWidgets.QWidget()
         self.grid_layout = QtWidgets.QGridLayout(self.grid_container)
-        self.grid_layout.setContentsMargins(2, 2, 2, 2)
-        self.grid_layout.setSpacing(4)
+        self.grid_layout.setContentsMargins(0, 0, 0, 0)
+        self.grid_layout.setSpacing(2)
         self.root_layout.addWidget(self.grid_container)
         self._create_viewers()
         self.configurar_layout("4 Quadrantes")
@@ -47,7 +47,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     def _setup_toolbar(self):
         self.toolbar = QtWidgets.QToolBar()
         self.toolbar.setFixedHeight(38)
-        self.toolbar.setStyleSheet("QToolBar { background: #1E1E1E; border-bottom: 1px solid #333; spacing: 8px; } QComboBox { background: #333; color: white; border: 1px solid #444; padding: 2px 10px; }")
+        self.toolbar.setStyleSheet("QToolBar { background: #1E1E1E; border-bottom: 1px solid #333; spacing: 4px; } QComboBox { background: #333; color: white; border: 1px solid #444; padding: 2px 8px; }")
         self.combo_layout = QtWidgets.QComboBox()
         opcoes = [("4 Quadrantes", "4_janelas.png"), ("3D Destacado", "3_1.png"), ("Apenas 3D", "3D.png"), ("Axial", "axial.png"), ("Sagital", "sagital.png"), ("Coronal", "coronal.png")]
         for nome, img in opcoes:
