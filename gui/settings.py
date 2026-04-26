@@ -36,9 +36,9 @@ class SettingsManager:
                 "autosave": True
             },
             "diretorios": {
-                "pacientes": "pacientes",
-                "fluxos": "fluxos",
-                "icones": "icones"
+                "patients": "patients",
+                "flows": "flows",
+                "icons": "icons"
             }
         }
 

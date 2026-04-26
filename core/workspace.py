@@ -1,7 +1,14 @@
+import sys
 from functools import partial
 from pathlib import Path
 from typing import Optional, Any, Dict
 from PySide6 import QtWidgets, QtCore, QtGui
+
+
+def get_resource_path():
+    if getattr(sys, 'frozen', False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).parent.parent
 
 
 class WorkspaceManager(QtWidgets.QTabWidget):
@@ -14,23 +21,23 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
     def __init__(self):
         super().__init__()
-        self._config_estilo_abas()
-        self._botao_home()
-        self.currentChanged.connect(self._sincronizar_aba)
+        self.base_dir = get_resource_path()
+        self.init_interface()
+        self.configurar_botao_home()
+        self.currentChanged.connect(self.ao_mudar_aba)
 
-    def _config_estilo_abas(self):
+    def init_interface(self):
         self.setDocumentMode(True)
         self.setTabsClosable(False)
         self.setMovable(False)
 
-    def _botao_home(self):
+    def configurar_botao_home(self):
         self.btn_home = QtWidgets.QToolButton()
         self.btn_home.setObjectName("botaoHomeWorkspace")
         self.btn_home.setFixedSize(self.HOME_BTN_SIZE)
         self.btn_home.setCursor(QtCore.Qt.PointingHandCursor)
 
-        raiz = Path(__file__).parent.parent
-        caminho_icone = raiz / "icones" / "home.png"
+        caminho_icone = self.base_dir / "icons" / "home.png"
         if caminho_icone.exists():
             self.btn_home.setIcon(QtGui.QIcon(str(caminho_icone)))
             self.btn_home.setIconSize(self.HOME_ICON_SIZE)
@@ -40,78 +47,79 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
     def adicionar_modulo(self, id_modulo: str, modulo_obj: Any):
         titulo = getattr(modulo_obj, 'nome', id_modulo.replace("_", " ").capitalize())
-        page_container = QtWidgets.QWidget()
-        page_container.setProperty("modulo_instancia", modulo_obj)
+        container = QtWidgets.QWidget()
+        container.setProperty("modulo_instancia", modulo_obj)
 
         self.blockSignals(True)
-        self.addTab(page_container, titulo)
+        self.addTab(container, titulo)
         self.blockSignals(False)
 
-        self._preencher_container_modulo(page_container, modulo_obj)
+        self.preencher_layout_modulo(container, modulo_obj)
+
         if self.count() == 1:
             self.setCurrentIndex(0)
 
-    def _preencher_container_modulo(self, page_container: QtWidgets.QWidget, modulo_obj: Any):
-        layout_principal = QtWidgets.QHBoxLayout(page_container)
-        layout_principal.setContentsMargins(0, 0, 0, 0)
-        layout_principal.setSpacing(0)
+    def preencher_layout_modulo(self, container: QtWidgets.QWidget, modulo_obj: Any):
+        layout = QtWidgets.QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         splitter.setObjectName("workspaceSplitter")
         splitter.setHandleWidth(1)
 
-        centro_widget = QtWidgets.QWidget()
-        centro_layout = QtWidgets.QVBoxLayout(centro_widget)
-        centro_layout.setContentsMargins(0, 0, 0, 0)
-        centro_layout.setSpacing(0)
+        centro = QtWidgets.QWidget()
+        layout_centro = QtWidgets.QVBoxLayout(centro)
+        layout_centro.setContentsMargins(0, 0, 0, 0)
+        layout_centro.setSpacing(0)
 
         toolbar = modulo_obj.get_workspace_toolbar()
         if toolbar:
-            centro_layout.addWidget(toolbar)
+            layout_centro.addWidget(toolbar)
 
-        workspace_widget = modulo_obj.get_workspace()
-        workspace_widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        centro_layout.addWidget(workspace_widget)
+        view = modulo_obj.get_workspace()
+        view.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        layout_centro.addWidget(view)
 
-        splitter.addWidget(centro_widget)
+        splitter.addWidget(centro)
 
         if hasattr(modulo_obj, 'get_toolboxes'):
-            dict_toolboxes = modulo_obj.get_toolboxes()
-            if dict_toolboxes:
-                sidebar = self._sidebar_lateral(dict_toolboxes)
+            ferramentas = modulo_obj.get_toolboxes()
+            if ferramentas:
+                sidebar = self.criar_sidebar(ferramentas)
                 splitter.addWidget(sidebar)
                 splitter.setStretchFactor(0, 1)
                 splitter.setStretchFactor(1, 0)
-                splitter.setSizes([page_container.width(), self.TOOLBOX_MIN_WIDTH])
+                splitter.setSizes([container.width(), self.TOOLBOX_MIN_WIDTH])
 
-        layout_principal.addWidget(splitter)
+        layout.addWidget(splitter)
 
-    def _sidebar_lateral(self, toolboxes: Dict[str, QtWidgets.QWidget]) -> QtWidgets.QTabWidget:
+    def criar_sidebar(self, toolboxes: Dict[str, QtWidgets.QWidget]) -> QtWidgets.QTabWidget:
         sidebar = QtWidgets.QTabWidget()
         sidebar.setTabPosition(QtWidgets.QTabWidget.East)
         sidebar.setMinimumWidth(self.TOOLBOX_MIN_WIDTH)
         sidebar.setMaximumWidth(self.TOOLBOX_MIN_WIDTH)
 
-        for nome_aba, widget_aba in toolboxes.items():
-            container = QtWidgets.QWidget()
-            layout = QtWidgets.QVBoxLayout(container)
-            layout.setContentsMargins(0, 0, 0, 0)
-            layout.addWidget(widget_aba)
-            sidebar.addTab(container, nome_aba)
-            container.setVisible(False)
+        for nome, widget in toolboxes.items():
+            aba = QtWidgets.QWidget()
+            layout_aba = QtWidgets.QVBoxLayout(aba)
+            layout_aba.setContentsMargins(0, 0, 0, 0)
+            layout_aba.addWidget(widget)
+            sidebar.addTab(aba, nome)
+            aba.setVisible(False)
 
-        sidebar.tabBarClicked.connect(partial(self._alternar_sidebar, sidebar))
+        sidebar.tabBarClicked.connect(partial(self.gerenciar_clique_sidebar, sidebar))
         return sidebar
 
-    def _alternar_sidebar(self, sidebar: QtWidgets.QTabWidget, index: int):
+    def gerenciar_clique_sidebar(self, sidebar: QtWidgets.QTabWidget, index: int):
         splitter = sidebar.parent()
         if not isinstance(splitter, QtWidgets.QSplitter):
             splitter = sidebar.parentWidget().findChild(QtWidgets.QSplitter)
 
-        largura_atual = sidebar.width()
-        aba_ativa = sidebar.currentIndex()
+        expandida = sidebar.width() > self.TOOLBOX_MIN_WIDTH
+        aba_atual = sidebar.currentIndex()
 
-        if largura_atual > self.TOOLBOX_MIN_WIDTH and index == aba_ativa:
+        if expandida and index == aba_atual:
             sidebar.setMaximumWidth(self.TOOLBOX_MIN_WIDTH)
             for i in range(sidebar.count()):
                 sidebar.widget(i).setVisible(False)
@@ -122,25 +130,25 @@ class WorkspaceManager(QtWidgets.QTabWidget):
             for i in range(sidebar.count()):
                 sidebar.widget(i).setVisible(True)
             sidebar.setCurrentIndex(index)
-
             if splitter:
                 largura_centro = splitter.width() - self.TOOLBOX_EXPAND_WIDTH
                 splitter.setSizes([largura_centro, self.TOOLBOX_EXPAND_WIDTH])
 
-        modulo = self.get_modulo_ativo()
-        if modulo:
-            QtCore.QTimer.singleShot(10, lambda: self._refresh_visual(modulo))
+        self.atualizar_visual_modulo_ativo()
 
     def get_modulo_ativo(self) -> Optional[Any]:
         container = self.currentWidget()
         return container.property("modulo_instancia") if container else None
 
-    def _refresh_visual(self, modulo_obj: Any):
+    def atualizar_visual_modulo_ativo(self):
+        modulo = self.get_modulo_ativo()
+        if modulo:
+            QtCore.QTimer.singleShot(10, lambda: self.forcar_refresh_viewer(modulo))
+
+    def forcar_refresh_viewer(self, modulo_obj: Any):
         viewer = getattr(modulo_obj, 'viewer', None)
         if viewer and hasattr(viewer, 'refresh_display'):
             viewer.refresh_display()
 
-    def _sincronizar_aba(self, index: int):
-        modulo_obj = self.get_modulo_ativo()
-        if modulo_obj:
-            QtCore.QTimer.singleShot(5, lambda: self._refresh_visual(modulo_obj))
+    def ao_mudar_aba(self, index: int):
+        self.atualizar_visual_modulo_ativo()

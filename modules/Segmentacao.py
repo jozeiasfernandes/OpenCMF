@@ -4,7 +4,7 @@ from typing import Optional, Dict
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 
-from core.modulo_base.base import ModuloBase
+from core.base_module.base import ModuloBase
 from core.volume.viewer import VolumeViewerWidget
 from core.volume.segmentacao_engine import SegmentacaoEngine
 from core.toolboxes.objeto_manager_widget import ObjetoManagerWidget

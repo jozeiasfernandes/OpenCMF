@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from PySide6 import QtWidgets
-from core.modulo_base.base import ModuloBase
+from core.base_module.base import ModuloBase
 
 
 class Modulo(ModuloBase):

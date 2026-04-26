@@ -1,13 +1,13 @@
 # Factory.py
 
 import importlib.util
-from core.modulo_base.base import ModuloBase
+from core.base_module.base import ModuloBase
 
 
 class ModuloFactory:
     @staticmethod
     def carregar_modulo(id_modulo: str) -> ModuloBase:
-        # Importa dinamicamente um módulo da pasta /modulos
+        # Importa dinamicamente um módulo da pasta /modules
         try:
             nome_modulo = f"modulos.{id_modulo}"
 

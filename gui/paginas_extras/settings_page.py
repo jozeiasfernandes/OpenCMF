@@ -67,7 +67,7 @@ class PaginaConfig(QtWidgets.QWidget):
         # CORREÇÃO: Subir 3 níveis para sair de 'gui/paginas_extras' e chegar na raiz
         # parent 1: paginas_extras | parent 2: gui | parent 3: raiz (OpenCMF)
         base_dir = Path(__file__).resolve().parent.parent.parent
-        themes_dir = base_dir / "temas"
+        themes_dir = base_dir / "themes"
 
         if not themes_dir.exists():
             logging.error(f"Diretório não encontrado: {themes_dir}")

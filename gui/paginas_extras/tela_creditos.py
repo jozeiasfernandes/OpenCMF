@@ -18,8 +18,8 @@ class Janela_Creditos(QtWidgets.QDialog):
         self.lbl_logo = QtWidgets.QLabel()
         self.lbl_logo.setAlignment(QtCore.Qt.AlignCenter)
 
-        # Caminho subindo um nível para achar a pasta icones
-        path_logo = Path(__file__).parent.parent / "icones" / "OpenCFM.png"
+        # Caminho subindo um nível para achar a pasta icons
+        path_logo = Path(__file__).parent.parent / "icons" / "OpenCFM.png"
 
         if path_logo.exists():
             pixmap = QtGui.QPixmap(str(path_logo))

@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets, QtCore
-from core.janelas.janelas import JanelaBase
+from core.windows.janelas import JanelaBase
 
 
 class Janela3D(JanelaBase):

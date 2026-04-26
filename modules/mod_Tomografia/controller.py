@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from typing import Dict, Optional
 from PySide6 import QtWidgets, QtCore
-from core.modulo_base.base import ModuloBase
+from core.base_module.base import ModuloBase
 from core.volume.dicom_engine import DicomEngine
 from .ui import TomografiaUI
 from core.volume.viewer import VolumeViewerWidget

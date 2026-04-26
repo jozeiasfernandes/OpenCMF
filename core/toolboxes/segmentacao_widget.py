@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets, QtCore
-from modulos.mod_Paciente.ui_components import criar_linha_arquivo
+from modules.mod_Paciente.ui_components import criar_linha_arquivo
 
 class SegmentacaoWidget(QtWidgets.QWidget):
     pathChanged = QtCore.Signal(str)

@@ -2,8 +2,8 @@ import vtk
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
 from typing import Dict, Optional
-from core.janelas.janela2d import Janela2D
-from core.janelas.janela3d import Janela3D
+from core.windows.janela2d import Janela2D
+from core.windows.janela3d import Janela3D
 
 
 class VolumeViewerWidget(QtWidgets.QWidget):
@@ -28,7 +28,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     def _init_paths(self):
         base_path = os.path.dirname(os.path.abspath(__file__))
         # Ajuste para localizar a pasta de ícones na raiz
-        self.path_icones = os.path.abspath(os.path.join(base_path, "../..", "..", "icones"))
+        self.path_icones = os.path.abspath(os.path.join(base_path, "../..", "..", "icons"))
 
     def _setup_main_layout(self):
         self.root_layout = QtWidgets.QVBoxLayout(self)
@@ -198,7 +198,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def refresh_display(self):
         """
-        Força a renderização de todas as janelas VTK.
+        Força a renderização de todas as windows VTK.
         Crucial para evitar telas pretas/artefatos ao carregar o módulo.
         """
         for nome, pane in self.vistas.items():
