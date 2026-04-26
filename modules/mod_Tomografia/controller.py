@@ -105,6 +105,7 @@ class Modulo(ModuloBase):
         else:
             id_escolhido = ids_series[0]
 
+        # Pegamos o diretório pai do arquivo para passar para o engine
         caminho_final = str(Path(series[id_escolhido][0]["path"]).parent)
         self._atualizar_persistência_diretorio(caminho_final)
         self.ui.update_status_validado()
@@ -139,6 +140,7 @@ class Modulo(ModuloBase):
                 progress.setLabelText("Renderizando visualização...")
                 progress.setValue(80)
 
+                # Se o viewer já existir na UI, injetamos o volume agora
                 if self.viewer:
                     self.viewer.set_volume(self.engine.vtk_volume)
                     self.ui.update_status_carregado()
@@ -174,21 +176,26 @@ class Modulo(ModuloBase):
             self.viewer.update_slice(plano, valor)
 
     def _sincronizar_window_level_ui(self, window: float, level: float):
-        has_group = hasattr(self.ui, 'group_wl')
-        if has_group: self.ui.group_wl.blockSignals(True)
         self.ui.update_wl_ui(window, level)
-        if has_group: self.ui.group_wl.blockSignals(False)
 
     def _wl_manual(self, window: float, level: float):
         if self.viewer:
             self.viewer.update_window_level(window, level)
 
     def get_workspace(self) -> QtWidgets.QWidget:
+
         if self.viewer:
             self.viewer.cleanup()
+
         self.viewer = VolumeViewerWidget()
         self.viewer.sliceChanged.connect(self._sincronizar_fatia)
         self.viewer.windowLevelChanged.connect(self._sincronizar_window_level_ui)
+
+        # Se o motor já tiver o volume (ex: carregado via botão), injeta no novo viewer
+        if self.engine.vtk_volume:
+            self.viewer.set_volume(self.engine.vtk_volume)
+            self.ui.update_status_carregado()
+
         return self.viewer
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:

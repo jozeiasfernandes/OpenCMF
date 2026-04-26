@@ -2,68 +2,94 @@ import pydicom
 import numpy as np
 from pathlib import Path
 import vtk
-from vtk.util import numpy_support
-from typing import Optional
+from typing import Optional, List, Tuple
+
+try:
+    from vtkmodules.util import numpy_support
+except ImportError:
+    try:
+        from vtk.util import numpy_support
+    except ImportError:
+        import vtk.util.numpy_support as numpy_support
+
 
 class DicomEngine:
     def __init__(self):
-        self.volume_data = None  # Array NumPy
-        self.vtk_volume = None  # Objeto vtkImageData
-        self.spacing = (1.0, 1.0, 1.0)
-        self.origin = (0.0, 0.0, 0.0)
+        self.volume_data: Optional[np.ndarray] = None
+        self.vtk_volume: Optional[vtk.vtkImageData] = None
+        self.spacing: Tuple[float, float, float] = (1.0, 1.0, 1.0)
+        self.origin: List[float] = [0.0, 0.0, 0.0]
 
     def carregar_volume(self, caminho_pasta: str) -> Optional[vtk.vtkImageData]:
-        """
-        MÉTODO PARA SEGMENTAÇÃO: Retorna o objeto VTK diretamente.
-        Não quebra os outros módulos pois é um método novo.
-        """
         sucesso, _ = self.carregar_pasta(caminho_pasta)
-        if sucesso:
-            return self.vtk_volume
-        return None
+        return self.vtk_volume if sucesso else None
 
-    def carregar_pasta(self, caminho_pasta: str):
-        """MÉTODO ORIGINAL: Mantido exatamente como a Tomografia espera."""
+    def carregar_pasta(self, caminho_pasta: str) -> Tuple[bool, str]:
         try:
             caminho = Path(caminho_pasta)
             arquivos = list(caminho.glob("*.dcm"))
+            if not arquivos:
+                arquivos = [f for f in caminho.iterdir() if f.is_file() and not f.name.startswith('.')]
 
             if not arquivos:
-                return False, "Nenhum arquivo DICOM encontrado."
+                return False, "Nenhum arquivo DICOM encontrado no diretório."
 
-            # 1. Ler fatias e ordenar
-            fatias = [pydicom.dcmread(str(f)) for f in arquivos]
-            fatias.sort(key=lambda x: float(x.ImagePositionPatient[2]))
+            dataset_valido = []
+            shape_referencia = None
 
-            # 2. Extrair propriedades espaciais
-            ps = fatias[0].PixelSpacing
-            thickness = fatias[0].SliceThickness if 'SliceThickness' in fatias[0] else 1.0
-            self.spacing = (float(ps[0]), float(ps[1]), float(thickness))
-            self.origin = [float(x) for x in fatias[0].ImagePositionPatient]
+            for f in arquivos:
+                try:
+                    ds = pydicom.dcmread(str(f))
+                    if not hasattr(ds, 'pixel_array'):
+                        continue
 
-            # 3. Empilhar os pixels (HU)
+                    current_shape = ds.pixel_array.shape
+                    if shape_referencia is None:
+                        shape_referencia = current_shape
+
+                    if current_shape == shape_referencia:
+                        dataset_valido.append(ds)
+                except Exception:
+                    continue
+
+            if not dataset_valido:
+                return False, "Não foi possível extrair dados de pixel."
+
+            dataset_valido.sort(key=lambda x: float(x.ImagePositionPatient[2]))
+
+            ds0 = dataset_valido[0]
+            ps = ds0.PixelSpacing
+
+            if len(dataset_valido) > 1:
+                z_spacing = abs(float(dataset_valido[1].ImagePositionPatient[2]) - float(ds0.ImagePositionPatient[2]))
+            else:
+                z_spacing = float(ds0.get('SliceThickness', 1.0))
+
+            self.spacing = (float(ps[0]), float(ps[1]), z_spacing)
+            self.origin = [float(x) for x in ds0.ImagePositionPatient]
+
             volume_list = []
-            for f in fatias:
-                img2d = f.pixel_array.astype(np.int16)
-                slope = getattr(f, 'RescaleSlope', 1)
-                intercept = getattr(f, 'RescaleIntercept', 0)
+            for ds in dataset_valido:
+                img2d = ds.pixel_array.astype(np.int16)
+                slope = float(getattr(ds, 'RescaleSlope', 1))
+                intercept = float(getattr(ds, 'RescaleIntercept', 0))
+
                 if slope != 1 or intercept != 0:
-                    img2d = img2d * slope + intercept
+                    img2d = (img2d * slope) + intercept
+
                 volume_list.append(img2d)
 
             self.volume_data = np.stack(volume_list)
-
-            # 4. Converter NumPy para vtkImageData
             self.vtk_volume = self._numpy_to_vtk(self.volume_data)
-            return True, f"{len(fatias)} fatias carregadas com sucesso."
-        except Exception as e:
-            return False, f"Erro ao carregar DICOM: {str(e)}"
 
-    def _numpy_to_vtk(self, nparray):
-        # Garante que o array está no formato que o VTK espera (Z, Y, X)
+            return True, f"{len(dataset_valido)} fatias carregadas."
+
+        except Exception as e:
+            return False, f"Erro: {str(e)}"
+
+    def _numpy_to_vtk(self, nparray: np.ndarray) -> vtk.vtkImageData:
         depth, height, width = nparray.shape
 
-        # O VTK armazena internamente como um vetor linear
         vtk_array = numpy_support.numpy_to_vtk(
             num_array=nparray.flatten(),
             deep=True,
@@ -73,7 +99,7 @@ class DicomEngine:
         img_data = vtk.vtkImageData()
         img_data.SetDimensions(width, height, depth)
         img_data.SetSpacing(self.spacing)
-        # Importante: Use a origem real extraída do DICOM para o Crosshair funcionar
         img_data.SetOrigin(self.origin)
         img_data.GetPointData().SetScalars(vtk_array)
+
         return img_data
