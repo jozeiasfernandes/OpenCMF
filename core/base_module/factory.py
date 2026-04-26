@@ -1,5 +1,3 @@
-# Factory.py
-
 import importlib.util
 from core.base_module.base import ModuloBase
 
@@ -7,27 +5,22 @@ from core.base_module.base import ModuloBase
 class ModuloFactory:
     @staticmethod
     def carregar_modulo(id_modulo: str) -> ModuloBase:
-        # Importa dinamicamente um módulo da pasta /modules
         try:
-            nome_modulo = f"modulos.{id_modulo}"
+            nome_modulo = f"modules.{id_modulo}"
 
-            # Verifica se o arquivo existe no caminho especificado
             spec = importlib.util.find_spec(nome_modulo)
             if spec is None:
-                print(f"Erro: {id_modulo}.py não encontrado em /modulos")
+                print(f"Error: {id_modulo}.py not found in /modules")
                 return None
 
-            # Carrega o arquivo .py na memória
-            modulo_python = importlib.import_module(nome_modulo)
+            module_obj = importlib.import_module(nome_modulo)
 
-            # Instancia a classe 'Modulo' que deve existir dentro de cada arquivo
-            if hasattr(modulo_python, "Modulo"):
-                return modulo_python.Modulo()
+            if hasattr(module_obj, "Modulo"):
+                return module_obj.Modulo()
 
-            print(f"Erro: {id_modulo}.py não contém a classe 'Modulo'")
+            print(f"Error: {id_modulo}.py does not contain 'Modulo' class")
             return None
 
         except Exception as e:
-            # Captura falhas de importação ou erros internos do módulo
-            print(f"Falha ao carregar {id_modulo}: {e}")
+            print(f"Failed to load module {id_modulo}: {e}")
             return None
