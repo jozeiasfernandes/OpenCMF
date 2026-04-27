@@ -15,5 +15,4 @@ Developed **by surgeons, for surgeons**, this platform is built on the foundatio
 
 ---
 
----
 *Developed with a focus on innovation and precision in Oral and Maxillofacial Surgery.*
