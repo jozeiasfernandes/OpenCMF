@@ -2,14 +2,17 @@ import os
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.windows.janelas import JanelaBase
 from .context_menu_2d import ContextMenu2D
+from core.volume.lookup_table.lut_manager import LUTManager
 
 class Janela2D(JanelaBase):
     sliceChanged = QtCore.Signal(int)
     maximizeRequested = QtCore.Signal(bool)
+    lutChanged = QtCore.Signal(str)
 
     def __init__(self, titulo: str, cor: str, parent=None):
         super().__init__(titulo, cor, parent)
         self.is_maximized = False
+        self.vtk_property = None
         self._setup_specific_ui()
         self._setup_interactions()
 
@@ -82,3 +85,6 @@ class Janela2D(JanelaBase):
     def _handle_wheel(self, obj, event):
         step = 1 if event == "MouseWheelForwardEvent" else -1
         self.slider_corte.setValue(self.slider_corte.value() + step)
+
+    def apply_lut(self, lut_name: str):
+        self.lutChanged.emit(lut_name)
