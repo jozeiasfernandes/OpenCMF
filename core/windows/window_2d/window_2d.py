@@ -14,6 +14,14 @@ class Janela2D(JanelaBase):
         self.vtk_property = None
         self._setup_specific_ui()
         self._setup_interactions()
+        self.vtkWidget.installEventFilter(self)
+
+    def eventFilter(self, source, event):
+        if source is self.vtkWidget and event.type() == QtCore.QEvent.MouseButtonDblClick:
+            if event.button() == QtCore.Qt.LeftButton:
+                self._toggle_maximize()
+                return True
+        return super().eventFilter(source, event)
 
     def _setup_specific_ui(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -87,3 +95,8 @@ class Janela2D(JanelaBase):
 
     def apply_lut(self, lut_name: str):
         self.lutChanged.emit(lut_name)
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self._toggle_maximize()
+        super().mouseDoubleClickEvent(event)

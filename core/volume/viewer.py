@@ -226,3 +226,14 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     def refresh_display(self):
         for p in self.vistas.values():
             if p.isVisible(): p.vtkWidget.GetRenderWindow().Render()
+
+    def _handle_maximize(self, nome, is_max):
+        if is_max:
+
+            modo = "Apenas 3D" if nome == "3D" else nome
+            self.configurar_layout(modo)
+            self.toolbar.set_layout_text(modo)
+        else:
+
+            self.configurar_layout("4 Quadrantes")
+            self.toolbar.set_layout_text("4 Quadrantes")

@@ -2,7 +2,6 @@ import os
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.windows.janelas import JanelaBase
 
-
 class Janela3D(JanelaBase):
     thresholdChanged = QtCore.Signal(int)
     presetChanged = QtCore.Signal(str)
@@ -13,6 +12,14 @@ class Janela3D(JanelaBase):
         super().__init__(titulo, cor, parent)
         self.is_maximized = False
         self._setup_ui()
+        self.vtkWidget.installEventFilter(self)
+
+    def eventFilter(self, source, event):
+        if source is self.vtkWidget and event.type() == QtCore.QEvent.MouseButtonDblClick:
+            if event.button() == QtCore.Qt.LeftButton:
+                self._toggle_maximize()
+                return True
+        return super().eventFilter(source, event)
 
     def _setup_ui(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -89,3 +96,8 @@ class Janela3D(JanelaBase):
             if files:
                 self.combo_presets.clear()
                 self.combo_presets.addItems(sorted(files))
+
+    def mouseDoubleClickEvent(self, event):
+        if event.button() == QtCore.Qt.LeftButton:
+            self._toggle_maximize()
+        super().mouseDoubleClickEvent(event)
