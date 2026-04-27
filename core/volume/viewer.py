@@ -6,6 +6,46 @@ from typing import Dict, Optional
 from core.windows.window_2d.window_2d import Janela2D
 from core.windows.window_3d.window_3d import Janela3D
 from core.volume.lookup_table.lut_manager import LUTManager
+from core.volume.lookup_table.lut_presets import LUTPresets
+
+
+class LUTDelegate(QtWidgets.QStyledItemDelegate):
+    """Renderiza o degradê de cores diretamente no QComboBox."""
+
+    def paint(self, painter, option, index):
+        name = index.data()
+        stops = LUTPresets.PRESETS.get(name, [])
+        rect = option.rect
+
+        painter.save()
+        painter.setRenderHint(QtGui.QPainter.Antialiasing)
+
+        # Desenha o fundo de seleção
+        if option.state & QtWidgets.QStyle.State_Selected:
+            painter.fillRect(rect, option.palette.highlight())
+
+        # Define o degradê linear baseado nos stops do preset
+        gradient = QtGui.QLinearGradient(rect.left() + 5, 0, rect.right() - 5, 0)
+        for pos, hex_val in stops:
+            gradient.setColorAt(pos, QtGui.QColor(hex_val))
+
+        # Desenha o retângulo do degradê
+        grad_rect = rect.adjusted(5, 4, -5, -4)
+        painter.setBrush(gradient)
+        painter.setPen(QtCore.Qt.NoPen)
+        painter.drawRoundedRect(grad_rect, 3, 3)
+
+        # Desenha o nome do preset centralizado com sombra para legibilidade
+        painter.setPen(QtGui.QColor(0, 0, 0, 150))  # Sombra
+        painter.drawText(rect.adjusted(1, 1, 1, 1), QtCore.Qt.AlignCenter, name)
+        painter.setPen(QtCore.Qt.white)
+        painter.drawText(rect, QtCore.Qt.AlignCenter, name)
+
+        painter.restore()
+
+    def sizeHint(self, option, index):
+        return QtCore.QSize(100, 28)
+
 
 class VolumeViewerWidget(QtWidgets.QWidget):
     sliceChanged = QtCore.Signal(str, int)
@@ -49,9 +89,13 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.toolbar = QtWidgets.QToolBar()
         self.toolbar.setFixedHeight(38)
         self.toolbar.setStyleSheet("""
-            QToolBar { background: #1E1E1E; border-bottom: 1px solid #333; spacing: 4px; } 
-            QComboBox { background: #333; color: white; border: 1px solid #444; padding: 2px 8px; }
+            QToolBar { background: #1E1E1E; border-bottom: 1px solid #333; spacing: 10px; padding: 0px 8px; } 
+            QComboBox { background: #333; color: white; border: 1px solid #444; padding: 2px; min-width: 130px; }
+            QLabel { color: #AAA; font-size: 10px; font-weight: bold; }
         """)
+
+        # Layout Combo
+        self.toolbar.addWidget(QtWidgets.QLabel("LAYOUT"))
         self.combo_layout = QtWidgets.QComboBox()
         opcoes = [
             ("4 Quadrantes", "4_janelas.png"),
@@ -62,9 +106,23 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             ("Coronal", "coronal.png")
         ]
         for nome, img in opcoes:
-            self.combo_layout.addItem(QtGui.QIcon(os.path.join(self.path_icones, img)), nome)
+            path = os.path.join(self.path_icones, img)
+            icon = QtGui.QIcon(path) if os.path.exists(path) else QtGui.QIcon()
+            self.combo_layout.addItem(icon, nome)
+
         self.combo_layout.currentTextChanged.connect(self.configurar_layout)
         self.toolbar.addWidget(self.combo_layout)
+
+        self.toolbar.addSeparator()
+
+        # Color Map (LUT) Combo com Degradê
+        self.toolbar.addWidget(QtWidgets.QLabel("COLOR MAP"))
+        self.combo_lut_global = QtWidgets.QComboBox()
+        self.combo_lut_global.setItemDelegate(LUTDelegate(self.combo_lut_global))
+        self.combo_lut_global.addItems(list(LUTPresets.PRESETS.keys()))
+        self.combo_lut_global.currentTextChanged.connect(self.apply_global_lut)
+        self.toolbar.addWidget(self.combo_lut_global)
+
         self.root_layout.addWidget(self.toolbar)
 
     def _create_viewers(self):
@@ -73,7 +131,6 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             pane = Janela2D(nome, cores[nome])
             pane.sliceChanged.connect(lambda v, n=nome: self.update_slice(n, v))
             pane.maximizeRequested.connect(lambda maximo, n=nome: self._handle_maximize(n, maximo))
-            # Conexão para sincronização de LUT entre todas as janelas 2D
             pane.lutChanged.connect(self.apply_global_lut)
             self.vistas[nome] = pane
 
@@ -86,6 +143,11 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def apply_global_lut(self, lut_name: str):
         new_lut = LUTManager.get_vtk_lut(lut_name)
+
+        self.combo_lut_global.blockSignals(True)
+        self.combo_lut_global.setCurrentText(lut_name)
+        self.combo_lut_global.blockSignals(False)
+
         for nome in self.PLANOS:
             pane = self.vistas.get(nome)
             if pane and hasattr(pane, 'vtk_property') and pane.vtk_property:

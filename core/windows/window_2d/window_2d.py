@@ -2,7 +2,6 @@ import os
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.windows.janelas import JanelaBase
 from .context_menu_2d import ContextMenu2D
-from core.volume.lookup_table.lut_manager import LUTManager
 
 class Janela2D(JanelaBase):
     sliceChanged = QtCore.Signal(int)

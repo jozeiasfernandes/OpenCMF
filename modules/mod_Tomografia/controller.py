@@ -7,7 +7,6 @@ from core.base_module.base import ModuloBase
 from core.volume.dicom_engine import DicomEngine
 from .ui import TomografiaUI
 
-# CORREÇÃO AQUI: O caminho deve refletir a nova pasta window_2d
 from core.volume.viewer import VolumeViewerWidget
 from core.volume.validator import DicomValidator
 
