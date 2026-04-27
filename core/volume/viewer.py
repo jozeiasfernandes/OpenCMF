@@ -1,50 +1,14 @@
 import vtk
 import os
 import json
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 from typing import Dict, Optional
+
 from core.windows.window_2d.window_2d import Janela2D
 from core.windows.window_3d.window_3d import Janela3D
 from core.volume.lookup_table.lut_manager import LUTManager
-from core.volume.lookup_table.lut_presets import LUTPresets
-
-
-class LUTDelegate(QtWidgets.QStyledItemDelegate):
-    """Renderiza o degradê de cores diretamente no QComboBox."""
-
-    def paint(self, painter, option, index):
-        name = index.data()
-        stops = LUTPresets.PRESETS.get(name, [])
-        rect = option.rect
-
-        painter.save()
-        painter.setRenderHint(QtGui.QPainter.Antialiasing)
-
-        # Desenha o fundo de seleção
-        if option.state & QtWidgets.QStyle.State_Selected:
-            painter.fillRect(rect, option.palette.highlight())
-
-        # Define o degradê linear baseado nos stops do preset
-        gradient = QtGui.QLinearGradient(rect.left() + 5, 0, rect.right() - 5, 0)
-        for pos, hex_val in stops:
-            gradient.setColorAt(pos, QtGui.QColor(hex_val))
-
-        # Desenha o retângulo do degradê
-        grad_rect = rect.adjusted(5, 4, -5, -4)
-        painter.setBrush(gradient)
-        painter.setPen(QtCore.Qt.NoPen)
-        painter.drawRoundedRect(grad_rect, 3, 3)
-
-        # Desenha o nome do preset centralizado com sombra para legibilidade
-        painter.setPen(QtGui.QColor(0, 0, 0, 150))  # Sombra
-        painter.drawText(rect.adjusted(1, 1, 1, 1), QtCore.Qt.AlignCenter, name)
-        painter.setPen(QtCore.Qt.white)
-        painter.drawText(rect, QtCore.Qt.AlignCenter, name)
-
-        painter.restore()
-
-    def sizeHint(self, option, index):
-        return QtCore.QSize(100, 28)
+from .viewer_utils.viewer_toolbar import VolumeViewerToolbar
+from .viewer_utils.viewer_renderers import ViewerRenderers
 
 
 class VolumeViewerWidget(QtWidgets.QWidget):
@@ -64,6 +28,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.opacity_function = vtk.vtkPiecewiseFunction()
         self.color_function = vtk.vtkColorTransferFunction()
         self.volume_actor: Optional[vtk.vtkVolume] = None
+
         self._init_paths()
         self._setup_main_layout()
 
@@ -76,54 +41,20 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.root_layout = QtWidgets.QVBoxLayout(self)
         self.root_layout.setContentsMargins(0, 0, 0, 0)
         self.root_layout.setSpacing(0)
-        self._setup_toolbar()
+
+        self.toolbar = VolumeViewerToolbar(self.path_icones)
+        self.toolbar.layoutChanged.connect(self.configurar_layout)
+        self.toolbar.lutChanged.connect(self.apply_global_lut)
+        self.root_layout.addWidget(self.toolbar)
+
         self.grid_container = QtWidgets.QWidget()
         self.grid_layout = QtWidgets.QGridLayout(self.grid_container)
         self.grid_layout.setContentsMargins(0, 0, 0, 0)
         self.grid_layout.setSpacing(2)
         self.root_layout.addWidget(self.grid_container)
+
         self._create_viewers()
         self.configurar_layout("4 Quadrantes")
-
-    def _setup_toolbar(self):
-        self.toolbar = QtWidgets.QToolBar()
-        self.toolbar.setFixedHeight(38)
-        self.toolbar.setStyleSheet("""
-            QToolBar { background: #1E1E1E; border-bottom: 1px solid #333; spacing: 10px; padding: 0px 8px; } 
-            QComboBox { background: #333; color: white; border: 1px solid #444; padding: 2px; min-width: 130px; }
-            QLabel { color: #AAA; font-size: 10px; font-weight: bold; }
-        """)
-
-        # Layout Combo
-        self.toolbar.addWidget(QtWidgets.QLabel("LAYOUT"))
-        self.combo_layout = QtWidgets.QComboBox()
-        opcoes = [
-            ("4 Quadrantes", "4_janelas.png"),
-            ("3D Destacado", "3_1.png"),
-            ("Apenas 3D", "3D.png"),
-            ("Axial", "axial.png"),
-            ("Sagital", "sagital.png"),
-            ("Coronal", "coronal.png")
-        ]
-        for nome, img in opcoes:
-            path = os.path.join(self.path_icones, img)
-            icon = QtGui.QIcon(path) if os.path.exists(path) else QtGui.QIcon()
-            self.combo_layout.addItem(icon, nome)
-
-        self.combo_layout.currentTextChanged.connect(self.configurar_layout)
-        self.toolbar.addWidget(self.combo_layout)
-
-        self.toolbar.addSeparator()
-
-        # Color Map (LUT) Combo com Degradê
-        self.toolbar.addWidget(QtWidgets.QLabel("COLOR MAP"))
-        self.combo_lut_global = QtWidgets.QComboBox()
-        self.combo_lut_global.setItemDelegate(LUTDelegate(self.combo_lut_global))
-        self.combo_lut_global.addItems(list(LUTPresets.PRESETS.keys()))
-        self.combo_lut_global.currentTextChanged.connect(self.apply_global_lut)
-        self.toolbar.addWidget(self.combo_lut_global)
-
-        self.root_layout.addWidget(self.toolbar)
 
     def _create_viewers(self):
         cores = {"Axial": "#D32F2F", "Sagital": "#FBC02D", "Coronal": "#388E3C"}
@@ -143,10 +74,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def apply_global_lut(self, lut_name: str):
         new_lut = LUTManager.get_vtk_lut(lut_name)
-
-        self.combo_lut_global.blockSignals(True)
-        self.combo_lut_global.setCurrentText(lut_name)
-        self.combo_lut_global.blockSignals(False)
+        self.toolbar.set_lut_text(lut_name)
 
         for nome in self.PLANOS:
             pane = self.vistas.get(nome)
@@ -154,67 +82,83 @@ class VolumeViewerWidget(QtWidgets.QWidget):
                 pane.vtk_property.SetLookupTable(new_lut)
                 pane.vtkWidget.GetRenderWindow().Render()
 
-    def _handle_maximize(self, nome_vista, is_maximized):
-        self.combo_layout.setCurrentText(nome_vista if is_maximized else "4 Quadrantes")
-
     def set_volume(self, volume: vtk.vtkImageData):
         self.volume_data = volume
         extent = volume.GetExtent()
         centro = volume.GetCenter()
+
         for nome, pane in self.vistas.items():
             rw = pane.vtkWidget.GetRenderWindow()
             ren = rw.GetRenderers().GetFirstRenderer()
             if not ren:
                 ren = vtk.vtkRenderer()
                 rw.AddRenderer(ren)
-            if nome == "3D":
-                self._configure_3d_renderer(ren)
-            else:
-                self._configure_mpr_renderer(ren, nome)
-                axis = self.DIM_MAP[nome]
-                min_slice = extent[axis * 2]
-                max_slice = extent[axis * 2 + 1]
-                pane.slider_corte.setRange(min_slice, max_slice)
-                slice_inicial = (min_slice + max_slice) // 2
-                pane.slider_corte.setValue(slice_inicial)
 
-                cam = ren.GetActiveCamera()
-                cam.SetParallelProjection(True)
-                cam.SetFocalPoint(centro)
-                pos_cam = list(centro)
-                pos_cam[axis] += 1000 if nome != "Axial" else -1000
-                cam.SetPosition(pos_cam)
-                cam.SetViewUp(self.VIEW_UP[nome])
-                self.update_slice(nome, slice_inicial)
-                ren.ResetCamera()
+            if nome == "3D":
+                self.volume_actor = ViewerRenderers.configure_3d_renderer(
+                    ren, volume, self.color_function, self.opacity_function
+                )
+                initial_preset = self.vistas["3D"].combo_presets.currentText()
+                if initial_preset:
+                    QtCore.QTimer.singleShot(50, lambda: self.update_preset(initial_preset))
+            else:
+                axis = self.DIM_MAP[nome]
+
+                # Obtém o Ator do helper
+                actor_2d = ViewerRenderers.configure_mpr_renderer(
+                    ren, volume, self.NORMALS[nome], centro
+                )
+
+                # Salva o Mapper para controle de fatias e a Propriedade para cores
+                self.mappers_mpr[nome] = actor_2d.GetMapper()
+                pane.vtk_property = actor_2d.GetProperty()
+
+                min_s, max_s = extent[axis * 2], extent[axis * 2 + 1]
+                pane.slider_corte.setRange(min_s, max_s)
+                slice_init = (min_s + max_s) // 2
+                pane.slider_corte.setValue(slice_init)
+
+                ViewerRenderers.setup_camera_mpr(
+                    ren, centro, axis, self.VIEW_UP[nome], nome == "Axial"
+                )
+                self.update_slice(nome, slice_init)
+
             rw.Render()
 
-    def _configure_3d_renderer(self, renderer):
-        renderer.RemoveAllViewProps()
-        mapper = vtk.vtkSmartVolumeMapper()
-        mapper.SetInputData(self.volume_data)
-        prop = vtk.vtkVolumeProperty()
-        prop.SetColor(self.color_function)
-        prop.SetScalarOpacity(self.opacity_function)
-        prop.SetInterpolationTypeToLinear()
-        self.volume_actor = vtk.vtkVolume()
-        self.volume_actor.SetMapper(mapper)
-        self.volume_actor.SetProperty(prop)
-        renderer.AddActor(self.volume_actor)
+    def update_slice(self, plano: str, index: int):
+        if not self.volume_data or plano not in self.mappers_mpr: return
 
-        initial_preset = self.vistas["3D"].combo_presets.currentText()
-        if initial_preset:
-            QtCore.QTimer.singleShot(50, lambda: self.update_preset(initial_preset))
-        QtCore.QTimer.singleShot(100, lambda: self.update_3d_view("Frente"))
+        axis = self.DIM_MAP[plano]
+        spacing = self.volume_data.GetSpacing()[axis]
+        origin = self.volume_data.GetOrigin()[axis]
+        pos_fisica = origin + (index * spacing)
+
+        ViewerRenderers.update_reslice_position(self.mappers_mpr[plano], axis, pos_fisica)
+
+        pane = self.vistas[plano]
+        renderer = pane.vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer()
+        cam = renderer.GetActiveCamera()
+
+        focal = list(cam.GetFocalPoint())
+        pos = list(cam.GetPosition())
+        dist = pos[axis] - focal[axis]
+        focal[axis] = pos_fisica
+        pos[axis] = pos_fisica + dist
+
+        cam.SetFocalPoint(focal)
+        cam.SetPosition(pos)
+        pane.lbl_mm.setText(f"{pos_fisica:.1f} mm")
+        pane.vtkWidget.GetRenderWindow().Render()
+        self.sliceChanged.emit(plano, index)
 
     def update_preset(self, nome: str):
         if not self.volume_actor: return
         path = os.path.join(self.path_presets, f"{nome}.json")
         if not os.path.exists(path): return
+
         with open(path, "r") as f:
             preset = json.load(f)
 
-        prop, mapper = self.volume_actor.GetProperty(), self.volume_actor.GetMapper()
         self.color_function.RemoveAllPoints()
         self.opacity_function.RemoveAllPoints()
         for p in preset.get("colors", []): self.color_function.AddRGBPoint(*p)
@@ -222,14 +166,14 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
         threshold = preset.get("threshold", 400)
         self.vistas["3D"].slider_threshold.setValue(threshold)
-        self.update_threshold(threshold)
+        self.volume_actor.GetProperty().SetShade(preset.get("shade", True))
 
-        prop.SetShade(preset.get("shade", True))
-        if preset.get("mip", False):
-            mapper.SetBlendModeToMaximumIntensity()
+        if preset.get("mip"):
+            self.volume_actor.GetMapper().SetBlendModeToMaximumIntensity()
         else:
-            mapper.SetBlendModeToComposite()
+            self.volume_actor.GetMapper().SetBlendModeToComposite()
 
+        self.update_threshold(threshold)
         self.vistas["3D"].vtkWidget.GetRenderWindow().Render()
 
     def update_threshold(self, value: int):
@@ -241,112 +185,44 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.vistas["3D"].vtkWidget.GetRenderWindow().Render()
 
     def update_3d_view(self, vista: str):
-        renderer = self.vistas["3D"].vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer()
-        cam = renderer.GetActiveCamera()
+        ren = self.vistas["3D"].vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer()
         maps = {
-            "Frente": (0, -1, 0, 0, 0, 1),
-            "Posterior": (0, 1, 0, 0, 0, 1),
-            "Superior": (0, 0, 1, 0, -1, 0),
-            "Inferior": (0, 0, -1, 0, 1, 0),
-            "Direito": (1, 0, 0, 0, 0, 1),
-            "Esquerdo": (-1, 0, 0, 0, 0, 1)
+            "Frente": (0, -1, 0, 0, 0, 1), "Posterior": (0, 1, 0, 0, 0, 1),
+            "Superior": (0, 0, 1, 0, -1, 0), "Inferior": (0, 0, -1, 0, 1, 0),
+            "Direito": (1, 0, 0, 0, 0, 1), "Esquerdo": (-1, 0, 0, 0, 0, 1)
         }
         if vista in maps:
+            cam = ren.GetActiveCamera()
             cam.SetPosition(maps[vista][:3])
             cam.SetViewUp(maps[vista][3:])
             cam.SetFocalPoint(0, 0, 0)
-            renderer.ResetCamera()
+            ren.ResetCamera()
             self.vistas["3D"].vtkWidget.GetRenderWindow().Render()
 
     def configurar_layout(self, modo: str):
         for i in reversed(range(self.grid_layout.count())):
-            widget = self.grid_layout.itemAt(i).widget()
-            if widget: widget.setParent(None)
+            w = self.grid_layout.itemAt(i).widget()
+            if w: w.setParent(None)
 
-        for v_nome, v_obj in self.vistas.items():
-            v_obj.hide()
-            if hasattr(v_obj, 'is_maximized'):
-                v_obj.is_maximized = (modo == v_nome or (modo == "Apenas 3D" and v_nome == "3D"))
-                v_obj._update_maximize_icon()
+        for n, obj in self.vistas.items():
+            obj.hide()
+            if hasattr(obj, 'is_maximized'):
+                obj.is_maximized = (modo == n or (modo == "Apenas 3D" and n == "3D"))
+                obj._update_maximize_icon()
 
         mapping = {
             "4 Quadrantes": [("Axial", 0, 0), ("Sagital", 0, 1), ("Coronal", 1, 0), ("3D", 1, 1)],
             "3D Destacado": [("Axial", 0, 0), ("Sagital", 0, 1), ("Coronal", 0, 2), ("3D", 1, 0, 1, 3)],
-            "Apenas 3D": [("3D", 0, 0)],
-            "Axial": [("Axial", 0, 0)],
-            "Sagital": [("Sagital", 0, 0)],
-            "Coronal": [("Coronal", 0, 0)]
+            "Apenas 3D": [("3D", 0, 0)], "Axial": [("Axial", 0, 0)],
+            "Sagital": [("Sagital", 0, 0)], "Coronal": [("Coronal", 0, 0)]
         }
-
         for item in mapping.get(modo, []):
             self.grid_layout.addWidget(self.vistas[item[0]], *item[1:])
             self.vistas[item[0]].show()
 
-    def update_slice(self, plano: str, index: int):
-        if not self.volume_data or plano not in self.mappers_mpr:
-            return
-
-        axis = self.DIM_MAP[plano]
-        spacing = self.volume_data.GetSpacing()[axis]
-        origin = self.volume_data.GetOrigin()[axis]
-        pos_fisica = origin + (index * spacing)
-
-        mapper = self.mappers_mpr[plano]
-        plane = mapper.GetSlicePlane()
-
-        novo_origem = list(plane.GetOrigin())
-        novo_origem[axis] = pos_fisica
-        plane.SetOrigin(novo_origem)
-
-        renderer = self.vistas[plano].vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer()
-        camera = renderer.GetActiveCamera()
-
-        focal_point = list(camera.GetFocalPoint())
-        camera_pos = list(camera.GetPosition())
-
-        distancia = camera_pos[axis] - focal_point[axis]
-
-        focal_point[axis] = pos_fisica
-        camera_pos[axis] = pos_fisica + distancia
-
-        camera.SetFocalPoint(focal_point)
-        camera.SetPosition(camera_pos)
-
-        self.vistas[plano].lbl_mm.setText(f"{pos_fisica:.1f} mm")
-        self.vistas[plano].vtkWidget.GetRenderWindow().Render()
-
-        self.sliceChanged.emit(plano, index)
-
-    def _configure_mpr_renderer(self, renderer, plano: str):
-        renderer.RemoveAllViewProps()
-
-        mapper = vtk.vtkImageResliceMapper()
-        mapper.SetInputData(self.volume_data)
-        mapper.SliceFacesCameraOff()
-        mapper.SliceAtFocalPointOff()
-
-        self.mappers_mpr[plano] = mapper
-
-        plane = vtk.vtkPlane()
-        plane.SetNormal(self.NORMALS[plano])
-        plane.SetOrigin(self.volume_data.GetCenter())
-        mapper.SetSlicePlane(plane)
-
-        vtk_prop = vtk.vtkImageProperty()
-        vtk_prop.SetColorWindow(2000)
-        vtk_prop.SetColorLevel(400)
-        vtk_prop.SetInterpolationTypeToLinear()
-
-        if plano in self.vistas:
-            self.vistas[plano].vtk_property = vtk_prop
-
-        actor = vtk.vtkImageSlice()
-        actor.SetMapper(mapper)
-        actor.SetProperty(vtk_prop)
-
-        renderer.AddActor(actor)
+    def _handle_maximize(self, nome, is_max):
+        self.toolbar.set_layout_text(nome if is_max else "4 Quadrantes")
 
     def refresh_display(self):
-        for pane in self.vistas.values():
-            if pane.isVisible():
-                pane.vtkWidget.GetRenderWindow().Render()
+        for p in self.vistas.values():
+            if p.isVisible(): p.vtkWidget.GetRenderWindow().Render()
