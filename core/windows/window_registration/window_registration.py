@@ -1,5 +1,6 @@
 from PySide6 import QtWidgets, QtCore
 import vtk
+from modules.mod_registration.registration_toolbar import RegistrationToolbarHandler
 
 
 class WindowRegistration(QtWidgets.QWidget):
@@ -26,14 +27,15 @@ class WindowRegistration(QtWidgets.QWidget):
         self.view_b.configurar_layout("Apenas 3D")
         self.view_b.toolbar.hide()
 
-        # Usamos a toolbar da view_a como toolbar única do módulo
+        self.toolbar_handler = RegistrationToolbarHandler(self.view_a.toolbar)
         self.main_layout.addWidget(self.view_a.toolbar)
 
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitter.addWidget(self.view_a)
         self.splitter.addWidget(self.view_b)
-
         self.main_layout.addWidget(self.splitter)
+
+        self.toolbar_handler.deletePointRequested.connect(self.remover_ultimo_ponto)
 
         QtCore.QTimer.singleShot(100, self.setup_interactors)
 
@@ -101,6 +103,20 @@ class WindowRegistration(QtWidgets.QWidget):
 
     def get_points_b(self):
         return self.pontos_b
+
+    def remover_ultimo_ponto(self):
+        for v, lista in [(self.view_a, self.pontos_a), (self.view_b, self.pontos_b)]:
+            if not lista: continue
+
+            actors = list(v.renderer_3d.GetActors())
+            for actor in reversed(actors):
+                if isinstance(actor.GetMapper().GetInputAlgorithm(), vtk.vtkSphereSource):
+                    v.renderer_3d.RemoveActor(actor)
+                    lista.pop()
+                    break
+
+            w = getattr(v, 'vtkWidget', v.findChild(QtWidgets.QWidget, "vtkWidget"))
+            w.GetRenderWindow().Render()
 
     def limpar_marcadores(self):
         self.pontos_a = []
