@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Dict
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.base_module.base import ModuloBase
-from modules.mod_Paciente.ui_components import SecaoRetratil, criar_linha_arquivo
-from modules.mod_Paciente.logic import buscar_cep_online, formatar_nome_diretorio
+from modules.mod_patients.ui_components import SecaoRetratil, criar_linha_arquivo
+from modules.mod_patients.logic import buscar_cep_online, formatar_nome_diretorio
 
 PASTA_PACIENTES = Path("patients")
 
