@@ -5,6 +5,7 @@ class RegistrationToolbarHandler(QtCore.QObject):
     addPointToggled = QtCore.Signal(bool)
     deletePointRequested = QtCore.Signal()
     pointSizeChanged = QtCore.Signal(float)
+    resetLayoutRequested = QtCore.Signal()
 
     def __init__(self, toolbar: QtWidgets.QToolBar):
         super().__init__()
@@ -30,6 +31,11 @@ class RegistrationToolbarHandler(QtCore.QObject):
         self.btn_del.setToolTip("Delete Last Point (Z)")
         self.toolbar.insertWidget(first_action, self.btn_del)
 
+        self.btn_reset = QtWidgets.QPushButton("Reset View", self.toolbar)
+        self.btn_reset.setStyleSheet(style_btns)
+        self.btn_reset.setToolTip("Restaurar layout de duas janelas 3D")
+        self.toolbar.insertWidget(first_action, self.btn_reset)
+
         label_size = QtWidgets.QLabel("  POINT SIZE: ", self.toolbar)
         label_size.setStyleSheet("font-size: 10px; font-weight: bold;")
         self.toolbar.insertWidget(first_action, label_size)
@@ -48,6 +54,7 @@ class RegistrationToolbarHandler(QtCore.QObject):
         self.btn_import.clicked.connect(self.importRequested.emit)
         self.btn_add.toggled.connect(self.addPointToggled.emit)
         self.btn_del.clicked.connect(self.deletePointRequested.emit)
+        self.btn_reset.clicked.connect(self.resetLayoutRequested.emit)
         self.slider_size.valueChanged.connect(self._on_slider_changed)
 
     def _on_slider_changed(self, value):

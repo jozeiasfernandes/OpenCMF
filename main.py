@@ -22,10 +22,12 @@ vtk_log = vtk.vtkFileOutputWindow()
 vtk_log.SetFileName("vtk_debug.log")
 vtk.vtkOutputWindow.GetInstance().SetInstance(vtk_log)
 
+
 def get_resource_path():
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
     return Path(__file__).parent.resolve()
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -62,7 +64,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(tr("main.window_title", title))
 
     def setup_icon(self):
-        icon_path = self.base_dir / "icons" / "cmf.png"
+        # CORREÇÃO: Caminho agora aponta para appearance/icons
+        icon_path = self.base_dir / "appearance" / "icons" / "cmf.png"
+
+        # Fallback para .ico se o .png não for encontrado
+        if not icon_path.exists():
+            icon_path = icon_path.with_suffix(".ico")
+
         if icon_path.exists():
             app_icon = QtGui.QIcon(str(icon_path))
             self.setWindowIcon(app_icon)
@@ -83,12 +91,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def load_settings(self):
         theme_name = settings.get("preferencias", "tema", "dark")
-        qss_path = self.base_dir / "themes" / f"{theme_name}.qss"
+        # CORREÇÃO: Caminho agora aponta para appearance/themes
+        qss_path = self.base_dir / "appearance" / "themes" / f"{theme_name}.qss"
         self.update_theme(str(qss_path))
 
     def update_theme(self, qss_path: str):
         file = Path(qss_path)
-        if not file.exists(): return
+        if not file.exists():
+            # Tenta buscar dentro de appearance/themes caso receba apenas o nome do arquivo
+            file = self.base_dir / "appearance" / "themes" / Path(qss_path).name
+            if not file.exists(): return
+
         try:
             style = file.read_text(encoding="utf-8")
             QtWidgets.QApplication.instance().setStyleSheet(style)
@@ -153,6 +166,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def report_error(self, title: str, error: Exception):
         logging.error(f"{title}: {error}", exc_info=True)
         QtWidgets.QMessageBox.critical(self, tr("common.critical_error"), f"<b>{title}</b><br>{error}")
+
 
 if __name__ == "__main__":
     app_id = settings.get("app_info", "id", "opencmf.surgicalplanning.1.0")

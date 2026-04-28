@@ -1,7 +1,12 @@
 from PySide6 import QtWidgets, QtCore
 import vtk
-from modules.mod_registration.registration_toolbar import RegistrationToolbarHandler
+from core.components.toolbars.registration_toolbar import RegistrationToolbarHandler
 
+class RegistrationDoubleClickFilter(QtCore.QObject):
+    def eventFilter(self, obj, event):
+        if event.type() == QtCore.QEvent.MouseButtonDblClick:
+            return True
+        return super().eventFilter(obj, event)
 
 class WindowRegistration(QtWidgets.QWidget):
     pontoAdicionado = QtCore.Signal(str, list)
@@ -12,6 +17,7 @@ class WindowRegistration(QtWidgets.QWidget):
         self.objetos_b = {}
         self.pontos_a = []
         self.pontos_b = []
+        self.db_click_filter = RegistrationDoubleClickFilter(self)
         self.setup_ui()
 
     def setup_ui(self):
@@ -21,10 +27,7 @@ class WindowRegistration(QtWidgets.QWidget):
 
         from core.volume.viewer import VolumeViewerWidget
         self.view_a = VolumeViewerWidget()
-        self.view_a.configurar_layout("Apenas 3D")
-
         self.view_b = VolumeViewerWidget()
-        self.view_b.configurar_layout("Apenas 3D")
         self.view_b.toolbar.hide()
 
         self.toolbar_handler = RegistrationToolbarHandler(self.view_a.toolbar)
@@ -36,19 +39,32 @@ class WindowRegistration(QtWidgets.QWidget):
         self.main_layout.addWidget(self.splitter)
 
         self.toolbar_handler.deletePointRequested.connect(self.remover_ultimo_ponto)
+        self.toolbar_handler.resetLayoutRequested.connect(self.reset_layout_vistas)
 
-        QtCore.QTimer.singleShot(500, self.setup_interactors)
+        QtCore.QTimer.singleShot(100, self._finalize_setup)
+
+    def _finalize_setup(self):
+        self.reset_layout_vistas()
+        for view in [self.view_a, self.view_b]:
+            view.installEventFilter(self.db_click_filter)
+            for child in view.findChildren(QtWidgets.QWidget):
+                child.installEventFilter(self.db_click_filter)
+        self.setup_interactors()
+
+    def reset_layout_vistas(self):
+        total_width = self.splitter.width()
+        self.splitter.setSizes([total_width // 2, total_width // 2])
+        self.view_a.configurar_layout("Apenas 3D")
+        self.view_b.configurar_layout("Apenas 3D")
+        self.view_a.show()
+        self.view_b.show()
 
     def _get_safe_renderer(self, viewer):
-        """Busca o renderer 3D tentando múltiplos caminhos para evitar NoneType."""
-        # 1. Tenta atributos diretos
         for attr in ['renderer_3d', 'renderer', 'ren']:
             res = getattr(viewer, attr, None)
             if res: return res
-
-        # 2. Tenta extrair da janela de renderização do widget
         try:
-            w_vtk = getattr(viewer, 'vtkWidget', viewer.findChild(QtWidgets.QWidget, "vtkWidget"))
+            w_vtk = viewer.findChild(QtWidgets.QWidget, "vtkWidget")
             if w_vtk:
                 return w_vtk.GetRenderWindow().GetRenderers().GetFirstRenderer()
         except:
@@ -62,8 +78,7 @@ class WindowRegistration(QtWidgets.QWidget):
         ]:
             try:
                 viewer = getattr(self, view_attr)
-                w_vtk = getattr(viewer, 'vtkWidget', viewer.findChild(QtWidgets.QWidget, "vtkWidget"))
-
+                w_vtk = viewer.findChild(QtWidgets.QWidget, "vtkWidget")
                 if w_vtk and w_vtk.GetRenderWindow():
                     interactor = w_vtk.GetRenderWindow().GetInteractor()
                     if interactor:
@@ -72,7 +87,7 @@ class WindowRegistration(QtWidgets.QWidget):
                         interactor.SetPicker(picker)
                         interactor.AddObserver("LeftButtonPressEvent", click_handler)
             except Exception as e:
-                print(f"Erro ao configurar interactor {view_attr}: {e}")
+                print(f"Error: {e}")
 
     def _on_click_a(self, obj, event):
         x, y = obj.GetEventPosition()
@@ -99,7 +114,6 @@ class WindowRegistration(QtWidgets.QWidget):
     def _desenhar_ponto(self, viewer, pos, cor):
         renderer = self._get_safe_renderer(viewer)
         if not renderer: return
-
         sphere = vtk.vtkSphereSource()
         sphere.SetCenter(pos)
         sphere.SetRadius(1.5)
@@ -108,10 +122,8 @@ class WindowRegistration(QtWidgets.QWidget):
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
         actor.GetProperty().SetColor(cor)
-
         renderer.AddActor(actor)
-
-        w_vtk = getattr(viewer, 'vtkWidget', viewer.findChild(QtWidgets.QWidget, "vtkWidget"))
+        w_vtk = viewer.findChild(QtWidgets.QWidget, "vtkWidget")
         if w_vtk: w_vtk.GetRenderWindow().Render()
 
     def adicionar_malha_vista_a(self, nome, polydata):
@@ -125,36 +137,28 @@ class WindowRegistration(QtWidgets.QWidget):
     def _adicionar_generic(self, viewer, nome, polydata):
         renderer = self._get_safe_renderer(viewer)
         if not renderer: return
-
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputData(polydata)
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
-
-        # Usamos PropertyKeys para persistir o nome de forma robusta no VTK
         info = vtk.vtkInformation()
         info.Set(vtk.vtkInformationStringKey.MakeKey("name", "registration"), nome)
         actor.SetPropertyKeys(info)
-
         renderer.AddActor(actor)
         renderer.ResetCamera()
-
-        w_vtk = getattr(viewer, 'vtkWidget', viewer.findChild(QtWidgets.QWidget, "w_vtk"))
-        if not w_vtk: w_vtk = viewer.findChild(QtWidgets.QWidget, "vtkWidget")
+        w_vtk = viewer.findChild(QtWidgets.QWidget, "vtkWidget")
         if w_vtk: w_vtk.GetRenderWindow().Render()
 
     def remover_objeto(self, nome):
         for v in [self.view_a, self.view_b]:
             renderer = self._get_safe_renderer(v)
             if not renderer: continue
-
             for actor in list(renderer.GetActors()):
                 info = actor.GetPropertyKeys()
                 if info and info.Has(vtk.vtkInformationStringKey.MakeKey("name", "registration")):
                     if info.Get(vtk.vtkInformationStringKey.MakeKey("name", "registration")) == nome:
                         renderer.RemoveActor(actor)
-
-            w_vtk = getattr(v, 'vtkWidget', v.findChild(QtWidgets.QWidget, "vtkWidget"))
+            w_vtk = v.findChild(QtWidgets.QWidget, "vtkWidget")
             if w_vtk: w_vtk.GetRenderWindow().Render()
 
     def get_points_a(self):
@@ -168,15 +172,13 @@ class WindowRegistration(QtWidgets.QWidget):
             if not lista: continue
             renderer = self._get_safe_renderer(v)
             if not renderer: continue
-
             actors = list(renderer.GetActors())
             for actor in reversed(actors):
                 if isinstance(actor.GetMapper().GetInputAlgorithm(), vtk.vtkSphereSource):
                     renderer.RemoveActor(actor)
                     lista.pop()
                     break
-
-            w_vtk = getattr(v, 'vtkWidget', v.findChild(QtWidgets.QWidget, "vtkWidget"))
+            w_vtk = v.findChild(QtWidgets.QWidget, "vtkWidget")
             if w_vtk: w_vtk.GetRenderWindow().Render()
 
     def limpar_marcadores(self):
@@ -188,6 +190,5 @@ class WindowRegistration(QtWidgets.QWidget):
             for actor in list(renderer.GetActors()):
                 if isinstance(actor.GetMapper().GetInputAlgorithm(), vtk.vtkSphereSource):
                     renderer.RemoveActor(actor)
-
-            w_vtk = getattr(v, 'vtkWidget', v.findChild(QtWidgets.QWidget, "vtkWidget"))
+            w_vtk = v.findChild(QtWidgets.QWidget, "vtkWidget")
             if w_vtk: w_vtk.GetRenderWindow().Render()
