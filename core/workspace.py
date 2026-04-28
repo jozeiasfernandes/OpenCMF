@@ -8,7 +8,9 @@ from PySide6 import QtWidgets, QtCore, QtGui
 def get_resource_path():
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
-    return Path(__file__).parent.parent
+    # De acordo com a imagem, workspace.py está em C:\OpenCMF\core\workspace.py
+    # .parent (core) -> .parent (OpenCMF - raiz)
+    return Path(__file__).resolve().parent.parent
 
 
 class WorkspaceManager(QtWidgets.QTabWidget):
@@ -37,10 +39,16 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         self.btn_home.setFixedSize(self.HOME_BTN_SIZE)
         self.btn_home.setCursor(QtCore.Qt.PointingHandCursor)
 
-        caminho_icone = self.base_dir / "icons" / "home.png"
+        # Caminho resolvido: C:\OpenCMF\appearance\icons\home.png
+        caminho_icone = self.base_dir / "appearance" / "icons" / "home.png"
+
         if caminho_icone.exists():
             self.btn_home.setIcon(QtGui.QIcon(str(caminho_icone)))
             self.btn_home.setIconSize(self.HOME_ICON_SIZE)
+        else:
+            # Fallback visível caso o caminho ainda falhe
+            self.btn_home.setText("Home")
+            print(f"Erro: Ícone não encontrado em {caminho_icone}")
 
         self.btn_home.clicked.connect(self.home_solicitada.emit)
         self.setCornerWidget(self.btn_home, QtCore.Qt.TopLeftCorner)
