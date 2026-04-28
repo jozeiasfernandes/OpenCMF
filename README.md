@@ -1,4 +1,4 @@
-![OpenCMF Logo](icons/OpenCFM.png)
+![OpenCMF Logo](appearance/icons/OpenCFM.png)
 
 **OpenCMF** is an open-source, modular surgical planning system specifically designed for the **Craniomaxillofacial (CMF)** field. 
 

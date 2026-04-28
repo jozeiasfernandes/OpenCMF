@@ -4,9 +4,9 @@ from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 
 from core.base_module.base import ModuloBase
-from core.windows.window_registration.window_registration import WindowRegistration
-from core.toolboxes.object_manager_widget import ObjetoManagerWidget
-from core.toolboxes.registration_widget import RegistrationWidget
+from core.components.windows.window_registration.window_registration import WindowRegistration
+from core.components.toolboxes.object_manager_widget import ObjetoManagerWidget
+from core.components.toolboxes.registration_widget import RegistrationWidget
 from core.imports.import_objets import FileImporter
 
 

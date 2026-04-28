@@ -1,9 +1,8 @@
-import logging
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 
-from core.translator import tr
-from gui.settings import settings
+from core.localization.translator import tr
+from appearance.settings import settings
 
 
 class PaginaConfig(QtWidgets.QWidget):

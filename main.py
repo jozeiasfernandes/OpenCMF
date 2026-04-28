@@ -9,13 +9,13 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.base_module.base import FluxoBase
 from core.base_module.factory import ModuloFactory
-from core.translator import tr
+from core.localization.translator import tr
 from core.workspace import WorkspaceManager
 
-from gui.settings import settings
-from gui.home_page import Home_page
-from gui.flow.flow_editor import PaginaEditorFluxo
-from gui.extra_pages.settings_page import PaginaConfig
+from appearance.settings import settings
+from appearance.home_page import Home_page
+from appearance.flow.flow_editor import PaginaEditorFluxo
+from appearance.extras.settings_page import PaginaConfig
 
 vtk.vtkObject.GlobalWarningDisplayOff()
 vtk_log = vtk.vtkFileOutputWindow()

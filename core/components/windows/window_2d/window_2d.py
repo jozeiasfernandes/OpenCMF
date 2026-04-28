@@ -1,6 +1,6 @@
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.windows.janelas import JanelaBase
+from core.components.windows.janelas import JanelaBase
 from .context_menu_2d import ContextMenu2D
 
 class Janela2D(JanelaBase):

@@ -1,6 +1,5 @@
 import pytest
-from pathlib import Path
-from gui.logic.project_manager import ProjectManager
+from core.imports.project_manager import ProjectManager
 
 
 def test_patient_folder_creation(tmp_path):

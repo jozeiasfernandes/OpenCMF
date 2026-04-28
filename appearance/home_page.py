@@ -3,10 +3,10 @@ import logging
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from gui.extra_pages.tela_creditos import Janela_Creditos
-from gui.flow.fluxo_card import FluxoCard
-from gui.logic.project_manager import ProjectManager
-from core.translator import tr
+from appearance.extras.tela_creditos import Janela_Creditos
+from appearance.flow.fluxo_card import FluxoCard
+from core.imports.project_manager import ProjectManager
+from core.localization.translator import tr
 
 
 def get_resource_path():
@@ -25,7 +25,7 @@ BASE_DIR = get_resource_path()
 DATA_DIR = get_data_path()
 PATIENTS_DIR = DATA_DIR / "patients"
 FLOWS_DIR = BASE_DIR / "flows"
-ICONS_DIR = BASE_DIR / "icons"
+ICONS_DIR = BASE_DIR / "appearance" / "icons"
 
 PATIENTS_DIR.mkdir(exist_ok=True)
 REGISTRATION_FLOW = str(FLOWS_DIR / "new_patient_registration.json")
