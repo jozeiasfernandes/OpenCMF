@@ -21,7 +21,7 @@ class HomeButton(QtWidgets.QToolButton):
         self.setCursor(QtCore.Qt.PointingHandCursor)
 
     def _apply_icon_or_fallback(self):
-        icon_path = self.base_dir / "appearance" / "icons" / "home.png"
+        icon_path = self.base_dir / "appearance" / "icons" / "home.svg"
 
         if icon_path.exists():
             self.setIcon(QtGui.QIcon(str(icon_path)))

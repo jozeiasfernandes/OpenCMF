@@ -3,14 +3,19 @@ from functools import partial
 from pathlib import Path
 from typing import Optional, Any, Dict
 from PySide6 import QtWidgets, QtCore, QtGui
-from .btn_home import HomeButton
 
+try:
+    from .btn_home import HomeButton
+except ImportError:
+    class HomeButton(QtWidgets.QPushButton):
+        def __init__(self, path, size):
+            super().__init__("HOME")
+            self.clicked_signal = self.clicked
 
 def get_resource_path() -> Path:
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
     return Path(__file__).resolve().parent.parent.parent
-
 
 class WorkspaceManager(QtWidgets.QTabWidget):
     home_solicitada = QtCore.Signal()
@@ -179,3 +184,33 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         if isinstance(parent, QtWidgets.QSplitter):
             return parent
         return widget.parentWidget().findChild(QtWidgets.QSplitter)
+
+
+
+
+
+
+
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+
+    class MockModulo:
+        def __init__(self, nome, cor):
+            self.nome = nome
+            self.cor = cor
+        def get_workspace_toolbar(self):
+            return QtWidgets.QToolBar()
+        def get_workspace(self):
+            w = QtWidgets.QFrame()
+            w.setStyleSheet(f"background-color: {self.cor};")
+            return w
+        def get_toolboxes(self):
+            return {"Opções": QtWidgets.QLabel("Painel de Controle")}
+
+    manager = WorkspaceManager()
+    manager.adicionar_modulo("teste", MockModulo("Módulo Teste", "#34495e"))
+    manager.resize(700, 500)
+    manager.show()
+    sys.exit(app.exec())

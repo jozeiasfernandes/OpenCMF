@@ -1,4 +1,5 @@
 from PySide6 import QtWidgets, QtCore
+import sys
 
 class RegistrationToolbarHandler(QtCore.QObject):
     importRequested = QtCore.Signal()
@@ -59,3 +60,24 @@ class RegistrationToolbarHandler(QtCore.QObject):
 
     def _on_slider_changed(self, value):
         self.pointSizeChanged.emit(value / 10.0)
+
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+
+    window = QtWidgets.QMainWindow()
+    window.setWindowTitle("Teste Isolado Toolbar")
+    window.resize(800, 100)
+
+    toolbar = QtWidgets.QToolBar("Registration Toolbar")
+    window.addToolBar(toolbar)
+
+    handler = RegistrationToolbarHandler(toolbar)
+
+    handler.importRequested.connect(lambda: print("Import solicitado"))
+    handler.addPointToggled.connect(lambda state: print(f"Add Point: {state}"))
+    handler.pointSizeChanged.connect(lambda size: print(f"Tamanho do ponto: {size}"))
+
+    window.show()
+    sys.exit(app.exec())

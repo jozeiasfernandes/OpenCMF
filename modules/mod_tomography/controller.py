@@ -3,12 +3,14 @@ import vtk
 from pathlib import Path
 from typing import Dict, Optional
 from PySide6 import QtWidgets, QtCore
+
 from core.base_module.base import ModuloBase
 from core.volume.dicom_engine import DicomEngine
-from .ui import TomografiaUI
-
 from core.volume.viewer import VolumeViewerWidget
 from core.volume.validator import DicomValidator
+
+from .ui import TomografiaUI
+from core.components.toolbars.tomography_toolbar import TomographyToolbarHandler
 
 class Modulo(ModuloBase):
     def __init__(self):
@@ -17,6 +19,7 @@ class Modulo(ModuloBase):
         self.id = "modulo.tomografia"
         self.engine = DicomEngine()
         self.ui = TomografiaUI()
+        self.toolbar_handler: Optional[TomographyToolbarHandler] = None
         self.viewer: Optional[VolumeViewerWidget] = None
         self.caminho_dicom: Optional[str] = None
         self._is_initialized = False
@@ -27,7 +30,8 @@ class Modulo(ModuloBase):
 
     def _carregar_configs_projeto(self):
         path_info = Path(self.pasta_paciente) / "projeto" / "info.json"
-        if not path_info.exists(): return
+        if not path_info.exists():
+            return
         try:
             with open(path_info, "r", encoding="utf-8") as f:
                 dados = json.load(f)
@@ -37,24 +41,7 @@ class Modulo(ModuloBase):
         except Exception as e:
             print(f"Erro ao carregar info.json: {e}")
 
-    def _atualizar_persistência_diretorio(self, novo_caminho: str):
-        path_info = Path(self.pasta_paciente) / "projeto" / "info.json"
-        try:
-            dados = {}
-            if path_info.exists():
-                with open(path_info, "r", encoding="utf-8") as f:
-                    dados = json.load(f)
-
-            dados.setdefault("caminhos", {})["dicom"] = novo_caminho
-            self.caminho_dicom = novo_caminho
-
-            path_info.parent.mkdir(parents=True, exist_ok=True)
-            with open(path_info, "w", encoding="utf-8") as f:
-                json.dump(dados, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            print(f"Erro ao persistir caminho no JSON: {e}")
-
-    def _atualizar_persistência_diretorio(self, novo_caminho: str):
+    def _atualizar_persistencia_diretorio(self, novo_caminho: str):
         path_info = Path(self.pasta_paciente) / "projeto" / "info.json"
         try:
             dados = {}
@@ -81,10 +68,10 @@ class Modulo(ModuloBase):
 
     def _validar_dicom(self):
         caminho_input = self.ui.edit_dicom.text()
-        if not caminho_input: return
+        if not caminho_input:
+            return
 
         progresso = self._criar_progresso("Validador DICOM", "Analisando estrutura...")
-
         validador = DicomValidator(self.pasta_paciente)
         resultado = validador.analisar_caminho(
             caminho_input,
@@ -93,7 +80,6 @@ class Modulo(ModuloBase):
         progresso.close()
 
         if not resultado["sucesso"]:
-            self.ui.update_status_erro()
             QtWidgets.QMessageBox.critical(None, "Erro", resultado["erro"])
             return
 
@@ -104,15 +90,20 @@ class Modulo(ModuloBase):
         if len(ids) > 1:
             opcoes = [f"{series[s][0]['desc']} ({len(series[s])} fatias)" for s in ids]
             item, ok = QtWidgets.QInputDialog.getItem(None, "Múltiplas Séries", "Escolha a série:", opcoes, 0, False)
-            if not ok: return
+            if not ok:
+                return
             id_escolhido = ids[opcoes.index(item)]
 
         caminho_final = str(Path(series[id_escolhido][0]["path"]).parent)
-        self._atualizar_persistência_diretorio(caminho_final)
+        self._atualizar_persistencia_diretorio(caminho_final)
+
         self.ui.update_status_validado()
+        if self.toolbar_handler:
+            self.toolbar_handler.set_validation_state(True)
 
     def _carregar_dicom(self):
-        if not self.caminho_dicom: return
+        if not self.caminho_dicom:
+            return
 
         progresso = self._criar_progresso("Carregador", "Lendo fatias DICOM...")
         try:
@@ -131,7 +122,8 @@ class Modulo(ModuloBase):
             progresso.close()
 
     def _gerar_vti(self):
-        if not self.engine.vtk_volume: return
+        if not self.engine.vtk_volume:
+            return
 
         progresso = self._criar_progresso("Exportador", "Gerando arquivo VTI...")
         try:
@@ -188,6 +180,21 @@ class Modulo(ModuloBase):
             self.ui.update_status_carregado()
 
         return self.viewer
+
+    def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
+        toolbar = QtWidgets.QToolBar("Tomografia")
+        self.toolbar_handler = TomographyToolbarHandler(toolbar)
+
+        self.toolbar_handler.importDicomRequested.connect(self._buscar_pasta)
+        self.toolbar_handler.validateRequested.connect(self._validar_dicom)
+        self.toolbar_handler.loadVolumeRequested.connect(self._carregar_dicom)
+        self.toolbar_handler.exportVtiRequested.connect(self._gerar_vti)
+        self.toolbar_handler.resetViewRequested.connect(lambda: self.viewer.reset_view() if self.viewer else None)
+
+        if self.caminho_dicom:
+            self.toolbar_handler.set_validation_state(False)
+
+        return toolbar
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         return self.ui.setup_toolboxes(
