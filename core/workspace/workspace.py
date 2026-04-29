@@ -1,0 +1,190 @@
+import sys
+from functools import partial
+from pathlib import Path
+from typing import Optional, Any, Dict
+from PySide6 import QtWidgets, QtCore, QtGui
+from .btn_home import HomeButton
+
+
+def get_resource_path() -> Path:
+    if getattr(sys, 'frozen', False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parent.parent.parent
+
+
+class WorkspaceManager(QtWidgets.QTabWidget):
+    home_solicitada = QtCore.Signal()
+
+    SIDEBAR_COLLAPSED_WIDTH = 35
+    SIDEBAR_EXPANDED_WIDTH = 330
+    ICON_SIZE_DEFAULT = QtCore.QSize(30, 30)
+    MAX_WIDGET_WIDTH = 16777215
+
+
+
+    def __init__(self):
+        super().__init__()
+        self.base_dir = get_resource_path()
+        self._configure_workspace_settings()
+        self._setup_home_button()
+        self.currentChanged.connect(self._sync_active_module_view)
+
+    def _configure_workspace_settings(self):
+        self.setDocumentMode(True)
+        self.setTabsClosable(False)
+        self.setMovable(False)
+
+    def _setup_home_button(self):
+        self.btn_home = HomeButton(self.base_dir, self.ICON_SIZE_DEFAULT)
+        self.btn_home.clicked_signal.connect(self.home_solicitada.emit)
+        self.setCornerWidget(self.btn_home, QtCore.Qt.TopLeftCorner)
+
+
+    def adicionar_modulo(self, id_modulo: str, modulo_obj: Any):
+        title = getattr(modulo_obj, 'nome', id_modulo.replace("_", " ").capitalize())
+        container = self._create_module_container(modulo_obj)
+
+        self.blockSignals(True)
+        self.addTab(container, title)
+        self.blockSignals(False)
+
+        self._build_module_layout(container, modulo_obj)
+        self._ensure_first_tab_active()
+
+    def _create_module_container(self, modulo_obj: Any) -> QtWidgets.QWidget:
+        container = QtWidgets.QWidget()
+        container.setProperty("modulo_instancia", modulo_obj)
+        return container
+
+    def _ensure_first_tab_active(self):
+        if self.count() == 1:
+            self.setCurrentIndex(0)
+
+    def get_modulo_ativo(self) -> Optional[Any]:
+        current_container = self.currentWidget()
+        return current_container.property("modulo_instancia") if current_container else None
+
+    def _sync_active_module_view(self):
+        active_module = self.get_modulo_ativo()
+        if active_module:
+            QtCore.QTimer.singleShot(10, lambda: self._refresh_module_display(active_module))
+
+    def _refresh_module_display(self, modulo_obj: Any):
+        viewer = getattr(modulo_obj, 'viewer', None)
+        if hasattr(viewer, 'refresh_display'):
+            viewer.refresh_display()
+
+
+
+    def _build_module_layout(self, container: QtWidgets.QWidget, modulo_obj: Any):
+        layout = QtWidgets.QHBoxLayout(container)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        main_splitter = self._create_main_splitter()
+        center_view = self._create_center_view(modulo_obj)
+        main_splitter.addWidget(center_view)
+
+        self._attach_sidebar_if_needed(main_splitter, container, modulo_obj)
+        layout.addWidget(main_splitter)
+
+    def _create_main_splitter(self) -> QtWidgets.QSplitter:
+        splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        splitter.setObjectName("workspaceSplitter")
+        splitter.setHandleWidth(1)
+        return splitter
+
+    def _create_center_view(self, modulo_obj: Any) -> QtWidgets.QWidget:
+        center_widget = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(center_widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
+
+        toolbar = modulo_obj.get_workspace_toolbar()
+        if toolbar:
+            layout.addWidget(toolbar)
+
+        view = modulo_obj.get_workspace()
+        view.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        layout.addWidget(view)
+
+        return center_widget
+
+
+
+
+
+    def _attach_sidebar_if_needed(self, splitter: QtWidgets.QSplitter, container: QtWidgets.QWidget, modulo_obj: Any):
+        if not hasattr(modulo_obj, 'get_toolboxes'):
+            return
+
+        toolboxes = modulo_obj.get_toolboxes()
+        if not toolboxes:
+            return
+
+        sidebar = self._create_sidebar(toolboxes)
+        splitter.addWidget(sidebar)
+
+        splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 0)
+        splitter.setSizes([container.width(), self.SIDEBAR_COLLAPSED_WIDTH])
+
+    def _create_sidebar(self, toolboxes: Dict[str, QtWidgets.QWidget]) -> QtWidgets.QTabWidget:
+        sidebar = QtWidgets.QTabWidget()
+        sidebar.setTabPosition(QtWidgets.QTabWidget.East)
+        sidebar.setMinimumWidth(self.SIDEBAR_COLLAPSED_WIDTH)
+        sidebar.setMaximumWidth(self.SIDEBAR_COLLAPSED_WIDTH)
+
+        for label, widget in toolboxes.items():
+            tab_content = self._wrap_toolbox_widget(widget)
+            sidebar.addTab(tab_content, label)
+            tab_content.setVisible(False)
+
+        sidebar.tabBarClicked.connect(partial(self._handle_sidebar_interaction, sidebar))
+        return sidebar
+
+    def _wrap_toolbox_widget(self, widget: QtWidgets.QWidget) -> QtWidgets.QWidget:
+        wrapper = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(wrapper)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(widget)
+        return wrapper
+
+    def _handle_sidebar_interaction(self, sidebar: QtWidgets.QTabWidget, clicked_index: int):
+        is_already_expanded = sidebar.width() > self.SIDEBAR_COLLAPSED_WIDTH
+        is_same_tab = clicked_index == sidebar.currentIndex()
+
+        if is_already_expanded and is_same_tab:
+            self._collapse_sidebar(sidebar)
+        else:
+            self._expand_sidebar(sidebar, clicked_index)
+
+        self._sync_active_module_view()
+
+    def _collapse_sidebar(self, sidebar: QtWidgets.QTabWidget):
+        sidebar.setMaximumWidth(self.SIDEBAR_COLLAPSED_WIDTH)
+        self._set_tabs_visibility(sidebar, False)
+
+        splitter = self._find_parent_splitter(sidebar)
+        if splitter:
+            splitter.setSizes([10000, self.SIDEBAR_COLLAPSED_WIDTH])
+
+    def _expand_sidebar(self, sidebar: QtWidgets.QTabWidget, index: int):
+        sidebar.setMaximumWidth(self.MAX_WIDGET_WIDTH)
+        self._set_tabs_visibility(sidebar, True)
+        sidebar.setCurrentIndex(index)
+
+        splitter = self._find_parent_splitter(sidebar)
+        if splitter:
+            available_width = splitter.width() - self.SIDEBAR_EXPAND_WIDTH
+            splitter.setSizes([available_width, self.SIDEBAR_EXPAND_WIDTH])
+
+    def _set_tabs_visibility(self, sidebar: QtWidgets.QTabWidget, visible: bool):
+        for i in range(sidebar.count()):
+            sidebar.widget(i).setVisible(visible)
+
+    def _find_parent_splitter(self, widget: QtWidgets.QWidget) -> Optional[QtWidgets.QSplitter]:
+        parent = widget.parent()
+        if isinstance(parent, QtWidgets.QSplitter):
+            return parent
+        return widget.parentWidget().findChild(QtWidgets.QSplitter)

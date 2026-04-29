@@ -10,7 +10,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from core.base_module.base import FluxoBase
 from core.base_module.factory import ModuloFactory
 from core.localization.translator import tr
-from core.workspace import WorkspaceManager
+from core.workspace.workspace import WorkspaceManager
 
 from appearance.settings import settings
 from appearance.home_page import Home_page
