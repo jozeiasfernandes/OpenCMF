@@ -1,5 +1,5 @@
 import pytest
-from core.imports.project_manager import ProjectManager
+from core.project.project_manager import ProjectManager
 
 
 def test_patient_folder_creation(tmp_path):

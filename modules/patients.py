@@ -1,13 +1,16 @@
 import json
 import time
+import logging
 from pathlib import Path
 from typing import Dict
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.base_module.base import ModuloBase
+from core.project.project_manager import ProjectManager
 from modules.mod_patients.ui_components import SecaoRetratil, criar_linha_arquivo
 from modules.mod_patients.logic import buscar_cep_online, formatar_nome_diretorio
 
 PASTA_PACIENTES = Path("patients")
+PASTA_FLUXOS = Path("fluxos")
 
 
 class Modulo(ModuloBase):
@@ -16,7 +19,8 @@ class Modulo(ModuloBase):
         self.nome = "Paciente"
         self.id = "modulo.paciente"
         self.pasta_paciente = None
-        PASTA_PACIENTES.mkdir(exist_ok=True)
+
+        self.project_manager = ProjectManager(PASTA_PACIENTES, PASTA_FLUXOS)
 
         self.main_container = QtWidgets.QWidget(self)
         self.layout_modulo = QtWidgets.QVBoxLayout(self)
@@ -31,18 +35,14 @@ class Modulo(ModuloBase):
         self.edit_nome.setPlaceholderText("Nome completo...")
         self.edit_cpf = QtWidgets.QLineEdit()
         self.edit_cpf.setInputMask("000.000.000-00;_")
-
         self.check_estrangeiro = QtWidgets.QCheckBox("Estrangeiro")
         self.check_estrangeiro.stateChanged.connect(self._toggle_estrangeiro)
-
         self.edit_email = QtWidgets.QLineEdit()
         self.edit_celular = QtWidgets.QLineEdit()
         self.edit_celular.setInputMask("(00) 00000-0000;_")
-
         self.edit_nascimento = QtWidgets.QDateEdit(calendarPopup=True)
         self.edit_nascimento.setDisplayFormat("dd/MM/yyyy")
         self.edit_nascimento.setDate(QtCore.QDate.currentDate())
-
         self.combo_sexo = QtWidgets.QComboBox()
         self.combo_sexo.addItems(["Masculino", "Feminino", "Outro"])
 
@@ -50,7 +50,6 @@ class Modulo(ModuloBase):
         self.edit_cep.setInputMask("00000-000;_")
         self.btn_buscar_cep = QtWidgets.QPushButton("Buscar")
         self.btn_buscar_cep.clicked.connect(self._buscar_cep)
-
         self.edit_logradouro = QtWidgets.QLineEdit()
         self.edit_cidade = QtWidgets.QLineEdit()
         self.edit_estado = QtWidgets.QLineEdit()
@@ -108,24 +107,24 @@ class Modulo(ModuloBase):
     def _buscar_cep(self):
         dados = buscar_cep_online(self.edit_cep.text())
         if dados:
-            self.edit_logradouro.setText(dados["logradouro"])
-            self.edit_cidade.setText(dados["cidade"])
-            self.edit_estado.setText(dados["estado"])
-            self.edit_pais.setText(dados["pais"])
+            self.edit_logradouro.setText(dados.get("logradouro", ""))
+            self.edit_cidade.setText(dados.get("cidade", ""))
+            self.edit_estado.setText(dados.get("estado", ""))
+            self.edit_pais.setText(dados.get("pais", "Brasil"))
 
     def inicializar(self, caminho_paciente: str) -> None:
         super().inicializar(caminho_paciente)
         self.pasta_paciente = caminho_paciente
-        path_json = Path(caminho_paciente) / "projeto" / "info.json"
-
-        if not path_json.exists(): return
+        data = self.project_manager.carregar_projeto(Path(caminho_paciente))
+        if not data: return
 
         try:
-            with open(path_json, "r", encoding="utf-8") as f:
-                data = json.load(f)
-
-            sections = {"paciente": self.map_paciente, "endereco": self.map_endereco,
-                        "clinico": self.map_clinico, "caminhos": self.map_caminhos}
+            sections = {
+                "paciente": self.map_paciente,
+                "endereco": self.map_endereco,
+                "clinico": self.map_clinico,
+                "caminhos": self.map_caminhos
+            }
 
             for sec_key, mapping in sections.items():
                 sec_data = data.get(sec_key, {})
@@ -143,7 +142,7 @@ class Modulo(ModuloBase):
             if p_data.get("nascimento"):
                 self.edit_nascimento.setDate(QtCore.QDate.fromString(p_data["nascimento"], "yyyy-MM-dd"))
         except Exception as ex:
-            print(f"Erro ao carregar: {ex}")
+            logging.error(f"Erro ao carregar dados: {ex}")
 
     def _processar_cadastro(self):
         nome = self.edit_nome.text().strip()
@@ -154,27 +153,28 @@ class Modulo(ModuloBase):
         try:
             diretorio = Path(self.pasta_paciente) if self.pasta_paciente else PASTA_PACIENTES / formatar_nome_diretorio(
                 nome, time.time())
-            for sub in ["projeto", "STL"]:
-                (diretorio / sub).mkdir(parents=True, exist_ok=True)
+            self.project_manager.inicializar_estrutura_paciente(diretorio)
 
             get_val = lambda w: w.text() if isinstance(w, QtWidgets.QLineEdit) else (
                 w.toPlainText() if isinstance(w, QtWidgets.QTextEdit) else w.currentText())
+
+            dados_existentes = self.project_manager.carregar_projeto(diretorio) or {}
 
             dados = {
                 "paciente": {k: get_val(v) for k, v in self.map_paciente.items()},
                 "endereco": {k: get_val(v) for k, v in self.map_endereco.items()},
                 "clinico": {k: get_val(v) for k, v in self.map_clinico.items()},
-                "caminhos": {k: get_val(v) for k, v in self.map_caminhos.items()}
+                "caminhos": {k: get_val(v) for k, v in self.map_caminhos.items()},
+                "objetos": dados_existentes.get("objetos", []),
+                "data_criacao": dados_existentes.get("data_criacao", time.time())
             }
             dados["paciente"]["estrangeiro"] = self.check_estrangeiro.isChecked()
             dados["paciente"]["nascimento"] = self.edit_nascimento.date().toString("yyyy-MM-dd")
-            dados["caminhos"]["workspace"] = str(diretorio.absolute())
 
-            with open(diretorio / "projeto" / "info.json", "w", encoding="utf-8") as f:
-                json.dump(dados, f, indent=4, ensure_ascii=False)
-
+            self.project_manager.salvar_projeto(diretorio, dados)
             self.pasta_paciente = str(diretorio)
-            QtWidgets.QMessageBox.information(self, "Sucesso", "Dados salvos!")
+
+            QtWidgets.QMessageBox.information(self, "Sucesso", "Projeto salvo com sucesso!")
             self.concluido.emit()
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Erro", str(e))
@@ -219,7 +219,7 @@ class Modulo(ModuloBase):
         f_end.addRow("Cidade:", self.edit_cidade);
         f_end.addRow("Estado:", self.edit_estado);
         f_end.addRow("País:", self.edit_pais)
-        sec_end.layout_interno().addLayout(f_end);
+        sec_end.layout_interno().addLayout(f_end)
         lay_content.addWidget(sec_end)
 
         sec_clin = SecaoRetratil("Dados clínicos", False, content)
@@ -230,7 +230,7 @@ class Modulo(ModuloBase):
         f_clin.addRow("Medicações:", self.edit_medicacoes);
         f_clin.addRow("Hábitos/Vícios:", self.edit_habitos);
         f_clin.addRow("Planejamento:", self.edit_planejamento)
-        sec_clin.layout_interno().addLayout(f_clin);
+        sec_clin.layout_interno().addLayout(f_clin)
         lay_content.addWidget(sec_clin)
 
         sec_arq = SecaoRetratil("Arquivos do paciente", True, content)
@@ -240,12 +240,12 @@ class Modulo(ModuloBase):
         f_arq.addRow("Scan Mandíbula:", criar_linha_arquivo(self.edit_mandibula, self._buscar_caminho, False))
         f_arq.addRow("Scan Face:", criar_linha_arquivo(self.edit_face, self._buscar_caminho, False))
         f_arq.addRow("Fotografias:", criar_linha_arquivo(self.edit_fotos, self._buscar_caminho, True))
-        sec_arq.layout_interno().addLayout(f_arq);
+        sec_arq.layout_interno().addLayout(f_arq)
         lay_content.addWidget(sec_arq)
 
         lay_content.addStretch()
         self.btn_salvar.setMinimumHeight(45)
-        self.btn_salvar.setStyleSheet("background-color: #27ae60; color: white; font-weight: bold; font-size: 14px;")
+        self.btn_salvar.setStyleSheet("background-color: #27ae60; color: white; font-weight: bold;")
         self.btn_salvar.clicked.connect(self._processar_cadastro)
         lay_content.addWidget(self.btn_salvar)
 
@@ -258,7 +258,7 @@ class Modulo(ModuloBase):
         lay_acoes = QtWidgets.QVBoxLayout(aba_acoes)
         btn_limpar = QtWidgets.QPushButton(" Limpar Formulário")
         btn_limpar.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogDiscardButton))
-        btn_limpar.setStyleSheet("background-color: #e74c3c; color: white; padding: 8px; border-radius: 4px;")
+        btn_limpar.setStyleSheet("background-color: #e74c3c; color: white; padding: 10px; border-radius: 4px;")
         btn_limpar.clicked.connect(self._limpar_formulario)
         lay_acoes.addWidget(btn_limpar)
         lay_acoes.addStretch()

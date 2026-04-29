@@ -5,7 +5,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from appearance.extras.tela_creditos import Janela_Creditos
 from appearance.flow.fluxo_card import FluxoCard
-from core.imports.project_manager import ProjectManager
+from core.project.project_manager import ProjectManager
 from core.localization.translator import tr
 
 
