@@ -7,7 +7,6 @@ from typing import Dict, Optional
 from core.components.windows.window_2d.window_2d import Janela2D
 from core.components.windows.window_3d.window_3d import Janela3D
 from core.volume.lookup_table.lut_manager import LUTManager
-from .viewer_utils.viewer_toolbar import VolumeViewerToolbar
 from .viewer_utils.viewer_renderers import ViewerRenderers
 
 
@@ -42,10 +41,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.root_layout.setContentsMargins(0, 0, 0, 0)
         self.root_layout.setSpacing(0)
 
-        self.toolbar = VolumeViewerToolbar(self.path_icones)
-        self.toolbar.layoutChanged.connect(self.configurar_layout)
-        self.toolbar.lutChanged.connect(self.apply_global_lut)
-        self.root_layout.addWidget(self.toolbar)
+        # Toolbar interna removida para evitar duplicidade com a toolbar do Modulo
 
         self.grid_container = QtWidgets.QWidget()
         self.grid_layout = QtWidgets.QGridLayout(self.grid_container)
@@ -74,7 +70,6 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def apply_global_lut(self, lut_name: str):
         new_lut = LUTManager.get_vtk_lut(lut_name)
-        self.toolbar.set_lut_text(lut_name)
 
         for nome in self.PLANOS:
             pane = self.vistas.get(nome)
@@ -103,13 +98,10 @@ class VolumeViewerWidget(QtWidgets.QWidget):
                     QtCore.QTimer.singleShot(50, lambda: self.update_preset(initial_preset))
             else:
                 axis = self.DIM_MAP[nome]
-
-                # Obtém o Ator do helper
                 actor_2d = ViewerRenderers.configure_mpr_renderer(
                     ren, volume, self.NORMALS[nome], centro
                 )
 
-                # Salva o Mapper para controle de fatias e a Propriedade para cores
                 self.mappers_mpr[nome] = actor_2d.GetMapper()
                 pane.vtk_property = actor_2d.GetProperty()
 
@@ -220,20 +212,13 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             self.grid_layout.addWidget(self.vistas[item[0]], *item[1:])
             self.vistas[item[0]].show()
 
-    def _handle_maximize(self, nome, is_max):
-        self.toolbar.set_layout_text(nome if is_max else "4 Quadrantes")
-
     def refresh_display(self):
         for p in self.vistas.values():
             if p.isVisible(): p.vtkWidget.GetRenderWindow().Render()
 
     def _handle_maximize(self, nome, is_max):
         if is_max:
-
             modo = "Apenas 3D" if nome == "3D" else nome
             self.configurar_layout(modo)
-            self.toolbar.set_layout_text(modo)
         else:
-
             self.configurar_layout("4 Quadrantes")
-            self.toolbar.set_layout_text("4 Quadrantes")

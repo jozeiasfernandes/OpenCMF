@@ -1,6 +1,13 @@
 import json
 import vtk
+import os
+import sys
 from pathlib import Path
+
+root_path = str(Path(__file__).parent.parent.parent)
+if root_path not in sys.path:
+    sys.path.append(root_path)
+
 from typing import Dict, Optional
 from PySide6 import QtWidgets, QtCore
 
@@ -9,7 +16,7 @@ from core.volume.dicom_engine import DicomEngine
 from core.volume.viewer import VolumeViewerWidget
 from core.volume.validator import DicomValidator
 
-from .ui import TomografiaUI
+from modules.mod_tomography.ui import TomografiaUI
 from core.components.toolbars.tomography_toolbar import TomographyToolbarHandler
 
 class Modulo(ModuloBase):
@@ -68,8 +75,7 @@ class Modulo(ModuloBase):
 
     def _validar_dicom(self):
         caminho_input = self.ui.edit_dicom.text()
-        if not caminho_input:
-            return
+        if not caminho_input: return
 
         progresso = self._criar_progresso("Validador DICOM", "Analisando estrutura...")
         validador = DicomValidator(self.pasta_paciente)
@@ -90,8 +96,7 @@ class Modulo(ModuloBase):
         if len(ids) > 1:
             opcoes = [f"{series[s][0]['desc']} ({len(series[s])} fatias)" for s in ids]
             item, ok = QtWidgets.QInputDialog.getItem(None, "Múltiplas Séries", "Escolha a série:", opcoes, 0, False)
-            if not ok:
-                return
+            if not ok: return
             id_escolhido = ids[opcoes.index(item)]
 
         caminho_final = str(Path(series[id_escolhido][0]["path"]).parent)
@@ -102,8 +107,7 @@ class Modulo(ModuloBase):
             self.toolbar_handler.set_validation_state(True)
 
     def _carregar_dicom(self):
-        if not self.caminho_dicom:
-            return
+        if not self.caminho_dicom: return
 
         progresso = self._criar_progresso("Carregador", "Lendo fatias DICOM...")
         try:
@@ -122,8 +126,7 @@ class Modulo(ModuloBase):
             progresso.close()
 
     def _gerar_vti(self):
-        if not self.engine.vtk_volume:
-            return
+        if not self.engine.vtk_volume: return
 
         progresso = self._criar_progresso("Exportador", "Gerando arquivo VTI...")
         try:
@@ -170,7 +173,7 @@ class Modulo(ModuloBase):
 
     def get_workspace(self) -> QtWidgets.QWidget:
         if self.viewer:
-            self.viewer.cleanup()
+            self.viewer.deleteLater()
 
         self.viewer = VolumeViewerWidget()
         self.viewer.windowLevelChanged.connect(self.ui.update_wl_ui)
@@ -189,7 +192,18 @@ class Modulo(ModuloBase):
         self.toolbar_handler.validateRequested.connect(self._validar_dicom)
         self.toolbar_handler.loadVolumeRequested.connect(self._carregar_dicom)
         self.toolbar_handler.exportVtiRequested.connect(self._gerar_vti)
-        self.toolbar_handler.resetViewRequested.connect(lambda: self.viewer.reset_view() if self.viewer else None)
+
+        self.toolbar_handler.resetViewRequested.connect(
+            lambda: self.viewer.refresh_display() if self.viewer else None
+        )
+
+        self.toolbar_handler.layoutChanged.connect(
+            lambda layout: self.viewer.configurar_layout(layout) if self.viewer else None
+        )
+
+        self.toolbar_handler.colorMapChanged.connect(
+            lambda lut: self.viewer.apply_global_lut(lut) if self.viewer else None
+        )
 
         if self.caminho_dicom:
             self.toolbar_handler.set_validation_state(False)
@@ -205,3 +219,34 @@ class Modulo(ModuloBase):
             on_wl_manual=self._wl_manual,
             on_finalizar=self._finalizar_etapa
         )
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")
+
+    temp_path = os.path.abspath("./teste_paciente")
+    os.makedirs(os.path.join(temp_path, "projeto"), exist_ok=True)
+
+    modulo = Modulo()
+    modulo.inicializar(temp_path)
+
+    window = QtWidgets.QMainWindow()
+    window.setWindowTitle(f"Standalone - {modulo.nome}")
+    window.resize(1024, 768)
+
+    toolbar = modulo.get_workspace_toolbar()
+    window.addToolBar(toolbar)
+
+    workspace = modulo.get_workspace()
+    window.setCentralWidget(workspace)
+
+    toolboxes = modulo.get_toolboxes()
+    dock = QtWidgets.QDockWidget("Ferramentas", window)
+    container_abas = QtWidgets.QTabWidget()
+    for nome, widget in toolboxes.items():
+        container_abas.addTab(widget, nome)
+    dock.setWidget(container_abas)
+    window.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+
+    window.show()
+    sys.exit(app.exec())
