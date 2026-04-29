@@ -20,8 +20,6 @@ class WorkspaceManager(QtWidgets.QTabWidget):
     ICON_SIZE_DEFAULT = QtCore.QSize(30, 30)
     MAX_WIDGET_WIDTH = 16777215
 
-
-
     def __init__(self):
         super().__init__()
         self.base_dir = get_resource_path()
@@ -38,7 +36,6 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         self.btn_home = HomeButton(self.base_dir, self.ICON_SIZE_DEFAULT)
         self.btn_home.clicked_signal.connect(self.home_solicitada.emit)
         self.setCornerWidget(self.btn_home, QtCore.Qt.TopLeftCorner)
-
 
     def adicionar_modulo(self, id_modulo: str, modulo_obj: Any):
         title = getattr(modulo_obj, 'nome', id_modulo.replace("_", " ").capitalize())
@@ -74,8 +71,6 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         if hasattr(viewer, 'refresh_display'):
             viewer.refresh_display()
 
-
-
     def _build_module_layout(self, container: QtWidgets.QWidget, modulo_obj: Any):
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -109,10 +104,6 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         layout.addWidget(view)
 
         return center_widget
-
-
-
-
 
     def _attach_sidebar_if_needed(self, splitter: QtWidgets.QSplitter, container: QtWidgets.QWidget, modulo_obj: Any):
         if not hasattr(modulo_obj, 'get_toolboxes'):
@@ -176,8 +167,8 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
         splitter = self._find_parent_splitter(sidebar)
         if splitter:
-            available_width = splitter.width() - self.SIDEBAR_EXPAND_WIDTH
-            splitter.setSizes([available_width, self.SIDEBAR_EXPAND_WIDTH])
+            available_width = splitter.width() - self.SIDEBAR_EXPANDED_WIDTH
+            splitter.setSizes([available_width, self.SIDEBAR_EXPANDED_WIDTH])
 
     def _set_tabs_visibility(self, sidebar: QtWidgets.QTabWidget, visible: bool):
         for i in range(sidebar.count()):

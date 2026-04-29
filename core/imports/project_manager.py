@@ -7,9 +7,7 @@ from typing import List, Dict, Any, Optional
 
 
 class ProjectManager:
-    """
-    Gerencia a persistência de dados de projetos de patients e flows de trabalho.
-    """
+
 
     def __init__(self, pasta_pacientes: Path, pasta_fluxos: Path):
         self.pasta_pacientes = Path(pasta_pacientes)
