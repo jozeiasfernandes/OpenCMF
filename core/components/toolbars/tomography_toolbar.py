@@ -67,7 +67,7 @@ class TomographyToolbarHandler(QtCore.QObject):
         self._setup_ui()
 
     def _setup_ui(self):
-        self.toolbar.setFixedHeight(38)
+        self.toolbar.setFixedHeight(43)
         self.toolbar.setMovable(False)
         self.toolbar.setStyleSheet("""
             QToolBar { 
@@ -81,7 +81,7 @@ class TomographyToolbarHandler(QtCore.QObject):
                 color: white;
                 border: 1px solid #444;
                 border-radius: 3px;
-                padding: 4px 8px;
+                padding: 2px 8px;
                 font-weight: bold;
                 font-size: 11px;
             }

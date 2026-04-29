@@ -1,13 +1,20 @@
 import vtk
+import sys
+import os
 from typing import Optional, Dict
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
+
+root_path = str(Path(__file__).parent.parent.parent)
+if root_path not in sys.path:
+    sys.path.append(root_path)
 
 from core.base_module.base import ModuloBase
 from core.components.windows.window_registration.window_registration import WindowRegistration
 from core.components.toolboxes.object_manager_widget import ObjetoManagerWidget
 from core.components.toolboxes.registration_widget import RegistrationWidget
 from core.imports.import_objets import FileImporter
+
 
 class Modulo(ModuloBase):
     def __init__(self):
@@ -31,7 +38,8 @@ class Modulo(ModuloBase):
             self.view_registro = WindowRegistration()
 
         try:
-            self.view_registro.toolbar_handler.importRequested.connect(self._handle_import)
+            if hasattr(self.view_registro, 'toolbar_handler') and self.view_registro.toolbar_handler:
+                self.view_registro.toolbar_handler.importRequested.connect(self._handle_import)
         except AttributeError:
             print("Aviso: Toolbar handler não encontrado na inicialização.")
 
@@ -44,10 +52,11 @@ class Modulo(ModuloBase):
     def _atualizar_lista_objects(self):
         if self.widget_objetos and self.pasta_paciente:
             pasta_stl = Path(self.pasta_paciente) / "STL"
+            pasta_stl.mkdir(parents=True, exist_ok=True)
+
             self.widget_objetos.atualizar_lista(pasta_stl=str(pasta_stl))
-            if pasta_stl.exists():
-                nomes_objetos = [f.name for f in sorted(pasta_stl.glob("*.stl"))]
-                self.widget_reg.atualizar_combos(nomes_objetos)
+            nomes_objetos = [f.name for f in sorted(pasta_stl.glob("*.stl"))]
+            self.widget_reg.atualizar_combos(nomes_objetos)
 
     def _on_objeto_toggled(self, nome, visivel):
         if not self.view_registro:
@@ -105,3 +114,39 @@ class Modulo(ModuloBase):
             "Configuração": self.widget_reg,
             "Arquivos": self.widget_objetos
         }
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")
+
+    test_patient_path = os.path.abspath("./teste_registro_standalone")
+    os.makedirs(os.path.join(test_patient_path, "STL"), exist_ok=True)
+
+    modulo = Modulo()
+    modulo.inicializar(test_patient_path)
+
+    window = QtWidgets.QMainWindow()
+    window.setWindowTitle(f"Standalone - {modulo.nome}")
+    window.resize(1280, 720)
+
+    workspace = modulo.get_workspace()
+    window.setCentralWidget(workspace)
+
+    if hasattr(workspace, "toolbar"):
+        window.addToolBar(workspace.toolbar)
+    elif hasattr(workspace, "toolbar_handler"):
+        window.addToolBar(workspace.toolbar_handler.toolbar)
+
+    toolboxes = modulo.get_toolboxes()
+    dock = QtWidgets.QDockWidget("Ferramentas", window)
+    tab_widget = QtWidgets.QTabWidget()
+
+    for nome, widget in toolboxes.items():
+        tab_widget.addTab(widget, nome)
+
+    dock.setWidget(tab_widget)
+    window.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+
+    window.show()
+    sys.exit(app.exec())
