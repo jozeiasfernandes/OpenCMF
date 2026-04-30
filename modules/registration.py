@@ -11,8 +11,8 @@ if root_path not in sys.path:
 
 from core.base_module.base import ModuloBase
 from core.components.windows.window_registration.window_registration import WindowRegistration
-from core.components.toolboxes.object_manager_widget import ObjetoManagerWidget
-from core.components.toolboxes.registration_widget import RegistrationWidget
+from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
+from core.components.toolboxes.registration_toolbox import RegistrationWidget
 from core.imports.import_objets import FileImporter
 
 
