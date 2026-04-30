@@ -23,6 +23,7 @@ class WindowRegistration(QtWidgets.QWidget):
         self.objetos_b = {}
         self.pontos_a = []
         self.pontos_b = []
+        self.current_point_size = 1.5  # Valor padrão inicial
         self.db_click_filter = RegistrationDoubleClickFilter(self)
         self.setup_ui()
 
@@ -45,12 +46,30 @@ class WindowRegistration(QtWidgets.QWidget):
 
         self.toolbar_handler.deletePointRequested.connect(self.remover_ultimo_ponto)
 
+        # CORREÇÃO: Conectar o sinal do slider ao método de atualização
+        self.toolbar_handler.pointSizeChanged.connect(self._atualizar_tamanho_pontos)
+
         if hasattr(self.toolbar_handler, 'resetViewRequested'):
             self.toolbar_handler.resetViewRequested.connect(self.reset_layout_vistas)
         else:
             self.toolbar_handler.resetLayoutRequested.connect(self.reset_layout_vistas)
 
         QtCore.QTimer.singleShot(100, self._finalize_setup)
+
+    def _atualizar_tamanho_pontos(self, size):
+        """Atualiza o raio de todos os pontos existentes e armazena para os novos."""
+        self.current_point_size = size
+
+        for view in [self.view_a, self.view_b]:
+            actors = view.renderer.GetActors()
+            actors.InitTraversal()
+            for _ in range(actors.GetNumberOfItems()):
+                actor = actors.GetNextActor()
+                # Verifica se o actor é um ponto (vtkSphereSource)
+                source = actor.GetMapper().GetInputAlgorithm()
+                if isinstance(source, vtk.vtkSphereSource):
+                    source.SetRadius(size)
+            view.render()
 
     def _finalize_setup(self):
         self.reset_layout_vistas()
@@ -97,7 +116,9 @@ class WindowRegistration(QtWidgets.QWidget):
     def _desenhar_ponto(self, view, pos, cor):
         sphere = vtk.vtkSphereSource()
         sphere.SetCenter(pos)
-        sphere.SetRadius(1.5)
+        # CORREÇÃO: Usar o raio atualizado pelo slider
+        sphere.SetRadius(self.current_point_size)
+
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputConnection(sphere.GetOutputPort())
         actor = vtk.vtkActor()
