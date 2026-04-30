@@ -4,16 +4,20 @@ import os
 from typing import Optional, Dict
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
-
-root_path = str(Path(__file__).parent.parent.parent)
-if root_path not in sys.path:
-    sys.path.append(root_path)
-
 from core.base_module.base import ModuloBase
 from core.components.windows.window_registration.window_registration import WindowRegistration
 from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
 from core.components.toolboxes.registration_toolbox import RegistrationWidget
 from core.imports.import_objets import FileImporter
+
+os.environ["VTK_SILENT_ERRORS"] = "1"
+os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "1"
+
+root_path = str(Path(__file__).parent.parent.parent)
+if root_path not in sys.path:
+    sys.path.append(root_path)
+
+vtk.vtkObject.GlobalWarningDisplayOff()
 
 
 class Modulo(ModuloBase):
@@ -37,13 +41,39 @@ class Modulo(ModuloBase):
         if not self.view_registro:
             self.view_registro = WindowRegistration()
 
-        try:
-            if hasattr(self.view_registro, 'toolbar_handler') and self.view_registro.toolbar_handler:
-                self.view_registro.toolbar_handler.importRequested.connect(self._handle_import)
-        except AttributeError:
-            print("Aviso: Toolbar handler não encontrado na inicialização.")
+        handler = self.view_registro.toolbar_handler
+        if handler:
+            handler.importRequested.connect(self._handle_import)
+            handler.deletePointRequested.connect(self.view_registro.remover_ultimo_ponto)
+            # CORREÇÃO: Conexão do sinal de tamanho do ponto
+            handler.pointSizeChanged.connect(self._on_point_size_changed)
 
+            if hasattr(handler, 'resetLayoutRequested'):
+                handler.resetLayoutRequested.connect(self.view_registro.reset_layout_vistas)
+            elif hasattr(handler, 'resetViewRequested'):
+                handler.resetViewRequested.connect(self.view_registro.reset_layout_vistas)
+
+        self.view_registro.pontoAdicionado.connect(self._on_ponto_adicionado_na_janela)
         self._atualizar_lista_objects()
+
+    def _on_point_size_changed(self, size: float):
+        if not self.view_registro:
+            return
+
+        for view in [self.view_registro.view_a, self.view_registro.view_b]:
+            renderer = view.renderer
+            actors = renderer.GetActors()
+            actors.InitTraversal()
+            for _ in range(actors.GetNumberOfItems()):
+                actor = actors.GetNextActor()
+                source = actor.GetMapper().GetInputAlgorithm()
+                if isinstance(source, vtk.vtkSphereSource):
+                    source.SetRadius(size)
+            view.render()
+
+    def _on_ponto_adicionado_na_janela(self, vista, pos):
+        if hasattr(self.widget_reg, 'adicionar_ponto_tabela'):
+            self.widget_reg.adicionar_ponto_tabela(vista, pos)
 
     def _handle_import(self):
         if FileImporter.import_files_to_patient(self.pasta_paciente):
@@ -53,7 +83,6 @@ class Modulo(ModuloBase):
         if self.widget_objetos and self.pasta_paciente:
             pasta_stl = Path(self.pasta_paciente) / "STL"
             pasta_stl.mkdir(parents=True, exist_ok=True)
-
             self.widget_objetos.atualizar_lista(pasta_stl=str(pasta_stl))
             nomes_objetos = [f.name for f in sorted(pasta_stl.glob("*.stl"))]
             self.widget_reg.atualizar_combos(nomes_objetos)
@@ -63,36 +92,30 @@ class Modulo(ModuloBase):
             return
 
         if visivel:
-            if nome == "volume DICOM":
-                self.view_registro.view_a.toggle_volume_visibility(True)
-                self.view_registro.view_b.toggle_volume_visibility(True)
-            else:
-                path = Path(self.pasta_paciente) / "STL" / nome
-                if path.exists():
-                    reader = vtk.vtkSTLReader()
-                    reader.SetFileName(str(path))
-                    reader.Update()
-                    polydata = reader.GetOutput()
-                    target_name = self.widget_reg.get_target_name()
-                    if nome == target_name:
-                        self.view_registro.adicionar_malha_vista_a(nome, polydata)
-                    else:
-                        self.view_registro.adicionar_malha_vista_b(nome, polydata)
+            path = Path(self.pasta_paciente) / "STL" / nome
+            if path.exists():
+                reader = vtk.vtkSTLReader()
+                reader.SetFileName(str(path))
+                reader.Update()
+                polydata = reader.GetOutput()
+
+                target_name = self.widget_reg.get_target_name()
+                if nome == target_name:
+                    self.view_registro.adicionar_malha_vista_a(nome, polydata)
+                else:
+                    self.view_registro.adicionar_malha_vista_b(nome, polydata)
         else:
-            if nome == "volume DICOM":
-                self.view_registro.view_a.toggle_volume_visibility(False)
-                self.view_registro.view_b.toggle_volume_visibility(False)
-            else:
-                self.view_registro.remover_objeto(nome)
+            self.view_registro.remover_objeto(nome)
 
     def _executar_registro_landmarking(self):
         if not self.view_registro:
             return
         pontos_a = self.view_registro.get_points_a()
         pontos_b = self.view_registro.get_points_b()
+
         if len(pontos_a) < 3 or len(pontos_a) != len(pontos_b):
             QtWidgets.QMessageBox.warning(
-                None, "Erro de Pontos",
+                None, "Erro",
                 "Marque o mesmo número de pontos (mínimo 3) em ambas as vistas."
             )
             return
@@ -133,18 +156,16 @@ if __name__ == "__main__":
     workspace = modulo.get_workspace()
     window.setCentralWidget(workspace)
 
-    if hasattr(workspace, "toolbar"):
-        window.addToolBar(workspace.toolbar)
+    if hasattr(workspace, "toolbar_container"):
+        window.addToolBar(workspace.toolbar_container)
     elif hasattr(workspace, "toolbar_handler"):
         window.addToolBar(workspace.toolbar_handler.toolbar)
 
     toolboxes = modulo.get_toolboxes()
     dock = QtWidgets.QDockWidget("Ferramentas", window)
     tab_widget = QtWidgets.QTabWidget()
-
     for nome, widget in toolboxes.items():
         tab_widget.addTab(widget, nome)
-
     dock.setWidget(tab_widget)
     window.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
 

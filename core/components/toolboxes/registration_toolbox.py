@@ -25,6 +25,9 @@ class RegistrationWidget(QtWidgets.QWidget):
         self.table = QtWidgets.QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["Ponto", "Vista A", "Vista B"])
         self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
+        self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+
         layout.addWidget(QtWidgets.QLabel("Pontos Marcados:"))
         layout.addWidget(self.table)
 
@@ -39,6 +42,28 @@ class RegistrationWidget(QtWidgets.QWidget):
 
         self.btn_clear.clicked.connect(self.limparPontos.emit)
         self.btn_align.clicked.connect(self.solicitarAlinhamento.emit)
+
+    def adicionar_ponto_tabela(self, vista, pos):
+        pos_str = f"{pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f}"
+
+        if vista == "A":
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+            self.table.setItem(row, 0, QtWidgets.QTableWidgetItem(f"Ponto {row + 1}"))
+            self.table.setItem(row, 1, QtWidgets.QTableWidgetItem(pos_str))
+        else:
+            # Tenta encontrar a primeira linha onde a Vista B está vazia
+            for r in range(self.table.rowCount()):
+                item_b = self.table.item(r, 2)
+                if item_b is None or item_b.text() == "":
+                    self.table.setItem(r, 2, QtWidgets.QTableWidgetItem(pos_str))
+                    return
+
+            # Se não houver linha correspondente na Vista A, cria uma nova linha
+            row = self.table.rowCount()
+            self.table.insertRow(row)
+            self.table.setItem(row, 0, QtWidgets.QTableWidgetItem(f"Ponto {row + 1}"))
+            self.table.setItem(row, 2, QtWidgets.QTableWidgetItem(pos_str))
 
     def get_target_name(self):
         return self.combo_target.currentText()

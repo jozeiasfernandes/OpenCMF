@@ -31,8 +31,8 @@ class WindowRegistration(QtWidgets.QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        self.view_a = Janela3DSurface("Paciente", "#00AAFF")
-        self.view_b = Janela3DSurface("Arquivos Importados", "#555555")
+        self.view_a = Janela3DSurface("Vista A", "#00AAFF")
+        self.view_b = Janela3DSurface("Vista B", "#555555")
 
         self.toolbar_container = QtWidgets.QToolBar()
         self.toolbar_handler = RegistrationToolbarHandler(self.toolbar_container)
