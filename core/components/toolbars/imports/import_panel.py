@@ -1,11 +1,22 @@
 import os
 import sys
+from pathlib import Path
+
 from PySide6.QtWidgets import (
     QWidget, QPushButton, QLabel, QFrame,
     QVBoxLayout, QGridLayout, QApplication
 )
-from PySide6.QtCore import Qt, Signal, QPoint, QSize
+from PySide6.QtCore import Qt, Signal, QPoint, QSize, QEvent
 from PySide6.QtGui import QIcon
+
+
+def get_icon_path(icon_name: str) -> str:
+    base = Path(__file__).resolve()
+    for p in [base] + list(base.parents):
+        candidate = p / "appearance" / "icons" / icon_name
+        if candidate.exists():
+            return str(candidate)
+    return ""
 
 
 class Card(QPushButton):
@@ -14,12 +25,8 @@ class Card(QPushButton):
         self.setFixedSize(130, 40)
         self.setLayoutDirection(Qt.LeftToRight)
 
-        dir_atual = os.path.dirname(os.path.abspath(__file__))
-
-        # Subindo 2 níveis: de 'core/imports' para a raiz 'OpenCMF'
-        icon_path = os.path.abspath(os.path.join(dir_atual, "..", "..", "appearance", "icons", icone_nome))
-
-        if os.path.exists(icon_path):
+        icon_path = get_icon_path(icone_nome)
+        if icon_path:
             self.setIcon(QIcon(icon_path))
             self.setIconSize(QSize(24, 24))
 
@@ -43,14 +50,13 @@ class Card(QPushButton):
 class Secao(QFrame):
     def __init__(self, titulo, itens_com_icones, cor, callback):
         super().__init__()
-        self.setStyleSheet("QFrame { border: none; }")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.setAlignment(Qt.AlignLeft)
 
         label = QLabel(titulo)
-        label.setStyleSheet("color: white; font-size: 13px; font-weight: bold; margin-bottom: 2px;")
+        label.setStyleSheet("color: white; font-size: 13px; font-weight: bold;")
         layout.addWidget(label)
 
         grid = QGridLayout()
@@ -74,6 +80,7 @@ class ImportObjectsPanel(QFrame):
         super().__init__(parent)
         self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint)
         self.setFixedWidth(580)
+
         self.setStyleSheet("""
             QFrame {
                 background-color: #2b2b2b;
@@ -88,43 +95,68 @@ class ImportObjectsPanel(QFrame):
         layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
 
         superficies = [
-            ("Crânio", "cranio.svg"), ("Maxila", "stl.png"),
-            ("Mandíbula", "stl.png"), ("Pele", "stl.png"), ("Outros", "stl.png")
+            ("Crânio", "cranio.svg"),
+            ("Maxila", "maxilla.svg"),
+            ("Mandíbula", "mandible.svg"),
+            ("Pele", "stl.svg"),
+            ("Outros", "stl.svg")
         ]
         layout.addWidget(Secao("Superfícies", superficies, "#b0a8c0", self._on_item_clicked))
 
         fotos = [
-            ("Frente", "photo.png"), ("Perfil", "photo.png"),
-            ("Intrabucal", "photo.png"), ("Outros", "photo.png")
+            ("Frente", "photo.svg"),
+            ("Perfil", "photo.svg"),
+            ("Intrabucal", "photo.svg"),
+            ("Outros", "photo.svg")
         ]
         layout.addWidget(Secao("Fotografias", fotos, "#c9a7a0", self._on_item_clicked))
 
-        volumes = [("Volume .vti", "vti.png")]
+        volumes = [
+            ("Volume .vti", "vti.svg")
+        ]
         layout.addWidget(Secao("Volume", volumes, "#bcd4d0", self._on_item_clicked))
 
     def _on_item_clicked(self, nome):
         self.importRequested.emit(nome)
         self.hide()
 
+    def show_under(self, widget: QWidget):
+        pos = widget.mapToGlobal(QPoint(0, widget.height() + 2))
+        self.move(pos)
+        self.show()
+
+    def focusOutEvent(self, event):
+        self.hide()
+        super().focusOutEvent(event)
+
+    def event(self, event):
+        if event.type() == QEvent.WindowDeactivate:
+            self.hide()
+        return super().event(event)
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+
     test_window = QWidget()
     test_window.setMinimumSize(800, 600)
     test_window.setStyleSheet("background-color: #1e1e1e;")
+
     btn_abrir = QPushButton("Import Objects", test_window)
     btn_abrir.setFixedSize(130, 30)
     btn_abrir.move(50, 50)
     btn_abrir.setStyleSheet("background-color: #444; color: white; border: 1px solid #666;")
+
     panel = ImportObjectsPanel(test_window)
 
-
     def toggle_panel():
-        pos = btn_abrir.mapToGlobal(QPoint(0, btn_abrir.height() + 2))
-        panel.move(pos)
-        panel.show()
+        if panel.isVisible():
+            panel.hide()
+        else:
+            panel.show_under(btn_abrir)
 
-
+    panel.importRequested.connect(lambda t: print("Import:", t))
     btn_abrir.clicked.connect(toggle_panel)
+
     test_window.show()
     sys.exit(app.exec())

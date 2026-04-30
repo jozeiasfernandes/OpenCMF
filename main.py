@@ -65,7 +65,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setup_icon(self):
         # CORREÇÃO: Caminho agora aponta para appearance/icons
-        icon_path = self.base_dir / "appearance" / "icons" / "cmf.png"
+        icon_path = self.base_dir / "appearance" / "icons" / "cmf.svg"
 
         # Fallback para .ico se o .png não for encontrado
         if not icon_path.exists():

@@ -6,6 +6,7 @@ from typing import Optional, Dict
 from PySide6 import QtWidgets, QtCore, QtGui
 import vtkmodules.all as vtk
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+from core.components.toolbars.imports.import_panel import ImportObjectsPanel
 
 
 class ObjetoManagerWidget(QtWidgets.QWidget):
@@ -124,7 +125,7 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
 
 
 class RegistrationToolbarHandler(QtCore.QObject):
-    importRequested = QtCore.Signal()
+    importRequested = QtCore.Signal(str)
     addPointToggled = QtCore.Signal(bool)
     deletePointRequested = QtCore.Signal()
     pointSizeChanged = QtCore.Signal(float)
@@ -144,9 +145,15 @@ class RegistrationToolbarHandler(QtCore.QObject):
             QPushButton:hover { background-color: #444; }
             QPushButton:checked { background-color: #0078d7; }
         """
+
         self.btn_import = QtWidgets.QPushButton("Import Objects")
         self.btn_import.setStyleSheet(style_btns)
         self.toolbar.addWidget(self.btn_import)
+
+        self.import_panel = ImportObjectsPanel(self.toolbar)
+        self.import_panel.importRequested.connect(self.importRequested.emit)
+
+        self.btn_import.clicked.connect(self._toggle_import_panel)
 
         self.btn_add = QtWidgets.QPushButton("Add Point")
         self.btn_add.setCheckable(True)
@@ -171,11 +178,16 @@ class RegistrationToolbarHandler(QtCore.QObject):
         self.toolbar.addWidget(QtWidgets.QLabel(" SIZE: "))
         self.toolbar.addWidget(self.slider_size)
 
-        self.btn_import.clicked.connect(self.importRequested.emit)
         self.btn_add.toggled.connect(self.addPointToggled.emit)
         self.btn_del.clicked.connect(self.deletePointRequested.emit)
         self.btn_reset.clicked.connect(self.resetLayoutRequested.emit)
         self.slider_size.valueChanged.connect(lambda v: self.pointSizeChanged.emit(v / 10.0))
+
+    def _toggle_import_panel(self):
+        if self.import_panel.isVisible():
+            self.import_panel.hide()
+        else:
+            self.import_panel.show_under(self.btn_import)
 
 
 class MainWindow(QtWidgets.QMainWindow):

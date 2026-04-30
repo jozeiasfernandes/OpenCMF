@@ -64,7 +64,7 @@ class Home_page(QtWidgets.QWidget):
         self.btn_logo.setFixedSize(120, 40)
         self.btn_logo.setCursor(QtCore.Qt.PointingHandCursor)
 
-        logo_path = ICONS_DIR / "OpenCFM_Logo_Branco.png"
+        logo_path = ICONS_DIR / "OpenCFM_Logo - Branco.svg"
         if logo_path.exists():
             self.btn_logo.setIcon(QtGui.QIcon(str(logo_path)))
             self.btn_logo.setIconSize(QtCore.QSize(110, 40))
@@ -76,7 +76,7 @@ class Home_page(QtWidgets.QWidget):
         self.btn_settings.setFixedSize(40, 40)
         self.btn_settings.setCursor(QtCore.Qt.PointingHandCursor)
 
-        settings_icon = ICONS_DIR / "config.png"
+        settings_icon = ICONS_DIR / "config.svg"
         if settings_icon.exists():
             self.btn_settings.setIcon(QtGui.QIcon(str(settings_icon)))
             self.btn_settings.setIconSize(QtCore.QSize(24, 24))
