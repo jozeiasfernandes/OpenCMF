@@ -84,7 +84,7 @@ class ImportObjectsPanel(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background-color: #2b2b2b;
-                border: 1px solid #666;
+                border: 0px solid #666;
                 border-radius: 4px;
             }
         """)
@@ -145,7 +145,7 @@ if __name__ == "__main__":
     btn_abrir = QPushButton("Import Objects", test_window)
     btn_abrir.setFixedSize(130, 30)
     btn_abrir.move(50, 50)
-    btn_abrir.setStyleSheet("background-color: #444; color: white; border: 1px solid #666;")
+    btn_abrir.setStyleSheet("background-color: #444; color: white; border: 0px solid #666;")
 
     panel = ImportObjectsPanel(test_window)
 
