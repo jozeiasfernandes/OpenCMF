@@ -2,56 +2,53 @@ import shutil
 from pathlib import Path
 from PySide6 import QtWidgets
 
-
 class FileImporter:
     @staticmethod
-    def import_files_to_patient(patient_path: str) -> bool:
+    def import_files_to_patient(patient_path: str) -> list[Path]:
         if not patient_path:
             QtWidgets.QMessageBox.warning(None, "Import", "Nenhum paciente ativo encontrado.")
-            return False
+            return []
 
         files, _ = QtWidgets.QFileDialog.getOpenFileNames(
             None,
             "Selecionar Arquivos para Importar",
             "",
-            "Arquivos Suportados (*.stl *.obj *.ply *.dcm);;Arquivos de Malha (*.stl *.obj *.ply);;DICOM (*.dcm)"
+            "Malhas (*.stl *.obj *.ply);;DICOM (*.dcm);;Todos (*.*)"
         )
 
         if not files:
-            return False
+            return []
 
         base_path = Path(patient_path)
-        success_count = 0
+        imported_paths = []
 
         extension_map = {
-            '.stl': 'STL',
-            '.obj': 'STL',
-            '.ply': 'STL',
-            '.dcm': 'DICOM'
+            '.stl': 'SUPERFICIES',
+            '.obj': 'SUPERFICIES',
+            '.ply': 'SUPERFICIES',
+            '.dcm': 'VOLUME'
         }
 
         for file_path in files:
             source = Path(file_path)
             ext = source.suffix.lower()
-
             subfolder = extension_map.get(ext, "OUTROS")
             target_dir = base_path / subfolder
 
             try:
                 target_dir.mkdir(parents=True, exist_ok=True)
-
                 destination = target_dir / source.name
 
+                # Evitar sobrescrever arquivos com o mesmo nome
                 if destination.exists():
-                    base_name = source.stem
                     counter = 1
-                    while (target_dir / f"{base_name}_{counter}{ext}").exists():
+                    while (target_dir / f"{source.stem}_{counter}{ext}").exists():
                         counter += 1
-                    destination = target_dir / f"{base_name}_{counter}{ext}"
+                    destination = target_dir / f"{source.stem}_{counter}{ext}"
 
                 shutil.copy2(source, destination)
-                success_count += 1
+                imported_paths.append(destination)
             except Exception as e:
-                print(f"Erro ao importar {source.name} para {subfolder}: {e}")
+                print(f"Erro ao importar {source.name}: {e}")
 
-        return success_count > 0
+        return imported_paths

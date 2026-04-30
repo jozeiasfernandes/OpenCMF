@@ -1,10 +1,8 @@
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore, QtGui
 import vtk
 import sys
-import os
-
 from core.components.toolbars.registration_toolbar import RegistrationToolbarHandler
-from core.components.windows.windows_3d.windows_3d import Janela3DSurface
+from core.components.windows.windows_3d import Janela3DSurface
 
 
 class RegistrationDoubleClickFilter(QtCore.QObject):
@@ -23,7 +21,7 @@ class WindowRegistration(QtWidgets.QWidget):
         self.objetos_b = {}
         self.pontos_a = []
         self.pontos_b = []
-        self.current_point_size = 1.5  # Valor padrão inicial
+        self.current_point_size = 1.5
         self.db_click_filter = RegistrationDoubleClickFilter(self)
         self.setup_ui()
 
@@ -45,8 +43,6 @@ class WindowRegistration(QtWidgets.QWidget):
         self.main_layout.addWidget(self.splitter)
 
         self.toolbar_handler.deletePointRequested.connect(self.remover_ultimo_ponto)
-
-        # CORREÇÃO: Conectar o sinal do slider ao método de atualização
         self.toolbar_handler.pointSizeChanged.connect(self._atualizar_tamanho_pontos)
 
         if hasattr(self.toolbar_handler, 'resetViewRequested'):
@@ -56,19 +52,30 @@ class WindowRegistration(QtWidgets.QWidget):
 
         QtCore.QTimer.singleShot(100, self._finalize_setup)
 
-    def _atualizar_tamanho_pontos(self, size):
-        """Atualiza o raio de todos os pontos existentes e armazena para os novos."""
-        self.current_point_size = size
+    def set_objeto_opacidade(self, nome: str, valor: float):
+        for view in [self.view_a, self.view_b]:
+            if nome in view.atores_malha:
+                view.atores_malha[nome].GetProperty().SetOpacity(valor)
+                view.render()
 
+    def set_objeto_cor(self, nome: str, rgb: tuple):
+        for view in [self.view_a, self.view_b]:
+            if nome in view.atores_malha:
+                view.atores_malha[nome].GetProperty().SetColor(rgb)
+                view.render()
+
+    def _atualizar_tamanho_pontos(self, size):
+        self.current_point_size = size
         for view in [self.view_a, self.view_b]:
             actors = view.renderer.GetActors()
             actors.InitTraversal()
             for _ in range(actors.GetNumberOfItems()):
                 actor = actors.GetNextActor()
-                # Verifica se o actor é um ponto (vtkSphereSource)
-                source = actor.GetMapper().GetInputAlgorithm()
-                if isinstance(source, vtk.vtkSphereSource):
-                    source.SetRadius(size)
+                mapper = actor.GetMapper()
+                if mapper:
+                    algo = mapper.GetInputAlgorithm()
+                    if isinstance(algo, vtk.vtkSphereSource):
+                        algo.SetRadius(size)
             view.render()
 
     def _finalize_setup(self):
@@ -116,7 +123,6 @@ class WindowRegistration(QtWidgets.QWidget):
     def _desenhar_ponto(self, view, pos, cor):
         sphere = vtk.vtkSphereSource()
         sphere.SetCenter(pos)
-        # CORREÇÃO: Usar o raio atualizado pelo slider
         sphere.SetRadius(self.current_point_size)
 
         mapper = vtk.vtkPolyDataMapper()
@@ -150,10 +156,13 @@ class WindowRegistration(QtWidgets.QWidget):
             if not lista: continue
             actors = list(view.renderer.GetActors())
             for actor in reversed(actors):
-                if isinstance(actor.GetMapper().GetInputAlgorithm(), vtk.vtkSphereSource):
-                    view.renderer.RemoveActor(actor)
-                    lista.pop()
-                    break
+                mapper = actor.GetMapper()
+                if mapper:
+                    algo = mapper.GetInputAlgorithm()
+                    if isinstance(algo, vtk.vtkSphereSource):
+                        view.renderer.RemoveActor(actor)
+                        lista.pop()
+                        break
             view.render()
 
     def limpar_marcadores(self):
@@ -162,30 +171,20 @@ class WindowRegistration(QtWidgets.QWidget):
         for view in [self.view_a, self.view_b]:
             actors = list(view.renderer.GetActors())
             for actor in actors:
-                if isinstance(actor.GetMapper().GetInputAlgorithm(), vtk.vtkSphereSource):
-                    view.renderer.RemoveActor(actor)
+                mapper = actor.GetMapper()
+                if mapper:
+                    algo = mapper.GetInputAlgorithm()
+                    if isinstance(algo, vtk.vtkSphereSource):
+                        view.renderer.RemoveActor(actor)
             view.render()
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
-
     window = QtWidgets.QMainWindow()
     window.setWindowTitle("Teste WindowRegistration Standalone")
     window.resize(1024, 768)
-
     registration_widget = WindowRegistration()
     window.setCentralWidget(registration_widget)
-
-    sphere_a = vtk.vtkSphereSource()
-    sphere_a.SetCenter(10, 0, 0)
-    sphere_a.Update()
-    registration_widget.adicionar_malha_vista_a("Teste_A", sphere_a.GetOutput())
-
-    sphere_b = vtk.vtkSphereSource()
-    sphere_b.SetCenter(-10, 0, 0)
-    sphere_b.Update()
-    registration_widget.adicionar_malha_vista_b("Teste_B", sphere_b.GetOutput())
-
     window.show()
     sys.exit(app.exec())

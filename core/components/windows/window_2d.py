@@ -1,7 +1,7 @@
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.components.windows.janelas import JanelaBase
-from .context_menu_2d import ContextMenu2D
+from core.components.windows.base.janelas import JanelaBase
+from core.components.windows.window_2d.context_menu_2d import ContextMenu2D
 
 class Janela2D(JanelaBase):
     sliceChanged = QtCore.Signal(int)
@@ -25,7 +25,7 @@ class Janela2D(JanelaBase):
 
     def _setup_specific_ui(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.path_icons = os.path.abspath(os.path.join(base_dir, "..", "..", "..", "icons"))
+        self.path_icons = os.path.abspath(os.path.join(base_dir, "", "..", "..", "icons"))
 
         self.combo_proj = QtWidgets.QComboBox()
         self.combo_proj.addItems(["Axial", "Coronal", "Sagittal"])

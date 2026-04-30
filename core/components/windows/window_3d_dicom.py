@@ -1,6 +1,6 @@
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.components.windows.janelas import JanelaBase
+from core.components.windows.base.janelas import JanelaBase
 
 class Janela3D(JanelaBase):
     thresholdChanged = QtCore.Signal(int)
@@ -23,7 +23,7 @@ class Janela3D(JanelaBase):
 
     def _setup_ui(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.path_icons = os.path.abspath(os.path.join(base_dir, "../../..", "..", "icons"))
+        self.path_icons = os.path.abspath(os.path.join(base_dir, "../..", "..", "icons"))
 
         self.combo_presets = QtWidgets.QComboBox()
         self.combo_presets.setFixedWidth(120)
@@ -89,7 +89,7 @@ class Janela3D(JanelaBase):
 
     def _popular_presets(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        caminho_presets = os.path.abspath(os.path.join(base_dir, "../../..", "presets"))
+        caminho_presets = os.path.abspath(os.path.join(base_dir, "../..", "presets"))
 
         if os.path.exists(caminho_presets):
             files = [f.replace(".json", "") for f in os.listdir(caminho_presets) if f.endswith(".json")]
