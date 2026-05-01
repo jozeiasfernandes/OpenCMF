@@ -4,9 +4,12 @@
 
 Developed **by surgeons, for surgeons**, this platform is built on the foundation of free, collaborative software culture, aiming to provide high-level tools for clinical analysis and surgical simulation.
 
----
+## Architecture
 
-## 🛠️ Requirements & Technologies
+The separation into modules such as core, flows, modules, and patients ensures the system is extensible. This modular design allows the integration of new surgical tools without compromising the software core.
+
+
+## Requirements & Technologies
 
 * **Language:** Python 3.11+
 * **GUI Framework:** PySide6 (Qt for Python)
@@ -14,10 +17,10 @@ Developed **by surgeons, for surgeons**, this platform is built on the foundatio
 * **Data Processing:** NumPy
 
 ## Modules - Still under construction.
-* ** Patients
-* ** Cephalometry
-* ** Registration
-* ** Segmentation
+* **Patients**
+* **Cephalometry**
+* **Registration**
+* **Segmentation**
 
 ---
 
