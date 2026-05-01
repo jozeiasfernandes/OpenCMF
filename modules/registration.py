@@ -19,7 +19,7 @@ vtk.vtkObject.GlobalWarningDisplayOff()
 class Modulo(ModuloBase):
     def __init__(self):
         super().__init__()
-        self.nome = "Registro"
+        self.nome = "Alinhar objetos"
         self.id = "modulo.registration"
         self.view_registro: Optional[WindowRegistration] = None
         self.widget_reg = RegistrationWidget()

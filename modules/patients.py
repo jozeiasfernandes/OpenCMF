@@ -1,16 +1,14 @@
-import json
 import time
 import logging
 from pathlib import Path
 from typing import Dict
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 from core.base_module.base import ModuloBase
-from core.project.project_manager import ProjectManager
+from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 from modules.mod_patients.ui_components import SecaoRetratil, criar_linha_arquivo
 from modules.mod_patients.logic import buscar_cep_online, formatar_nome_diretorio
 
 PASTA_PACIENTES = Path("patients")
-PASTA_FLUXOS = Path("fluxos")
 
 
 class Modulo(ModuloBase):
@@ -19,8 +17,7 @@ class Modulo(ModuloBase):
         self.nome = "Paciente"
         self.id = "modulo.paciente"
         self.pasta_paciente = None
-
-        self.project_manager = ProjectManager(PASTA_PACIENTES, PASTA_FLUXOS)
+        self.project_service = ProjectServiceHomePage(PASTA_PACIENTES)
 
         self.main_container = QtWidgets.QWidget(self)
         self.layout_modulo = QtWidgets.QVBoxLayout(self)
@@ -35,14 +32,18 @@ class Modulo(ModuloBase):
         self.edit_nome.setPlaceholderText("Nome completo...")
         self.edit_cpf = QtWidgets.QLineEdit()
         self.edit_cpf.setInputMask("000.000.000-00;_")
+
         self.check_estrangeiro = QtWidgets.QCheckBox("Estrangeiro")
         self.check_estrangeiro.stateChanged.connect(self._toggle_estrangeiro)
+
         self.edit_email = QtWidgets.QLineEdit()
         self.edit_celular = QtWidgets.QLineEdit()
         self.edit_celular.setInputMask("(00) 00000-0000;_")
+
         self.edit_nascimento = QtWidgets.QDateEdit(calendarPopup=True)
         self.edit_nascimento.setDisplayFormat("dd/MM/yyyy")
         self.edit_nascimento.setDate(QtCore.QDate.currentDate())
+
         self.combo_sexo = QtWidgets.QComboBox()
         self.combo_sexo.addItems(["Masculino", "Feminino", "Outro"])
 
@@ -50,6 +51,7 @@ class Modulo(ModuloBase):
         self.edit_cep.setInputMask("00000-000;_")
         self.btn_buscar_cep = QtWidgets.QPushButton("Buscar")
         self.btn_buscar_cep.clicked.connect(self._buscar_cep)
+
         self.edit_logradouro = QtWidgets.QLineEdit()
         self.edit_cidade = QtWidgets.QLineEdit()
         self.edit_estado = QtWidgets.QLineEdit()
@@ -115,7 +117,7 @@ class Modulo(ModuloBase):
     def inicializar(self, caminho_paciente: str) -> None:
         super().inicializar(caminho_paciente)
         self.pasta_paciente = caminho_paciente
-        data = self.project_manager.carregar_projeto(Path(caminho_paciente))
+        data = self.project_service.load_project(Path(caminho_paciente))
         if not data: return
 
         try:
@@ -142,39 +144,40 @@ class Modulo(ModuloBase):
             if p_data.get("nascimento"):
                 self.edit_nascimento.setDate(QtCore.QDate.fromString(p_data["nascimento"], "yyyy-MM-dd"))
         except Exception as ex:
-            logging.error(f"Erro ao carregar dados: {ex}")
+            logging.error(f"Erro carregar: {ex}")
 
     def _processar_cadastro(self):
         nome = self.edit_nome.text().strip()
         if not nome:
-            QtWidgets.QMessageBox.warning(self, "Erro", "Nome é obrigatório.")
+            QtWidgets.QMessageBox.warning(self, "Erro", "Nome obrigatório.")
             return
 
         try:
             diretorio = Path(self.pasta_paciente) if self.pasta_paciente else PASTA_PACIENTES / formatar_nome_diretorio(
                 nome, time.time())
-            self.project_manager.inicializar_estrutura_paciente(diretorio)
+
+            self.project_service.initialize_patient_structure(diretorio)
 
             get_val = lambda w: w.text() if isinstance(w, QtWidgets.QLineEdit) else (
                 w.toPlainText() if isinstance(w, QtWidgets.QTextEdit) else w.currentText())
 
-            dados_existentes = self.project_manager.carregar_projeto(diretorio) or {}
+            dados_antigos = self.project_service.load_project(diretorio) or {}
 
             dados = {
                 "paciente": {k: get_val(v) for k, v in self.map_paciente.items()},
                 "endereco": {k: get_val(v) for k, v in self.map_endereco.items()},
                 "clinico": {k: get_val(v) for k, v in self.map_clinico.items()},
                 "caminhos": {k: get_val(v) for k, v in self.map_caminhos.items()},
-                "objetos": dados_existentes.get("objetos", []),
-                "data_criacao": dados_existentes.get("data_criacao", time.time())
+                "objetos": dados_antigos.get("objetos", []),
+                "created_at": dados_antigos.get("created_at", time.time())
             }
             dados["paciente"]["estrangeiro"] = self.check_estrangeiro.isChecked()
             dados["paciente"]["nascimento"] = self.edit_nascimento.date().toString("yyyy-MM-dd")
 
-            self.project_manager.salvar_projeto(diretorio, dados)
+            self.project_service.save_project(diretorio, dados)
             self.pasta_paciente = str(diretorio)
 
-            QtWidgets.QMessageBox.information(self, "Sucesso", "Projeto salvo com sucesso!")
+            QtWidgets.QMessageBox.information(self, "Sucesso", "Projeto salvo!")
             self.concluido.emit()
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Erro", str(e))
@@ -268,20 +271,14 @@ class Modulo(ModuloBase):
         settings = QtCore.QSettings("OpenCMF", "Config")
         chave = "ultimo_diretorio_dicom" if target == self.edit_tomografia else "ultimo_diretorio_geral"
         ultimo = settings.value(chave, "")
-
-        if folder:
-            p = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta", ultimo)
-        else:
-            p, _ = QtWidgets.QFileDialog.getOpenFileName(self, "Selecionar Arquivo", ultimo,
-                                                         "Malhas (*.stl *.obj *.ply)")
-
+        p = QtWidgets.QFileDialog.getExistingDirectory(self, "Pasta", ultimo) if folder else \
+        QtWidgets.QFileDialog.getOpenFileName(self, "Arquivo", ultimo, "Malhas (*.stl *.obj *.ply)")[0]
         if p:
             target.setText(p)
             settings.setValue(chave, p)
 
     def _limpar_formulario(self):
-        if QtWidgets.QMessageBox.question(self, "Limpar",
-                                          "Deseja limpar todos os campos?") == QtWidgets.QMessageBox.Yes:
+        if QtWidgets.QMessageBox.question(self, "Limpar", "Limpar tudo?") == QtWidgets.QMessageBox.Yes:
             for w in self.main_container.findChildren(QtWidgets.QLineEdit): w.clear()
             for w in self.main_container.findChildren(QtWidgets.QTextEdit): w.clear()
             self.edit_pais.setText("Brasil")

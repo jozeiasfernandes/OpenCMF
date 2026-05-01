@@ -2,7 +2,7 @@ import json
 import sys
 import logging
 from pathlib import Path
-from appearance.settings import settings
+from core.home_page.settings_app import settings
 
 
 def get_base_dir():

@@ -8,14 +8,13 @@ from typing import Dict, Any, List, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.base_module.base import FluxoBase
-from core.base_module.factory import ModuloFactory
 from core.localization.translator import tr
 from core.workspace.workspace import WorkspaceManager
-
-from appearance.settings import settings
-from appearance.home_page import Home_page
-from appearance.flow.flow_editor import PaginaEditorFluxo
-from appearance.extras.settings_page import PaginaConfig
+from core.home_page.settings_app import settings
+from core.home_page.home_page import Home_page
+from core.home_page.flow.flow_editor import PaginaEditorFluxo
+from core.home_page.extras.settings_page import PaginaConfig
+from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 
 vtk.vtkObject.GlobalWarningDisplayOff()
 vtk_log = vtk.vtkFileOutputWindow()
@@ -26,16 +25,17 @@ vtk.vtkOutputWindow.GetInstance().SetInstance(vtk_log)
 def get_resource_path():
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
-    return Path(__file__).parent.resolve()
+    return Path(__file__).resolve().parents[0]
 
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        self.current_patient_path: Optional[str] = None
-        self.instantiated_modules: List[Any] = []
-        self.workflow: Optional[FluxoBase] = None
         self.base_dir = get_resource_path()
+        self.project_service = ProjectServiceHomePage(self.base_dir / "patients")
+
+        self.current_patient_path: Optional[str] = None
+        self.workflow: Optional[FluxoBase] = None
 
         self.init_ui()
         self.retranslate_ui()
@@ -64,10 +64,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(tr("main.window_title", title))
 
     def setup_icon(self):
-        # CORREÇÃO: Caminho agora aponta para appearance/icons
         icon_path = self.base_dir / "appearance" / "icons" / "cmf.svg"
-
-        # Fallback para .ico se o .png não for encontrado
         if not icon_path.exists():
             icon_path = icon_path.with_suffix(".ico")
 
@@ -91,14 +88,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def load_settings(self):
         theme_name = settings.get("preferencias", "tema", "dark")
-        # CORREÇÃO: Caminho agora aponta para appearance/themes
         qss_path = self.base_dir / "appearance" / "themes" / f"{theme_name}.qss"
         self.update_theme(str(qss_path))
 
     def update_theme(self, qss_path: str):
         file = Path(qss_path)
         if not file.exists():
-            # Tenta buscar dentro de appearance/themes caso receba apenas o nome do arquivo
             file = self.base_dir / "appearance" / "themes" / Path(qss_path).name
             if not file.exists(): return
 
@@ -116,14 +111,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def on_patient_selected(self, path: str, mode: str):
         self.current_patient_path = str(Path(path).resolve())
+        self.start_workflow(str(self.base_dir / "flows" / "default_flow.json"))
 
     def start_workflow(self, path: str):
         file = Path(path)
-        is_registration = any(w in file.name.lower() for w in ["registration", "cadastro"])
-
-        if not is_registration and not self.current_patient_path:
-            QtWidgets.QMessageBox.warning(self, tr("common.warning"), tr("home.select_patient_msg"))
-            return
+        if not file.exists(): return
 
         try:
             config = json.loads(file.read_text(encoding="utf-8"))
@@ -136,31 +128,25 @@ class MainWindow(QtWidgets.QMainWindow):
     def build_workspace(self, data: Dict[str, Any]):
         self.workspace.blockSignals(True)
         self.workspace.clear()
-        self.instantiated_modules.clear()
         self.workflow = FluxoBase(data)
 
         for module_id in self.workflow.sequencia:
-            if module := ModuloFactory.carregar_modulo(module_id):
+            if module := self.project_service.carregar_modulo(module_id):
                 module.concluido.connect(self.on_step_done)
-                self.instantiated_modules.append(module)
                 self.workspace.adicionar_modulo(module_id, module)
+
         self.workspace.blockSignals(False)
 
     def sync_module(self):
         active = self.workspace.get_modulo_ativo()
         if not active or not self.current_patient_path: return
 
-        active.pasta_paciente = self.current_patient_path
-        valid, msg = active.verificar_pre_requisitos()
-
-        if valid:
+        if hasattr(active, 'inicializar'):
             active.inicializar(self.current_patient_path)
-        elif "registration" not in active.__class__.__name__.lower():
-            QtWidgets.QMessageBox.warning(self, tr("common.missing_data"), msg)
 
     def on_step_done(self):
         if sender := self.sender():
-            if getattr(sender, 'pasta_paciente', None):
+            if hasattr(sender, 'pasta_paciente') and sender.pasta_paciente:
                 self.current_patient_path = str(Path(sender.pasta_paciente).resolve())
 
     def report_error(self, title: str, error: Exception):

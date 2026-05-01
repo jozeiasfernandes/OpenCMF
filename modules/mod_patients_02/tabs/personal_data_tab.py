@@ -193,7 +193,7 @@ class PersonalDataTab(QtWidgets.QWidget):
 
     def carregar(self, pasta: str):
         self.pasta_paciente = pasta
-        data = self.project_manager.carregar_projeto(Path(pasta))
+        data = self.project_manager.loading_project(Path(pasta))
         if not data:
             return
 
@@ -262,7 +262,7 @@ class PersonalDataTab(QtWidgets.QWidget):
         dados["paciente"]["nascimento"] = self.edit_nascimento.date().toString("yyyy-MM-dd")
 
         try:
-            ok = self.project_manager.salvar_projeto(base, dados)
+            ok = self.project_manager.save_project(base, dados)
 
             if ok is False:
                 QtWidgets.QMessageBox.critical(self, "Erro", "Falha ao salvar projeto.")

@@ -1,4 +1,4 @@
-![OpenCMF Logo](appearance/icons/OpenCFM.png)
+![OpenCMF Logo](appearance/icons/OpenCFM.svg)
 
 **OpenCMF** is an open-source, modular surgical planning system specifically designed for the **Craniomaxillofacial (CMF)** field. 
 
@@ -12,6 +12,12 @@ Developed **by surgeons, for surgeons**, this platform is built on the foundatio
 * **GUI Framework:** PySide6 (Qt for Python)
 * **3D Engine:** VTK (Visualization Toolkit)
 * **Data Processing:** NumPy
+
+## Modules - Still under construction.
+* ** Patients
+* ** Cephalometry
+* ** Registration
+* ** Segmentation
 
 ---
 

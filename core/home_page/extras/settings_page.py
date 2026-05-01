@@ -2,7 +2,7 @@ from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 
 from core.localization.translator import tr
-from appearance.settings import settings
+from core.home_page.settings_app import settings
 
 
 class PaginaConfig(QtWidgets.QWidget):
