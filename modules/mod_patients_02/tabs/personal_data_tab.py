@@ -224,20 +224,33 @@ class PersonalDataTab(QtWidgets.QWidget):
             logging.error(e)
 
     def _salvar(self):
+        if self.project_manager is None:
+            QtWidgets.QMessageBox.critical(self, "Erro", "ProjectManager não inicializado.")
+            return
+
         nome = self.edit_nome.text().strip()
         if not nome:
             QtWidgets.QMessageBox.warning(self, "Erro", "Nome é obrigatório.")
             return
 
-        diretorio = Path(self.pasta_paciente) if self.pasta_paciente else Path("patients") / formatar_nome_diretorio(nome, time.time())
-        self.project_manager.inicializar_estrutura_paciente(diretorio)
+        base = Path(self.pasta_paciente) if self.pasta_paciente else None
+
+        if base is None or not base.exists():
+            base = Path("patients") / formatar_nome_diretorio(nome, time.time())
+
+        base = base.resolve()
+
+        self.project_manager.inicializar_estrutura_paciente(base)
+        self.pasta_paciente = str(base)
 
         def val(w):
             if isinstance(w, QtWidgets.QLineEdit):
                 return w.text()
             if isinstance(w, QtWidgets.QTextEdit):
                 return w.toPlainText()
-            return w.currentText()
+            if isinstance(w, QtWidgets.QComboBox):
+                return w.currentText()
+            return ""
 
         dados = {
             "paciente": {k: val(v) for k, v in self.map_paciente.items()},
@@ -248,7 +261,15 @@ class PersonalDataTab(QtWidgets.QWidget):
         dados["paciente"]["estrangeiro"] = self.check_estrangeiro.isChecked()
         dados["paciente"]["nascimento"] = self.edit_nascimento.date().toString("yyyy-MM-dd")
 
-        self.project_manager.salvar_projeto(diretorio, dados)
+        try:
+            ok = self.project_manager.salvar_projeto(base, dados)
 
-        QtWidgets.QMessageBox.information(self, "Sucesso", "Projeto salvo com sucesso!")
-        self.concluido.emit()
+            if ok is False:
+                QtWidgets.QMessageBox.critical(self, "Erro", "Falha ao salvar projeto.")
+                return
+
+            QtWidgets.QMessageBox.information(self, "Sucesso", f"Projeto salvo:\n{base}")
+            self.concluido.emit()
+
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Erro ao salvar", str(e))
