@@ -9,20 +9,34 @@ try:
 except ImportError:
     class HomeButton(QtWidgets.QPushButton):
         def __init__(self, path, size):
-            super().__init__("HOME")
+            super().__init__()
+            self.setIconSize(size)
+            self.setFixedSize(size)
+            self.setCursor(QtCore.Qt.PointingHandCursor)
+            self.setStyleSheet("""
+                QPushButton { 
+                    border: none; 
+                    background: transparent; 
+                    padding: 10px;
+                    margin: 0px;
+                }
+            """)
             self.clicked_signal = self.clicked
+
 
 def get_resource_path() -> Path:
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
     return Path(__file__).resolve().parent.parent.parent
 
+
 class WorkspaceManager(QtWidgets.QTabWidget):
     home_solicitada = QtCore.Signal()
 
     SIDEBAR_COLLAPSED_WIDTH = 35
     SIDEBAR_EXPANDED_WIDTH = 330
-    ICON_SIZE_DEFAULT = QtCore.QSize(30, 30)
+    TAB_HEIGHT = 40
+    ICON_SIZE_HOME = QtCore.QSize(40, 40)
     MAX_WIDGET_WIDTH = 16777215
 
     def __init__(self):
@@ -36,11 +50,21 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         self.setDocumentMode(True)
         self.setTabsClosable(False)
         self.setMovable(False)
+        self.setStyleSheet(f"QTabBar::tab {{ height: {self.TAB_HEIGHT}px; }}")
 
     def _setup_home_button(self):
-        self.btn_home = HomeButton(self.base_dir, self.ICON_SIZE_DEFAULT)
+        self.btn_home = HomeButton(self.base_dir, self.ICON_SIZE_HOME)
         self.btn_home.clicked_signal.connect(self.home_solicitada.emit)
-        self.setCornerWidget(self.btn_home, QtCore.Qt.TopLeftCorner)
+
+        container = QtWidgets.QWidget()
+        container.setFixedSize(50, self.TAB_HEIGHT)
+
+        layout = QtWidgets.QHBoxLayout(container)
+        layout.setContentsMargins(10, 0, 0, 0)
+        layout.setSpacing(0)
+        layout.addWidget(self.btn_home)
+
+        self.setCornerWidget(container, QtCore.Qt.TopLeftCorner)
 
     def adicionar_modulo(self, id_modulo: str, modulo_obj: Any):
         title = getattr(modulo_obj, 'nome', id_modulo.replace("_", " ").capitalize())
@@ -186,28 +210,26 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         return widget.parentWidget().findChild(QtWidgets.QSplitter)
 
 
-
-
-
-
-
-
-
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
+
 
     class MockModulo:
         def __init__(self, nome, cor):
             self.nome = nome
             self.cor = cor
+
         def get_workspace_toolbar(self):
             return QtWidgets.QToolBar()
+
         def get_workspace(self):
             w = QtWidgets.QFrame()
             w.setStyleSheet(f"background-color: {self.cor};")
             return w
+
         def get_toolboxes(self):
             return {"Opções": QtWidgets.QLabel("Painel de Controle")}
+
 
     manager = WorkspaceManager()
     manager.adicionar_modulo("teste", MockModulo("Módulo Teste", "#34495e"))

@@ -1,5 +1,5 @@
 {
     "nome": "Teste",
-    "sequencia": ["patients","tomography", "segmentation", "registration"],
+    "sequencia": ["patients", "patients_02"],
     "cor_fundo": {"r": 80, "g": 80, "b": 90}
 }
