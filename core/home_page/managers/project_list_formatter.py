@@ -9,17 +9,16 @@ class ProjectItemWidget(QtWidgets.QWidget):
 
     def _init_ui(self):
         layout = QtWidgets.QHBoxLayout(self)
-        layout.setContentsMargins(10, 5, 10, 5)
+        layout.setContentsMargins(0, 5, 0, 5)
 
         info_layout = QtWidgets.QVBoxLayout()
 
         paciente = self.data.get("paciente", {})
         nome = paciente.get("nome", "Sem Nome")
-        cpf = paciente.get("cpf", "000.000.000-00")
         sexo = paciente.get("sexo", "N/A")
 
         lbl_nome = QtWidgets.QLabel(f"<b>{nome}</b>")
-        lbl_info = QtWidgets.QLabel(f"CPF: {cpf} | Sexo: {sexo}")
+        lbl_info = QtWidgets.QLabel(f" Sexo: {sexo}")
         lbl_info.setStyleSheet("color: #888; font-size: 11px;")
 
         info_layout.addWidget(lbl_nome)

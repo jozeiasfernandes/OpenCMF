@@ -83,7 +83,6 @@ class Home_page(QtWidgets.QWidget):
     def _build_projects_section(self):
         panel = QtWidgets.QFrame()
         layout = QtWidgets.QVBoxLayout(panel)
-
         header = QtWidgets.QHBoxLayout()
         header.addWidget(QtWidgets.QLabel(f"<h3>{tr('home.recent_projects_title')}</h3>"))
         header.addStretch()
@@ -94,7 +93,12 @@ class Home_page(QtWidgets.QWidget):
             lambda: self.fluxo_escolhido.emit(str(FLOWS_DIR / REGISTRATION_FLOW_NAME))
         )
 
+        self.btn_remove_project = QtWidgets.QPushButton(tr("common.delete_project"))
+        self.btn_remove_project.setFixedSize(150, 35)
+        self.btn_remove_project.clicked.connect(self._on_remove_clicked)
+
         header.addWidget(self.btn_new_project)
+        header.addWidget(self.btn_remove_project)
 
         self.projects_view = QtWidgets.QListWidget()
         self.projects_view.setMinimumHeight(150)
@@ -109,7 +113,6 @@ class Home_page(QtWidgets.QWidget):
     def _build_flows_section(self):
         panel = QtWidgets.QFrame()
         layout = QtWidgets.QVBoxLayout(panel)
-
         header = QtWidgets.QHBoxLayout()
         header.addWidget(QtWidgets.QLabel(f"<h3>{tr('home.available_flows_title')}</h3>"))
         header.addStretch()
@@ -121,7 +124,6 @@ class Home_page(QtWidgets.QWidget):
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
-
         self.cards_container = QtWidgets.QWidget()
         self.cards_layout = QtWidgets.QVBoxLayout(self.cards_container)
         self.cards_layout.setAlignment(QtCore.Qt.AlignTop)
@@ -134,18 +136,19 @@ class Home_page(QtWidgets.QWidget):
 
     def refresh_projects(self):
         self.projects_view.clear()
-        projects = self.project_service.list_recent_projects()
-        for data in projects:
-            if data.get("_path"):
-                format_and_add_to_list(self.projects_view, data)
+        for data in self.project_service.list_recent_projects():
+            if path := data.get("_path"):
+                item = format_and_add_to_list(self.projects_view, data)
+                if item:
+                    item.setData(QtCore.Qt.UserRole, path)
 
     def refresh_flows(self):
         while self.cards_layout.count():
-            if item := self.cards_layout.takeAt(0).widget():
-                item.deleteLater()
+            item = self.cards_layout.takeAt(0)
+            if widget := item.widget():
+                widget.deleteLater()
 
-        flows = self.flow_service.list_flows(exclude_file=REGISTRATION_FLOW_NAME)
-        for data in flows:
+        for data in self.flow_service.list_flows(exclude_file=REGISTRATION_FLOW_NAME):
             if path := data.get("_file_path"):
                 card = FluxoCard(data, path)
                 card.clicado.connect(self.fluxo_escolhido.emit)
@@ -153,31 +156,31 @@ class Home_page(QtWidgets.QWidget):
         self.cards_layout.addStretch()
 
     def _open_selected_project(self, item):
-        path = item.data(QtCore.Qt.UserRole)
-        self.projeto_selecionado.emit(path, "open")
+        if path := item.data(QtCore.Qt.UserRole):
+            self.projeto_selecionado.emit(path, "open")
+
+    def _show_context_menu(self, position):
+        if item := self.projects_view.itemAt(position):
+            menu = QtWidgets.QMenu(self)
+            menu.addAction(tr("common.open_project"), lambda: self._open_selected_project(item))
+            menu.addAction(tr("common.delete_project"), lambda: self._on_delete_project_requested(item))
+            menu.exec(self.projects_view.mapToGlobal(position))
+
+    def _on_remove_clicked(self):
+        if item := self.projects_view.currentItem():
+            self._on_delete_project_requested(item)
+        else:
+            QtWidgets.QMessageBox.warning(self, tr("common.warning"), tr("home.select_project_msg"))
 
     def _on_delete_project_requested(self, item):
         path = item.data(QtCore.Qt.UserRole)
+        if not path: return
 
         confirm = QtWidgets.QMessageBox.question(
-            self,
-            tr("home.confirm_deletion_title"),
-            tr("home.confirm_deletion_message"),
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            self, tr("home.confirm_deletion_title"), tr("home.confirm_deletion_message"),
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No
         )
 
         if confirm == QtWidgets.QMessageBox.Yes:
             if self.project_service.remove_project(path):
                 self.refresh_projects()
-
-    def _show_context_menu(self, position):
-        if item := self.projects_view.itemAt(position):
-            menu = QtWidgets.QMenu()
-            open_act = menu.addAction(tr("common.open_project"))
-            del_act = menu.addAction(tr("common.delete_project"))
-
-            action = menu.exec(self.projects_view.mapToGlobal(position))
-            if action == open_act:
-                self._open_selected_project(item)
-            elif action == del_act:
-                self._on_delete_project_requested(item)

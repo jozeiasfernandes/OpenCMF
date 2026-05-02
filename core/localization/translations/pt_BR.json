@@ -2,15 +2,16 @@
     "common": {
         "warning": "Atenção",
         "error": "Erro",
-        "close_button": "Fechar"
+        "close_button": "Fechar",
+        "open_project": "Abrir Projeto",
+        "delete_project": "Remover Projeto"
     },
     "home": {
         "recent_projects_title": "Projetos Recentes",
         "new_project_button": "Novo Projeto",
-        "delete_button": "Excluir projeto",
         "select_project_msg": "Selecione um paciente antes de prosseguir.",
         "confirm_deletion_title": "Confirmar Exclusão",
-        "confirm_deletion_message": "Deseja apagar permanentemente o projeto: {}?",
+        "confirm_deletion_message": "Deseja apagar permanentemente este projeto?",
         "available_flows_title": "Fluxos Disponíveis",
         "new_flow_button": "Novo Fluxo",
         "unknown_patient": "Paciente Desconhecido"
@@ -20,7 +21,7 @@
         "theme_label": "Tema do Sistema",
         "language_label": "Idioma",
         "language_changed_title": "Idioma Alterado",
-        "restart_required_msg": "Para aplicar as mudanças em todo o sistema, por favor reinicie a aplicação.",
+        "restart_required_msg": "Por favor, reinicie a aplicação para aplicar as mudanças.",
         "default_theme": "Padrão"
     }
 }

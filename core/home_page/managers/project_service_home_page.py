@@ -57,7 +57,7 @@ class ProjectServiceHomePage:
         path.write_text(json.dumps(data, indent=4, ensure_ascii=False), encoding="utf-8")
 
     def initialize_patient_structure(self, root_path: Path):
-        for sub in [self.PROJECT_SUBFOLDER, "dicom", "stl", "photos"]:
+        for sub in [self.PROJECT_SUBFOLDER, "volume", "surfaces", "photos", "others"]:
             (Path(root_path) / sub).mkdir(parents=True, exist_ok=True)
 
     def list_recent_projects(self) -> List[Dict[str, Any]]:

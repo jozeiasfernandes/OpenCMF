@@ -13,7 +13,7 @@
     "home": {
         "recent_projects_title": "Recent Projects",
         "new_project_button": "New Project",
-        "delete_button": "Delete project",
+        "common.delete_project": "Delete project",
         "select_patient_msg": "Please select a patient before proceeding.",
         "select_patient_first": "Select a patient to start this workflow.",
         "confirm_deletion_title": "Confirm Deletion",
