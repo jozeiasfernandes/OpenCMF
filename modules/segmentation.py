@@ -1,13 +1,18 @@
 import os
 import json
-import vtk
-from typing import Optional, Dict
+import sys
+import random
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore
+from typing import Optional, Dict
+
+import vtkmodules.all as vtk
+from PySide6 import QtWidgets, QtCore, QtGui
+from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 from core.base_module.base import ModuloBase
-from core.volume.viewer import VolumeViewerWidget
 from core.volume.segmentation_engine import SegmentacaoEngine
+
+# Componentes de UI importados conforme estrutura do projeto
 from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
 from core.components.toolboxes.segmentation_toolbox import SegmentacaoWidget
 
@@ -17,9 +22,14 @@ class Modulo(ModuloBase):
         super().__init__()
         self.nome = "Segmentação"
         self.id = "modulo.segmentacao"
-        self.viewer: Optional[VolumeViewerWidget] = None
+
+        self.vtk_widget: Optional[QVTKRenderWindowInteractor] = None
+        self.renderer = vtk.vtkRenderer()
         self.engine_seg = SegmentacaoEngine()
+
         self.volume_data = None
+        self.atores: Dict[str, vtk.vtkActor] = {}
+
         self.widget_seg = SegmentacaoWidget()
         self.widget_objetos = ObjetoManagerWidget()
         self._conectar_sinais()
@@ -29,105 +39,161 @@ class Modulo(ModuloBase):
         self.widget_seg.thresholdChanged.connect(self._on_hu_changed)
         self.widget_seg.solicitarMascara.connect(self._executar_threshold)
         self.widget_seg.solicitarExportarSTL.connect(self._executar_exportacao_stl)
-        self.widget_objetos.objetoToggled.connect(self._on_objeto_toggled)
-        self.widget_objetos.requestRefresh.connect(self._atualizar_lista_objetos)
+
+        self.widget_objetos.objetoToggled.connect(self._toggle_visibilidade)
+        self.widget_objetos.opacityChanged.connect(self._set_opacidade)
+        self.widget_objetos.colorChanged.connect(self._set_cor)
+        self.widget_objetos.deleteRequested.connect(self._remover_objeto)
 
     def inicializar(self, caminho_paciente: str) -> None:
         super().inicializar(caminho_paciente)
-        path_json = Path(caminho_paciente) / "projeto" / "info.json"
-        if path_json.exists():
+        self.renderer.SetBackground(0.05, 0.05, 0.1)
+
+        info_json = Path(caminho_paciente) / "projeto" / "info.json"
+        if info_json.exists():
             try:
-                with open(path_json, "r", encoding="utf-8") as f:
+                with open(info_json, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                caminho_dicom = data.get("caminhos", {}).get("dicom", "")
-                self.widget_seg.set_path(caminho_dicom)
-                self._carregar_volume_otimizado(caminho_dicom)
-            except Exception as e:
-                print(f"Erro ao carregar dados: {e}")
-        self._atualizar_lista_objetos()
+                dicom_path = data.get("caminhos", {}).get("dicom", "")
+                self.widget_seg.set_path(dicom_path)
+                self._carregar_volume(dicom_path)
+            except Exception:
+                pass
 
-    def _on_path_changed(self, novo_caminho):
-        if os.path.exists(novo_caminho) and os.path.isdir(novo_caminho):
-            self._carregar_volume_otimizado(novo_caminho)
+        self._sincronizar_pasta_stl()
 
-    def _carregar_volume_otimizado(self, caminho_dicom: str):
-        """Prioriza carregar o arquivo VTI compactado para economizar RAM."""
+    def _carregar_volume(self, caminho_dicom: str):
         path_vti = Path(self.pasta_paciente) / "projeto" / "volume.vti"
-        try:
-            if path_vti.exists():
-                reader = vtk.vtkXMLImageDataReader()
-                reader.SetFileName(str(path_vti))
-                reader.Update()
-                self.volume_data = reader.GetOutput()
-            elif caminho_dicom and os.path.exists(caminho_dicom):
-                from core.volume.dicom_engine import DicomEngine
-                self.volume_data = DicomEngine().carregar_volume(caminho_dicom)
 
-            if self.viewer and self.volume_data:
-                self.viewer.set_volume(self.volume_data)
-        except Exception as e:
-            print(f"Falha na carga do volume: {e}")
-
-    def _on_hu_changed(self, val):
-        if self.viewer and hasattr(self.viewer, 'update_threshold'):
-            self.viewer.update_threshold(val)
+        if path_vti.exists():
+            reader = vtk.vtkXMLImageDataReader()
+            reader.SetFileName(str(path_vti))
+            reader.Update()
+            self.volume_data = reader.GetOutput()
+        elif caminho_dicom and os.path.exists(caminho_dicom):
+            from core.volume.dicom_engine import DicomEngine
+            self.volume_data = DicomEngine().carregar_volume(caminho_dicom)
 
     def _executar_threshold(self):
         if not self.volume_data:
-            return QtWidgets.QMessageBox.warning(None, "Aviso", "Volume não carregado.")
-        hu_min = self.widget_seg.get_value()
-        if self.engine_seg.gerar_mascara(self.volume_data, hu_min):
-            QtWidgets.QMessageBox.information(None, "Sucesso", "Máscara gerada.")
+            return QtWidgets.QMessageBox.warning(None, "Erro", "Volume não carregado.")
+
+        self.engine_seg.gerar_mascara(self.volume_data, self.widget_seg.get_value())
+        QtWidgets.QMessageBox.information(None, "Sucesso", "Máscara de segmentação gerada.")
 
     def _executar_exportacao_stl(self):
         if not self.engine_seg.mask_data:
             return QtWidgets.QMessageBox.warning(None, "Aviso", "Gere a máscara primeiro.")
 
-        qualidade_idx = self.widget_seg.get_qualidade_index()
-        progress = QtWidgets.QProgressDialog("Processando...", None, 0, 5, self.widget_seg)
-        progress.setWindowModality(QtCore.Qt.WindowModal)
-
         dir_stl = Path(self.pasta_paciente) / "STL"
         dir_stl.mkdir(parents=True, exist_ok=True)
-        caminho_saida = dir_stl / "osso_segmentado.stl"
+        caminho_saida = dir_stl / "segmentacao_hu.stl"
 
-        def callback(msg, val):
-            progress.setLabelText(msg);
-            progress.setValue(val)
-            QtWidgets.QApplication.processEvents()
+        if self.engine_seg.exportar_stl(self.engine_seg.mask_data, caminho_saida,
+                                        self.widget_seg.get_qualidade_index()):
+            self._sincronizar_pasta_stl()
 
-        if self.engine_seg.exportar_stl(self.engine_seg.mask_data, caminho_saida, qualidade_idx, callback):
-            self._atualizar_lista_objetos()
-            QtWidgets.QMessageBox.information(None, "Sucesso", "Malha exportada.")
-        progress.close()
+    def _sincronizar_pasta_stl(self):
+        pasta_stl = Path(self.pasta_paciente) / "STL"
+        pasta_stl.mkdir(parents=True, exist_ok=True)
 
-    def _atualizar_lista_objetos(self):
-        if self.widget_objetos and self.pasta_paciente:
-            self.widget_objetos.atualizar_lista(pasta_stl=str(Path(self.pasta_paciente) / "STL"))
+        for file_path in pasta_stl.glob("*.stl"):
+            nome = file_path.name
+            if nome not in self.atores:
+                self._adicionar_malha_ao_render(file_path)
 
-    def _on_objeto_toggled(self, nome, visivel):
-        if not self.viewer: return
-        if nome == "volume DICOM":
-            self.viewer.set_visibilidade_objeto(nome, visivel)
-        else:
-            self._gerenciar_visualizacao_stl(nome, visivel)
+    def _adicionar_malha_ao_render(self, file_path: Path):
+        nome = file_path.name
+        reader = vtk.vtkSTLReader()
+        reader.SetFileName(str(file_path))
+        reader.Update()
 
-    def _gerenciar_visualizacao_stl(self, nome, visivel):
-        if visivel and nome not in self.viewer.objetos_3d:
+        mapper = vtk.vtkPolyDataMapper()
+        mapper.SetInputConnection(reader.GetOutputPort())
+
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
+
+        cor_random = [random.random() for _ in range(3)]
+        actor.GetProperty().SetColor(cor_random)
+
+        self.renderer.AddActor(actor)
+        self.atores[nome] = actor
+        self.widget_objetos.adicionar_objeto_lista(nome, "Segmentação", cor_random)
+        self._renderizar()
+
+    def _toggle_visibilidade(self, nome, estado):
+        if nome in self.atores:
+            self.atores[nome].SetVisibility(estado)
+            self._renderizar()
+
+    def _set_opacidade(self, nome, valor):
+        if nome in self.atores:
+            self.atores[nome].GetProperty().SetOpacity(valor)
+            self._renderizar()
+
+    def _set_cor(self, nome, qcolor):
+        if nome in self.atores:
+            self.atores[nome].GetProperty().SetColor(qcolor.redF(), qcolor.greenF(), qcolor.blueF())
+            self._renderizar()
+
+    def _remover_objeto(self, nome):
+        actor = self.atores.pop(nome, None)
+        if actor:
+            self.renderer.RemoveActor(actor)
             path = Path(self.pasta_paciente) / "STL" / nome
             if path.exists():
-                reader = vtk.vtkSTLReader()
-                reader.SetFileName(str(path))
-                reader.Update()
-                self.viewer.adicionar_malha_3d(nome, reader.GetOutput())
-        self.viewer.set_visibilidade_objeto(nome, visivel)
+                os.remove(path)
+            self._renderizar()
+
+    def _on_path_changed(self, path):
+        if os.path.exists(path):
+            self._carregar_volume(path)
+
+    def _on_hu_changed(self, val):
+        pass  # Implementar preview em tempo real se a engine suportar
+
+    def _renderizar(self):
+        if self.vtk_widget:
+            self.vtk_widget.GetRenderWindow().Render()
 
     def get_workspace(self) -> QtWidgets.QWidget:
-        if not self.viewer:
-            self.viewer = VolumeViewerWidget()
-            self.viewer.configurar_layout("Apenas 3D")
-            if self.volume_data: self.viewer.set_volume(self.volume_data)
-        return self.viewer
+        if not self.vtk_widget:
+            self.vtk_widget = QVTKRenderWindowInteractor()
+            self.vtk_widget.GetRenderWindow().AddRenderer(self.renderer)
+            self.vtk_widget.Initialize()
+        return self.vtk_widget
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        return {"Segmentação": self.widget_seg, "Objetos": self.widget_objetos}
+        return {
+            "Ferramentas": self.widget_seg,
+            "Objetos": self.widget_objetos
+        }
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")
+
+    modulo = Modulo()
+    path_teste = Path(os.path.expanduser("~")) / "OpenCMF_Debug"
+    path_teste.mkdir(parents=True, exist_ok=True)
+    (path_teste / "STL").mkdir(exist_ok=True)
+    (path_teste / "projeto").mkdir(exist_ok=True)
+
+    modulo.inicializar(str(path_teste))
+
+    win = QtWidgets.QMainWindow()
+    win.setWindowTitle("OpenCMF - Segmentação")
+    win.setCentralWidget(modulo.get_workspace())
+
+    dock = QtWidgets.QDockWidget("Controles")
+    tabs = QtWidgets.QTabWidget()
+    for n, w in modulo.get_toolboxes().items():
+        tabs.addTab(w, n)
+    dock.setWidget(tabs)
+
+    win.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
+    win.resize(1200, 800)
+    win.show()
+    sys.exit(app.exec())
