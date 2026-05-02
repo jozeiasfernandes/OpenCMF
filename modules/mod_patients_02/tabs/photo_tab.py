@@ -1,8 +1,11 @@
+import shutil
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 
 
 class PhotoCard(QtWidgets.QWidget):
+    foto_alterada = QtCore.Signal(str)
+
     def __init__(self, titulo: str, parent=None):
         super().__init__(parent)
         self.titulo = titulo
@@ -26,7 +29,7 @@ class PhotoCard(QtWidgets.QWidget):
         self._set_placeholder()
 
         self.btn = QtWidgets.QPushButton("Selecionar")
-        self.btn.clicked.connect(self._selecionar_imagem)
+        self.btn.clicked.connect(self._ao_clicar_selecionar)
 
         layout.addWidget(self.label_titulo)
         layout.addWidget(self.preview, alignment=QtCore.Qt.AlignCenter)
@@ -42,18 +45,18 @@ class PhotoCard(QtWidgets.QWidget):
         else:
             self.preview.setText("Sem imagem")
 
-    def _selecionar_imagem(self):
+    def _ao_clicar_selecionar(self):
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self, "Selecionar imagem", "", "Imagens (*.png *.jpg *.jpeg *.bmp)"
         )
         if file_path:
-            self.set_path(file_path)
+            self.foto_alterada.emit(file_path)
 
     def get_path(self):
         return self.image_path
 
     def set_path(self, path: str):
-        if not path:
+        if not path or not Path(path).exists():
             self.image_path = None
             self._set_placeholder()
             return
@@ -72,6 +75,7 @@ class PhotoTab(QtWidgets.QWidget):
         super().__init__()
         self.project_manager = project_manager
         self.pasta_paciente = None
+        self._cards = {}
         self._build_ui()
 
     def _build_ui(self):
@@ -89,34 +93,36 @@ class PhotoTab(QtWidgets.QWidget):
 
         box_face = QtWidgets.QGroupBox("Fotografias da face")
         layout_face = QtWidgets.QHBoxLayout(box_face)
-        layout_face.setAlignment(QtCore.Qt.AlignCenter)
         layout_face.setSpacing(20)
 
-        self.card_frontal = PhotoCard("Frontal")
-        self.card_perfil = PhotoCard("Perfil")
-        layout_face.addWidget(self.card_frontal)
-        layout_face.addWidget(self.card_perfil)
+        self._cards["frontal"] = PhotoCard("Frontal")
+        self._cards["perfil"] = PhotoCard("Perfil")
 
         box_intra = QtWidgets.QGroupBox("Fotografias intrabucais")
         layout_intra = QtWidgets.QVBoxLayout(box_intra)
-        layout_intra.setAlignment(QtCore.Qt.AlignCenter)
         layout_intra.setSpacing(14)
 
         row_oclusal = QtWidgets.QHBoxLayout()
-        row_oclusal.setSpacing(20)
-        self.card_oclusal_sup = PhotoCard("Oclusal sup")
-        self.card_oclusal_inf = PhotoCard("Oclusal inf")
-        row_oclusal.addWidget(self.card_oclusal_sup)
-        row_oclusal.addWidget(self.card_oclusal_inf)
+        self._cards["oclusal_sup"] = PhotoCard("Oclusal sup")
+        self._cards["oclusal_inf"] = PhotoCard("Oclusal inf")
 
         row_dent = QtWidgets.QHBoxLayout()
-        row_dent.setSpacing(20)
-        self.card_dent_frontal = PhotoCard("Dentição frontal")
-        self.card_dent_lat_dir = PhotoCard("Dentição lateral dir")
-        self.card_dent_lat_esq = PhotoCard("Dentição lateral esq")
-        row_dent.addWidget(self.card_dent_frontal)
-        row_dent.addWidget(self.card_dent_lat_dir)
-        row_dent.addWidget(self.card_dent_lat_esq)
+        self._cards["dent_frontal"] = PhotoCard("Dentição frontal")
+        self._cards["dent_lat_dir"] = PhotoCard("Dentição lateral dir")
+        self._cards["dent_lat_esq"] = PhotoCard("Dentição lateral esq")
+
+        for chave, card in self._cards.items():
+            card.foto_alterada.connect(lambda path, k=chave: self._processar_importacao(k, path))
+
+        layout_face.addWidget(self._cards["frontal"])
+        layout_face.addWidget(self._cards["perfil"])
+
+        row_oclusal.addWidget(self._cards["oclusal_sup"])
+        row_oclusal.addWidget(self._cards["oclusal_inf"])
+
+        row_dent.addWidget(self._cards["dent_frontal"])
+        row_dent.addWidget(self._cards["dent_lat_dir"])
+        row_dent.addWidget(self._cards["dent_lat_esq"])
 
         layout_intra.addLayout(row_oclusal)
         layout_intra.addLayout(row_dent)
@@ -133,9 +139,25 @@ class PhotoTab(QtWidgets.QWidget):
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
 
+    def _processar_importacao(self, chave: str, origem: str):
+        if not self.pasta_paciente:
+            QtWidgets.QMessageBox.warning(self, "Aviso", "Selecione um paciente primeiro.")
+            return
+
+        diretorio_fotos = Path(self.pasta_paciente) / "photos"
+        diretorio_fotos.mkdir(parents=True, exist_ok=True)
+
+        extensao = Path(origem).suffix.lower()
+        destino = diretorio_fotos / f"{chave}{extensao}"
+
+        try:
+            shutil.copy2(origem, destino)
+            self._cards[chave].set_path(str(destino))
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao copiar imagem: {e}")
+
     def _executar_salvamento(self):
         if not self.pasta_paciente or not self.project_manager:
-            QtWidgets.QMessageBox.warning(self, "Aviso", "Identifique o paciente primeiro.")
             return
 
         root = Path(self.pasta_paciente)
@@ -143,32 +165,18 @@ class PhotoTab(QtWidgets.QWidget):
         data["fotos"] = self.get_data()
 
         if self.project_manager.save_project(root, data):
-            QtWidgets.QMessageBox.information(self, "Sucesso", "Fotografias salvas.")
             self.salvamento_solicitado.emit()
 
     def get_data(self):
-        return {
-            "frontal": self.card_frontal.get_path(),
-            "perfil": self.card_perfil.get_path(),
-            "oclusal_sup": self.card_oclusal_sup.get_path(),
-            "oclusal_inf": self.card_oclusal_inf.get_path(),
-            "dent_frontal": self.card_dent_frontal.get_path(),
-            "dent_lat_dir": self.card_dent_lat_dir.get_path(),
-            "dent_lat_esq": self.card_dent_lat_esq.get_path(),
-        }
+        return {chave: card.get_path() for chave, card in self._cards.items()}
 
     def set_data(self, data: dict, pasta: str = None):
         if pasta:
             self.pasta_paciente = pasta
 
         fotos = data.get("fotos", {})
-        self.card_frontal.set_path(fotos.get("frontal"))
-        self.card_perfil.set_path(fotos.get("perfil"))
-        self.card_oclusal_sup.set_path(fotos.get("oclusal_sup"))
-        self.card_oclusal_inf.set_path(fotos.get("oclusal_inf"))
-        self.card_dent_frontal.set_path(fotos.get("dent_frontal"))
-        self.card_dent_lat_dir.set_path(fotos.get("dent_lat_dir"))
-        self.card_dent_lat_esq.set_path(fotos.get("dent_lat_esq"))
+        for chave, card in self._cards.items():
+            card.set_path(fotos.get(chave))
 
 
 if __name__ == "__main__":

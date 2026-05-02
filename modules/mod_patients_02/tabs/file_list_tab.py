@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from modules.mod_patients_02.ui_components import criar_linha_arquivo
@@ -10,7 +11,6 @@ class FileListTab(QtWidgets.QWidget):
         super().__init__()
         self.project_manager = project_manager
         self.pasta_paciente = None
-
         self._init_ui()
         self._build_layout()
 
@@ -46,27 +46,65 @@ class FileListTab(QtWidgets.QWidget):
             path = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta", ultimo)
         else:
             path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self, "Selecionar Arquivo", ultimo, "Malhas (*.stl *.obj *.ply)"
+                self, "Selecionar Arquivo", ultimo, "Malhas (*.stl *.obj *.ply *.vtk *.vtp)"
             )
 
         if path:
-            target.setText(path)
+            path_final = self._gerenciar_copia_arquivo(target, path)
+            target.setText(path_final)
             settings.setValue(chave, path)
+
+    def _gerenciar_copia_arquivo(self, target, caminho_origem: str) -> str:
+        if not self.pasta_paciente or target == self.edit_tomografia:
+            return caminho_origem
+
+        origem = Path(caminho_origem)
+        if not origem.is_file():
+            return caminho_origem
+
+        pasta_destino = Path(self.pasta_paciente) / "surfaces"
+        pasta_destino.mkdir(parents=True, exist_ok=True)
+
+        arquivo_destino = pasta_destino / origem.name
+
+        if arquivo_destino.exists():
+            if arquivo_destino.samefile(origem):
+                return str(arquivo_destino)
+
+            resposta = QtWidgets.QMessageBox.question(
+                self,
+                "Arquivo Existente",
+                f"O arquivo '{origem.name}' já existe na pasta do paciente.\nDeseja sobrescrevê-lo?",
+                QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No
+            )
+
+            if resposta == QtWidgets.QMessageBox.No:
+                return target.text()
+
+        try:
+            shutil.copy2(origem, arquivo_destino)
+            return str(arquivo_destino)
+        except Exception as e:
+            QtWidgets.QMessageBox.warning(self, "Erro", f"Falha na cópia: {e}")
+            return caminho_origem
 
     def _executar_salvamento(self):
         if not self.pasta_paciente or not self.project_manager:
-            QtWidgets.QMessageBox.warning(self, "Aviso", "Salve os dados pessoais primeiro.")
+            QtWidgets.QMessageBox.warning(self, "Aviso", "Identifique o paciente primeiro.")
             return
 
         root = Path(self.pasta_paciente)
         data = self.project_manager.load_project(root) or {}
-        data["caminhos"] = self.get_data()
+
+        caminhos = data.get("caminhos", {})
+        caminhos.update(self.get_data())
+        data["caminhos"] = caminhos
 
         if self.project_manager.save_project(root, data):
-            QtWidgets.QMessageBox.information(self, "Sucesso", "Caminhos de arquivos salvos.")
+            QtWidgets.QMessageBox.information(self, "Sucesso", "Caminhos de arquivos salvos com sucesso.")
             self.salvamento_solicitado.emit()
         else:
-            QtWidgets.QMessageBox.critical(self, "Erro", "Falha ao salvar arquivos.")
+            QtWidgets.QMessageBox.critical(self, "Erro", "Não foi possível salvar os caminhos.")
 
     def get_data(self) -> dict:
         return {
@@ -80,8 +118,8 @@ class FileListTab(QtWidgets.QWidget):
         if pasta:
             self.pasta_paciente = pasta
 
-        caminhos = data.get("caminhos", {})
-        self.edit_tomografia.setText(caminhos.get("dicom", ""))
-        self.edit_maxila.setText(caminhos.get("maxila", ""))
-        self.edit_mandibula.setText(caminhos.get("mandibula", ""))
-        self.edit_face.setText(caminhos.get("face", ""))
+        c = data.get("caminhos", {})
+        self.edit_tomografia.setText(c.get("dicom", ""))
+        self.edit_maxila.setText(c.get("maxila", ""))
+        self.edit_mandibula.setText(c.get("mandibula", ""))
+        self.edit_face.setText(c.get("face", ""))
