@@ -133,7 +133,7 @@ class PersonalDataTab(QtWidgets.QWidget):
 
         lay.addStretch()
 
-        self.btn_salvar = QtWidgets.QPushButton("Salvar Projeto")
+        self.btn_salvar = QtWidgets.QPushButton("Salvar dados do paciente")
         self.btn_salvar.setMinimumHeight(45)
         self.btn_salvar.clicked.connect(self._salvar)
 

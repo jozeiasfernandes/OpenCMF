@@ -1,5 +1,5 @@
-from PySide6 import QtWidgets, QtCore, QtGui
 from pathlib import Path
+from PySide6 import QtWidgets, QtCore, QtGui
 
 
 class PhotoCard(QtWidgets.QWidget):
@@ -44,25 +44,10 @@ class PhotoCard(QtWidgets.QWidget):
 
     def _selecionar_imagem(self):
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self,
-            "Selecionar imagem",
-            "",
-            "Imagens (*.png *.jpg *.jpeg *.bmp)"
+            self, "Selecionar imagem", "", "Imagens (*.png *.jpg *.jpeg *.bmp)"
         )
-
-        if not file_path:
-            return
-
-        self.image_path = file_path
-        pix = QtGui.QPixmap(file_path)
-
-        self.preview.setPixmap(
-            pix.scaled(
-                self.preview.size(),
-                QtCore.Qt.KeepAspectRatio,
-                QtCore.Qt.SmoothTransformation
-            )
-        )
+        if file_path:
+            self.set_path(file_path)
 
     def get_path(self):
         return self.image_path
@@ -73,21 +58,20 @@ class PhotoCard(QtWidgets.QWidget):
             self._set_placeholder()
             return
 
-        self.image_path = path
-        pix = QtGui.QPixmap(path)
-
+        self.image_path = str(Path(path).resolve())
+        pix = QtGui.QPixmap(self.image_path)
         self.preview.setPixmap(
-            pix.scaled(
-                self.preview.size(),
-                QtCore.Qt.KeepAspectRatio,
-                QtCore.Qt.SmoothTransformation
-            )
+            pix.scaled(self.preview.size(), QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
         )
 
 
 class PhotoTab(QtWidgets.QWidget):
-    def __init__(self):
+    salvamento_solicitado = QtCore.Signal()
+
+    def __init__(self, project_manager=None):
         super().__init__()
+        self.project_manager = project_manager
+        self.pasta_paciente = None
         self._build_ui()
 
     def _build_ui(self):
@@ -110,7 +94,6 @@ class PhotoTab(QtWidgets.QWidget):
 
         self.card_frontal = PhotoCard("Frontal")
         self.card_perfil = PhotoCard("Perfil")
-
         layout_face.addWidget(self.card_frontal)
         layout_face.addWidget(self.card_perfil)
 
@@ -120,23 +103,17 @@ class PhotoTab(QtWidgets.QWidget):
         layout_intra.setSpacing(14)
 
         row_oclusal = QtWidgets.QHBoxLayout()
-        row_oclusal.setAlignment(QtCore.Qt.AlignCenter)
         row_oclusal.setSpacing(20)
-
         self.card_oclusal_sup = PhotoCard("Oclusal sup")
         self.card_oclusal_inf = PhotoCard("Oclusal inf")
-
         row_oclusal.addWidget(self.card_oclusal_sup)
         row_oclusal.addWidget(self.card_oclusal_inf)
 
         row_dent = QtWidgets.QHBoxLayout()
-        row_dent.setAlignment(QtCore.Qt.AlignCenter)
         row_dent.setSpacing(20)
-
         self.card_dent_frontal = PhotoCard("Dentição frontal")
         self.card_dent_lat_dir = PhotoCard("Dentição lateral dir")
         self.card_dent_lat_esq = PhotoCard("Dentição lateral esq")
-
         row_dent.addWidget(self.card_dent_frontal)
         row_dent.addWidget(self.card_dent_lat_dir)
         row_dent.addWidget(self.card_dent_lat_esq)
@@ -148,8 +125,26 @@ class PhotoTab(QtWidgets.QWidget):
         content_layout.addWidget(box_intra)
         content_layout.addStretch()
 
+        self.btn_salvar = QtWidgets.QPushButton("Salvar Fotografias")
+        self.btn_salvar.setMinimumHeight(45)
+        self.btn_salvar.clicked.connect(self._executar_salvamento)
+        content_layout.addWidget(self.btn_salvar)
+
         scroll.setWidget(container)
         main_layout.addWidget(scroll)
+
+    def _executar_salvamento(self):
+        if not self.pasta_paciente or not self.project_manager:
+            QtWidgets.QMessageBox.warning(self, "Aviso", "Identifique o paciente primeiro.")
+            return
+
+        root = Path(self.pasta_paciente)
+        data = self.project_manager.load_project(root) or {}
+        data["fotos"] = self.get_data()
+
+        if self.project_manager.save_project(root, data):
+            QtWidgets.QMessageBox.information(self, "Sucesso", "Fotografias salvas.")
+            self.salvamento_solicitado.emit()
 
     def get_data(self):
         return {
@@ -162,28 +157,26 @@ class PhotoTab(QtWidgets.QWidget):
             "dent_lat_esq": self.card_dent_lat_esq.get_path(),
         }
 
-    def set_data(self, data: dict):
-        self.card_frontal.set_path(data.get("frontal"))
-        self.card_perfil.set_path(data.get("perfil"))
-        self.card_oclusal_sup.set_path(data.get("oclusal_sup"))
-        self.card_oclusal_inf.set_path(data.get("oclusal_inf"))
-        self.card_dent_frontal.set_path(data.get("dent_frontal"))
-        self.card_dent_lat_dir.set_path(data.get("dent_lat_dir"))
-        self.card_dent_lat_esq.set_path(data.get("dent_lat_esq"))
+    def set_data(self, data: dict, pasta: str = None):
+        if pasta:
+            self.pasta_paciente = pasta
+
+        fotos = data.get("fotos", {})
+        self.card_frontal.set_path(fotos.get("frontal"))
+        self.card_perfil.set_path(fotos.get("perfil"))
+        self.card_oclusal_sup.set_path(fotos.get("oclusal_sup"))
+        self.card_oclusal_inf.set_path(fotos.get("oclusal_inf"))
+        self.card_dent_frontal.set_path(fotos.get("dent_frontal"))
+        self.card_dent_lat_dir.set_path(fotos.get("dent_lat_dir"))
+        self.card_dent_lat_esq.set_path(fotos.get("dent_lat_esq"))
 
 
 if __name__ == "__main__":
     import sys
 
     app = QtWidgets.QApplication(sys.argv)
-
     window = QtWidgets.QMainWindow()
-    window.setWindowTitle("PhotoTab - Teste")
-
-    widget = PhotoTab()
-    window.setCentralWidget(widget)
-
-    window.resize(900, 500)
+    window.setCentralWidget(PhotoTab())
+    window.resize(900, 700)
     window.show()
-
     sys.exit(app.exec())

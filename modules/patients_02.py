@@ -1,3 +1,4 @@
+import sys
 from typing import Dict
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
@@ -28,25 +29,43 @@ class Modulo(QtWidgets.QWidget):
     def inicializar(self, caminho_paciente: str) -> None:
         self._caminho_paciente = caminho_paciente
         root = Path(caminho_paciente)
-
         dados = self.project_service.load_project(root)
 
         if self.tab_dados:
             self.tab_dados.carregar(caminho_paciente)
 
-        if self.tab_arquivos and dados:
-            self.tab_arquivos.set_data(dados)
+        if self.tab_arquivos:
+            self.tab_arquivos.set_data(dados or {}, caminho_paciente)
+
+        if self.tab_fotos:
+            self.tab_fotos.set_data(dados or {}, caminho_paciente)
+
+    def _atualizar_pasta_abas(self):
+        """Sincroniza a pasta do paciente entre as abas após o primeiro salvamento."""
+        if self.tab_dados:
+            nova_pasta = self.tab_dados.pasta_paciente
+            self._caminho_paciente = nova_pasta
+
+            if self.tab_arquivos:
+                self.tab_arquivos.pasta_paciente = nova_pasta
+            if self.tab_fotos:
+                self.tab_fotos.pasta_paciente = nova_pasta
 
     def verificar_pre_requisitos(self):
         return True, ""
 
     def validar_passagem(self) -> bool:
-        if not self._caminho_paciente or not self.tab_arquivos:
+        if not self._caminho_paciente:
             return True
 
         root = Path(self._caminho_paciente)
         data = self.project_service.load_project(root) or {}
-        data["caminhos"] = self.tab_arquivos.get_data()
+
+        if self.tab_arquivos:
+            data["caminhos"] = self.tab_arquivos.get_data()
+
+        if self.tab_fotos:
+            data["fotos"] = self.tab_fotos.get_data()
 
         self.project_service.save_project(root, data)
         return True
@@ -76,8 +95,11 @@ class Modulo(QtWidgets.QWidget):
         tabs.setDocumentMode(True)
 
         self.tab_dados = PersonalDataTab(self.project_service)
-        self.tab_arquivos = FileListTab()
-        self.tab_fotos = PhotoTab()
+        self.tab_arquivos = FileListTab(self.project_service)
+        self.tab_fotos = PhotoTab(self.project_service)
+
+        # Conecta o sinal de conclusão (salvamento) dos dados para atualizar as outras abas
+        self.tab_dados.concluido.connect(self._atualizar_pasta_abas)
 
         tabs.addTab(self.tab_dados, "Dados pessoais")
         tabs.addTab(self.tab_arquivos, "Lista de arquivos")
@@ -92,3 +114,14 @@ class Modulo(QtWidgets.QWidget):
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         return {}
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    window = QtWidgets.QMainWindow()
+    modulo = Modulo()
+    window.setCentralWidget(modulo.get_workspace())
+    window.setMenuWidget(modulo.get_workspace_toolbar())
+    window.resize(1000, 700)
+    window.show()
+    sys.exit(app.exec())
