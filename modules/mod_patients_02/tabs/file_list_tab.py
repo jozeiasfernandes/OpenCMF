@@ -1,11 +1,9 @@
 from PySide6 import QtWidgets, QtCore
 from modules.mod_patients_02.ui_components import criar_linha_arquivo
 
-
 class FileListTab(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-
         self._init_ui()
         self._build_layout()
 
@@ -17,7 +15,6 @@ class FileListTab(QtWidgets.QWidget):
 
     def _build_layout(self):
         layout = QtWidgets.QVBoxLayout(self)
-
         form = QtWidgets.QFormLayout()
 
         form.addRow("Tomografia:", criar_linha_arquivo(self.edit_tomografia, self._buscar_caminho, True))
@@ -25,13 +22,11 @@ class FileListTab(QtWidgets.QWidget):
         form.addRow("Scan Maxila:", criar_linha_arquivo(self.edit_maxila, self._buscar_caminho, False))
         form.addRow("Scan Mandíbula:", criar_linha_arquivo(self.edit_mandibula, self._buscar_caminho, False))
 
-
         layout.addLayout(form)
         layout.addStretch()
 
     def _buscar_caminho(self, target, folder=True):
         settings = QtCore.QSettings("OpenCMF", "Config")
-
         chave = "ultimo_diretorio_dicom" if target == self.edit_tomografia else "ultimo_diretorio_geral"
         ultimo = settings.value(chave, "")
 
@@ -39,17 +34,14 @@ class FileListTab(QtWidgets.QWidget):
             path = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta", ultimo)
         else:
             path, _ = QtWidgets.QFileDialog.getOpenFileName(
-                self,
-                "Selecionar Arquivo",
-                ultimo,
-                "Malhas (*.stl *.obj *.ply)"
+                self, "Selecionar Arquivo", ultimo, "Malhas (*.stl *.obj *.ply)"
             )
 
         if path:
             target.setText(path)
             settings.setValue(chave, path)
 
-    def get_data(self):
+    def get_data(self) -> dict:
         return {
             "dicom": self.edit_tomografia.text(),
             "maxila": self.edit_maxila.text(),
@@ -58,7 +50,8 @@ class FileListTab(QtWidgets.QWidget):
         }
 
     def set_data(self, data: dict):
-        self.edit_tomografia.setText(data.get("dicom", ""))
-        self.edit_face.setText(data.get("face", ""))
-        self.edit_maxila.setText(data.get("maxila", ""))
-        self.edit_mandibula.setText(data.get("mandibula", ""))
+        caminhos = data.get("caminhos", {})
+        self.edit_tomografia.setText(caminhos.get("dicom", ""))
+        self.edit_maxila.setText(caminhos.get("maxila", ""))
+        self.edit_mandibula.setText(caminhos.get("mandibula", ""))
+        self.edit_face.setText(caminhos.get("face", ""))

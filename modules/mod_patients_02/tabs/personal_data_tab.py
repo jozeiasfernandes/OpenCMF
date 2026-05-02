@@ -193,7 +193,7 @@ class PersonalDataTab(QtWidgets.QWidget):
 
     def carregar(self, pasta: str):
         self.pasta_paciente = pasta
-        data = self.project_manager.loading_project(Path(pasta))
+        data = self.project_manager.load_project(Path(pasta))
         if not data:
             return
 

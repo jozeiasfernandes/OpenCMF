@@ -121,7 +121,7 @@ class MainWindow(QtWidgets.QMainWindow):
             config = json.loads(file.read_text(encoding="utf-8"))
             self.build_workspace(config)
             self.stack.setCurrentWidget(self.workspace)
-            QtCore.QTimer.singleShot(100, self.sync_module)
+            self.sync_module()
         except Exception as e:
             self.report_error(tr("common.flow_error"), e)
 
@@ -132,6 +132,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for module_id in self.workflow.sequencia:
             if module := self.project_service.carregar_modulo(module_id):
+                if hasattr(module, 'inicializar') and self.current_patient_path:
+                    module.inicializar(self.current_patient_path)
+
                 module.concluido.connect(self.on_step_done)
                 self.workspace.adicionar_modulo(module_id, module)
 
@@ -139,9 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def sync_module(self):
         active = self.workspace.get_modulo_ativo()
-        if not active or not self.current_patient_path: return
-
-        if hasattr(active, 'inicializar'):
+        if active and self.current_patient_path and hasattr(active, 'inicializar'):
             active.inicializar(self.current_patient_path)
 
     def on_step_done(self):
