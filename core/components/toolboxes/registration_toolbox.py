@@ -59,7 +59,6 @@ class RegistrationWidget(QtWidgets.QWidget):
                     self.table.setItem(r, 2, QtWidgets.QTableWidgetItem(pos_str))
                     return
 
-            # Se não houver linha correspondente na Vista A, cria uma nova linha
             row = self.table.rowCount()
             self.table.insertRow(row)
             self.table.setItem(row, 0, QtWidgets.QTableWidgetItem(f"Ponto {row + 1}"))

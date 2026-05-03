@@ -1,8 +1,13 @@
 import sys
+import logging
+import traceback
 from functools import partial
 from pathlib import Path
 from typing import Optional, Any, Dict
 from PySide6 import QtWidgets, QtCore, QtGui
+
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger("WorkspaceManager")
 
 try:
     from .btn_home import HomeButton
@@ -13,14 +18,7 @@ except ImportError:
             self.setIconSize(size)
             self.setFixedSize(size)
             self.setCursor(QtCore.Qt.PointingHandCursor)
-            self.setStyleSheet("""
-                QPushButton { 
-                    border: none; 
-                    background: transparent; 
-                    padding: 10px;
-                    margin: 0px;
-                }
-            """)
+            self.setStyleSheet("QPushButton { border: none; background: transparent; padding: 10px; }")
             self.clicked_signal = self.clicked
 
 
@@ -32,7 +30,6 @@ def get_resource_path() -> Path:
 
 class WorkspaceManager(QtWidgets.QTabWidget):
     home_solicitada = QtCore.Signal()
-
     SIDEBAR_COLLAPSED_WIDTH = 35
     SIDEBAR_EXPANDED_WIDTH = 330
     TAB_HEIGHT = 40
@@ -41,10 +38,11 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
     def __init__(self):
         super().__init__()
+        logger.debug("Inicializando WorkspaceManager")
         self.base_dir = get_resource_path()
         self._configure_workspace_settings()
         self._setup_home_button()
-        self.currentChanged.connect(self._sync_active_module_view)
+        self.currentChanged.connect(self._on_tab_changed)
 
     def _configure_workspace_settings(self):
         self.setDocumentMode(True)
@@ -55,27 +53,29 @@ class WorkspaceManager(QtWidgets.QTabWidget):
     def _setup_home_button(self):
         self.btn_home = HomeButton(self.base_dir, self.ICON_SIZE_HOME)
         self.btn_home.clicked_signal.connect(self.home_solicitada.emit)
-
         container = QtWidgets.QWidget()
         container.setFixedSize(50, self.TAB_HEIGHT)
-
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(10, 0, 0, 0)
-        layout.setSpacing(0)
         layout.addWidget(self.btn_home)
-
         self.setCornerWidget(container, QtCore.Qt.TopLeftCorner)
 
     def adicionar_modulo(self, id_modulo: str, modulo_obj: Any):
-        title = getattr(modulo_obj, 'nome', id_modulo.replace("_", " ").capitalize())
-        container = self._create_module_container(modulo_obj)
+        try:
+            logger.info(f"Adicionando módulo: {id_modulo}")
+            title = getattr(modulo_obj, 'nome', id_modulo.replace("_", " ").capitalize())
+            container = self._create_module_container(modulo_obj)
 
-        self.blockSignals(True)
-        self.addTab(container, title)
-        self.blockSignals(False)
+            self.blockSignals(True)
+            index = self.addTab(container, title)
+            self.blockSignals(False)
 
-        self._build_module_layout(container, modulo_obj)
-        self._ensure_first_tab_active()
+            self._build_module_layout(container, modulo_obj)
+            self._ensure_first_tab_active()
+            logger.debug(f"Módulo {id_modulo} inserido no índice {index}")
+        except Exception as e:
+            logger.error(f"Erro ao adicionar módulo {id_modulo}: {e}")
+            logger.error(traceback.format_exc())
 
     def _create_module_container(self, modulo_obj: Any) -> QtWidgets.QWidget:
         container = QtWidgets.QWidget()
@@ -90,15 +90,25 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         current_container = self.currentWidget()
         return current_container.property("modulo_instancia") if current_container else None
 
+    def _on_tab_changed(self, index: int):
+        modulo = self.get_modulo_ativo()
+        nome = getattr(modulo, 'nome', 'Desconhecido') if modulo else 'Nenhum'
+        logger.debug(f"Aba alterada para índice {index} (Módulo: {nome})")
+        self._sync_active_module_view()
+
     def _sync_active_module_view(self):
         active_module = self.get_modulo_ativo()
         if active_module:
             QtCore.QTimer.singleShot(10, lambda: self._refresh_module_display(active_module))
 
     def _refresh_module_display(self, modulo_obj: Any):
-        viewer = getattr(modulo_obj, 'viewer', None)
-        if hasattr(viewer, 'refresh_display'):
-            viewer.refresh_display()
+        try:
+            viewer = getattr(modulo_obj, 'viewer', None)
+            if hasattr(viewer, 'refresh_display'):
+                logger.debug("Solicitando refresh_display ao viewer do módulo")
+                viewer.refresh_display()
+        except Exception as e:
+            logger.warning(f"Falha ao dar refresh no display: {e}")
 
     def _build_module_layout(self, container: QtWidgets.QWidget, modulo_obj: Any):
         layout = QtWidgets.QHBoxLayout(container)
@@ -114,7 +124,6 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
     def _create_main_splitter(self) -> QtWidgets.QSplitter:
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        splitter.setObjectName("workspaceSplitter")
         splitter.setHandleWidth(1)
         return splitter
 
@@ -129,9 +138,9 @@ class WorkspaceManager(QtWidgets.QTabWidget):
             layout.addWidget(toolbar)
 
         view = modulo_obj.get_workspace()
-        view.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        layout.addWidget(view)
-
+        if view:
+            view.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+            layout.addWidget(view)
         return center_widget
 
     def _attach_sidebar_if_needed(self, splitter: QtWidgets.QSplitter, container: QtWidgets.QWidget, modulo_obj: Any):
@@ -142,9 +151,9 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         if not toolboxes:
             return
 
+        logger.debug(f"Anexando sidebar com {len(toolboxes)} toolboxes")
         sidebar = self._create_sidebar(toolboxes)
         splitter.addWidget(sidebar)
-
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 0)
         splitter.setSizes([container.width(), self.SIDEBAR_COLLAPSED_WIDTH])
@@ -175,16 +184,16 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         is_same_tab = clicked_index == sidebar.currentIndex()
 
         if is_already_expanded and is_same_tab:
+            logger.debug("Recolhendo sidebar")
             self._collapse_sidebar(sidebar)
         else:
+            logger.debug(f"Expandindo sidebar na aba {clicked_index}")
             self._expand_sidebar(sidebar, clicked_index)
-
         self._sync_active_module_view()
 
     def _collapse_sidebar(self, sidebar: QtWidgets.QTabWidget):
         sidebar.setMaximumWidth(self.SIDEBAR_COLLAPSED_WIDTH)
         self._set_tabs_visibility(sidebar, False)
-
         splitter = self._find_parent_splitter(sidebar)
         if splitter:
             splitter.setSizes([10000, self.SIDEBAR_COLLAPSED_WIDTH])
@@ -193,7 +202,6 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         sidebar.setMaximumWidth(self.MAX_WIDGET_WIDTH)
         self._set_tabs_visibility(sidebar, True)
         sidebar.setCurrentIndex(index)
-
         splitter = self._find_parent_splitter(sidebar)
         if splitter:
             available_width = splitter.width() - self.SIDEBAR_EXPANDED_WIDTH
@@ -219,16 +227,14 @@ if __name__ == "__main__":
             self.nome = nome
             self.cor = cor
 
-        def get_workspace_toolbar(self):
-            return QtWidgets.QToolBar()
+        def get_workspace_toolbar(self): return QtWidgets.QToolBar()
 
         def get_workspace(self):
             w = QtWidgets.QFrame()
             w.setStyleSheet(f"background-color: {self.cor};")
             return w
 
-        def get_toolboxes(self):
-            return {"Opções": QtWidgets.QLabel("Painel de Controle")}
+        def get_toolboxes(self): return {"Opções": QtWidgets.QLabel("Painel de Controle")}
 
 
     manager = WorkspaceManager()
