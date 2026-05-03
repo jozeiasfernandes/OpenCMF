@@ -1,9 +1,12 @@
+import shutil
+import zipfile
+import os
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore, QtGui
 
 
-class ProjetosTab(QtWidgets.QWidget):
-    projeto_aberto = QtCore.Signal(str)
+class ProjectTab(QtWidgets.QWidget):
+    importacao_concluida = QtCore.Signal()
 
     def __init__(self, project_manager=None):
         super().__init__()
@@ -13,64 +16,154 @@ class ProjetosTab(QtWidgets.QWidget):
         self._build_layout()
 
     def _init_ui(self):
-        self.lista_projetos = QtWidgets.QListWidget()
-        self.lista_projetos.setSpacing(2)
-        self.lista_projetos.itemDoubleClicked.connect(self._abrir_projeto)
+        self.label_status = QtWidgets.QLabel("Gerenciamento de Pacotes e Arquivos")
+        self.label_status.setAlignment(QtCore.Qt.AlignCenter)
+        self.label_status.setStyleSheet("font-weight: bold; color: #555; font-size: 14px;")
 
-        self.btn_novo_projeto = QtWidgets.QPushButton("Criar Novo Projeto")
-        self.btn_novo_projeto.setMinimumHeight(45)
-        self.btn_novo_projeto.clicked.connect(self._criar_projeto)
+        self.btn_abrir_pasta = QtWidgets.QPushButton("Abrir Pasta do Projeto")
+        self.btn_abrir_pasta.setMinimumHeight(40)
+        self.btn_abrir_pasta.clicked.connect(self._abrir_pasta_paciente)
 
-        self.btn_abrir = QtWidgets.QPushButton("Abrir Selecionado")
-        self.btn_abrir.clicked.connect(self._abrir_projeto)
+        self.btn_exportar = QtWidgets.QPushButton("Exportar Projeto (.zip)")
+        self.btn_exportar.setMinimumHeight(40)
+        self.btn_exportar.clicked.connect(self._executar_exportacao)
+
+        self.btn_importar = QtWidgets.QPushButton("Importar Projeto (.zip)")
+        self.btn_importar.setMinimumHeight(40)
+        self.btn_importar.clicked.connect(self._executar_importacao)
+
+        self.model = QtWidgets.QFileSystemModel()
+        self.tree = QtWidgets.QTreeView()
+        self.tree.setModel(self.model)
+        self.tree.setAnimated(True)
+        self.tree.setIndentation(20)
+        self.tree.setSortingEnabled(True)
+
+        for i in range(1, 4):
+            self.tree.hideColumn(i)
+
+        self.label_tamanho = QtWidgets.QLabel("Tamanho total: 0 KB")
+        self.label_tamanho.setAlignment(QtCore.Qt.AlignRight)
+        self.label_tamanho.setStyleSheet("color: #777; font-style: italic; padding: 5px;")
 
     def _build_layout(self):
         layout = QtWidgets.QVBoxLayout(self)
 
-        botoes_layout = QtWidgets.QHBoxLayout()
-        botoes_layout.addWidget(self.btn_novo_projeto)
-        botoes_layout.addWidget(self.btn_abrir)
+        layout.addWidget(self.label_status)
+        layout.addSpacing(10)
 
-        layout.addWidget(QtWidgets.QLabel("Projetos do Paciente:"))
-        layout.addWidget(self.lista_projetos)
-        layout.addLayout(botoes_layout)
+        layout_botoes = QtWidgets.QHBoxLayout()
+        layout_botoes.addWidget(self.btn_abrir_pasta)
+        layout_botoes.addWidget(self.btn_exportar)
+        layout_botoes.addWidget(self.btn_importar)
+        layout.addLayout(layout_botoes)
+
+        layout.addSpacing(10)
+        layout.addWidget(QtWidgets.QLabel("Arquivos no diretório do paciente:"))
+        layout.addWidget(self.tree)
+        layout.addWidget(self.label_tamanho)
 
     def set_data(self, data: dict, pasta: str = None):
+        self.pasta_paciente = pasta
         if pasta:
-            self.pasta_paciente = pasta
-            self._atualizar_lista()
+            path_obj = Path(pasta).absolute()
+            nome = path_obj.name
+            self.label_status.setText(f"Paciente: {nome}")
 
-    def _atualizar_lista(self):
-        self.lista_projetos.clear()
+            abs_path = str(path_obj)
+            index = self.model.setRootPath(abs_path)
+            self.tree.setRootIndex(index)
+
+            self._atualizar_label_tamanho(path_obj)
+
+    def _atualizar_label_tamanho(self, path_obj):
+        bytes_size = sum(f.stat().st_size for f in path_obj.rglob('*') if f.is_file())
+
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if bytes_size < 1024.0:
+                break
+            bytes_size /= 1024.0
+
+        self.label_tamanho.setText(f"Tamanho total: {bytes_size:.2f} {unit}")
+
+    def _abrir_pasta_paciente(self):
         if not self.pasta_paciente:
+            QtWidgets.QMessageBox.warning(self, "Aviso", "Selecione um paciente primeiro.")
             return
 
-        caminho_projetos = Path(self.pasta_paciente) / "projects"
-        if not caminho_projetos.exists():
-            return
+        path = QtCore.QUrl.fromLocalFile(str(Path(self.pasta_paciente).absolute()))
+        QtGui.QDesktopServices.openUrl(path)
 
-        projetos = [p.name for p in caminho_projetos.iterdir() if p.is_dir()]
-        self.lista_projetos.addItems(projetos)
-
-    def _criar_projeto(self):
+    def _executar_exportacao(self):
         if not self.pasta_paciente:
-            QtWidgets.QMessageBox.warning(self, "Aviso", "Identifique o paciente primeiro.")
+            QtWidgets.QMessageBox.warning(self, "Aviso", "Selecione um paciente primeiro.")
             return
 
-        nome, ok = QtWidgets.QInputDialog.getText(self, "Novo Projeto", "Nome do projeto:")
-        if ok and nome:
-            caminho = Path(self.pasta_paciente) / "projects" / nome
-            try:
-                caminho.mkdir(parents=True, exist_ok=True)
-                self._atualizar_lista()
-            except Exception as e:
-                QtWidgets.QMessageBox.critical(self, "Erro", f"Erro ao criar pasta: {e}")
+        origem = Path(self.pasta_paciente)
+        sugestao = f"{origem.name}.zip"
 
-    def _abrir_projeto(self):
-        item = self.lista_projetos.currentItem()
-        if not item:
+        destino_zip, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self, "Exportar Projeto", sugestao, "Zip files (*.zip)"
+        )
+
+        if not destino_zip:
             return
 
-        nome_projeto = item.text()
-        caminho_completo = str(Path(self.pasta_paciente) / "projects" / nome_projeto)
-        self.projeto_aberto.emit(caminho_completo)
+        try:
+            base = str(Path(destino_zip).with_suffix(''))
+            shutil.make_archive(base, 'zip', origem)
+            QtWidgets.QMessageBox.information(self, "Sucesso", "Exportação concluída.")
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao exportar: {str(e)}")
+
+    def _executar_importacao(self):
+        settings = QtCore.QSettings("OpenCMF", "Config")
+        ultimo_dir = settings.value("ultimo_diretorio_zip", "")
+
+        zip_path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Importar Projeto", ultimo_dir, "Zip files (*.zip)"
+        )
+
+        if not zip_path:
+            return
+
+        settings.setValue("ultimo_diretorio_zip", str(Path(zip_path).parent))
+        destino_base = Path("pacients")
+        destino_base.mkdir(exist_ok=True)
+
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+                nome_pasta = Path(zip_path).stem
+                caminho_final = destino_base / nome_pasta
+
+                if caminho_final.exists():
+                    msg = f"A pasta '{nome_pasta}' já existe. Deseja sobrescrever?"
+                    res = QtWidgets.QMessageBox.question(self, "Confirmar", msg)
+                    if res == QtWidgets.QMessageBox.No:
+                        return
+                    shutil.rmtree(caminho_final)
+
+                zip_ref.extractall(caminho_final)
+                QtWidgets.QMessageBox.information(self, "Sucesso", "Importação concluída.")
+                self.importacao_concluida.emit()
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao importar: {str(e)}")
+
+
+if __name__ == "__main__":
+    import sys
+
+    app = QtWidgets.QApplication(sys.argv)
+
+    base_teste = Path("pacients/Paciente_Teste")
+    base_teste.mkdir(parents=True, exist_ok=True)
+    (base_teste / "surfaces").mkdir(exist_ok=True)
+    (base_teste / "surfaces/mandibula.stl").write_text("dummy mesh")
+    (base_teste / "info.json").write_text("{}")
+
+    window = ProjectTab()
+    window.set_data({}, str(base_teste.absolute()))
+    window.resize(700, 500)
+    window.show()
+
+    sys.exit(app.exec())

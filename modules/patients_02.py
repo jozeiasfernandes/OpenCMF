@@ -6,6 +6,7 @@ from PySide6 import QtWidgets, QtCore
 from modules.mod_patients_02.tabs.personal_data_tab import PersonalDataTab
 from modules.mod_patients_02.tabs.file_list_tab import FileListTab
 from modules.mod_patients_02.tabs.photo_tab import PhotoTab
+from modules.mod_patients_02.tabs.project_tab import ProjectTab  # Nova importação
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 
 
@@ -25,6 +26,7 @@ class Modulo(QtWidgets.QWidget):
         self.tab_dados = None
         self.tab_arquivos = None
         self.tab_fotos = None
+        self.tab_projeto = None  # Referência para a nova aba
 
     def inicializar(self, caminho_paciente: str) -> None:
         self._caminho_paciente = caminho_paciente
@@ -40,6 +42,9 @@ class Modulo(QtWidgets.QWidget):
         if self.tab_fotos:
             self.tab_fotos.set_data(dados or {}, caminho_paciente)
 
+        if self.tab_projeto:
+            self.tab_projeto.set_data(dados or {}, caminho_paciente)
+
     def _atualizar_pasta_abas(self):
         """Sincroniza a pasta do paciente entre as abas após o primeiro salvamento."""
         if self.tab_dados:
@@ -50,6 +55,8 @@ class Modulo(QtWidgets.QWidget):
                 self.tab_arquivos.pasta_paciente = nova_pasta
             if self.tab_fotos:
                 self.tab_fotos.pasta_paciente = nova_pasta
+            if self.tab_projeto:
+                self.tab_projeto.pasta_paciente = nova_pasta
 
     def verificar_pre_requisitos(self):
         return True, ""
@@ -66,6 +73,9 @@ class Modulo(QtWidgets.QWidget):
 
         if self.tab_fotos:
             data["fotos"] = self.tab_fotos.get_data()
+
+        # A ProjectTab lida com arquivos físicos, mas se houver metadados,
+        # poderiam ser salvos aqui também.
 
         self.project_service.save_project(root, data)
         return True
@@ -97,13 +107,18 @@ class Modulo(QtWidgets.QWidget):
         self.tab_dados = PersonalDataTab(self.project_service)
         self.tab_arquivos = FileListTab(self.project_service)
         self.tab_fotos = PhotoTab(self.project_service)
+        self.tab_projeto = ProjectTab(self.project_service)  # Instanciando a nova aba
 
         # Conecta o sinal de conclusão (salvamento) dos dados para atualizar as outras abas
         self.tab_dados.concluido.connect(self._atualizar_pasta_abas)
 
+        # Opcional: conectar sinal de importação da ProjectTab para recarregar o módulo se necessário
+        self.tab_projeto.importacao_concluida.connect(lambda: print("Projeto Importado"))
+
         tabs.addTab(self.tab_dados, "Dados pessoais")
         tabs.addTab(self.tab_arquivos, "Lista de arquivos")
         tabs.addTab(self.tab_fotos, "Fotografias")
+        tabs.addTab(self.tab_projeto, "Projeto")  # Adicionando a aba ao widget
 
         layout.addWidget(tabs)
 
