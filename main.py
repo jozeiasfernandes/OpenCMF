@@ -26,11 +26,8 @@ logger = logging.getLogger("OpenCMF.Main")
 
 vtk.vtkObject.GlobalWarningDisplayOff()
 
-
 def get_resource_path() -> Path:
-    base_path = getattr(sys, '_MEIPASS', Path(__file__).resolve().parent)
-    return Path(base_path)
-
+    return Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -62,14 +59,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(tr("main.window_title", title))
 
     def _setup_icon(self):
-        icon_path = self.base_dir / "appearance" / "icons" / "cmf.svg"
-        if not icon_path.exists():
-            icon_path = icon_path.with_suffix(".ico")
-
-        if icon_path.exists():
-            app_icon = QtGui.QIcon(str(icon_path))
-            self.setWindowIcon(app_icon)
-            QtWidgets.QApplication.setWindowIcon(app_icon)
+        for ext in [".svg", ".ico"]:
+            icon_path = self.base_dir / "appearance" / "icons" / f"cmf{ext}"
+            if icon_path.exists():
+                app_icon = QtGui.QIcon(str(icon_path))
+                self.setWindowIcon(app_icon)
+                QtWidgets.QApplication.setWindowIcon(app_icon)
+                break
 
     def _connect_signals(self):
         self.home.projeto_selecionado.connect(self.on_patient_selected)
@@ -91,15 +87,13 @@ class MainWindow(QtWidgets.QMainWindow):
         file = Path(qss_path)
         if not file.exists():
             file = self.base_dir / "appearance" / "themes" / file.name
-            if not file.exists():
-                return
+            if not file.exists(): return
 
         app = QtWidgets.QApplication.instance()
-        if isinstance(app, QtWidgets.QApplication):
+        if app:
             app.setStyleSheet(file.read_text(encoding="utf-8"))
-
-        settings.set("preferencias", "tema", file.stem)
-        settings.save()
+            settings.set("preferencias", "tema", file.stem)
+            settings.save()
 
     def back_to_home(self):
         self.home.update_list()
@@ -113,60 +107,49 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def start_workflow(self, path: str):
         try:
-            logger.info(f"Iniciando workflow: {path}")
             with open(path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
 
-            self.workspace.blockSignals(True)
-            self.workspace.clear()
+            self.workspace.clear() # Alterado para o método simplificado
             self.workflow = FluxoBase(config)
-
             QtCore.QTimer.singleShot(0, self._load_modules_sequentially)
 
         except Exception as e:
-            logger.error(f"Erro ao carregar workflow: {e}\n{traceback.format_exc()}")
+            logger.error(f"Erro no workflow: {traceback.format_exc()}")
             self.report_error(tr("common.flow_error"), e)
 
     def _load_modules_sequentially(self):
-        if not self.workflow:
-            return
+        if not self.workflow: return
 
-        for module_id in self.workflow.sequencia:
-            logger.debug(f"Carregando módulo: {module_id}")
-
-            classe = self.project_service.get_module_class(module_id)
-
-            if not classe:
-                continue
-
-            self.workspace.adicionar_modulo(
-                module_id,
-                classe,
-                on_concluido=self.on_step_done
-            )
-
-        self.workspace.blockSignals(False)
+        with QtCore.QSignalBlocker(self.workspace):
+            for module_id in self.workflow.sequencia:
+                classe = self.project_service.get_module_class(module_id)
+                if classe:
+                    self.workspace.adicionar_modulo(
+                        module_id,
+                        classe,
+                        on_concluido=self.on_step_done
+                    )
 
         if self.workspace.count() > 0:
             self.stack.setCurrentWidget(self.workspace)
-            QtCore.QTimer.singleShot(100, self.sync_module)
+            QtCore.QTimer.singleShot(0, self.sync_module)
 
     def sync_module(self):
         active = self.workspace.get_modulo_ativo()
         if active and self.current_patient_path and hasattr(active, 'inicializar'):
             try:
                 active.inicializar(self.current_patient_path)
-            except Exception as e:
-                logger.error(f"Erro na inicialização do módulo: {e}\n{traceback.format_exc()}")
+            except Exception:
+                logger.error(f"Erro init módulo: {traceback.format_exc()}")
 
     def on_step_done(self):
         sender = self.sender()
-        if sender and hasattr(sender, 'pasta_paciente') and sender.pasta_paciente:
+        if sender and getattr(sender, 'pasta_paciente', None):
             self.current_patient_path = str(Path(sender.pasta_paciente).resolve())
 
     def report_error(self, title: str, error: Exception):
         QtWidgets.QMessageBox.critical(self, tr("common.critical_error"), f"{title}\n{error}")
-
 
 if __name__ == "__main__":
     if sys.platform == "win32":
@@ -174,8 +157,6 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
-
-    # Previne crash do VTK com drivers Intel/Nvidia em ambientes Qt
     app.setAttribute(QtCore.Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 
     win = MainWindow()
