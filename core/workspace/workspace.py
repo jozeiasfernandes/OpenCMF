@@ -48,7 +48,6 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         self.setDocumentMode(True)
         self.setTabsClosable(False)
         self.setMovable(False)
-        self.setStyleSheet(f"QTabBar::tab {{ height: {self.TAB_HEIGHT}px; }}")
 
     def _setup_home_button(self):
         self.btn_home = HomeButton(self.base_dir, self.ICON_SIZE_HOME)

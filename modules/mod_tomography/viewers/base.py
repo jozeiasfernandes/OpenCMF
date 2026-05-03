@@ -4,7 +4,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 class JanelaBase(QtWidgets.QWidget):
-    # Sinal para sincronizar brilho/contraste entre windows
+    # Sinal para sincronizar brilho/contraste entre central_area
     windowLevelChanged = QtCore.Signal(float, float)
 
     def __init__(self, nome: str, parent=None):

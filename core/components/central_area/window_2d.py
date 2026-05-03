@@ -1,7 +1,7 @@
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.components.windows.base.janelas import JanelaBase
-from core.components.windows.window_2d_.context_menu_2d import ContextMenu2D
+from core.components.central_area.base.janelas import JanelaBase
+from core.components.central_area.window_2d_.context_menu_2d import ContextMenu2D
 
 class Janela2D(JanelaBase):
     sliceChanged = QtCore.Signal(int)

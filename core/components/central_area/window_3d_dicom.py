@@ -1,6 +1,6 @@
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.components.windows.base.janelas import JanelaBase
+from core.components.central_area.base.janelas import JanelaBase
 
 class Janela3D(JanelaBase):
     thresholdChanged = QtCore.Signal(int)

@@ -1,5 +1,5 @@
 import pytest
-from core.components.windows import Translator
+from core.components.central_area import Translator
 
 
 def test_translator_fallback():

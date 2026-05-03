@@ -4,8 +4,8 @@ import json
 from PySide6 import QtWidgets, QtCore
 from typing import Dict, Optional
 
-from core.components.windows.window_2d import Janela2D
-from core.components.windows.window_3d_dicom import Janela3D
+from core.components.central_area.window_2d import Janela2D
+from core.components.central_area.window_3d_dicom import Janela3D
 from core.volume.lookup_table.lut_manager import LUTManager
 from .viewer_utils.viewer_toolbar import VolumeViewerToolbar
 from .viewer_utils.viewer_renderers import ViewerRenderers

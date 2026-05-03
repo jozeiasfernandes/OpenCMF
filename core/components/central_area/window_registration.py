@@ -2,7 +2,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 import vtk
 import sys
 from core.components.toolbars.registration_toolbar import RegistrationToolbarHandler
-from core.components.windows.windows_3d import Janela3DSurface
+from core.components.central_area.windows_3d import Janela3DSurface
 
 
 class RegistrationDoubleClickFilter(QtCore.QObject):
