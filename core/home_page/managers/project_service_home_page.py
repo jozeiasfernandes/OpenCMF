@@ -105,18 +105,18 @@ class ProjectServiceHomePage:
             pass
         return None
 
-    def carregar_modulo(self, id_modulo: str) -> Optional[Any]:
+    def get_module_class(self, id_modulo: str) -> Optional[type]:
         try:
             mapeamento = {"Paciente": "patients", "modulo.paciente": "patients"}
             target = mapeamento.get(id_modulo, id_modulo.lower())
-            module_path = target if target.startswith("modules.") else f"modules.{target}"
+            path = target if target.startswith("modules.") else f"modules.{target}"
 
-            spec = importlib.util.find_spec(module_path)
-            if not spec: return None
+            spec = importlib.util.find_spec(path)
+            if not spec:
+                return None
 
-            module_obj = importlib.import_module(module_path)
-            classe = getattr(module_obj, "Modulo", None)
-            return classe() if classe else None
+            module_obj = importlib.import_module(path)
+            return getattr(module_obj, "Modulo", None)
         except Exception as e:
-            logging.error(f"Erro modulo {id_modulo}: {e}")
+            logging.error(f"Erro ao importar {id_modulo}: {e}")
             return None

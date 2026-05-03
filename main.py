@@ -133,14 +133,20 @@ class MainWindow(QtWidgets.QMainWindow):
 
         for module_id in self.workflow.sequencia:
             logger.debug(f"Carregando módulo: {module_id}")
-            module = self.project_service.carregar_modulo(module_id)
 
-            if module:
-                if hasattr(module, 'concluido'):
-                    module.concluido.connect(self.on_step_done)
-                self.workspace.adicionar_modulo(module_id, module)
+            classe = self.project_service.get_module_class(module_id)
+
+            if not classe:
+                continue
+
+            self.workspace.adicionar_modulo(
+                module_id,
+                classe,
+                on_concluido=self.on_step_done
+            )
 
         self.workspace.blockSignals(False)
+
         if self.workspace.count() > 0:
             self.stack.setCurrentWidget(self.workspace)
             QtCore.QTimer.singleShot(100, self.sync_module)
