@@ -21,14 +21,15 @@ except ImportError:
             self.setStyleSheet("QPushButton { border: none; background: transparent; padding: 10px; }")
             self.clicked_signal = self.clicked
 
+
 def get_resource_path() -> Path:
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
     return Path(__file__).resolve().parent.parent.parent
 
+
 class WorkspaceManager(QtWidgets.QTabWidget):
     home_solicitada = QtCore.Signal()
-    SIDEBAR_COLLAPSED_WIDTH = 35
     SIDEBAR_EXPANDED_WIDTH = 330
     TAB_HEIGHT = 40
     ICON_SIZE_HOME = QtCore.QSize(40, 40)
@@ -37,18 +38,15 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         super().__init__()
         self.base_dir = get_resource_path()
         self._lazy_registry: Dict[QtWidgets.QWidget, Dict[str, Any]] = {}
-
         self.setDocumentMode(True)
         self.setTabsClosable(False)
         self.setMovable(False)
-
         self._setup_home_button()
         self.currentChanged.connect(self._on_tab_changed)
 
     def _setup_home_button(self):
         self.btn_home = HomeButton(self.base_dir, self.ICON_SIZE_HOME)
         self.btn_home.clicked_signal.connect(self.home_solicitada.emit)
-
         container = QtWidgets.QWidget()
         container.setFixedSize(50, self.TAB_HEIGHT)
         layout = QtWidgets.QHBoxLayout(container)
@@ -61,27 +59,21 @@ class WorkspaceManager(QtWidgets.QTabWidget):
         while self.count() > 0:
             widget = self.widget(0)
             self.removeTab(0)
-            if widget:
-                widget.deleteLater()
+            if widget: widget.deleteLater()
 
     def adicionar_modulo(self, id_modulo: str, modulo_ref: Any, on_concluido=None):
         try:
             is_class = isinstance(modulo_ref, type)
             title = getattr(modulo_ref, 'nome', id_modulo.replace("_", " ").capitalize())
             container = QtWidgets.QWidget()
-
             self.blockSignals(True)
             self.addTab(container, title)
             self.blockSignals(False)
 
             if is_class:
                 self._lazy_registry[container] = {
-                    "id": id_modulo,
-                    "classe": modulo_ref,
-                    "instancia": None,
-                    "carregado": False,
-                    "container": container,
-                    "on_concluido": on_concluido
+                    "id": id_modulo, "classe": modulo_ref, "instancia": None,
+                    "carregado": False, "container": container, "on_concluido": on_concluido
                 }
             else:
                 container.setProperty("modulo_instancia", modulo_ref)
@@ -92,29 +84,23 @@ class WorkspaceManager(QtWidgets.QTabWidget):
             if self.count() == 1:
                 self.setCurrentIndex(0)
                 self._on_tab_changed(0)
-
         except Exception as e:
             logger.error(f"Erro ao adicionar modulo {id_modulo}: {e}")
-            logger.error(traceback.format_exc())
 
     def get_modulo_ativo(self) -> Optional[Any]:
         current = self.currentWidget()
-        if not current:
-            return None
-
+        if not current: return None
         modulo = current.property("modulo_instancia")
         if not modulo and current in self._lazy_registry:
             data = self._lazy_registry[current]
-            if not data["carregado"]:
-                self._load_lazy_module(data)
+            if not data["carregado"]: self._load_lazy_module(data)
             modulo = data["instancia"]
         return modulo
 
     def _on_tab_changed(self, index: int):
         container = self.widget(index)
         if data := self._lazy_registry.get(container):
-            if not data["carregado"]:
-                self._load_lazy_module(data)
+            if not data["carregado"]: self._load_lazy_module(data)
         self._sync_active_view()
 
     def _load_lazy_module(self, data: Dict):
@@ -122,10 +108,8 @@ class WorkspaceManager(QtWidgets.QTabWidget):
             instancia = data["classe"]()
             data["instancia"] = instancia
             data["container"].setProperty("modulo_instancia", instancia)
-
             if data["on_concluido"] and hasattr(instancia, "concluido"):
                 instancia.concluido.connect(data["on_concluido"])
-
             self._build_module_layout(data["container"], instancia)
             data["carregado"] = True
         except Exception:
@@ -137,13 +121,10 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
     def _refresh_viewer(self, modulo: Any):
         viewer = getattr(modulo, 'viewer', None)
-        if hasattr(viewer, 'refresh_display'):
-            viewer.refresh_display()
+        if hasattr(viewer, 'refresh_display'): viewer.refresh_display()
 
     def _build_module_layout(self, container: QtWidgets.QWidget, modulo: Any):
-        if container.layout():
-            return
-
+        if container.layout(): return
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -158,52 +139,57 @@ class WorkspaceManager(QtWidgets.QTabWidget):
 
         if hasattr(modulo, "get_workspace_toolbar") and (tb := modulo.get_workspace_toolbar()):
             center_layout.addWidget(tb)
-
         if hasattr(modulo, "get_workspace") and (vw := modulo.get_workspace()):
             vw.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
             center_layout.addWidget(vw)
 
         splitter.addWidget(center)
-        self._attach_sidebar(splitter, container, modulo)
+        self._attach_sidebar(splitter, modulo)
         layout.addWidget(splitter)
 
-    def _attach_sidebar(self, splitter: QtWidgets.QSplitter, container: QtWidgets.QWidget, modulo: Any):
+    def _attach_sidebar(self, splitter: QtWidgets.QSplitter, modulo: Any):
         if not hasattr(modulo, 'get_toolboxes') or not (toolboxes := modulo.get_toolboxes()):
             return
 
-        sidebar = QtWidgets.QTabWidget()
-        sidebar.setTabPosition(QtWidgets.QTabWidget.East)
-        sidebar.setMinimumWidth(self.SIDEBAR_COLLAPSED_WIDTH)
-        sidebar.setMaximumWidth(self.SIDEBAR_COLLAPSED_WIDTH)
+        sidebar_container = QtWidgets.QWidget()
+        sidebar_layout = QtWidgets.QHBoxLayout(sidebar_container)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(0)
+
+        content_stack = QtWidgets.QStackedWidget()
+        content_stack.setFixedWidth(self.SIDEBAR_EXPANDED_WIDTH)
+        content_stack.hide()
+
+        tab_bar_container = QtWidgets.QWidget()
+        tab_bar_layout = QtWidgets.QVBoxLayout(tab_bar_container)
+        tab_bar_layout.setContentsMargins(0, 0, 0, 0)
+        tab_bar_layout.setSpacing(0)
+
+        tab_bar = QtWidgets.QTabBar()
+        tab_bar.setShape(QtWidgets.QTabBar.RoundedEast)
+        tab_bar.setExpanding(False)
 
         for label, widget in toolboxes.items():
-            wrapper = QtWidgets.QWidget()
-            w_layout = QtWidgets.QVBoxLayout(wrapper)
-            w_layout.setContentsMargins(0, 0, 0, 0)
-            w_layout.addWidget(widget)
-            sidebar.addTab(wrapper, label)
-            wrapper.setVisible(False)
+            tab_bar.addTab(label)
+            content_stack.addWidget(widget)
 
-        sidebar.tabBarClicked.connect(partial(self._handle_sidebar, sidebar))
-        splitter.addWidget(sidebar)
+        tab_bar.tabBarClicked.connect(partial(self._toggle_sidebar, content_stack, tab_bar))
+
+        tab_bar_layout.addWidget(tab_bar)
+        tab_bar_layout.addStretch()  # Mantém as abas no topo
+
+        sidebar_layout.addWidget(content_stack)
+        sidebar_layout.addWidget(tab_bar_container)
+
+        splitter.addWidget(sidebar_container)
         splitter.setStretchFactor(0, 1)
-        splitter.setSizes([container.width(), self.SIDEBAR_COLLAPSED_WIDTH])
 
-    def _handle_sidebar(self, sidebar: QtWidgets.QTabWidget, index: int):
-        is_expanded = sidebar.width() > self.SIDEBAR_COLLAPSED_WIDTH
-
-        if is_expanded and index == sidebar.currentIndex():
-            sidebar.setMaximumWidth(self.SIDEBAR_COLLAPSED_WIDTH)
-            self._toggle_sidebar_widgets(sidebar, False)
+    def _toggle_sidebar(self, stack: QtWidgets.QStackedWidget, bar: QtWidgets.QTabBar, index: int):
+        is_closing = not stack.isHidden() and bar.currentIndex() == index
+        if is_closing:
+            stack.hide()
+            bar.setCurrentIndex(-1)
         else:
-            sidebar.setMaximumWidth(16777215)
-            self._toggle_sidebar_widgets(sidebar, True)
-            sidebar.setCurrentIndex(index)
-            if splitter := sidebar.parentWidget().findChild(QtWidgets.QSplitter):
-                new_width = splitter.width() - self.SIDEBAR_EXPANDED_WIDTH
-                splitter.setSizes([new_width, self.SIDEBAR_EXPANDED_WIDTH])
+            stack.show()
+            stack.setCurrentIndex(index)
         self._sync_active_view()
-
-    def _toggle_sidebar_widgets(self, sidebar: QtWidgets.QTabWidget, visible: bool):
-        for i in range(sidebar.count()):
-            sidebar.widget(i).setVisible(visible)

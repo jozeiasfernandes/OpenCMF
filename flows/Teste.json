@@ -1,5 +1,5 @@
 {
     "nome": "Teste",
-    "sequencia": ["patients", "patients_02"],
+    "sequencia": ["patients", "patients_02", "registration"],
     "cor_fundo": {"r": 80, "g": 80, "b": 90}
 }

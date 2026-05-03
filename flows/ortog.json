@@ -1,5 +1,0 @@
-{
-    "nome": "Cirurgia Ortognática",
-    "sequencia": ["patients", "patients_02", "tomography", "cephalometry", "registration", "segmentation"],
-    "cor_fundo": {"r": 30, "g": 50, "b": 80}
-}
