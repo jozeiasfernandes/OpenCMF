@@ -28,7 +28,7 @@ class Card(QPushButton):
         icon_path = get_icon_path(icone_nome)
         if icon_path:
             self.setIcon(QIcon(icon_path))
-            self.setIconSize(QSize(24, 24))
+            self.setIconSize(QSize(40, 40))
 
         self.setStyleSheet(f"""
             QPushButton {{
@@ -98,14 +98,14 @@ class ImportObjectsPanel(QFrame):
             ("Crânio", "cranio.svg"),
             ("Maxila", "maxilla.svg"),
             ("Mandíbula", "mandible.svg"),
-            ("Pele", "stl.svg"),
+            ("Pele", "face.svg"),
             ("Outros", "stl.svg")
         ]
         layout.addWidget(Secao("Superfícies", superficies, "#b0a8c0", self._on_item_clicked))
 
         fotos = [
-            ("Frente", "photo.svg"),
-            ("Perfil", "photo.svg"),
+            ("Frente", "fronte.svg"),
+            ("Perfil", "perfil.svg"),
             ("Intrabucal", "photo.svg"),
             ("Outros", "photo.svg")
         ]
