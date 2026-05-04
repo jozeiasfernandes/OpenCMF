@@ -20,7 +20,6 @@ except ImportError:
             self.setFixedSize(size)
             self.setCursor(QtCore.Qt.PointingHandCursor)
             self.setStyleSheet("QPushButton { border: none; background: transparent; padding: 2px; }")
-
             icon_path = base_dir / "appearance" / "icons" / "home.svg"
             if icon_path.exists():
                 self.setIcon(QtGui.QIcon(str(icon_path)))
@@ -39,10 +38,10 @@ class WorkspaceManager(QtWidgets.QWidget):
     config_solicitada = QtCore.Signal()
     currentChanged = QtCore.Signal(int)
 
-    SIDEBAR_EXPANDED_WIDTH = 330
-    DEBUG_TOOLBAR = "background-color: rgba(0,120,255,80);"
-    DEBUG_CENTER = "background-color: rgba(0,200,0,80);"
-    DEBUG_TOOLBOX = "background-color: rgba(255,80,80,80);"
+    SIDEBAR_WIDTH = 330
+    CSS_TOOLBAR = "background-color: rgba(0,120,255,80);"
+    CSS_CENTER = "background-color: rgba(0,200,0,80);"
+    CSS_TOOLBOX = "background-color: rgba(255,80,80,80);"
 
     def __init__(self):
         super().__init__()
@@ -61,9 +60,8 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.header_grid.setContentsMargins(5, 0, 5, 0)
         self.header_grid.setSpacing(0)
 
-        h_dim = 40
-        icon_sz = QtCore.QSize(int(h_dim * 0.7), int(h_dim * 0.7))
-        self.btn_home = HomeButton(self.base_dir, icon_sz)
+        dim = 40
+        self.btn_home = HomeButton(self.base_dir, QtCore.QSize(int(dim * 0.7), int(dim * 0.7)))
         self.btn_home.clicked.connect(self.home_solicitada.emit)
         self.header_grid.addWidget(self.btn_home, 0, 0)
 
@@ -72,33 +70,21 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.tab_bar.setExpanding(False)
         self.tab_bar.setMovable(False)
         self.tab_bar.setStyleSheet("""
-            QTabBar::tab {
-                background: #252525;
-                color: #888;
-                padding: 12px 20px;
-                min-width: 100px;
-                border-right: 1px solid #333;
-            }
-            QTabBar::tab:selected {
-                background: #333;
-                color: white;
-                border-bottom: 2px solid #0078d7;
-            }
+            QTabBar::tab { background: #252525; color: #888; padding: 12px 20px; min-width: 100px; border-right: 1px solid #333; }
+            QTabBar::tab:selected { background: #333; color: white; border-bottom: 2px solid #0078d7; }
         """)
         self.header_grid.addWidget(self.tab_bar, 0, 1)
         self.header_grid.setColumnStretch(2, 1)
 
-        self.tab_bar.currentChanged.connect(self.currentChanged.emit)
-
         self.btn_config = QtWidgets.QPushButton()
-        self.btn_config.setFixedSize(h_dim, h_dim)
+        self.btn_config.setFixedSize(dim, dim)
         self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_config.setStyleSheet(
             "QPushButton { border: none; background: transparent; } QPushButton:hover { background-color: #444; }")
 
-        icon_path = self.base_dir / "appearance" / "icons" / "config_branco.svg"
-        if icon_path.exists():
-            self.btn_config.setIcon(QtGui.QIcon(str(icon_path)))
+        icon_cfg = self.base_dir / "appearance" / "icons" / "config_branco.svg"
+        if icon_cfg.exists():
+            self.btn_config.setIcon(QtGui.QIcon(str(icon_cfg)))
         else:
             self.btn_config.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_ComputerIcon))
 
@@ -109,6 +95,7 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.layout_principal.addWidget(self.header)
         self.layout_principal.addWidget(self.container_paginas)
 
+        self.tab_bar.currentChanged.connect(self.currentChanged.emit)
         self.tab_bar.currentChanged.connect(self._on_tab_changed)
 
     def count(self):
@@ -117,13 +104,11 @@ class WorkspaceManager(QtWidgets.QWidget):
     def clear(self):
         while self.tab_bar.count() > 0:
             self.tab_bar.removeTab(0)
-
         while self.container_paginas.count() > 0:
             widget = self.container_paginas.widget(0)
             if widget:
                 self.container_paginas.removeWidget(widget)
                 widget.deleteLater()
-
         self._lazy_registry.clear()
 
     def adicionar_modulo(self, id_modulo: str, modulo_ref: Any, on_concluido=None):
@@ -131,9 +116,7 @@ class WorkspaceManager(QtWidgets.QWidget):
             is_class = isinstance(modulo_ref, type)
             title = getattr(modulo_ref, 'nome', id_modulo.replace("_", " ").capitalize())
             container = QtWidgets.QWidget()
-
-            # Adiciona a aba e o widget
-            idx = self.tab_bar.addTab(title)
+            self.tab_bar.addTab(title)
             self.container_paginas.addWidget(container)
 
             if is_class:
@@ -145,13 +128,9 @@ class WorkspaceManager(QtWidgets.QWidget):
                 container.setProperty("modulo_instancia", modulo_ref)
                 self._build_module_layout(container, modulo_ref)
 
-            # --- CORREÇÃO AQUI ---
             if self.tab_bar.count() == 1:
                 self.tab_bar.setCurrentIndex(0)
-                # Força o disparo manual para o primeiro módulo
                 self._on_tab_changed(0)
-                # ---------------------
-
         except Exception as e:
             logger.error(f"Erro ao adicionar modulo {id_modulo}: {e}")
 
@@ -185,23 +164,36 @@ class WorkspaceManager(QtWidgets.QWidget):
         return modulo
 
     def _build_module_layout(self, container: QtWidgets.QWidget, modulo: Any):
-        if container.layout(): return
+        if container.layout():
+            old_layout = container.layout()
+            while old_layout.count():
+                item = old_layout.takeAt(0)
+                widget = item.widget()
+                if widget:
+                    widget.deleteLater()
+            QtWidgets.QWidget().setLayout(old_layout)
+
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         splitter.setHandleWidth(1)
+
         center = QtWidgets.QWidget()
-        center.setStyleSheet(self.DEBUG_CENTER)
-        center_layout = QtWidgets.QVBoxLayout(center)
-        center_layout.setContentsMargins(0, 0, 0, 0)
-        center_layout.setSpacing(0)
+        center.setStyleSheet(self.CSS_CENTER)
+        center_lyt = QtWidgets.QVBoxLayout(center)
+        center_lyt.setContentsMargins(0, 0, 0, 0)
+        center_lyt.setSpacing(0)
+
         if hasattr(modulo, "get_workspace_toolbar") and (tb := modulo.get_workspace_toolbar()):
-            tb.setStyleSheet(self.DEBUG_TOOLBAR)
-            center_layout.addWidget(tb)
+            tb.setStyleSheet(self.CSS_TOOLBAR)
+            center_lyt.addWidget(tb)
+
         if hasattr(modulo, "get_workspace") and (vw := modulo.get_workspace()):
             vw.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-            center_layout.addWidget(vw)
+            center_lyt.addWidget(vw)
+
         splitter.addWidget(center)
         self._attach_sidebar(splitter, modulo)
         layout.addWidget(splitter)
@@ -210,29 +202,36 @@ class WorkspaceManager(QtWidgets.QWidget):
         if not hasattr(modulo, 'get_toolboxes'): return
         toolboxes = modulo.get_toolboxes()
         if not toolboxes: return
+
         sidebar = QtWidgets.QWidget()
-        sidebar_layout = QtWidgets.QHBoxLayout(sidebar)
-        sidebar_layout.setContentsMargins(0, 0, 0, 0)
-        sidebar_layout.setSpacing(0)
+        sidebar_lyt = QtWidgets.QHBoxLayout(sidebar)
+        sidebar_lyt.setContentsMargins(0, 0, 0, 0)
+        sidebar_lyt.setSpacing(0)
+
         stack = QtWidgets.QStackedWidget()
-        stack.setFixedWidth(self.SIDEBAR_EXPANDED_WIDTH)
-        stack.setStyleSheet(self.DEBUG_TOOLBOX)
+        stack.setFixedWidth(self.SIDEBAR_WIDTH)
+        stack.setStyleSheet(self.CSS_TOOLBOX)
         stack.hide()
-        tab_bar_container = QtWidgets.QWidget()
-        tab_bar_lyt = QtWidgets.QVBoxLayout(tab_bar_container)
-        tab_bar_lyt.setContentsMargins(0, 0, 0, 0)
-        tab_bar_lyt.setSpacing(0)
-        tab_bar_side = QtWidgets.QTabBar()
-        tab_bar_side.setShape(QtWidgets.QTabBar.RoundedEast)
-        tab_bar_side.setCursor(QtCore.Qt.PointingHandCursor)
+
+        bar_container = QtWidgets.QWidget()
+        bar_lyt = QtWidgets.QVBoxLayout(bar_container)
+        bar_lyt.setContentsMargins(0, 0, 0, 0)
+        bar_lyt.setSpacing(0)
+
+        side_bar = QtWidgets.QTabBar()
+        side_bar.setShape(QtWidgets.QTabBar.RoundedEast)
+        side_bar.setCursor(QtCore.Qt.PointingHandCursor)
+
         for label, widget in toolboxes.items():
-            tab_bar_side.addTab(label)
+            side_bar.addTab(label)
             stack.addWidget(widget)
-        tab_bar_side.tabBarClicked.connect(partial(self._toggle_sidebar, stack, tab_bar_side))
-        tab_bar_lyt.addWidget(tab_bar_side)
-        tab_bar_lyt.addStretch()
-        sidebar_layout.addWidget(stack)
-        sidebar_layout.addWidget(tab_bar_container)
+
+        side_bar.tabBarClicked.connect(partial(self._toggle_sidebar, stack, side_bar))
+        bar_lyt.addWidget(side_bar)
+        bar_lyt.addStretch()
+
+        sidebar_lyt.addWidget(stack)
+        sidebar_lyt.addWidget(bar_container)
         splitter.addWidget(sidebar)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 0)
@@ -263,21 +262,16 @@ if __name__ == "__main__":
 
 
     class ModuloTeste:
-        nome = "Pacientes"
+        nome = "Teste"
 
-        def get_workspace_toolbar(self):
-            tb = QtWidgets.QToolBar();
-            tb.addAction("Novo");
-            return tb
+        def get_workspace_toolbar(self): return QtWidgets.QToolBar()
 
-        def get_workspace(self):
-            return QtWidgets.QLabel("Área Central OpenCMF")
+        def get_workspace(self): return QtWidgets.QLabel("Central")
 
-        def get_toolboxes(self):
-            return {"Ferramentas": QtWidgets.QLabel("Painel Lateral")}
+        def get_toolboxes(self): return {"Ferramentas": QtWidgets.QLabel("Lateral")}
 
 
-    workspace.adicionar_modulo("pacientes", ModuloTeste())
+    workspace.adicionar_modulo("teste", ModuloTeste())
     workspace.resize(1000, 600)
     workspace.show()
     sys.exit(app.exec())
