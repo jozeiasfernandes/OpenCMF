@@ -1,7 +1,5 @@
-import os
 import sys
 from pathlib import Path
-
 from PySide6.QtWidgets import (
     QWidget, QPushButton, QLabel, QFrame,
     QVBoxLayout, QGridLayout, QApplication
@@ -20,7 +18,7 @@ def get_icon_path(icon_name: str) -> str:
 
 
 class Card(QPushButton):
-    def __init__(self, texto, cor, icone_nome):
+    def __init__(self, texto: str, cor: str, icone_nome: str):
         super().__init__(texto)
         self.setFixedSize(130, 40)
         self.setLayoutDirection(Qt.LeftToRight)
@@ -28,7 +26,7 @@ class Card(QPushButton):
         icon_path = get_icon_path(icone_nome)
         if icon_path:
             self.setIcon(QIcon(icon_path))
-            self.setIconSize(QSize(40, 40))
+            self.setIconSize(QSize(30, 30))
 
         self.setStyleSheet(f"""
             QPushButton {{
@@ -48,7 +46,7 @@ class Card(QPushButton):
 
 
 class Secao(QFrame):
-    def __init__(self, titulo, itens_com_icones, cor, callback):
+    def __init__(self, titulo: str, itens: list, cor: str, callback):
         super().__init__()
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -65,16 +63,16 @@ class Secao(QFrame):
         grid.setVerticalSpacing(8)
 
         colunas = 4
-        for i, (nome, icone) in enumerate(itens_com_icones):
+        for i, (nome, icone) in enumerate(itens):
             btn = Card(nome, cor, icone)
-            btn.clicked.connect(lambda _, n=nome: callback(n))
+            btn.clicked.connect(lambda _, n=nome, t=titulo: callback(t, n))
             grid.addWidget(btn, i // colunas, i % colunas)
 
         layout.addLayout(grid)
 
 
 class ImportObjectsPanel(QFrame):
-    importRequested = Signal(str)
+    importRequested = Signal(str, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -84,7 +82,7 @@ class ImportObjectsPanel(QFrame):
         self.setStyleSheet("""
             QFrame {
                 background-color: #2b2b2b;
-                border: 0px solid #666;
+                border: 1px solid #444;
                 border-radius: 4px;
             }
         """)
@@ -94,42 +92,35 @@ class ImportObjectsPanel(QFrame):
         layout.setSpacing(20)
         layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
 
+        self._setup_sections(layout)
+
+    def _setup_sections(self, layout: QVBoxLayout):
         superficies = [
-            ("Crânio", "cranio.svg"),
-            ("Maxila", "maxilla.svg"),
-            ("Mandíbula", "mandible.svg"),
-            ("Pele", "face.svg"),
-            ("Outros", "stl.svg")
+            ("Crânio", "cranio.svg"), ("Maxila", "maxilla.svg"),
+            ("Mandíbula", "mandible.svg"), ("Pele", "face.svg"), ("Outros", "stl.svg")
         ]
         layout.addWidget(Secao("Superfícies", superficies, "#b0a8c0", self._on_item_clicked))
 
-        fotos = [
-            ("Frente", "fronte.svg"),
-            ("Perfil", "perfil.svg"),
-            ("Intrabucal", "photo.svg"),
-            ("Outros", "photo.svg")
+        fotografias = [
+            ("Frente", "fronte.svg"), ("Perfil", "perfil.svg"),
+            ("Intrabucal", "photo.svg"), ("Outros", "photo.svg")
         ]
-        layout.addWidget(Secao("Fotografias", fotos, "#c9a7a0", self._on_item_clicked))
+        layout.addWidget(Secao("Fotografias", fotografias, "#c9a7a0", self._on_item_clicked))
 
-        volumes = [
-            ("Volume .vti", "vti.svg")
-        ]
+        volumes = [("Volume .vti", "vti.svg")]
         layout.addWidget(Secao("Volume", volumes, "#bcd4d0", self._on_item_clicked))
 
-    def _on_item_clicked(self, nome):
-        self.importRequested.emit(nome)
+    def _on_item_clicked(self, categoria: str, subcategoria: str):
+        self.importRequested.emit(categoria, subcategoria)
         self.hide()
 
     def show_under(self, widget: QWidget):
         pos = widget.mapToGlobal(QPoint(0, widget.height() + 2))
         self.move(pos)
         self.show()
+        self.setFocus()
 
-    def focusOutEvent(self, event):
-        self.hide()
-        super().focusOutEvent(event)
-
-    def event(self, event):
+    def event(self, event: QEvent):
         if event.type() == QEvent.WindowDeactivate:
             self.hide()
         return super().event(event)
@@ -137,26 +128,18 @@ class ImportObjectsPanel(QFrame):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-
     test_window = QWidget()
     test_window.setMinimumSize(800, 600)
     test_window.setStyleSheet("background-color: #1e1e1e;")
 
-    btn_abrir = QPushButton("Import Objects", test_window)
-    btn_abrir.setFixedSize(130, 30)
-    btn_abrir.move(50, 50)
-    btn_abrir.setStyleSheet("background-color: #444; color: white; border: 0px solid #666;")
+    btn = QPushButton("Import Objects", test_window)
+    btn.setFixedSize(130, 30)
+    btn.move(50, 50)
+    btn.setStyleSheet("background-color: #444; color: white;")
 
     panel = ImportObjectsPanel(test_window)
-
-    def toggle_panel():
-        if panel.isVisible():
-            panel.hide()
-        else:
-            panel.show_under(btn_abrir)
-
-    panel.importRequested.connect(lambda t: print("Import:", t))
-    btn_abrir.clicked.connect(toggle_panel)
+    btn.clicked.connect(lambda: panel.show_under(btn))
+    panel.importRequested.connect(lambda cat, sub: print(f"Importando: {cat} -> {sub}"))
 
     test_window.show()
     sys.exit(app.exec())
