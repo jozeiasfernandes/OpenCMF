@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 
 from PySide6 import QtWidgets, QtCore, QtGui
 import vtkmodules.all as vtk
@@ -11,13 +11,45 @@ from core.imports.object_manager import ObjectManager
 from core.imports.models_import import ObjectProperties
 
 
+class RegistrationToolbarHandler(QtCore.QObject):
+    importRequested = QtCore.Signal(str, str)
+    pointSizeChanged = QtCore.Signal(float)
+
+    def __init__(self, toolbar: QtWidgets.QToolBar):
+        super().__init__()
+        self.toolbar = toolbar
+        self._setup_ui()
+
+    def _setup_ui(self):
+        self.btn_import = QtWidgets.QPushButton("Import")
+        self.toolbar.addWidget(self.btn_import)
+
+        self.import_panel = ImportObjectsPanel(self.toolbar)
+        self.import_panel.importRequested.connect(self.importRequested.emit)
+        self.btn_import.clicked.connect(
+            lambda: self.import_panel.show_under(self.btn_import)
+        )
+
+        self.toolbar.addSeparator()
+        self.toolbar.addWidget(QtWidgets.QLabel(" Size: "))
+
+        self.slider_size = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider_size.setRange(5, 50)
+        self.slider_size.setFixedWidth(60)
+        self.slider_size.valueChanged.connect(
+            lambda v: self.pointSizeChanged.emit(v / 10.0)
+        )
+        self.toolbar.addWidget(self.slider_size)
+
+
 class Component(QtWidgets.QToolBar):
     def __init__(self, modulo=None):
         super().__init__()
         self.modulo = modulo
         self.setWindowTitle("Alinhar objetos")
         self.__module_path__ = Path(__file__).resolve()
-        self._setup_ui()
+
+        self.handler = RegistrationToolbarHandler(self)
 
 
 class ObjetoManagerWidget(QtWidgets.QWidget):
@@ -108,32 +140,6 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
             self.colorChanged.emit(name, color)
 
 
-class RegistrationToolbarHandler(QtCore.QObject):
-    importRequested = QtCore.Signal(str, str)
-    pointSizeChanged = QtCore.Signal(float)
-
-    def __init__(self, toolbar: QtWidgets.QToolBar):
-        super().__init__()
-        self.toolbar = toolbar
-        self._setup_ui()
-
-    def _setup_ui(self):
-        self.btn_import = QtWidgets.QPushButton("Import")
-        self.toolbar.addWidget(self.btn_import)
-
-        self.import_panel = ImportObjectsPanel(self.toolbar)
-        self.import_panel.importRequested.connect(self.importRequested.emit)
-        self.btn_import.clicked.connect(lambda: self.import_panel.show_under(self.btn_import))
-
-        self.slider_size = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slider_size.setRange(5, 50)
-        self.slider_size.setFixedWidth(60)
-        self.toolbar.addSeparator()
-        self.toolbar.addWidget(QtWidgets.QLabel(" Size: "))
-        self.toolbar.addWidget(self.slider_size)
-        self.slider_size.valueChanged.connect(lambda v: self.pointSizeChanged.emit(v / 10.0))
-
-
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
@@ -149,7 +155,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.renderer.SetBackground(0.1, 0.1, 0.1)
 
         self.ui_manager = ObjetoManagerWidget()
-        self.reg_handler = RegistrationToolbarHandler(self.addToolBar("Main"))
+
+        self.toolbar_comp = Component()
+        self.addToolBar(self.toolbar_comp)
 
         central = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(central)
@@ -161,7 +169,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vtk_widget.Initialize()
 
     def _connect_logic(self):
-        self.reg_handler.importRequested.connect(self.solicitar_arquivo)
+        self.toolbar_comp.handler.importRequested.connect(self.solicitar_arquivo)
         self.data_manager.object_added.connect(self.carregar_na_cena)
         self.ui_manager.objetoToggled.connect(self.sync_vis)
         self.ui_manager.opacityChanged.connect(self.sync_opac)

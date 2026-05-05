@@ -1,7 +1,6 @@
 import sys
+from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
-
-
 
 try:
     from core.volume.lookup_table.lut_presets import LUTPresets
@@ -156,17 +155,25 @@ class TomographyToolbarHandler(QtCore.QObject):
             self.btn_validate.setStyleSheet("")
 
 
+class Component(QtWidgets.QToolBar):
+    def __init__(self, modulo=None):
+        super().__init__()
+        self.modulo = modulo
+        self.setWindowTitle("Tomografia")
+        self.__module_path__ = Path(__file__).resolve()
+        self.handler = TomographyToolbarHandler(self)
+
+
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     window = QtWidgets.QMainWindow()
     window.setWindowTitle("Teste Toolbar Tomografia")
     window.resize(1100, 100)
 
-    toolbar = QtWidgets.QToolBar()
-    window.addToolBar(toolbar)
+    toolbar_comp = Component()
+    window.addToolBar(toolbar_comp)
 
-    handler = TomographyToolbarHandler(toolbar)
-    handler.colorMapChanged.connect(lambda lut: print(f"LUT alterada para: {lut}"))
+    toolbar_comp.handler.colorMapChanged.connect(lambda lut: print(f"LUT alterada para: {lut}"))
 
     window.show()
     sys.exit(app.exec())

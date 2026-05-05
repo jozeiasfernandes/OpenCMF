@@ -1,0 +1,41 @@
+from PySide6 import QtWidgets, QtCore
+
+class ToolboxesManager(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.layout_principal = QtWidgets.QHBoxLayout(self)
+        self.layout_principal.setContentsMargins(0, 0, 0, 0)
+        self.layout_principal.setSpacing(0)
+
+        self.stack = QtWidgets.QStackedWidget()
+        self.stack.setFixedWidth(330)
+        self.stack.hide()
+
+        self.tab_bar = QtWidgets.QTabBar()
+        self.tab_bar.setShape(QtWidgets.QTabBar.RoundedEast)
+        self.tab_bar.setCursor(QtCore.Qt.PointingHandCursor)
+        self.tab_bar.tabBarClicked.connect(self._gerenciar_clique)
+
+        self.layout_principal.addWidget(self.stack)
+        self.layout_principal.addWidget(self.tab_bar)
+
+    def adicionar_widget(self, titulo: str, widget: QtWidgets.QWidget):
+        idx = self.stack.addWidget(widget)
+        self.tab_bar.addTab(titulo)
+        return idx
+
+    def limpar(self):
+        while self.stack.count() > 0:
+            w = self.stack.widget(0)
+            self.stack.removeWidget(w)
+            w.deleteLater()
+        self.tab_bar.clear()
+        self.stack.hide()
+
+    def _gerenciar_clique(self, index: int):
+        if not self.stack.isHidden() and self.tab_bar.currentIndex() == index:
+            self.stack.hide()
+            self.tab_bar.setCurrentIndex(-1)
+        else:
+            self.stack.show()
+            self.stack.setCurrentIndex(index)
