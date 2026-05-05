@@ -1,7 +1,6 @@
 import sys
 import logging
 import traceback
-from functools import partial
 from pathlib import Path
 from typing import Optional, Any, Dict
 
@@ -14,6 +13,7 @@ from core.workspace.componentes_list import Components_List
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("WorkspaceManager")
 
+
 try:
     from .btn_home import HomeButton
 except ImportError:
@@ -23,7 +23,7 @@ except ImportError:
             self.setIconSize(size)
             self.setFixedSize(size)
             self.setCursor(QtCore.Qt.PointingHandCursor)
-            self.setStyleSheet("QPushButton { border: none; background: transparent; padding: 2px; }")
+
             icon_path = base_dir / "appearance" / "icons" / "home.svg"
             if icon_path.exists():
                 self.setIcon(QtGui.QIcon(str(icon_path)))
@@ -42,9 +42,6 @@ class WorkspaceManager(QtWidgets.QWidget):
     config_solicitada = QtCore.Signal()
     currentChanged = QtCore.Signal(int)
 
-    CSS_TOOLBAR = "background-color: rgba(0,120,255,80);"
-    CSS_CENTER = "background-color: rgba(0,200,0,80);"
-
     def __init__(self):
         super().__init__()
         self.base_dir = get_resource_path()
@@ -57,7 +54,6 @@ class WorkspaceManager(QtWidgets.QWidget):
 
         self.header = QtWidgets.QWidget()
         self.header.setFixedHeight(45)
-        self.header.setStyleSheet("background-color: #252525; border-bottom: 1px solid #333;")
 
         self.header_grid = QtWidgets.QGridLayout(self.header)
         self.header_grid.setContentsMargins(5, 0, 5, 0)
@@ -71,18 +67,12 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.tab_bar = QtWidgets.QTabBar()
         self.tab_bar.setDocumentMode(True)
         self.tab_bar.setExpanding(False)
-        self.tab_bar.setStyleSheet("""
-            QTabBar::tab { background: #252525; color: #888; padding: 12px 20px; min-width: 100px; border-right: 1px solid #333; }
-            QTabBar::tab:selected { background: #333; color: white; border-bottom: 2px solid #0078d7; }
-        """)
         self.header_grid.addWidget(self.tab_bar, 0, 1)
         self.header_grid.setColumnStretch(2, 1)
 
         self.btn_config = QtWidgets.QPushButton()
         self.btn_config.setFixedSize(dim, dim)
         self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_config.setStyleSheet(
-            "QPushButton { border: none; background: transparent; } QPushButton:hover { background-color: #444; }")
 
         icon_cfg = self.base_dir / "appearance" / "icons" / "config_branco.svg"
         if icon_cfg.exists():
@@ -94,6 +84,7 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.header_grid.addWidget(self.btn_config, 0, 3)
 
         self.container_paginas = QtWidgets.QStackedWidget()
+
         self.layout_principal.addWidget(self.header)
         self.layout_principal.addWidget(self.container_paginas)
 
@@ -110,38 +101,38 @@ class WorkspaceManager(QtWidgets.QWidget):
     def count(self):
         return self.container_paginas.count()
 
-    def _on_componente_configurado(self, categoria, caminho, ativo):
-        logger.debug(f"Sinal recebido: Categoria={categoria}, Ativo={ativo}, Caminho={caminho}")
+    def clear(self):
+        while self.tab_bar.count():
+            self.tab_bar.removeTab(0)
 
+        while self.container_paginas.count():
+            w = self.container_paginas.widget(0)
+            self.container_paginas.removeWidget(w)
+            w.deleteLater()
+
+        self._lazy_registry.clear()
+
+    def _on_componente_configurado(self, categoria, caminho, ativo):
         modulo_ativo = self.get_modulo_ativo()
         if not modulo_ativo:
-            logger.warning("Falha: Nenhum módulo ativo encontrado.")
             return
 
         container = self.container_paginas.currentWidget()
         data = self._lazy_registry.get(container)
         if not data:
-            logger.error("Erro: Container atual não registrado no lazy_registry.")
             return
 
         if ativo:
-            logger.debug(f"Tentando carregar componente: {caminho.name}")
             componente = ComponentLoader.carregar(caminho, modulo_ativo)
-
             if not componente:
-                logger.error(f"Erro Crítico: ComponentLoader retornou None para {caminho}")
                 return
 
             if categoria == "toolbars":
                 data["layout_central"].insertWidget(0, componente)
-                componente.show()
-                logger.info(f"Toolbar '{caminho.stem}' injetada com sucesso.")
 
             elif categoria == "toolboxes":
                 idx = data["sidebar"].adicionar_widget(caminho.stem.title(), componente)
-                data["sidebar"].stack.show()
                 data["sidebar"].stack.setCurrentIndex(idx)
-                logger.info(f"Toolbox '{caminho.stem}' adicionada ao índice {idx}.")
         else:
             self._remover_componente(categoria, caminho, data)
 
@@ -151,35 +142,27 @@ class WorkspaceManager(QtWidgets.QWidget):
             for i in range(layout.count()):
                 w = layout.itemAt(i).widget()
                 if w and getattr(w, '__module_path__', None) == caminho:
-                    logger.debug(f"Removendo toolbar: {caminho.name}")
                     w.setParent(None)
                     w.deleteLater()
-
-    def clear(self):
-        while self.tab_bar.count() > 0:
-            self.tab_bar.removeTab(0)
-
-        while self.container_paginas.count() > 0:
-            widget = self.container_paginas.widget(0)
-            self.container_paginas.removeWidget(widget)
-            if widget:
-                widget.deleteLater()
-
-        # Limpa o registro de módulos carregados
-        self._lazy_registry.clear()
 
     def adicionar_modulo(self, id_modulo: str, modulo_ref: Any, on_concluido=None):
         try:
             is_class = isinstance(modulo_ref, type)
             title = getattr(modulo_ref, 'nome', id_modulo.replace("_", " ").capitalize())
+
             container = QtWidgets.QWidget()
             self.tab_bar.addTab(title)
             self.container_paginas.addWidget(container)
 
             self._lazy_registry[container] = {
-                "id": id_modulo, "classe": modulo_ref, "instancia": modulo_ref if not is_class else None,
-                "carregado": not is_class, "container": container, "on_concluido": on_concluido,
-                "sidebar": None, "layout_central": None
+                "id": id_modulo,
+                "classe": modulo_ref,
+                "instancia": modulo_ref if not is_class else None,
+                "carregado": not is_class,
+                "container": container,
+                "on_concluido": on_concluido,
+                "sidebar": None,
+                "layout_central": None
             }
 
             if not is_class:
@@ -189,16 +172,21 @@ class WorkspaceManager(QtWidgets.QWidget):
             if self.tab_bar.count() == 1:
                 self.tab_bar.setCurrentIndex(0)
                 self._on_tab_changed(0)
-        except Exception as e:
-            logger.error(f"Erro ao adicionar modulo {id_modulo}: {e}")
+
+        except Exception:
+            logger.error(traceback.format_exc())
 
     def _on_tab_changed(self, index: int):
-        if index < 0: return
+        if index < 0:
+            return
+
         self.container_paginas.setCurrentIndex(index)
         container = self.container_paginas.widget(index)
+
         if data := self._lazy_registry.get(container):
             if not data["carregado"]:
                 self._load_lazy_module(data)
+
         self._sync_active_view()
 
     def _load_lazy_module(self, data: Dict):
@@ -206,35 +194,35 @@ class WorkspaceManager(QtWidgets.QWidget):
             instancia = data["classe"]()
             data["instancia"] = instancia
             data["container"].setProperty("modulo_instancia", instancia)
+
             if data["on_concluido"] and hasattr(instancia, "concluido"):
                 instancia.concluido.connect(data["on_concluido"])
+
             self._build_module_layout(data["container"], instancia)
             data["carregado"] = True
+
         except Exception:
             logger.error(traceback.format_exc())
 
     def get_modulo_ativo(self) -> Optional[Any]:
         current = self.container_paginas.currentWidget()
-        if not current: return None
-        return current.property("modulo_instancia")
+        return current.property("modulo_instancia") if current else None
 
     def _build_module_layout(self, container: QtWidgets.QWidget, modulo: Any):
         data = self._lazy_registry.get(container)
+
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        splitter.setHandleWidth(1)
 
         center = QtWidgets.QWidget()
-        center.setStyleSheet(self.CSS_CENTER)
         data["layout_central"] = QtWidgets.QVBoxLayout(center)
         data["layout_central"].setContentsMargins(0, 0, 0, 0)
         data["layout_central"].setSpacing(0)
 
         if hasattr(modulo, "get_workspace_toolbar") and (tb := modulo.get_workspace_toolbar()):
-            tb.setStyleSheet(self.CSS_TOOLBAR)
             data["layout_central"].addWidget(tb)
 
         if hasattr(modulo, "get_workspace") and (vw := modulo.get_workspace()):
@@ -249,7 +237,7 @@ class WorkspaceManager(QtWidgets.QWidget):
         splitter.addWidget(center)
         splitter.addWidget(data["sidebar"])
         splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 0)
+
         layout.addWidget(splitter)
 
     def _sync_active_view(self):
@@ -264,41 +252,8 @@ class WorkspaceManager(QtWidgets.QWidget):
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyle("Fusion")
 
     workspace = WorkspaceManager()
-
-
-    class ModuloDemo:
-        nome = "Planejamento Cirúrgico"
-
-        def __init__(self):
-            self.toolbar = QtWidgets.QToolBar()
-            self.toolbar.addWidget(QtWidgets.QLabel("Ferramentas de Edição"))
-
-            self.view = QtWidgets.QFrame()
-            self.view.setFrameShape(QtWidgets.QFrame.StyledPanel)
-            self.view.setStyleSheet("background-color: #1a1a1a; border: 2px dashed #444;")
-
-            self.layout_view = QtWidgets.QVBoxLayout(self.view)
-            self.layout_view.addWidget(QtWidgets.QLabel("Visualizador 3D (VTK/OpenCMF)"),
-                                       alignment=QtCore.Qt.AlignCenter)
-
-        def get_workspace_toolbar(self):
-            return self.toolbar
-
-        def get_workspace(self):
-            return self.view
-
-        def get_toolboxes(self):
-            return {
-                "Pacientes": QtWidgets.QLabel("Lista de Pacientes"),
-                "Segmentação": QtWidgets.QLabel("Controles de Threshold")
-            }
-
-
-    workspace.adicionar_modulo("planejamento", ModuloDemo)
-
     workspace.resize(1200, 800)
     workspace.show()
 
