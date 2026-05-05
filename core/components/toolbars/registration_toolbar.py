@@ -17,7 +17,7 @@ class Component(QtWidgets.QToolBar):
         self.modulo = modulo
         self.setWindowTitle("Alinhar objetos")
         self.__module_path__ = Path(__file__).resolve()
-        self._setup_ui()
+        self.handler = RegistrationToolbarHandler(self)
 
 
 class ObjetoManagerWidget(QtWidgets.QWidget):
