@@ -21,10 +21,8 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - [
 logger = logging.getLogger("OpenCMF.Main")
 vtk.vtkObject.GlobalWarningDisplayOff()
 
-
 def get_resource_path() -> Path:
     return Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
-
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -63,7 +61,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.home.config_solicitada.connect(lambda: self.stack.setCurrentWidget(self.settings_page))
 
         self.workspace.home_solicitada.connect(self.back_to_home)
-        self.workspace.config_solicitada.connect(lambda: self.stack.setCurrentWidget(self.settings_page))
         self.workspace.currentChanged.connect(self.sync_active_module)
 
         self.settings_page.voltar_solicitado.connect(self.back_to_home)
@@ -125,7 +122,6 @@ class MainWindow(QtWidgets.QMainWindow):
         patient_folder = getattr(sender, 'pasta_paciente', None)
         if patient_folder:
             self.current_patient_path = str(Path(patient_folder).resolve())
-
 
 if __name__ == "__main__":
     if sys.platform == "win32":

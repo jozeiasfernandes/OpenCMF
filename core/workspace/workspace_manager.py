@@ -13,16 +13,13 @@ from core.workspace.componentes_list import Components_List
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("WorkspaceManager")
 
-
 def get_resource_path() -> Path:
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
     return Path(__file__).resolve().parents[2]
 
-
 class WorkspaceManager(QtWidgets.QWidget):
     home_solicitada = QtCore.Signal()
-    config_solicitada = QtCore.Signal()
     currentChanged = QtCore.Signal(int)
 
     def __init__(self):
@@ -30,7 +27,6 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.base_dir = get_resource_path()
         self._lazy_registry: Dict[QtWidgets.QWidget, Dict[str, Any]] = {}
         self._config_window = None
-
         self._init_ui()
 
     def _init_ui(self):
@@ -56,7 +52,7 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.btn_config = QtWidgets.QPushButton()
         self.btn_config.setFixedSize(30, 30)
         self._apply_icon(self.btn_config, "config_branco.svg", QtWidgets.QStyle.SP_ComputerIcon)
-        self.btn_config.clicked.connect(self._abrir_configuracoes)
+        self.btn_config.clicked.connect(self._abrir_seletor_componentes)
 
         header_grid.addWidget(self.btn_home, 0, 0)
         header_grid.addWidget(self.tab_bar, 0, 1)
@@ -73,10 +69,9 @@ class WorkspaceManager(QtWidgets.QWidget):
         button.setIcon(icon)
         button.setCursor(QtCore.Qt.PointingHandCursor)
 
-    def _abrir_configuracoes(self):
-        self.config_solicitada.emit()
+    def _abrir_seletor_componentes(self):
         if not self._config_window:
-            self._config_window = Components_List()
+            self._config_window = Components_List(self)
             self._config_window.componente_alterado.connect(self._on_componente_configurado)
         self._config_window.show()
 
@@ -93,7 +88,6 @@ class WorkspaceManager(QtWidgets.QWidget):
         try:
             is_class = isinstance(modulo_ref, type)
             title = getattr(modulo_ref, 'nome', id_modulo.replace("_", " ").capitalize())
-
             container = QtWidgets.QWidget()
             self.tab_bar.addTab(title)
             self.container_paginas.addWidget(container)
@@ -111,10 +105,8 @@ class WorkspaceManager(QtWidgets.QWidget):
 
             if not is_class:
                 self._build_module_layout(container, modulo_ref)
-
             if self.tab_bar.count() == 1:
                 self._on_tab_changed(0)
-
         except Exception:
             logger.error(traceback.format_exc())
 
@@ -122,7 +114,6 @@ class WorkspaceManager(QtWidgets.QWidget):
         if index < 0: return
         self.container_paginas.setCurrentIndex(index)
         container = self.container_paginas.widget(index)
-
         if data := self._lazy_registry.get(container):
             if not data["carregado"]:
                 self._load_lazy_module(data)
@@ -134,7 +125,6 @@ class WorkspaceManager(QtWidgets.QWidget):
             data["instancia"] = instancia
             if data["on_concluido"] and hasattr(instancia, "concluido"):
                 instancia.concluido.connect(data["on_concluido"])
-
             self._build_module_layout(data["container"], instancia)
             data["carregado"] = True
         except Exception:
@@ -148,24 +138,27 @@ class WorkspaceManager(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        center = QtWidgets.QWidget()
-        data["layout_central"] = QtWidgets.QVBoxLayout(center)
+        center_widget = QtWidgets.QWidget()
+        data["layout_central"] = QtWidgets.QVBoxLayout(center_widget)
         data["layout_central"].setContentsMargins(0, 0, 0, 0)
 
         if hasattr(modulo, "get_workspace_toolbar") and (tb := modulo.get_workspace_toolbar()):
             data["layout_central"].addWidget(tb)
-
         if hasattr(modulo, "get_workspace") and (vw := modulo.get_workspace()):
             data["layout_central"].addWidget(vw, 1)
 
         data["sidebar"] = ToolboxesManager()
+        if hasattr(data["sidebar"], "layout") and data["sidebar"].layout():
+            data["sidebar"].layout().setAlignment(QtCore.Qt.AlignTop)
+
         if hasattr(modulo, 'get_toolboxes'):
             for label, widget in modulo.get_toolboxes().items():
                 data["sidebar"].adicionar_widget(label, widget)
 
-        splitter.addWidget(center)
+        splitter.addWidget(center_widget)
         splitter.addWidget(data["sidebar"])
         splitter.setStretchFactor(0, 1)
+        splitter.setStretchFactor(1, 0)
         layout.addWidget(splitter)
 
     def get_modulo_ativo(self) -> Optional[Any]:
@@ -203,19 +196,12 @@ class WorkspaceManager(QtWidgets.QWidget):
         if categoria == "toolbars":
             layout = data["layout_central"]
             for i in range(layout.count()):
-                w = layout.itemAt(i).widget()
+                item = layout.itemAt(i)
+                if not item: continue
+                w = item.widget()
                 if w and getattr(w, '__module_path__', None) == caminho:
                     w.setParent(None)
                     w.deleteLater()
 
     def count(self):
         return self.container_paginas.count()
-
-if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-
-    workspace = WorkspaceManager()
-    workspace.resize(1200, 800)
-    workspace.show()
-
-    sys.exit(app.exec())
