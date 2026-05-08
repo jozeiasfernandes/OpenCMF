@@ -47,14 +47,12 @@ class Modulo(ModuloBase):
 
     def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
         toolbar = RegistrationToolbar()
-        handler = toolbar.handler
+        h = toolbar.handler
 
-        handler.importRequested.connect(
-            lambda: self._importar_objeto("Superfície", "Importado")
-        )
-        handler.deletePointRequested.connect(self.view_registration.remover_ultimo_marcador)
-        handler.pointSizeChanged.connect(self.view_registration.set_ponto_raio)
-        handler.resetLayoutRequested.connect(self.view_registration.reset_layout_vistas)
+        h.importRequested.connect(lambda: self._importar_objeto("Superfície", "Importado"))
+        h.deletePointRequested.connect(self.view_registration.remover_ultimo_marcador)
+        h.pointSizeChanged.connect(self.view_registration.set_ponto_raio)
+        h.resetLayoutRequested.connect(self.view_registration.reset_layout_vistas)
 
         return toolbar
 
@@ -117,12 +115,11 @@ class Modulo(ModuloBase):
             QtWidgets.QMessageBox.warning(None, "Erro", "Selecione a mesma quantidade de pontos (mín. 3).")
             return
 
-        print(f"Calculando registro para {len(pts_a)} pares de pontos...")
+        print(f"Executando registro: {len(pts_a)} pares.")
 
     def _resetar_pontos(self):
         self.view_registration.limpar_marcadores()
         self.widget_reg.limpar_tabela()
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
