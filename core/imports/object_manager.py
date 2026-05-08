@@ -6,6 +6,7 @@ from PySide6.QtCore import QObject, Signal
 from .models_import import ObjectProperties
 
 
+
 class ObjectManager(QObject):
     object_added = Signal(ObjectProperties)
     object_removed = Signal(str)
