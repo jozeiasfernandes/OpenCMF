@@ -1,7 +1,6 @@
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 import vtk
 import sys
-from core.components.toolbars.registration_toolbar import RegistrationToolbarHandler
 from core.components.central_area.windows_3d import Janela3DSurface
 
 
@@ -33,22 +32,10 @@ class WindowRegistration(QtWidgets.QWidget):
         self.view_a = Janela3DSurface("Vista A", "#00AAFF")
         self.view_b = Janela3DSurface("Vista B", "#555555")
 
-        self.toolbar_container = QtWidgets.QToolBar()
-        self.toolbar_handler = RegistrationToolbarHandler(self.toolbar_container)
-        self.main_layout.addWidget(self.toolbar_container)
-
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitter.addWidget(self.view_a)
         self.splitter.addWidget(self.view_b)
         self.main_layout.addWidget(self.splitter)
-
-        self.toolbar_handler.deletePointRequested.connect(self.remover_ultimo_ponto)
-        self.toolbar_handler.pointSizeChanged.connect(self._atualizar_tamanho_pontos)
-
-        if hasattr(self.toolbar_handler, 'resetViewRequested'):
-            self.toolbar_handler.resetViewRequested.connect(self.reset_layout_vistas)
-        else:
-            self.toolbar_handler.resetLayoutRequested.connect(self.reset_layout_vistas)
 
         QtCore.QTimer.singleShot(100, self._finalize_setup)
 
@@ -64,7 +51,7 @@ class WindowRegistration(QtWidgets.QWidget):
                 view.atores_malha[nome].GetProperty().SetColor(rgb)
                 view.render()
 
-    def _atualizar_tamanho_pontos(self, size):
+    def set_ponto_raio(self, size: float):
         self.current_point_size = size
         for view in [self.view_a, self.view_b]:
             actors = view.renderer.GetActors()
@@ -151,7 +138,7 @@ class WindowRegistration(QtWidgets.QWidget):
     def get_points_b(self):
         return self.pontos_b
 
-    def remover_ultimo_ponto(self):
+    def remover_ultimo_marcador(self):
         for view, lista in [(self.view_a, self.pontos_a), (self.view_b, self.pontos_b)]:
             if not lista: continue
             actors = list(view.renderer.GetActors())
@@ -182,7 +169,6 @@ class WindowRegistration(QtWidgets.QWidget):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     window = QtWidgets.QMainWindow()
-    window.setWindowTitle("Teste WindowRegistration Standalone")
     window.resize(1024, 768)
     registration_widget = WindowRegistration()
     window.setCentralWidget(registration_widget)

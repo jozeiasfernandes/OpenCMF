@@ -78,3 +78,39 @@ class RegistrationWidget(QtWidgets.QWidget):
 
     def limpar_tabela(self):
         self.table.setRowCount(0)
+
+
+if __name__ == "__main__":
+    import sys
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")
+
+    window = QtWidgets.QMainWindow()
+    window.setWindowTitle("OpenCMF - Teste RegistrationWidget")
+    window.resize(400, 600)
+
+    widget = RegistrationWidget()
+
+    objetos_teste = ["Mandíbula", "Crânio", "Guia Cirúrgico", "Dentição"]
+    widget.atualizar_combos(objetos_teste)
+
+
+    def simular_alinhamento():
+        target = widget.get_target_name()
+        source = widget.get_source_name()
+        print(f"Solicitando alinhamento: {source} -> {target}")
+
+
+    widget.solicitarAlinhamento.connect(simular_alinhamento)
+    widget.limparPontos.connect(lambda: print("Pontos resetados"))
+
+    # Simulação de adição de pontos via cliques nas vistas
+    widget.adicionar_ponto_tabela("A", (10.5, 20.0, 5.2))
+    widget.adicionar_ponto_tabela("B", (11.0, 19.8, 5.0))
+    widget.adicionar_ponto_tabela("A", (50.1, -10.3, 0.0))
+
+    window.setCentralWidget(widget)
+    window.show()
+
+    sys.exit(app.exec())
