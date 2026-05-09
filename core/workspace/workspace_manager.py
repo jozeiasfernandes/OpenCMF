@@ -205,3 +205,64 @@ class WorkspaceManager(QtWidgets.QWidget):
 
     def count(self):
         return self.container_paginas.count()
+
+
+if __name__ == "__main__":
+    import sys
+    from PySide6 import QtWidgets
+
+    # Configuração de logging já está no topo do arquivo
+    logger.info("Iniciando WorkspaceManager em modo standalone...")
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")  # Estilo consistente entre plataformas
+
+    # Criação da janela principal
+    workspace = WorkspaceManager()
+    workspace.setWindowTitle("OpenCMF - Workspace Manager")
+    workspace.resize(1280, 720)
+
+    # Exemplo de módulos para teste
+    try:
+        # Você pode adicionar módulos de teste aqui
+        class TestModule:
+            nome = "Módulo de Teste"
+
+            def get_workspace(self):
+                label = QtWidgets.QLabel("Bem-vindo ao Workspace de Teste!\n\nEste é um módulo de exemplo.")
+                label.setAlignment(QtCore.Qt.AlignCenter)
+                label.setStyleSheet("font-size: 18px; color: #888;")
+                return label
+
+            def get_toolboxes(self):
+                return {
+                    "Informações": QtWidgets.QLabel("Painel de informações do módulo"),
+                    "Configurações": QtWidgets.QLabel("Configurações rápidas")
+                }
+
+
+        # Adicionando módulo de teste
+        workspace.adicionar_modulo("test_module", TestModule())
+
+
+        # Adicionando um segundo módulo de exemplo
+        class AnotherTest:
+            nome = "Visualizador"
+
+            def get_workspace(self):
+                from PySide6.QtWidgets import QTextEdit
+                text = QTextEdit()
+                text.setPlainText(
+                    "Área de trabalho principal do Visualizador.\n\nAqui viria o conteúdo principal do módulo.")
+                return text
+
+
+        workspace.adicionar_modulo("viewer", AnotherTest())
+
+    except Exception as e:
+        logger.error(f"Erro ao adicionar módulos de teste: {e}")
+
+    workspace.show()
+
+    logger.info("WorkspaceManager iniciado com sucesso.")
+    sys.exit(app.exec())

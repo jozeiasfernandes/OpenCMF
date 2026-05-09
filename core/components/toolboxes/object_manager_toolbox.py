@@ -1,7 +1,5 @@
 import sys
 import random
-import os
-import shutil
 from pathlib import Path
 from typing import Dict
 from PySide6 import QtWidgets, QtCore, QtGui
@@ -121,26 +119,26 @@ class MainWindow(QtWidgets.QMainWindow):
         self.vtk_widget.Initialize()
 
     def _init_ui(self):
-        self.manager = ObjetoManagerWidget()
+        self.toolbox = QtWidgets.QToolBox()
+        self.manager_widget = ObjetoManagerWidget()
 
-        central = QtWidgets.QWidget()
-        self.setCentralWidget(central)
-        layout = QtWidgets.QHBoxLayout(central)
+        self.toolbox.addItem(self.manager_widget, "Gerenciador de Objetos")
 
-        layout.addWidget(self.manager, 1)
+        self.setCentralWidget(QtWidgets.QWidget())
+        layout = QtWidgets.QHBoxLayout(self.centralWidget())
+        layout.addWidget(self.toolbox, 1)
         layout.addWidget(self.vtk_widget, 4)
 
-        self.manager.objetoToggled.connect(self.toggle_actor)
-        self.manager.opacityChanged.connect(self.set_actor_opacity)
-        self.manager.colorChanged.connect(self.set_actor_color)
-        self.manager.deleteRequested.connect(self.remove_actor)
+        self.manager_widget.objetoToggled.connect(self.toggle_actor)
+        self.manager_widget.opacityChanged.connect(self.set_actor_opacity)
+        self.manager_widget.colorChanged.connect(self.set_actor_color)
+        self.manager_widget.deleteRequested.connect(self.remove_actor)
 
     def atualizar_da_pasta(self):
         arquivos = list(self.pasta_paciente.glob("*.stl")) + list(self.pasta_paciente.glob("*.obj"))
         for file_path in arquivos:
             if file_path.name not in self.atores:
                 self._carregar_arquivo_vtk(file_path)
-
         self.renderer.ResetCamera()
         self.vtk_widget.GetRenderWindow().Render()
 
@@ -152,7 +150,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputConnection(reader.GetOutputPort())
-
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
 
@@ -161,7 +158,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.renderer.AddActor(actor)
         self.atores[file_path.name] = actor
-        self.manager.adicionar_objeto_lista(file_path.name, "Arquivos Locais", color)
+        self.manager_widget.adicionar_objeto_lista(file_path.name, "Arquivos Locais", color)
 
     def toggle_actor(self, name, visible):
         if name in self.atores:
@@ -183,6 +180,24 @@ class MainWindow(QtWidgets.QMainWindow):
         if actor:
             self.renderer.RemoveActor(actor)
             self.vtk_widget.GetRenderWindow().Render()
+
+
+class Component(QtWidgets.QWidget):
+    def __init__(self, modulo=None):
+        super().__init__()
+        self.modulo = modulo
+
+        self.setWindowTitle("Lista de Objetos")
+        self.setObjectName("object_manager_toolbox")
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        self.toolbox = QtWidgets.QToolBox()
+        self.manager = ObjetoManagerWidget()
+
+        self.toolbox.addItem(self.manager, "Gerenciador")
+        layout.addWidget(self.toolbox)
 
 
 if __name__ == "__main__":

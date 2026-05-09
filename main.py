@@ -3,7 +3,6 @@ import json
 import logging
 import ctypes
 import vtk
-import traceback
 from pathlib import Path
 from typing import Optional
 from PySide6 import QtWidgets, QtCore
@@ -21,8 +20,10 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - [
 logger = logging.getLogger("OpenCMF.Main")
 vtk.vtkObject.GlobalWarningDisplayOff()
 
+
 def get_resource_path() -> Path:
     return Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -32,29 +33,24 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_patient_path: Optional[str] = None
         self.workflow: Optional[FluxoBase] = None
 
-        self._init_components()
-        self._init_ui()
-        self._connect_signals()
-        self._apply_theme()
+        self._setup_core()
+        self._setup_signals()
+        self._setup_appearance()
 
-    def _init_components(self):
+    def _setup_core(self):
         self.stack = QtWidgets.QStackedWidget()
         self.home = Home_page()
         self.flow_editor = PaginaEditorFluxo()
         self.workspace = WorkspaceManager()
         self.settings_page = PaginaConfig()
 
-    def _init_ui(self):
-        self.setGeometry(150, 50, 1024, 650)
-        self.setWindowTitle(tr("main.window_title", settings.get("app_info", "titulo", "OpenCMF")))
         self.setCentralWidget(self.stack)
-
         self.stack.addWidget(self.home)
         self.stack.addWidget(self.flow_editor)
         self.stack.addWidget(self.workspace)
         self.stack.addWidget(self.settings_page)
 
-    def _connect_signals(self):
+    def _setup_signals(self):
         self.home.projeto_selecionado.connect(self.on_patient_selected)
         self.home.fluxo_escolhido.connect(self.start_workflow)
         self.home.editor_solicitado.connect(lambda: self.stack.setCurrentWidget(self.flow_editor))
@@ -65,12 +61,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.settings_page.voltar_solicitado.connect(self.back_to_home)
 
-    def _apply_theme(self):
+    def _setup_appearance(self):
+        self.setGeometry(150, 50, 1024, 650)
+        self.setWindowTitle(tr("main.window_title", settings.get("app_info", "titulo", "OpenCMF")))
+
         theme = settings.get("preferencias", "tema", "dark")
         qss_path = self.base_dir / "appearance" / "themes" / f"{theme}.qss"
         if qss_path.exists():
-            style = qss_path.read_text(encoding="utf-8")
-            QtWidgets.QApplication.instance().setStyleSheet(style)
+            self.setStyleSheet(qss_path.read_text(encoding="utf-8"))
 
     def back_to_home(self):
         if hasattr(self.home, 'update_list'):
@@ -90,11 +88,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.workspace.clear()
             self.workflow = FluxoBase(config)
-            QtCore.QTimer.singleShot(0, self._setup_workflow_steps)
+            QtCore.QTimer.singleShot(0, self._load_workflow_modules)
         except (json.JSONDecodeError, OSError) as e:
-            logger.error(f"Erro ao carregar workflow: {e}")
+            logger.error(f"Erro no workflow: {e}")
 
-    def _setup_workflow_steps(self):
+    def _load_workflow_modules(self):
         if not self.workflow:
             return
 
@@ -119,9 +117,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def on_step_complete(self):
         sender = self.sender()
-        patient_folder = getattr(sender, 'pasta_paciente', None)
-        if patient_folder:
-            self.current_patient_path = str(Path(patient_folder).resolve())
+        path = getattr(sender, 'pasta_paciente', None)
+        if path:
+            self.current_patient_path = str(Path(path).resolve())
+
 
 if __name__ == "__main__":
     if sys.platform == "win32":
