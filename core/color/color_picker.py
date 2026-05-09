@@ -1,34 +1,44 @@
-"""
-Sistema centralizado de gerenciamento de cores.
+from PySide6 import QtWidgets, QtCore, QtGui
+from .hue_bar import HueBar
+from .sat_val_canvas import SatValCanvas
+from .color_utils import hsv_to_rgb
 
-Responsável por armazenar e fornecer cores utilizadas
-na interface Qt e nos objetos VTK da aplicação.
-"""
+class ColorPickerWidget(QtWidgets.QWidget):
+    colorChanged = QtCore.Signal(QtGui.QColor)
 
-from PySide6 import QtCore, QtGui
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._setup_ui()
 
+    def _setup_ui(self):
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
 
-class ColorManager(QtCore.QObject):
-    colorChanged = QtCore.Signal(str, QtGui.QColor)
+        self.canvas = SatValCanvas()
+        self.hue_bar = HueBar()
 
-    def __init__(self):
-        super().__init__()
+        layout.addWidget(self.canvas)
+        layout.addWidget(self.hue_bar)
 
-        self._colors = {
-            "background": QtGui.QColor("#1E1E1E"),
-            "bone": QtGui.QColor("#E8D9C5"),
-            "soft_tissue": QtGui.QColor("#D19A8A"),
-            "implant": QtGui.QColor("#C0C0C0"),
-            "selection": QtGui.QColor("#3EA6FA"),
-        }
+        self.hue_bar.hueChanged.connect(self._on_hue_changed)
+        self.canvas.colorPicked.connect(self._on_sat_val_changed)
 
-    def set_color(self, key: str, color: QtGui.QColor):
-        self._colors[key] = color
-        self.colorChanged.emit(key, color)
+    def _on_hue_changed(self, hue):
+        self.canvas.set_hue(hue)
+        self._update_color()
 
-    def get_color(self, key: str) -> QtGui.QColor:
-        return self._colors.get(key, QtGui.QColor("white"))
+    def _on_sat_val_changed(self, sat, val):
+        self._update_color()
 
-    def get_rgbf(self, key: str):
-        c = self.get_color(key)
-        return c.redF(), c.greenF(), c.blueF()
+    def _update_color(self):
+        h = self.hue_bar.get_hue()
+        s = self.canvas.get_sat()
+        v = self.canvas.get_val()
+        r, g, b = hsv_to_rgb(h, s, v)
+        color = QtGui.QColor.fromRgbF(r, g, b)
+        self.colorChanged.emit(color)
+
+    def set_rgb(self, rgb):
+        color = QtGui.QColor.fromRgbF(*rgb)
+        self.hue_bar.set_hue(color.hueF() * 360)
+        self.canvas.set_sat_val(color.saturationF(), color.valueF())

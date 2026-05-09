@@ -10,8 +10,9 @@ Depende de:
 
 import sys
 from PySide6 import QtWidgets, QtCore, QtGui
+from core.color import ColorPickerWidget
 
-from core.color.color_picker import ColorPickerWidget
+
 
 # ---------------------------------------------------------------------------
 # AxisSliderRow — específico deste painel, não faz parte do color picker
