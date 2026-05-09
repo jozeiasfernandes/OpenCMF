@@ -20,10 +20,8 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - [
 logger = logging.getLogger("OpenCMF.Main")
 vtk.vtkObject.GlobalWarningDisplayOff()
 
-
 def get_resource_path() -> Path:
     return Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
-
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -45,10 +43,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings_page = PaginaConfig()
 
         self.setCentralWidget(self.stack)
-        self.stack.addWidget(self.home)
-        self.stack.addWidget(self.flow_editor)
-        self.stack.addWidget(self.workspace)
-        self.stack.addWidget(self.settings_page)
+        for widget in [self.home, self.flow_editor, self.workspace, self.settings_page]:
+            self.stack.addWidget(widget)
 
     def _setup_signals(self):
         self.home.projeto_selecionado.connect(self.on_patient_selected)
@@ -88,14 +84,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.workspace.clear()
             self.workflow = FluxoBase(config)
-            self.workspace.set_patient_path(self.current_patient_path)  # Define o caminho do paciente
+            self.workspace.set_patient_path(self.current_patient_path)
             QtCore.QTimer.singleShot(0, self._load_workflow_modules)
         except (json.JSONDecodeError, OSError) as e:
             logger.error(f"Erro no workflow: {e}")
 
     def _load_workflow_modules(self):
-        if not self.workflow:
-            return
+        if not self.workflow: return
 
         with QtCore.QSignalBlocker(self.workspace):
             for module_id in self.workflow.sequencia:
@@ -116,12 +111,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if module and self.current_patient_path and hasattr(module, 'inicializar'):
             module.inicializar(self.current_patient_path)
 
-    def on_step_complete(self):
-        sender = self.sender()
-        path = getattr(sender, 'pasta_paciente', None)
+    def on_step_complete(self, module: QtWidgets.QWidget):
+        path = getattr(module, 'pasta_paciente', None)
         if path:
             self.current_patient_path = str(Path(path).resolve())
-
 
 if __name__ == "__main__":
     if sys.platform == "win32":

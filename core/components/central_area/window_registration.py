@@ -1,10 +1,13 @@
 from PySide6 import QtWidgets, QtCore
 import vtk
 import sys
+# Certifique-se de que o caminho de importação está correto para o seu projeto
 from core.components.central_area.windows_3d import Janela3DSurface
 
 
 class RegistrationDoubleClickFilter(QtCore.QObject):
+    """Filtro para evitar que cliques duplos interfiram na seleção de pontos."""
+
     def eventFilter(self, obj, event):
         if event.type() == QtCore.QEvent.MouseButtonDblClick:
             return True
@@ -13,6 +16,8 @@ class RegistrationDoubleClickFilter(QtCore.QObject):
 
 class WindowRegistration(QtWidgets.QWidget):
     pontoAdicionado = QtCore.Signal(str, list)
+    # Sinal para avisar o Modulo que um objeto precisa ser lido do disco
+    requisitarCarregamentoObjeto = QtCore.Signal(str, str)
 
     def __init__(self):
         super().__init__()
@@ -29,27 +34,167 @@ class WindowRegistration(QtWidgets.QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        self.view_a = Janela3DSurface("Vista A", "#00AAFF")
-        self.view_b = Janela3DSurface("Vista B", "#555555")
-
+        # Splitter principal para dividir as telas A e B
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        self.splitter.addWidget(self.view_a)
-        self.splitter.addWidget(self.view_b)
+
+        # --- VISTA A (Esquerda) ---
+        self.container_a = QtWidgets.QWidget()
+        layout_a = QtWidgets.QVBoxLayout(self.container_a)
+        layout_a.setContentsMargins(4, 4, 4, 4)
+
+        self.view_a = Janela3DSurface("Vista A", "#00AAFF")
+        self.combo_a = QtWidgets.QComboBox()
+        self.combo_a.setPlaceholderText("Selecionar objeto Vista A...")
+
+        layout_a.addWidget(self.view_a, stretch=1)
+        layout_a.addWidget(QtWidgets.QLabel("Objeto de Referência (Fixo):"))
+        layout_a.addWidget(self.combo_a)
+
+        # --- VISTA B (Direita) ---
+        self.container_b = QtWidgets.QWidget()
+        layout_b = QtWidgets.QVBoxLayout(self.container_b)
+        layout_b.setContentsMargins(4, 4, 4, 4)
+
+        self.view_b = Janela3DSurface("Vista B", "#555555")
+        self.combo_b = QtWidgets.QComboBox()
+        self.combo_b.setPlaceholderText("Selecionar objeto Vista B...")
+
+        layout_b.addWidget(self.view_b, stretch=1)
+        layout_b.addWidget(QtWidgets.QLabel("Objeto Móvel (A alinhar):"))
+        layout_b.addWidget(self.combo_b)
+
+        # Adicionar os containers ao splitter
+        self.splitter.addWidget(self.container_a)
+        self.splitter.addWidget(self.container_b)
         self.main_layout.addWidget(self.splitter)
+
+        # Conexões dos seletores
+        self.combo_a.currentTextChanged.connect(lambda texto: self._on_combo_changed("A", texto))
+        self.combo_b.currentTextChanged.connect(lambda texto: self._on_combo_changed("B", texto))
 
         QtCore.QTimer.singleShot(100, self._finalize_setup)
 
-    def set_objeto_opacidade(self, nome: str, valor: float):
-        for view in [self.view_a, self.view_b]:
-            if nome in view.atores_malha:
-                view.atores_malha[nome].GetProperty().SetOpacity(valor)
-                view.render()
+    def _finalize_setup(self):
+        self.setup_interactors()
+        self.reset_layout_vistas()
 
-    def set_objeto_cor(self, nome: str, rgb: tuple):
+    # --- MÉTODOS DE LIMPEZA (CORREÇÃO DO ATTRIBUTEERROR) ---
+
+    def _limpar_atores_da_vista(self, view):
+        """
+        Método auxiliar para limpar a vista usando apenas comandos padrão do VTK,
+        evitando depender de métodos inexistentes na Janela3DSurface.
+        """
+        renderer = view.renderer
+        actors = renderer.GetActors()
+        actors.InitTraversal()
+
+        # Lista temporária para evitar problemas de concorrência ao remover
+        atores_para_remover = []
+        for _ in range(actors.GetNumberOfItems()):
+            actor = actors.GetNextActor()
+            # Mantemos apenas o que for essencial do sistema (ex: eixos se houver)
+            # Mas geralmente limpamos tudo para carregar a nova malha
+            atores_para_remover.append(actor)
+
+        for actor in atores_para_remover:
+            renderer.RemoveActor(actor)
+
+    # --- GERENCIAMENTO DE MALHAS E ESTILOS ---
+
+    def adicionar_malha_vista_a(self, nome, polydata):
+        self._limpar_atores_da_vista(self.view_a)
+        self.objetos_a = {nome: polydata}
+        self.view_a.adicionar_objeto(nome, polydata, cor=(0.7, 0.7, 0.9))
+
+        if self.combo_a.currentText() != nome:
+            self.combo_a.blockSignals(True)
+            self.combo_a.setCurrentText(nome)
+            self.combo_a.blockSignals(False)
+
+        self.view_a.reset_camera()
+        self.view_a.render()
+
+    def adicionar_malha_vista_b(self, nome, polydata):
+        self._limpar_atores_da_vista(self.view_b)
+        self.objetos_b = {nome: polydata}
+        self.view_b.adicionar_objeto(nome, polydata, cor=(0.9, 0.9, 0.7))
+
+        if self.combo_b.currentText() != nome:
+            self.combo_b.blockSignals(True)
+            self.combo_b.setCurrentText(nome)
+            self.combo_b.blockSignals(False)
+
+        self.view_b.reset_camera()
+        self.view_b.render()
+
+    def remover_objeto(self, nome):
+        # Usa o método de remoção da própria Janela3DSurface se existir,
+        # ou remove via renderer
+        try:
+            self.view_a.remover_objeto(nome)
+            self.view_b.remover_objeto(nome)
+        except AttributeError:
+            pass  # Se não existir, a limpeza total ou específica deve ser tratada
+
+        if nome in self.objetos_a: del self.objetos_a[nome]
+        if nome in self.objetos_b: del self.objetos_b[nome]
+        self.view_a.render()
+        self.view_b.render()
+
+    def set_objeto_opacidade(self, nome, valor):
+        """Ajusta a opacidade do objeto nas duas vistas buscando no renderer."""
         for view in [self.view_a, self.view_b]:
-            if nome in view.atores_malha:
-                view.atores_malha[nome].GetProperty().SetColor(rgb)
-                view.render()
+            actors = view.renderer.GetActors()
+            actors.InitTraversal()
+            for _ in range(actors.GetNumberOfItems()):
+                actor = actors.GetNextActor()
+                # Verifica se o ator tem o nome (Janela3DSurface costuma salvar o nome no Actor)
+                if hasattr(actor, "name") and actor.name == nome:
+                    actor.GetProperty().SetOpacity(valor)
+            view.render()
+
+    def set_objeto_cor(self, nome, cor_rgb):
+        for view in [self.view_a, self.view_b]:
+            actors = view.renderer.GetActors()
+            actors.InitTraversal()
+            for _ in range(actors.GetNumberOfItems()):
+                actor = actors.GetNextActor()
+                if hasattr(actor, "name") and actor.name == nome:
+                    actor.GetProperty().SetColor(cor_rgb)
+            view.render()
+
+    def limpar_vistas_total(self):
+        self._limpar_atores_da_vista(self.view_a)
+        self._limpar_atores_da_vista(self.view_b)
+        self.objetos_a.clear()
+        self.objetos_b.clear()
+        self.limpar_marcadores()
+        self.view_a.render()
+        self.view_b.render()
+
+    # --- MÉTODOS PARA A TOOLBAR (Controle de Pontos) ---
+
+    def remover_ultimo_marcador(self):
+        for view, lista in [(self.view_a, self.pontos_a), (self.view_b, self.pontos_b)]:
+            if not lista: continue
+            actors = list(view.renderer.GetActors())
+            for actor in reversed(actors):
+                if hasattr(actor, "GetObjectName") and actor.GetObjectName() == "marcador_ponto":
+                    view.renderer.RemoveActor(actor)
+                    lista.pop()
+                    break
+            view.render()
+
+    def limpar_marcadores(self):
+        self.pontos_a = []
+        self.pontos_b = []
+        for view in [self.view_a, self.view_b]:
+            actors = list(view.renderer.GetActors())
+            for actor in actors:
+                if hasattr(actor, "GetObjectName") and actor.GetObjectName() == "marcador_ponto":
+                    view.renderer.RemoveActor(actor)
+            view.render()
 
     def set_ponto_raio(self, size: float):
         self.current_point_size = size
@@ -58,27 +203,43 @@ class WindowRegistration(QtWidgets.QWidget):
             actors.InitTraversal()
             for _ in range(actors.GetNumberOfItems()):
                 actor = actors.GetNextActor()
-                mapper = actor.GetMapper()
-                if mapper:
-                    algo = mapper.GetInputAlgorithm()
-                    if isinstance(algo, vtk.vtkSphereSource):
-                        algo.SetRadius(size)
+                if hasattr(actor, "GetObjectName") and actor.GetObjectName() == "marcador_ponto":
+                    mapper = actor.GetMapper()
+                    if mapper:
+                        source = mapper.GetInputAlgorithm()
+                        if isinstance(source, vtk.vtkSphereSource):
+                            source.SetRadius(size)
             view.render()
 
-    def _finalize_setup(self):
-        self.reset_layout_vistas()
-        self.setup_interactors()
+    # --- AUXILIARES E INTERAÇÃO ---
+
+    def atualizar_lista_objetos(self, nomes_objetos: list):
+        for combo in [self.combo_a, self.combo_b]:
+            current = combo.currentText()
+            combo.blockSignals(True)
+            combo.clear()
+            combo.addItem("")
+            combo.addItems(nomes_objetos)
+            if current in nomes_objetos:
+                combo.setCurrentText(current)
+            combo.blockSignals(False)
+
+    def _on_combo_changed(self, vista_id, nome_objeto):
+        if nome_objeto:
+            self.requisitarCarregamentoObjeto.emit(vista_id, nome_objeto)
 
     def reset_layout_vistas(self):
         total_width = self.splitter.width()
-        self.splitter.setSizes([total_width // 2, total_width // 2])
+        if total_width > 0:
+            self.splitter.setSizes([total_width // 2, total_width // 2])
         self.view_a.reset_camera()
         self.view_b.reset_camera()
+        self.view_a.render()
+        self.view_b.render()
 
     def setup_interactors(self):
         self.view_a.setup_interactors()
         self.view_b.setup_interactors()
-
         for view, picker_attr, click_handler in [
             (self.view_a, 'picker_a', self._on_click_a),
             (self.view_b, 'picker_b', self._on_click_b)
@@ -111,59 +272,20 @@ class WindowRegistration(QtWidgets.QWidget):
         sphere = vtk.vtkSphereSource()
         sphere.SetCenter(pos)
         sphere.SetRadius(self.current_point_size)
-
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputConnection(sphere.GetOutputPort())
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
         actor.GetProperty().SetColor(cor)
+        actor.SetObjectName("marcador_ponto")
         view.renderer.AddActor(actor)
         view.render()
-
-    def adicionar_malha_vista_a(self, nome, polydata):
-        self.view_a.adicionar_objeto(nome, polydata, cor=(0.7, 0.7, 0.9))
-        self.objetos_a[nome] = polydata
-
-    def adicionar_malha_vista_b(self, nome, polydata):
-        self.view_b.adicionar_objeto(nome, polydata, cor=(0.9, 0.9, 0.7))
-        self.objetos_b[nome] = polydata
-
-    def remover_objeto(self, nome):
-        self.view_a.remover_objeto(nome)
-        self.view_b.remover_objeto(nome)
 
     def get_points_a(self):
         return self.pontos_a
 
     def get_points_b(self):
         return self.pontos_b
-
-    def remover_ultimo_marcador(self):
-        for view, lista in [(self.view_a, self.pontos_a), (self.view_b, self.pontos_b)]:
-            if not lista: continue
-            actors = list(view.renderer.GetActors())
-            for actor in reversed(actors):
-                mapper = actor.GetMapper()
-                if mapper:
-                    algo = mapper.GetInputAlgorithm()
-                    if isinstance(algo, vtk.vtkSphereSource):
-                        view.renderer.RemoveActor(actor)
-                        lista.pop()
-                        break
-            view.render()
-
-    def limpar_marcadores(self):
-        self.pontos_a = []
-        self.pontos_b = []
-        for view in [self.view_a, self.view_b]:
-            actors = list(view.renderer.GetActors())
-            for actor in actors:
-                mapper = actor.GetMapper()
-                if mapper:
-                    algo = mapper.GetInputAlgorithm()
-                    if isinstance(algo, vtk.vtkSphereSource):
-                        view.renderer.RemoveActor(actor)
-            view.render()
 
 
 if __name__ == "__main__":

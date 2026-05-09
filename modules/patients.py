@@ -14,7 +14,7 @@ PASTA_PACIENTES = Path("patients")
 class Modulo(ModuloBase):
     def __init__(self):
         super().__init__()
-        self.nome = "Paciente"
+        self.nome = "Pacientes"
         self.id = "modulo.paciente"
         self.pasta_paciente = None
         self.project_service = ProjectServiceHomePage(PASTA_PACIENTES)

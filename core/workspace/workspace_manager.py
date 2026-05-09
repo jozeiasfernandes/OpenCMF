@@ -12,13 +12,14 @@ from core.workspace.toolboxes_manager import ToolboxesManager
 from core.workspace.loader_components import ComponentLoader
 from core.workspace.componentes_list import Components_List
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("WorkspaceManager")
+
 
 def get_resource_path() -> Path:
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
     return Path(__file__).resolve().parents[2]
+
 
 class WorkspaceManager(QtWidgets.QWidget):
     home_solicitada = QtCore.Signal()
@@ -29,7 +30,7 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.base_dir = get_resource_path()
         self._lazy_registry: Dict[QtWidgets.QWidget, Dict[str, Any]] = {}
         self._config_window = None
-        self.current_patient_path = ""  # Atributo para armazenar o caminho do paciente
+        self.current_patient_path = ""
         self._init_ui()
 
     def _init_ui(self):
@@ -49,7 +50,6 @@ class WorkspaceManager(QtWidgets.QWidget):
 
         self.tab_bar = QtWidgets.QTabBar()
         self.tab_bar.setDocumentMode(True)
-        self.tab_bar.currentChanged.connect(self.currentChanged.emit)
         self.tab_bar.currentChanged.connect(self._on_tab_changed)
 
         self.btn_config = QtWidgets.QPushButton()
@@ -72,91 +72,76 @@ class WorkspaceManager(QtWidgets.QWidget):
         button.setIcon(icon)
         button.setCursor(QtCore.Qt.PointingHandCursor)
 
-    def _abrir_seletor_componentes(self):
-        if not self._config_window:
-            self._config_window = Components_List(self)
-            self._config_window.componente_alterado.connect(self._on_componente_configurado)
-        self._config_window.show()
+    def set_patient_path(self, path: str):
+        if self.current_patient_path == path: return
+        self.current_patient_path = path
+        if modulo := self.get_modulo_ativo():
+            self._safe_inicializar(modulo)
 
     def clear(self):
-        logger.debug("Iniciando limpeza completa do WorkspaceManager")
+        logger.debug("Iniciando limpeza do WorkspaceManager")
+        for data in self._lazy_registry.values():
+            if inst := data.get("instancia"): self._cleanup_module_instance(inst)
 
-        for container, data in list(self._lazy_registry.items()):
-            if instancia := data.get("instancia"):
-                self._cleanup_module_instance(instancia)
-
-        while self.tab_bar.count():
-            self.tab_bar.removeTab(0)
-
+        while self.tab_bar.count(): self.tab_bar.removeTab(0)
         while self.container_paginas.count():
             w = self.container_paginas.widget(0)
             self.container_paginas.removeWidget(w)
-            w.setProperty("modulo_instancia", None)
             w.deleteLater()
 
         self._lazy_registry.clear()
         gc.collect()
-        logger.debug("Limpeza completa do WorkspaceManager finalizada")
 
     def _cleanup_module_instance(self, instancia: Any):
         try:
-            if hasattr(instancia, "concluido"):
-                instancia.concluido.disconnect()
-            if hasattr(instancia, "_cleanup"):
-                instancia._cleanup()
-        except Exception as e:
-            logger.warning(f"Erro durante cleanup da instância do módulo: {e}")
+            if hasattr(instancia, "concluido"): instancia.concluido.disconnect()
+            if hasattr(instancia, "_cleanup"): instancia._cleanup()
+        except:
+            pass
 
     def adicionar_modulo(self, id_modulo: str, modulo_ref: Any, on_concluido=None):
-        try:
-            is_class = isinstance(modulo_ref, type)
+        is_class = isinstance(modulo_ref, type)
+        title = id_modulo.replace("_", " ").capitalize()
 
-            if is_class:
-                instancia_temp = modulo_ref()
-                title = getattr(instancia_temp, 'nome', id_modulo.replace("_", " ").capitalize())
-                logger.debug(f"Módulo lazy-loading '{id_modulo}' registrado com título: '{title}'")
-                del instancia_temp
-            else:
-                title = getattr(modulo_ref, 'nome', id_modulo.replace("_", " ").capitalize())
-                logger.debug(f"Módulo '{id_modulo}' carregado com título: '{title}'")
+        if is_class:
+            try:
+                temp = modulo_ref()
+                title = getattr(temp, 'nome', title)
+                del temp
+            except:
+                pass
+        else:
+            title = getattr(modulo_ref, 'nome', title)
 
-            container = QtWidgets.QWidget()
-            self.tab_bar.addTab(title)
-            self.container_paginas.addWidget(container)
+        container = QtWidgets.QWidget()
+        self.tab_bar.addTab(title)
+        self.container_paginas.addWidget(container)
 
-            self._lazy_registry[container] = {
-                "id": id_modulo,
-                "classe": modulo_ref,
-                "instancia": modulo_ref if not is_class else None,
-                "carregado": not is_class,
-                "on_concluido": on_concluido,
-                "container": container,
-                "sidebar": None,
-                "layout_central": None
-            }
+        self._lazy_registry[container] = {
+            "id": id_modulo, "classe": modulo_ref, "instancia": modulo_ref if not is_class else None,
+            "carregado": not is_class, "on_concluido": on_concluido, "container": container
+        }
 
-            if not is_class:
-                self._build_module_layout(container, modulo_ref)
-            if self.tab_bar.count() == 1:
-                self._on_tab_changed(0)
-        except Exception:
-            logger.error(traceback.format_exc())
+        if not is_class: self._build_module_layout(container, modulo_ref)
+        if self.tab_bar.count() == 1: self._on_tab_changed(0)
 
     def _on_tab_changed(self, index: int):
         if index < 0: return
         self.container_paginas.setCurrentIndex(index)
+        self.currentChanged.emit(index)
+
         container = self.container_paginas.widget(index)
         if data := self._lazy_registry.get(container):
-            if not data["carregado"]:
-                self._load_lazy_module(data)
-
-            # Inicializar módulo se necessário
-            if instancia := data.get("instancia"):
-                if self.current_patient_path and hasattr(instancia, 'inicializar'):
-                    if not hasattr(instancia, 'pasta_paciente') or not instancia.pasta_paciente:
-                        instancia.inicializar(self.current_patient_path)
-
+            if not data["carregado"]: self._load_lazy_module(data)
+            if inst := data.get("instancia"): self._safe_inicializar(inst)
             self._sync_active_view()
+
+    def _safe_inicializar(self, instancia: Any):
+        if not self.current_patient_path: return
+        path_modulo = getattr(instancia, 'pasta_paciente', None)
+        if str(path_modulo) != str(self.current_patient_path):
+            if hasattr(instancia, 'inicializar'):
+                instancia.inicializar(self.current_patient_path)
 
     def _load_lazy_module(self, data: Dict):
         try:
@@ -165,30 +150,23 @@ class WorkspaceManager(QtWidgets.QWidget):
             if data["on_concluido"] and hasattr(instancia, "concluido"):
                 instancia.concluido.connect(data["on_concluido"])
 
-            titulo_tab = getattr(instancia, 'nome', data["id"])
-            tab_index = self.container_paginas.indexOf(data["container"])
-            if tab_index >= 0:
-                self.tab_bar.setTabText(tab_index, titulo_tab)
-
+            tab_idx = self.container_paginas.indexOf(data["container"])
+            self.tab_bar.setTabText(tab_idx, getattr(instancia, 'nome', data["id"]))
             self._build_module_layout(data["container"], instancia)
             data["carregado"] = True
-            logger.debug(f"Módulo lazy '{data['id']}' foi carregado e inicializado")
-        except Exception:
+        except:
             logger.error(traceback.format_exc())
 
     def _build_module_layout(self, container: QtWidgets.QWidget, modulo: Any):
         data = self._lazy_registry.get(container)
-        if not data:
-            return
-
         container.setProperty("modulo_instancia", weakref.ref(modulo))
 
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        center_widget = QtWidgets.QWidget()
-        data["layout_central"] = QtWidgets.QVBoxLayout(center_widget)
+        center = QtWidgets.QWidget()
+        data["layout_central"] = QtWidgets.QVBoxLayout(center)
         data["layout_central"].setContentsMargins(0, 0, 0, 0)
 
         if hasattr(modulo, "get_workspace_toolbar") and (tb := modulo.get_workspace_toolbar()):
@@ -197,40 +175,38 @@ class WorkspaceManager(QtWidgets.QWidget):
             data["layout_central"].addWidget(vw, 1)
 
         data["sidebar"] = ToolboxesManager()
-        if hasattr(data["sidebar"], "layout") and data["sidebar"].layout():
-            data["sidebar"].layout().setAlignment(QtCore.Qt.AlignTop)
-
         if hasattr(modulo, 'get_toolboxes'):
             for label, widget in modulo.get_toolboxes().items():
                 data["sidebar"].adicionar_widget(label, widget)
 
-        splitter.addWidget(center_widget)
+        splitter.addWidget(center)
         splitter.addWidget(data["sidebar"])
         splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 0)
         layout.addWidget(splitter)
 
     def get_modulo_ativo(self) -> Optional[Any]:
-        current = self.container_paginas.currentWidget()
-        if current:
+        if current := self.container_paginas.currentWidget():
             ref = current.property("modulo_instancia")
             return ref() if isinstance(ref, weakref.ReferenceType) else ref
         return None
 
     def _sync_active_view(self):
-        if modulo := self.get_modulo_ativo():
-            QtCore.QTimer.singleShot(10, lambda: self._refresh_viewer(modulo))
+        if mod := self.get_modulo_ativo():
+            QtCore.QTimer.singleShot(10, lambda: self._refresh_viewer(mod))
 
     def _refresh_viewer(self, modulo: Any):
         viewer = getattr(modulo, 'viewer', None)
-        if hasattr(viewer, 'refresh_display'):
-            viewer.refresh_display()
+        if hasattr(viewer, 'refresh_display'): viewer.refresh_display()
+
+    def _abrir_seletor_componentes(self):
+        if not self._config_window:
+            self._config_window = Components_List(self)
+            self._config_window.componente_alterado.connect(self._on_componente_configurado)
+        self._config_window.show()
 
     def _on_componente_configurado(self, categoria, caminho, ativo):
         modulo = self.get_modulo_ativo()
-        container = self.container_paginas.currentWidget()
-        data = self._lazy_registry.get(container)
-
+        data = self._lazy_registry.get(self.container_paginas.currentWidget())
         if not modulo or not data: return
 
         if ativo:
@@ -239,8 +215,7 @@ class WorkspaceManager(QtWidgets.QWidget):
             if categoria == "toolbars":
                 data["layout_central"].insertWidget(0, comp)
             elif categoria == "toolboxes":
-                nome_toolbox = getattr(comp, 'toolbox_name', caminho.stem.title())
-                idx = data["sidebar"].adicionar_widget(nome_toolbox, comp)
+                idx = data["sidebar"].adicionar_widget(getattr(comp, 'toolbox_name', caminho.stem.title()), comp)
                 data["sidebar"].stack.setCurrentIndex(idx)
         else:
             self._remover_componente(categoria, caminho, data)
@@ -249,49 +224,17 @@ class WorkspaceManager(QtWidgets.QWidget):
         if categoria == "toolbars":
             layout = data["layout_central"]
             for i in range(layout.count()):
-                item = layout.itemAt(i)
-                if not item: continue
-                w = item.widget()
+                w = layout.itemAt(i).widget()
                 if w and getattr(w, '__module_path__', None) == caminho:
-                    self._desconectar_sinais_componente(w)
                     layout.removeWidget(w)
                     w.setParent(None)
                     w.deleteLater()
-                    logger.debug(f"Componente toolbar removido: {caminho}")
                     break
         elif categoria == "toolboxes":
-            sidebar = data.get("sidebar")
-            if sidebar and hasattr(sidebar, 'remover_widget_por_caminho'):
-                sidebar.remover_widget_por_caminho(caminho)
-
-    def _desconectar_sinais_componente(self, componente: QtWidgets.QWidget):
-        try:
-            if hasattr(componente, 'destroyed'):
-                componente.destroyed.disconnect()
-        except Exception as e:
-            logger.warning(f"Erro ao desconectar sinais do componente: {e}")
-
-    def verificar_limpeza_memoria(self) -> Dict[str, int]:
-        stats = {
-            "containers_ativos": self.container_paginas.count(),
-            "tabs_ativas": self.tab_bar.count(),
-            "registros_lazy": len(self._lazy_registry),
-            "widgets_nao_deletados": 0
-        }
-
-        for container in self._lazy_registry.keys():
-            if not container.parent():
-                stats["widgets_nao_deletados"] += 1
-
-        return stats
+            if sb := data.get("sidebar"): sb.remover_widget_por_caminho(caminho)
 
     def count(self):
         return self.container_paginas.count()
-
-    def set_patient_path(self, path: str):
-        """Define o caminho do paciente no workspace."""
-        self.current_patient_path = path
-
 
 if __name__ == "__main__":
     import sys

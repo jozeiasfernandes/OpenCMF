@@ -19,6 +19,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     DIM_MAP = {"Axial": 2, "Sagital": 0, "Coronal": 1}
     NORMALS = {"Axial": (0, 0, 1), "Sagital": (1, 0, 0), "Coronal": (0, 1, 0)}
     VIEW_UP = {"Axial": (0, -1, 0), "Sagital": (0, 0, 1), "Coronal": (0, 0, 1)}
+    CORES = {"Axial": "#D32F2F", "Sagital": "#FBC02D", "Coronal": "#388E3C", "3D": "#1976D2"}
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -30,47 +31,47 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.volume_actor: Optional[vtk.vtkVolume] = None
 
         self._init_paths()
-        self._setup_main_layout()
+        self._setup_ui()
 
     def _init_paths(self):
-        base_path = os.path.dirname(os.path.abspath(__file__))
-        self.path_presets = os.path.abspath(os.path.join(base_path, "..", "presets"))
-        self.path_icones = os.path.abspath(os.path.join(base_path, "..", "..", "icons"))
+        base = os.path.dirname(os.path.abspath(__file__))
+        self.path_presets = os.path.abspath(os.path.join(base, "..", "presets"))
+        self.path_icones = os.path.abspath(os.path.join(base, "..", "..", "icons"))
 
-    def _setup_main_layout(self):
-        self.root_layout = QtWidgets.QVBoxLayout(self)
-        self.root_layout.setContentsMargins(0, 0, 0, 0)
-        self.root_layout.setSpacing(0)
+    def _setup_ui(self):
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         self.toolbar = VolumeViewerToolbar(self.path_icones)
         self.toolbar.layoutChanged.connect(self.configurar_layout)
         self.toolbar.lutChanged.connect(self.apply_global_lut)
-        self.root_layout.addWidget(self.toolbar)
 
         self.grid_container = QtWidgets.QWidget()
         self.grid_layout = QtWidgets.QGridLayout(self.grid_container)
         self.grid_layout.setContentsMargins(0, 0, 0, 0)
         self.grid_layout.setSpacing(2)
-        self.root_layout.addWidget(self.grid_container)
+
+        layout.addWidget(self.toolbar)
+        layout.addWidget(self.grid_container)
 
         self._create_viewers()
         self.configurar_layout("4 Quadrantes")
 
     def _create_viewers(self):
-        cores = {"Axial": "#D32F2F", "Sagital": "#FBC02D", "Coronal": "#388E3C"}
         for nome in self.PLANOS:
-            pane = Janela2D(nome, cores[nome])
+            pane = Janela2D(nome, self.CORES[nome])
             pane.sliceChanged.connect(lambda v, n=nome: self.update_slice(n, v))
-            pane.maximizeRequested.connect(lambda maximo, n=nome: self._handle_maximize(n, maximo))
+            pane.maximizeRequested.connect(lambda m, n=nome: self._handle_maximize(n, m))
             pane.lutChanged.connect(self.apply_global_lut)
             self.vistas[nome] = pane
 
-        pane_3d = Janela3D("3D", "#1976D2")
-        pane_3d.thresholdChanged.connect(self.update_threshold)
-        pane_3d.viewChanged.connect(self.update_3d_view)
-        pane_3d.presetChanged.connect(self.update_preset)
-        pane_3d.maximizeRequested.connect(lambda maximo: self._handle_maximize("3D", maximo))
-        self.vistas["3D"] = pane_3d
+        p3d = Janela3D("3D", self.CORES["3D"])
+        p3d.thresholdChanged.connect(self.update_threshold)
+        p3d.viewChanged.connect(self.update_3d_view)
+        p3d.presetChanged.connect(self.update_preset)
+        p3d.maximizeRequested.connect(lambda m: self._handle_maximize("3D", m))
+        self.vistas["3D"] = p3d
 
     def apply_global_lut(self, lut_name: str):
         new_lut = LUTManager.get_vtk_lut(lut_name)
@@ -84,44 +85,31 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def set_volume(self, volume: vtk.vtkImageData):
         self.volume_data = volume
-        extent = volume.GetExtent()
-        centro = volume.GetCenter()
+        ext, centro = volume.GetExtent(), volume.GetCenter()
 
         for nome, pane in self.vistas.items():
             rw = pane.vtkWidget.GetRenderWindow()
-            ren = rw.GetRenderers().GetFirstRenderer()
-            if not ren:
-                ren = vtk.vtkRenderer()
-                rw.AddRenderer(ren)
+            ren = rw.GetRenderers().GetFirstRenderer() or vtk.vtkRenderer()
+            if not rw.GetRenderers().GetFirstRenderer(): rw.AddRenderer(ren)
 
             if nome == "3D":
                 self.volume_actor = ViewerRenderers.configure_3d_renderer(
                     ren, volume, self.color_function, self.opacity_function
                 )
-                initial_preset = self.vistas["3D"].combo_presets.currentText()
-                if initial_preset:
-                    QtCore.QTimer.singleShot(50, lambda: self.update_preset(initial_preset))
+                preset = pane.combo_presets.currentText()
+                if preset: QtCore.QTimer.singleShot(50, lambda: self.update_preset(preset))
             else:
                 axis = self.DIM_MAP[nome]
+                actor = ViewerRenderers.configure_mpr_renderer(ren, volume, self.NORMALS[nome], centro)
 
-                # Obtém o Ator do helper
-                actor_2d = ViewerRenderers.configure_mpr_renderer(
-                    ren, volume, self.NORMALS[nome], centro
-                )
+                self.mappers_mpr[nome] = actor.GetMapper()
+                pane.vtk_property = actor.GetProperty()
 
-                # Salva o Mapper para controle de fatias e a Propriedade para cores
-                self.mappers_mpr[nome] = actor_2d.GetMapper()
-                pane.vtk_property = actor_2d.GetProperty()
-
-                min_s, max_s = extent[axis * 2], extent[axis * 2 + 1]
+                min_s, max_s = ext[axis * 2], ext[axis * 2 + 1]
                 pane.slider_corte.setRange(min_s, max_s)
-                slice_init = (min_s + max_s) // 2
-                pane.slider_corte.setValue(slice_init)
 
-                ViewerRenderers.setup_camera_mpr(
-                    ren, centro, axis, self.VIEW_UP[nome], nome == "Axial"
-                )
-                self.update_slice(nome, slice_init)
+                ViewerRenderers.setup_camera_mpr(ren, centro, axis, self.VIEW_UP[nome], nome == "Axial")
+                self.update_slice(nome, (min_s + max_s) // 2)
 
             rw.Render()
 
@@ -129,21 +117,16 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         if not self.volume_data or plano not in self.mappers_mpr: return
 
         axis = self.DIM_MAP[plano]
-        spacing = self.volume_data.GetSpacing()[axis]
-        origin = self.volume_data.GetOrigin()[axis]
-        pos_fisica = origin + (index * spacing)
+        pos_fisica = self.volume_data.GetOrigin()[axis] + (index * self.volume_data.GetSpacing()[axis])
 
         ViewerRenderers.update_reslice_position(self.mappers_mpr[plano], axis, pos_fisica)
 
         pane = self.vistas[plano]
-        renderer = pane.vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer()
-        cam = renderer.GetActiveCamera()
+        cam = pane.vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer().GetActiveCamera()
 
-        focal = list(cam.GetFocalPoint())
-        pos = list(cam.GetPosition())
+        focal, pos = list(cam.GetFocalPoint()), list(cam.GetPosition())
         dist = pos[axis] - focal[axis]
-        focal[axis] = pos_fisica
-        pos[axis] = pos_fisica + dist
+        focal[axis], pos[axis] = pos_fisica, pos_fisica + dist
 
         cam.SetFocalPoint(focal)
         cam.SetPosition(pos)
@@ -164,16 +147,14 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         for p in preset.get("colors", []): self.color_function.AddRGBPoint(*p)
         for p in preset.get("opacity", []): self.opacity_function.AddPoint(*p)
 
-        threshold = preset.get("threshold", 400)
-        self.vistas["3D"].slider_threshold.setValue(threshold)
+        thr = preset.get("threshold", 400)
+        self.vistas["3D"].slider_threshold.setValue(thr)
         self.volume_actor.GetProperty().SetShade(preset.get("shade", True))
 
-        if preset.get("mip"):
-            self.volume_actor.GetMapper().SetBlendModeToMaximumIntensity()
-        else:
-            self.volume_actor.GetMapper().SetBlendModeToComposite()
+        mode = vtk.VTK_COMPOSITE_BLEND if not preset.get("mip") else vtk.VTK_MAXIMUM_INTENSITY_BLEND
+        self.volume_actor.GetMapper().SetBlendMode(mode)
 
-        self.update_threshold(threshold)
+        self.update_threshold(thr)
         self.vistas["3D"].vtkWidget.GetRenderWindow().Render()
 
     def update_threshold(self, value: int):
@@ -201,8 +182,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def configurar_layout(self, modo: str):
         for i in reversed(range(self.grid_layout.count())):
-            w = self.grid_layout.itemAt(i).widget()
-            if w: w.setParent(None)
+            if w := self.grid_layout.itemAt(i).widget(): w.setParent(None)
 
         for n, obj in self.vistas.items():
             obj.hide()
@@ -221,19 +201,10 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             self.vistas[item[0]].show()
 
     def _handle_maximize(self, nome, is_max):
-        self.toolbar.set_layout_text(nome if is_max else "4 Quadrantes")
+        modo = (nome if nome != "3D" else "Apenas 3D") if is_max else "4 Quadrantes"
+        self.configurar_layout(modo)
+        self.toolbar.set_layout_text(modo)
 
     def refresh_display(self):
         for p in self.vistas.values():
             if p.isVisible(): p.vtkWidget.GetRenderWindow().Render()
-
-    def _handle_maximize(self, nome, is_max):
-        if is_max:
-
-            modo = "Apenas 3D" if nome == "3D" else nome
-            self.configurar_layout(modo)
-            self.toolbar.set_layout_text(modo)
-        else:
-
-            self.configurar_layout("4 Quadrantes")
-            self.toolbar.set_layout_text("4 Quadrantes")
