@@ -1,12 +1,14 @@
 from PySide6 import QtWidgets, QtCore
 
 
-class RegistrationWidget(QtWidgets.QWidget):
+class Component(QtWidgets.QWidget):
+    toolbox_name = "Alinhar Objetos"
     solicitarAlinhamento = QtCore.Signal()
     limparPontos = QtCore.Signal()
 
-    def __init__(self):
+    def __init__(self, modulo=None):
         super().__init__()
+        self.modulo = modulo
         self.setup_ui()
 
     def setup_ui(self):
@@ -90,7 +92,7 @@ if __name__ == "__main__":
     window.setWindowTitle("OpenCMF - Teste RegistrationWidget")
     window.resize(400, 600)
 
-    widget = RegistrationWidget()
+    widget = Component()
 
     objetos_teste = ["Mandíbula", "Crânio", "Guia Cirúrgico", "Dentição"]
     widget.atualizar_combos(objetos_teste)

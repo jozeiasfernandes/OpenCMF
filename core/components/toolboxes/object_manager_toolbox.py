@@ -183,12 +183,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 class Component(QtWidgets.QWidget):
+    toolbox_name = "Lista de Objetos"
+
     def __init__(self, modulo=None):
         super().__init__()
         self.modulo = modulo
 
-        self.setWindowTitle("Lista de Objetos")
-        self.setObjectName("object_manager_toolbox")
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

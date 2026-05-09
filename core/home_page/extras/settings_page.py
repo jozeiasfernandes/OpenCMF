@@ -111,3 +111,26 @@ class PaginaConfig(QtWidgets.QWidget):
             "tema_caminho": self.combo_temas.currentData(),
             "idioma": self.combo_idioma.currentData()
         }
+
+
+if __name__ == "__main__":
+    import sys
+    from PySide6.QtWidgets import QApplication, QMainWindow
+
+    app = QApplication(sys.argv)
+
+    window = QMainWindow()
+    window.setWindowTitle("Teste - Configurações OpenCMF")
+    window.resize(500, 400)
+
+    config_page = PaginaConfig()
+
+    # Conectar sinais para teste
+    config_page.voltar_solicitado.connect(lambda: print("Voltar solicitado"))
+    config_page.tema_alterado.connect(lambda path: print(f"Tema alterado: {path}"))
+    config_page.idioma_alterado.connect(lambda lang: print(f"Idioma alterado: {lang}"))
+
+    window.setCentralWidget(config_page)
+    window.show()
+
+    sys.exit(app.exec())

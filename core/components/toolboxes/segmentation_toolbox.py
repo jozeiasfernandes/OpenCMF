@@ -7,8 +7,11 @@ class SegmentacaoWidget(QtWidgets.QWidget):
     solicitarMascara = QtCore.Signal()
     solicitarExportarSTL = QtCore.Signal()
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
+    toolbox_name = "Segmentação de Volumes"
+
+    def __init__(self, modulo=None):
+        super().__init__()
+        self.modulo = modulo
         self._setup_ui()
 
     def _setup_ui(self):
@@ -99,3 +102,41 @@ class SegmentacaoWidget(QtWidgets.QWidget):
 
     def get_qualidade_index(self) -> int:
         return self.combo_qualidade.currentIndex()
+
+
+Component = SegmentacaoWidget
+
+
+if __name__ == "__main__":
+    import sys
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")
+
+    window = QtWidgets.QMainWindow()
+    window.setWindowTitle("OpenCMF - Teste Segmentation Toolbox")
+    window.resize(400, 500)
+
+    widget = SegmentacaoWidget()
+
+    def on_path_changed(path):
+        print(f"Caminho alterado: {path}")
+
+    def on_threshold_changed(value):
+        print(f"Threshold alterado: {value}")
+
+    def on_solicitar_mascara():
+        print("Solicitando geração de máscara")
+
+    def on_solicitar_exportar_stl():
+        print("Solicitando exportação STL")
+
+    widget.pathChanged.connect(on_path_changed)
+    widget.thresholdChanged.connect(on_threshold_changed)
+    widget.solicitarMascara.connect(on_solicitar_mascara)
+    widget.solicitarExportarSTL.connect(on_solicitar_exportar_stl)
+
+    window.setCentralWidget(widget)
+    window.show()
+
+    sys.exit(app.exec())

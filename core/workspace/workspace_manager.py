@@ -1,6 +1,8 @@
 import sys
 import logging
 import traceback
+import weakref
+import gc
 from pathlib import Path
 from typing import Optional, Any, Dict
 
@@ -76,13 +78,33 @@ class WorkspaceManager(QtWidgets.QWidget):
         self._config_window.show()
 
     def clear(self):
+        logger.debug("Iniciando limpeza completa do WorkspaceManager")
+
+        for container, data in list(self._lazy_registry.items()):
+            if instancia := data.get("instancia"):
+                self._cleanup_module_instance(instancia)
+
         while self.tab_bar.count():
             self.tab_bar.removeTab(0)
+
         while self.container_paginas.count():
             w = self.container_paginas.widget(0)
             self.container_paginas.removeWidget(w)
+            w.setProperty("modulo_instancia", None)
             w.deleteLater()
+
         self._lazy_registry.clear()
+        gc.collect()
+        logger.debug("Limpeza completa do WorkspaceManager finalizada")
+
+    def _cleanup_module_instance(self, instancia: Any):
+        try:
+            if hasattr(instancia, "concluido"):
+                instancia.concluido.disconnect()
+            if hasattr(instancia, "_cleanup"):
+                instancia._cleanup()
+        except Exception as e:
+            logger.warning(f"Erro durante cleanup da instância do módulo: {e}")
 
     def adicionar_modulo(self, id_modulo: str, modulo_ref: Any, on_concluido=None):
         try:
@@ -132,7 +154,10 @@ class WorkspaceManager(QtWidgets.QWidget):
 
     def _build_module_layout(self, container: QtWidgets.QWidget, modulo: Any):
         data = self._lazy_registry.get(container)
-        container.setProperty("modulo_instancia", modulo)
+        if not data:
+            return
+
+        container.setProperty("modulo_instancia", weakref.ref(modulo))
 
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -163,7 +188,10 @@ class WorkspaceManager(QtWidgets.QWidget):
 
     def get_modulo_ativo(self) -> Optional[Any]:
         current = self.container_paginas.currentWidget()
-        return current.property("modulo_instancia") if current else None
+        if current:
+            ref = current.property("modulo_instancia")
+            return ref() if isinstance(ref, weakref.ReferenceType) else ref
+        return None
 
     def _sync_active_view(self):
         if modulo := self.get_modulo_ativo():
@@ -187,7 +215,8 @@ class WorkspaceManager(QtWidgets.QWidget):
             if categoria == "toolbars":
                 data["layout_central"].insertWidget(0, comp)
             elif categoria == "toolboxes":
-                idx = data["sidebar"].adicionar_widget(caminho.stem.title(), comp)
+                nome_toolbox = getattr(comp, 'toolbox_name', caminho.stem.title())
+                idx = data["sidebar"].adicionar_widget(nome_toolbox, comp)
                 data["sidebar"].stack.setCurrentIndex(idx)
         else:
             self._remover_componente(categoria, caminho, data)
@@ -200,8 +229,37 @@ class WorkspaceManager(QtWidgets.QWidget):
                 if not item: continue
                 w = item.widget()
                 if w and getattr(w, '__module_path__', None) == caminho:
+                    self._desconectar_sinais_componente(w)
+                    layout.removeWidget(w)
                     w.setParent(None)
                     w.deleteLater()
+                    logger.debug(f"Componente toolbar removido: {caminho}")
+                    break
+        elif categoria == "toolboxes":
+            sidebar = data.get("sidebar")
+            if sidebar and hasattr(sidebar, 'remover_widget_por_caminho'):
+                sidebar.remover_widget_por_caminho(caminho)
+
+    def _desconectar_sinais_componente(self, componente: QtWidgets.QWidget):
+        try:
+            if hasattr(componente, 'destroyed'):
+                componente.destroyed.disconnect()
+        except Exception as e:
+            logger.warning(f"Erro ao desconectar sinais do componente: {e}")
+
+    def verificar_limpeza_memoria(self) -> Dict[str, int]:
+        stats = {
+            "containers_ativos": self.container_paginas.count(),
+            "tabs_ativas": self.tab_bar.count(),
+            "registros_lazy": len(self._lazy_registry),
+            "widgets_nao_deletados": 0
+        }
+
+        for container in self._lazy_registry.keys():
+            if not container.parent():
+                stats["widgets_nao_deletados"] += 1
+
+        return stats
 
     def count(self):
         return self.container_paginas.count()
@@ -211,20 +269,16 @@ if __name__ == "__main__":
     import sys
     from PySide6 import QtWidgets
 
-    # Configuração de logging já está no topo do arquivo
     logger.info("Iniciando WorkspaceManager em modo standalone...")
 
     app = QtWidgets.QApplication(sys.argv)
-    app.setStyle("Fusion")  # Estilo consistente entre plataformas
+    app.setStyle("Fusion")
 
-    # Criação da janela principal
     workspace = WorkspaceManager()
     workspace.setWindowTitle("OpenCMF - Workspace Manager")
     workspace.resize(1280, 720)
 
-    # Exemplo de módulos para teste
     try:
-        # Você pode adicionar módulos de teste aqui
         class TestModule:
             nome = "Módulo de Teste"
 
@@ -240,12 +294,8 @@ if __name__ == "__main__":
                     "Configurações": QtWidgets.QLabel("Configurações rápidas")
                 }
 
-
-        # Adicionando módulo de teste
         workspace.adicionar_modulo("test_module", TestModule())
 
-
-        # Adicionando um segundo módulo de exemplo
         class AnotherTest:
             nome = "Visualizador"
 
@@ -255,7 +305,6 @@ if __name__ == "__main__":
                 text.setPlainText(
                     "Área de trabalho principal do Visualizador.\n\nAqui viria o conteúdo principal do módulo.")
                 return text
-
 
         workspace.adicionar_modulo("viewer", AnotherTest())
 

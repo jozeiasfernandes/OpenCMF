@@ -32,6 +32,17 @@ class ToolboxesManager(QtWidgets.QWidget):
         self.tab_bar.clear()
         self.stack.hide()
 
+    def renomear_tab(self, index: int, novo_titulo: str) -> bool:
+        if 0 <= index < self.tab_bar.count():
+            self.tab_bar.setTabText(index, novo_titulo)
+            return True
+        return False
+
+    def obter_titulo_tab(self, index: int) -> str:
+        if 0 <= index < self.tab_bar.count():
+            return self.tab_bar.tabText(index)
+        return ""
+
     def _gerenciar_clique(self, index: int):
         if not self.stack.isHidden() and self.tab_bar.currentIndex() == index:
             self.stack.hide()

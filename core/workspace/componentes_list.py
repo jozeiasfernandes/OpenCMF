@@ -102,12 +102,12 @@ class Components_List(QtWidgets.QDialog):
         group = QtWidgets.QButtonGroup(content) if mode == "radio" else None
 
         for path in files:
-            name = path.stem.replace("_", " ").title()
+            display_name = self._obter_nome_componente(path)
             if mode == "card":
-                widget = ComponentCard(name, path)
+                widget = ComponentCard(display_name, path)
                 selector = widget.selector
             else:
-                selector = QtWidgets.QCheckBox(name) if mode == "check" else QtWidgets.QRadioButton(name)
+                selector = QtWidgets.QCheckBox(display_name) if mode == "check" else QtWidgets.QRadioButton(display_name)
                 selector.setStyleSheet("font-size: 12px; padding: 4px;")
                 widget = selector
 
@@ -127,6 +127,21 @@ class Components_List(QtWidgets.QDialog):
         path = self.components_path / subfolder
         if not path.exists(): return []
         return sorted([f for f in path.iterdir() if f.suffix == ".py" and f.name != "__init__.py"])
+
+    def _obter_nome_componente(self, caminho_arquivo: Path) -> str:
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(caminho_arquivo.stem, caminho_arquivo)
+            if spec and spec.loader:
+                modulo = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(modulo)
+
+                if hasattr(modulo, 'Component') and hasattr(modulo.Component, 'toolbox_name'):
+                    return modulo.Component.toolbox_name
+        except Exception:
+            pass
+
+        return caminho_arquivo.stem.replace("_", " ").title()
 
 
 if __name__ == "__main__":
