@@ -31,5 +31,31 @@
         "language_changed_title": "Language Changed",
         "restart_required_msg": "To apply changes system-wide, please restart the application.",
         "default_theme": "Default"
+    },
+    "import": {
+        "secao": {
+            "superficies": "Surfaces",
+            "fotografias": "Photographs",
+            "volume": "Volume"
+        },
+        "superficies": {
+            "cranio": "Cranium",
+            "maxila": "Maxilla",
+            "mandibula": "Mandible",
+            "pele": "Skin",
+            "outros": "Others"
+        },
+        "fotografias": {
+            "frente": "Front",
+            "perfil": "Profile",
+            "intrabucal": "Intrabuccal",
+            "outros": "Others"
+        },
+        "volumes": {
+            "volume_vti": "Volume .vti"
+        },
+        "btn": {
+            "import_objects": "Import Objects"
+        }
     }
 }

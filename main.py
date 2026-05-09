@@ -88,6 +88,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.workspace.clear()
             self.workflow = FluxoBase(config)
+            self.workspace.set_patient_path(self.current_patient_path)  # Define o caminho do paciente
             QtCore.QTimer.singleShot(0, self._load_workflow_modules)
         except (json.JSONDecodeError, OSError) as e:
             logger.error(f"Erro no workflow: {e}")

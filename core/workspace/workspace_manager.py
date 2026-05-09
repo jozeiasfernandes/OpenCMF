@@ -29,6 +29,7 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.base_dir = get_resource_path()
         self._lazy_registry: Dict[QtWidgets.QWidget, Dict[str, Any]] = {}
         self._config_window = None
+        self.current_patient_path = ""  # Atributo para armazenar o caminho do paciente
         self._init_ui()
 
     def _init_ui(self):
@@ -139,6 +140,13 @@ class WorkspaceManager(QtWidgets.QWidget):
         if data := self._lazy_registry.get(container):
             if not data["carregado"]:
                 self._load_lazy_module(data)
+
+            # Inicializar módulo se necessário
+            if instancia := data.get("instancia"):
+                if self.current_patient_path and hasattr(instancia, 'inicializar'):
+                    if not hasattr(instancia, 'pasta_paciente') or not instancia.pasta_paciente:
+                        instancia.inicializar(self.current_patient_path)
+
             self._sync_active_view()
 
     def _load_lazy_module(self, data: Dict):
@@ -263,6 +271,10 @@ class WorkspaceManager(QtWidgets.QWidget):
 
     def count(self):
         return self.container_paginas.count()
+
+    def set_patient_path(self, path: str):
+        """Define o caminho do paciente no workspace."""
+        self.current_patient_path = path
 
 
 if __name__ == "__main__":

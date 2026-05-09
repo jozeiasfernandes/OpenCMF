@@ -1,30 +1,33 @@
 import vtk
 import sys
 import os
+import logging
 from typing import Optional, Dict
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore,QtGui
 
 from core.base_module.base import ModuloBase
 from core.components.central_area.window_registration import WindowRegistration
 from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
-from core.components.toolboxes.registration_toolbox import RegistrationWidget
+from core.components.toolboxes.registration_toolbox import Component
 from core.components.toolbars.registration_toolbar import Component as RegistrationToolbar
 from core.imports.object_manager import ObjectManager
 
 os.environ["VTK_SILENT_ERRORS"] = "1"
 vtk.vtkObject.GlobalWarningDisplayOff()
 
+logger = logging.getLogger("RegistrationModule")
+
 
 class Modulo(ModuloBase):
     def __init__(self):
         super().__init__()
-        self.nome = "Registro"
+        self.nome = "Alinhar objetos"
         self.id = "modulo.registration"
         self.object_manager: Optional[ObjectManager] = None
 
         self.view_registration = WindowRegistration()
-        self.widget_reg = RegistrationWidget()
+        self.widget_reg = Component()
         self.widget_objetos = ObjetoManagerWidget()
 
         self._conectar_sinais()
@@ -38,6 +41,7 @@ class Modulo(ModuloBase):
         self.widget_objetos.opacityChanged.connect(self._on_opacity_changed)
         self.widget_objetos.colorChanged.connect(self._on_color_changed)
         self.widget_objetos.deleteRequested.connect(self._on_delete_requested)
+        self.widget_objetos.nomeAlterado.connect(self._on_nome_alterado)
 
     def inicializar(self, caminho_paciente: str) -> None:
         super().inicializar(caminho_paciente)
@@ -49,7 +53,7 @@ class Modulo(ModuloBase):
         toolbar = RegistrationToolbar()
         h = toolbar.handler
 
-        h.importRequested.connect(lambda: self._importar_objeto("Superfície", "Importado"))
+        h.importRequested.connect(lambda: self._importar_objeto("Superfícies", "Importado"))
         h.deletePointRequested.connect(self.view_registration.remover_ultimo_marcador)
         h.pointSizeChanged.connect(self.view_registration.set_ponto_raio)
         h.resetLayoutRequested.connect(self.view_registration.reset_layout_vistas)
@@ -61,11 +65,19 @@ class Modulo(ModuloBase):
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         return {
-            "Configuração": self.widget_reg,
-            "Arquivos": self.widget_objetos
+            "Alinhar Objetos": self.widget_reg,
+            "Objetos": self.widget_objetos
         }
 
-    def _importar_objeto(self, categoria, subcategoria):
+    def _importar_objeto(self, categoria: str, subcategoria: str) -> None:
+        if not self.object_manager:
+            QtWidgets.QMessageBox.warning(
+                self.view_registration,
+                "Módulo não inicializado",
+                "O módulo ainda não foi inicializado. Tente clicar na aba do módulo novamente."
+            )
+            return
+
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
             self.view_registration, "Selecionar Malha", "", "Malhas (*.stl *.obj *.ply)"
         )
@@ -73,8 +85,23 @@ class Modulo(ModuloBase):
             self.object_manager.import_object(path, categoria, subcategoria)
 
     def _on_object_added_manager(self, props):
-        self.widget_objetos.adicionar_objeto_lista(props.name, props.type, props.render["color"])
+        categoria_mapeada = self._mapear_categoria_para_tipo(props.type)
+        self.widget_objetos.adicionar_objeto_lista(
+            props.name,
+            categoria_mapeada,
+            props.render["color"],
+            objeto_id=props.id
+        )
         self.widget_reg.atualizar_combos([obj.name for obj in self.object_manager.objects.values()])
+
+    def _mapear_categoria_para_tipo(self, tipo_pasta: str) -> str:
+        mapeamento = {
+            "surfaces": "Superfícies",
+            "photos": "Fotografias",
+            "volume": "Volume",
+            "others": "Outros"
+        }
+        return mapeamento.get(tipo_pasta, "Outros")
 
     def _on_objeto_toggled(self, nome, visivel):
         if not visivel:
@@ -106,6 +133,13 @@ class Modulo(ModuloBase):
         self.view_registration.remover_objeto(nome)
         restantes = [obj.name for obj in self.object_manager.objects.values() if obj.name != nome]
         self.widget_reg.atualizar_combos(restantes)
+
+    def _on_nome_alterado(self, nome_original: str, novo_nome: str) -> None:
+        props = next((p for p in self.object_manager.objects.values() if p.name == nome_original), None)
+        if props:
+            props.name = novo_nome
+            logger.info(f"Objeto renomeado: {nome_original} -> {novo_nome}")
+            self.widget_reg.atualizar_combos([obj.name for obj in self.object_manager.objects.values()])
 
     def _executar_registro(self):
         pts_a = self.view_registration.get_points_a()

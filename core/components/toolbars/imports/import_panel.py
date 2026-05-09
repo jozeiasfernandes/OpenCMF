@@ -1,25 +1,24 @@
 import sys
 from pathlib import Path
+from typing import Optional, Callable
 from PySide6.QtWidgets import (
     QWidget, QPushButton, QLabel, QFrame,
     QVBoxLayout, QGridLayout, QApplication
 )
 from PySide6.QtCore import Qt, Signal, QPoint, QSize, QEvent
 from PySide6.QtGui import QIcon
+from core.localization.translator import get_base_dir, tr
 
 
 def get_icon_path(icon_name: str) -> str:
-    base = Path(__file__).resolve()
-    for p in [base] + list(base.parents):
-        candidate = p / "appearance" / "icons" / icon_name
-        if candidate.exists():
-            return str(candidate)
-    return ""
+    base_dir = get_base_dir()
+    candidate = base_dir / "appearance" / "icons" / icon_name
+    return str(candidate) if candidate.exists() else ""
 
 
 class Card(QPushButton):
-    def __init__(self, texto: str, cor: str, icone_nome: str):
-        super().__init__(texto)
+    def __init__(self, texto: str, cor: str, icone_nome: str, parent: Optional[QWidget] = None):
+        super().__init__(texto, parent)
         self.setFixedSize(130, 40)
         self.setLayoutDirection(Qt.LeftToRight)
 
@@ -46,14 +45,14 @@ class Card(QPushButton):
 
 
 class Secao(QFrame):
-    def __init__(self, titulo: str, itens: list, cor: str, callback):
-        super().__init__()
+    def __init__(self, titulo: str, itens: list[tuple[str, str]], cor: str, callback: Callable[[str, str], None], parent: Optional[QWidget] = None):
+        super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
         layout.setAlignment(Qt.AlignLeft)
 
-        label = QLabel(titulo)
+        label = QLabel(titulo, self)
         label.setStyleSheet("color: white; font-size: 13px; font-weight: bold;")
         layout.addWidget(label)
 
@@ -64,7 +63,7 @@ class Secao(QFrame):
 
         colunas = 4
         for i, (nome, icone) in enumerate(itens):
-            btn = Card(nome, cor, icone)
+            btn = Card(nome, cor, icone, self)
             btn.clicked.connect(lambda _, n=nome, t=titulo: callback(t, n))
             grid.addWidget(btn, i // colunas, i % colunas)
 
@@ -74,10 +73,10 @@ class Secao(QFrame):
 class ImportObjectsPanel(QFrame):
     importRequested = Signal(str, str)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint)
-        self.setFixedWidth(580)
+        self.setMinimumWidth(580)
 
         self.setStyleSheet("""
             QFrame {
@@ -94,33 +93,38 @@ class ImportObjectsPanel(QFrame):
 
         self._setup_sections(layout)
 
-    def _setup_sections(self, layout: QVBoxLayout):
+    def _setup_sections(self, layout: QVBoxLayout) -> None:
         superficies = [
-            ("Crânio", "cranio.svg"), ("Maxila", "maxilla.svg"),
-            ("Mandíbula", "mandible.svg"), ("Pele", "face.svg"), ("Outros", "stl.svg")
+            (tr("import.superficies.cranio", "Crânio"), "cranio.svg"),
+            (tr("import.superficies.maxila", "Maxila"), "maxilla.svg"),
+            (tr("import.superficies.mandibula", "Mandíbula"), "mandible.svg"),
+            (tr("import.superficies.pele", "Pele"), "face.svg"),
+            (tr("import.superficies.outros", "Outros"), "stl.svg")
         ]
-        layout.addWidget(Secao("Superfícies", superficies, "#b0a8c0", self._on_item_clicked))
+        layout.addWidget(Secao(tr("import.secao.superficies", "Superfícies"), superficies, "#b0a8c0", self._on_item_clicked, self))
 
         fotografias = [
-            ("Frente", "fronte.svg"), ("Perfil", "perfil.svg"),
-            ("Intrabucal", "photo.svg"), ("Outros", "photo.svg")
+            (tr("import.fotografias.frente", "Frente"), "fronte.svg"),
+            (tr("import.fotografias.perfil", "Perfil"), "perfil.svg"),
+            (tr("import.fotografias.intrabucal", "Intrabucal"), "photo.svg"),
+            (tr("import.fotografias.outros", "Outros"), "photo.svg")
         ]
-        layout.addWidget(Secao("Fotografias", fotografias, "#c9a7a0", self._on_item_clicked))
+        layout.addWidget(Secao(tr("import.secao.fotografias", "Fotografias"), fotografias, "#c9a7a0", self._on_item_clicked, self))
 
-        volumes = [("Volume .vti", "vti.svg")]
-        layout.addWidget(Secao("Volume", volumes, "#bcd4d0", self._on_item_clicked))
+        volumes = [(tr("import.volumes.volume_vti", "Volume .vti"), "vti.svg")]
+        layout.addWidget(Secao(tr("import.secao.volume", "Volume"), volumes, "#bcd4d0", self._on_item_clicked, self))
 
-    def _on_item_clicked(self, categoria: str, subcategoria: str):
+    def _on_item_clicked(self, categoria: str, subcategoria: str) -> None:
         self.importRequested.emit(categoria, subcategoria)
         self.hide()
 
-    def show_under(self, widget: QWidget):
+    def show_under(self, widget: QWidget) -> None:
         pos = widget.mapToGlobal(QPoint(0, widget.height() + 2))
         self.move(pos)
         self.show()
         self.setFocus()
 
-    def event(self, event: QEvent):
+    def event(self, event: QEvent) -> bool:
         if event.type() == QEvent.WindowDeactivate:
             self.hide()
         return super().event(event)
@@ -132,7 +136,7 @@ if __name__ == "__main__":
     test_window.setMinimumSize(800, 600)
     test_window.setStyleSheet("background-color: #1e1e1e;")
 
-    btn = QPushButton("Import Objects", test_window)
+    btn = QPushButton(tr("import.btn.import_objects", "Import Objects"), test_window)
     btn.setFixedSize(130, 30)
     btn.move(50, 50)
     btn.setStyleSheet("background-color: #444; color: white;")

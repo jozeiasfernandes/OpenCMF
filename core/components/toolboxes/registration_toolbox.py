@@ -14,7 +14,7 @@ class Component(QtWidgets.QWidget):
     def setup_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
 
-        group_sel = QtWidgets.QGroupBox("Seleção de Objetos")
+        group_sel = QtWidgets.QGroupBox("Alinhar Objetos")
         layout_sel = QtWidgets.QFormLayout(group_sel)
 
         self.combo_target = QtWidgets.QComboBox()

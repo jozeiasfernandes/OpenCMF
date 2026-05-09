@@ -1,4 +1,5 @@
 import sys
+import logging
 import random
 from pathlib import Path
 from typing import Dict
@@ -6,16 +7,20 @@ from PySide6 import QtWidgets, QtCore, QtGui
 import vtkmodules.all as vtk
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
+logger = logging.getLogger("ObjectManagerWidget")
+
 
 class ObjetoManagerWidget(QtWidgets.QWidget):
     objetoToggled = QtCore.Signal(str, bool)
     opacityChanged = QtCore.Signal(str, float)
     colorChanged = QtCore.Signal(str, QtGui.QColor)
     deleteRequested = QtCore.Signal(str)
+    nomeAlterado = QtCore.Signal(str, str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.cats = {}
+        self.objetos_mapeados = {}
         self._setup_ui()
 
     def _setup_ui(self):
@@ -37,9 +42,10 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
         self.tree_widget.setColumnWidth(2, 40)
 
         self.tree_widget.itemChanged.connect(self._handle_item_changed)
+        self.tree_widget.doubleClicked.connect(self._on_double_clicked)
         layout.addWidget(self.tree_widget)
 
-    def _get_or_create_category(self, cat_name):
+    def _get_or_create_category(self, cat_name: str) -> QtWidgets.QTreeWidgetItem:
         if cat_name not in self.cats:
             cat_item = QtWidgets.QTreeWidgetItem(self.tree_widget)
             cat_item.setText(0, cat_name)
@@ -53,12 +59,16 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
             self.cats[cat_name] = cat_item
         return self.cats[cat_name]
 
-    def adicionar_objeto_lista(self, nome, categoria="Superfícies", cor=None):
+    def adicionar_objeto_lista(self, nome: str, categoria: str = "Superfícies", cor=None, objeto_id: str = None) -> None:
         parent = self._get_or_create_category(categoria)
         item = QtWidgets.QTreeWidgetItem(parent)
         item.setText(0, nome)
         item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
         item.setCheckState(0, QtCore.Qt.Checked)
+
+        if objeto_id:
+            self.objetos_mapeados[nome] = objeto_id
+            item.setData(0, QtCore.Qt.UserRole, objeto_id)
 
         slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         slider.setRange(0, 100)
@@ -75,7 +85,7 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
         btn_color.clicked.connect(lambda: self._pick_color(nome, btn_color))
         self.tree_widget.setItemWidget(item, 2, btn_color)
 
-    def _show_context_menu(self, position):
+    def _show_context_menu(self, position: QtCore.QPoint) -> None:
         item = self.tree_widget.itemAt(position)
         if not item or item.parent() is None:
             return
@@ -83,14 +93,35 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
         menu = QtWidgets.QMenu()
         action_del = menu.addAction("Excluir")
         if menu.exec(self.tree_widget.viewport().mapToGlobal(position)) == action_del:
-            self.deleteRequested.emit(item.text(0))
+            nome_objeto = item.text(0)
+            self.deleteRequested.emit(nome_objeto)
             item.parent().removeChild(item)
+            logger.info(f"Objeto deletado: {nome_objeto}")
 
-    def _handle_item_changed(self, item, column):
+    def _handle_item_changed(self, item: QtWidgets.QTreeWidgetItem, column: int) -> None:
         if column == 0:
             self.objetoToggled.emit(item.text(0), item.checkState(0) == QtCore.Qt.Checked)
 
-    def _pick_color(self, name, button):
+    def _on_double_clicked(self, index: QtCore.QModelIndex) -> None:
+        item = self.tree_widget.itemFromIndex(index)
+        if not item or item.parent() is None:
+            return
+
+        nome_original = item.text(0)
+        novo_nome, ok = QtWidgets.QInputDialog.getText(
+            self,
+            "Renomear Objeto",
+            f"Nome atual: {nome_original}",
+            QtWidgets.QLineEdit.Normal,
+            nome_original
+        )
+
+        if ok and novo_nome and novo_nome != nome_original:
+            item.setText(0, novo_nome)
+            self.nomeAlterado.emit(nome_original, novo_nome)
+            logger.info(f"Objeto renomeado: {nome_original} -> {novo_nome}")
+
+    def _pick_color(self, name: str, button: QtWidgets.QPushButton) -> None:
         color = QtWidgets.QColorDialog.getColor()
         if color.isValid():
             button.setStyleSheet(f"background-color: {color.name()}; border-radius: 8px; border: 1px solid #888;")

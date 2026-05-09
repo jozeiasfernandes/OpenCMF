@@ -31,5 +31,31 @@
         "language_changed_title": "Idioma Cambiado",
         "restart_required_msg": "Para aplicar los cambios en todo el sistema, por favor reinicie la aplicación.",
         "default_theme": "Predeterminado"
+    },
+    "import": {
+        "secao": {
+            "superficies": "Superficies",
+            "fotografias": "Fotografías",
+            "volume": "Volumen"
+        },
+        "superficies": {
+            "cranio": "Cráneo",
+            "maxila": "Maxilar",
+            "mandibula": "Mandíbula",
+            "pele": "Piel",
+            "outros": "Otros"
+        },
+        "fotografias": {
+            "frente": "Frente",
+            "perfil": "Perfil",
+            "intrabucal": "Intrabucal",
+            "outros": "Otros"
+        },
+        "volumes": {
+            "volume_vti": "Volumen .vti"
+        },
+        "btn": {
+            "import_objects": "Importar Objetos"
+        }
     }
 }

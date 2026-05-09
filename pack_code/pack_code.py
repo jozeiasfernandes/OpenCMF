@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QLineEdit, QFileDialog, QTextEdit,
@@ -7,7 +8,8 @@ from PySide6.QtWidgets import (
     QTreeWidget, QTreeWidgetItem, QSplitter
 )
 from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QIcon
+
+CONFIG_FILE = "pack_config.json"
 
 
 class PackWorker(QThread):
@@ -18,7 +20,7 @@ class PackWorker(QThread):
         super().__init__()
         self.root_dir = root_dir
         self.output_file = output_file
-        self.selected_dirs = selected_dirs  # lista de caminhos absolutos selecionados
+        self.selected_dirs = selected_dirs
 
     def run(self):
         try:
@@ -31,7 +33,6 @@ class PackWorker(QThread):
                 for root, dirs, files in os.walk(self.root_dir):
                     dirs[:] = [d for d in dirs if d not in ignore_dirs]
 
-                    # Verifica se a pasta atual ou alguma pasta pai está selecionada
                     current_abs = os.path.abspath(root)
                     if not any(current_abs.startswith(sel) for sel in self.selected_dirs):
                         continue
@@ -63,23 +64,27 @@ class PackProjectGUI(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("OpenCMF - Pack Project")
-        self.resize(1000, 700)
+        self.resize(1100, 720)
+
+        self.root_dir = "."
+        self.output_file = "contexto.txt"
+        self.last_selected = []  # caminhos relativos salvos
+
+        self.load_config()
 
         central = QWidget()
         self.setCentralWidget(central)
         main_layout = QVBoxLayout(central)
 
-        # Título
         title = QLabel("🗜️ OpenCMF - Pack Project")
         title.setStyleSheet("font-size: 26px; font-weight: bold; padding: 15px 0;")
         title.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(title)
 
-        # Splitter para dividir a tela
         splitter = QSplitter(Qt.Horizontal)
         main_layout.addWidget(splitter)
 
-        # === ESQUERDA: Configurações + Lista de Pastas ===
+        # === ESQUERDA ===
         left_widget = QWidget()
         left_layout = QVBoxLayout(left_widget)
 
@@ -87,7 +92,7 @@ class PackProjectGUI(QMainWindow):
         config_group = QGroupBox("⚙️ Configurações")
         config_layout = QFormLayout()
 
-        self.root_edit = QLineEdit(".")
+        self.root_edit = QLineEdit(self.root_dir)
         btn_root = QPushButton("Selecionar Pasta Raiz")
         btn_root.clicked.connect(self.select_root_dir)
 
@@ -95,7 +100,7 @@ class PackProjectGUI(QMainWindow):
         root_hbox.addWidget(self.root_edit)
         root_hbox.addWidget(btn_root)
 
-        self.output_edit = QLineEdit("contexto.txt")
+        self.output_edit = QLineEdit(self.output_file)
         btn_output = QPushButton("Salvar como...")
         btn_output.clicked.connect(self.select_output_file)
 
@@ -108,13 +113,12 @@ class PackProjectGUI(QMainWindow):
         config_group.setLayout(config_layout)
         left_layout.addWidget(config_group)
 
-        # Lista de Pastas (TreeView)
-        folders_group = QGroupBox("📁 Lista de Pastas (selecione com checkbox)")
+        # Lista de Pastas
+        folders_group = QGroupBox("📁 Pastas do Projeto (selecione com checkbox)")
         folders_layout = QVBoxLayout()
 
         self.tree = QTreeWidget()
-        self.tree.setHeaderLabel("Pastas do Projeto")
-        self.tree.setColumnCount(1)
+        self.tree.setHeaderLabel("Estrutura de Pastas")
         self.tree.itemChanged.connect(self.on_item_changed)
         folders_layout.addWidget(self.tree)
 
@@ -136,28 +140,85 @@ class PackProjectGUI(QMainWindow):
         log_group.setLayout(log_layout)
         splitter.addWidget(log_group)
 
-        # Botão principal
-        self.pack_btn = QPushButton("📦 EMPACOTAR PROJETO SELECIONADO")
-        self.pack_btn.setStyleSheet("font-size: 17px; padding: 15px; font-weight: bold;")
+        # Botões inferiores
+        btn_layout = QHBoxLayout()
+        self.pack_btn = QPushButton("📦 EMPACOTAR PROJETO")
+        self.pack_btn.setStyleSheet("font-size: 17px; padding: 12px; font-weight: bold;")
         self.pack_btn.clicked.connect(self.start_packing)
-        main_layout.addWidget(self.pack_btn)
 
-        # Progress
+        btn_save_config = QPushButton("💾 Salvar Configuração")
+        btn_save_config.clicked.connect(self.save_config)
+
+        btn_layout.addWidget(btn_save_config)
+        btn_layout.addWidget(self.pack_btn)
+        main_layout.addLayout(btn_layout)
+
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         main_layout.addWidget(self.progress_bar)
 
-        self.append_log("Interface carregada. Selecione a pasta raiz para começar.")
+        self.append_log("Interface carregada. Configurações restauradas do JSON.")
+
+        # Carregar árvore após inicialização
+        self.build_tree()
+
+    def load_config(self):
+        if os.path.exists(CONFIG_FILE):
+            try:
+                with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    self.root_dir = data.get("root_dir", ".")
+                    self.output_file = data.get("output_file", "contexto.txt")
+                    self.last_selected = data.get("selected_dirs", [])
+            except:
+                pass
+
+    def save_config(self):
+        try:
+            data = {
+                "root_dir": self.root_edit.text().strip(),
+                "output_file": self.output_edit.text().strip(),
+                "selected_dirs": self.get_selected_relative_paths()
+            }
+            with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+                json.dump(data, f, indent=4, ensure_ascii=False)
+            self.append_log("💾 Configurações salvas com sucesso!")
+            QMessageBox.information(self, "Sucesso", "Configurações salvas em pack_config.json")
+        except Exception as e:
+            QMessageBox.warning(self, "Erro", f"Não foi possível salvar: {e}")
+
+    def get_selected_relative_paths(self):
+        """Retorna caminhos relativos das pastas selecionadas"""
+        selected_rel = []
+        root = self.tree.topLevelItem(0)
+        if not root:
+            return []
+
+        root_path = self.root_edit.text().strip()
+
+        def collect(item):
+            if item.checkState(0) == Qt.Checked:
+                full_path = item.data(0, Qt.UserRole)
+                if full_path:
+                    rel = os.path.relpath(full_path, root_path)
+                    if rel == ".":
+                        rel = ""
+                    selected_rel.append(rel)
+            for i in range(item.childCount()):
+                collect(item.child(i))
+
+        collect(root)
+        return selected_rel
 
     def select_root_dir(self):
-        dir_path = QFileDialog.getExistingDirectory(self, "Selecionar Pasta Raiz", ".")
+        dir_path = QFileDialog.getExistingDirectory(self, "Selecionar Pasta Raiz", self.root_edit.text())
         if dir_path:
             self.root_edit.setText(dir_path)
             self.build_tree()
 
     def select_output_file(self):
         file_path, _ = QFileDialog.getSaveFileName(
-            self, "Salvar como", "contexto.txt", "Text Files (*.txt);;All Files (*)"
+            self, "Salvar como", self.output_edit.text(), "Text Files (*.txt);;All Files (*)"
         )
         if file_path:
             self.output_edit.setText(file_path)
@@ -165,15 +226,19 @@ class PackProjectGUI(QMainWindow):
     def build_tree(self):
         root_path = self.root_edit.text().strip()
         if not os.path.exists(root_path):
-            QMessageBox.warning(self, "Erro", "Pasta raiz inválida!")
+            self.append_log("⚠️ Pasta raiz inválida.")
             return
 
         self.tree.clear()
-        root_item = QTreeWidgetItem(self.tree, [os.path.basename(root_path) or root_path])
+        root_name = os.path.basename(root_path) or root_path
+        root_item = QTreeWidgetItem(self.tree, [root_name])
         root_item.setData(0, Qt.UserRole, root_path)
         root_item.setCheckState(0, Qt.Checked)
+
         self.add_subdirs(root_item, root_path)
         root_item.setExpanded(True)
+
+        self.restore_selection()
 
     def add_subdirs(self, parent_item, parent_path):
         try:
@@ -187,8 +252,28 @@ class PackProjectGUI(QMainWindow):
         except:
             pass
 
+    def restore_selection(self):
+        if not self.last_selected:
+            return
+        root_path = self.root_edit.text().strip()
+        root_item = self.tree.topLevelItem(0)
+        if not root_item:
+            return
+
+        def restore(item):
+            full_path = item.data(0, Qt.UserRole)
+            if full_path:
+                rel = os.path.relpath(full_path, root_path)
+                if rel == ".":
+                    rel = ""
+                if rel in self.last_selected:
+                    item.setCheckState(0, Qt.Checked)
+            for i in range(item.childCount()):
+                restore(item.child(i))
+
+        restore(root_item)
+
     def on_item_changed(self, item, column):
-        # Propagar estado do checkbox para filhos
         if item.childCount() > 0:
             state = item.checkState(0)
             for i in range(item.childCount()):
@@ -198,7 +283,7 @@ class PackProjectGUI(QMainWindow):
         selected = []
         root = self.tree.topLevelItem(0)
         if not root:
-            return [self.root_edit.text().strip()]
+            return [os.path.abspath(self.root_edit.text().strip())]
 
         def collect(item):
             if item.checkState(0) == Qt.Checked:
@@ -209,7 +294,7 @@ class PackProjectGUI(QMainWindow):
                 collect(item.child(i))
 
         collect(root)
-        return selected if selected else [self.root_edit.text().strip()]
+        return selected if selected else [os.path.abspath(self.root_edit.text().strip())]
 
     def append_log(self, message):
         self.log_text.append(message)
@@ -218,11 +303,11 @@ class PackProjectGUI(QMainWindow):
         root_dir = self.root_edit.text().strip()
         output_file = self.output_edit.text().strip()
 
-        if not root_dir or not os.path.exists(root_dir):
-            QMessageBox.warning(self, "Atenção", "Selecione uma pasta raiz válida.")
+        if not os.path.exists(root_dir):
+            QMessageBox.warning(self, "Erro", "Pasta raiz não encontrada!")
             return
         if not output_file:
-            QMessageBox.warning(self, "Atenção", "Informe o arquivo de saída.")
+            QMessageBox.warning(self, "Erro", "Informe o arquivo de saída!")
             return
 
         selected_dirs = self.get_selected_dirs()
@@ -231,6 +316,7 @@ class PackProjectGUI(QMainWindow):
         self.progress_bar.setVisible(True)
         self.progress_bar.setRange(0, 0)
         self.log_text.clear()
+
         self.append_log(f"Iniciando empacotamento de {len(selected_dirs)} pasta(s)...")
 
         self.worker = PackWorker(root_dir, output_file, selected_dirs)
@@ -244,11 +330,16 @@ class PackProjectGUI(QMainWindow):
 
         if success:
             QMessageBox.information(self, "Sucesso", message)
-            self.append_log("✅ Empacotamento concluído com sucesso!")
+            self.append_log("✅ Empacotamento finalizado!")
         else:
             QMessageBox.critical(self, "Erro", message)
 
         self.append_log(message)
+
+    def closeEvent(self, event):
+        """Salva automaticamente ao fechar"""
+        self.save_config()
+        event.accept()
 
 
 if __name__ == "__main__":
