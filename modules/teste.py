@@ -7,7 +7,7 @@ from core.base_module.base import ModuloBase
 class Modulo(ModuloBase):
     def __init__(self):
         super().__init__()
-        self.nome = "Novo Módulo"
+        self.nome = "Módulo teste"
         self.id = "modulo.modelo.vazio"
 
         self.main_container = QtWidgets.QWidget(self)

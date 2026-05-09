@@ -110,7 +110,16 @@ class WorkspaceManager(QtWidgets.QWidget):
     def adicionar_modulo(self, id_modulo: str, modulo_ref: Any, on_concluido=None):
         try:
             is_class = isinstance(modulo_ref, type)
-            title = getattr(modulo_ref, 'nome', id_modulo.replace("_", " ").capitalize())
+
+            if is_class:
+                instancia_temp = modulo_ref()
+                title = getattr(instancia_temp, 'nome', id_modulo.replace("_", " ").capitalize())
+                logger.debug(f"Módulo lazy-loading '{id_modulo}' registrado com título: '{title}'")
+                del instancia_temp
+            else:
+                title = getattr(modulo_ref, 'nome', id_modulo.replace("_", " ").capitalize())
+                logger.debug(f"Módulo '{id_modulo}' carregado com título: '{title}'")
+
             container = QtWidgets.QWidget()
             self.tab_bar.addTab(title)
             self.container_paginas.addWidget(container)
@@ -155,8 +164,15 @@ class WorkspaceManager(QtWidgets.QWidget):
             data["instancia"] = instancia
             if data["on_concluido"] and hasattr(instancia, "concluido"):
                 instancia.concluido.connect(data["on_concluido"])
+
+            titulo_tab = getattr(instancia, 'nome', data["id"])
+            tab_index = self.container_paginas.indexOf(data["container"])
+            if tab_index >= 0:
+                self.tab_bar.setTabText(tab_index, titulo_tab)
+
             self._build_module_layout(data["container"], instancia)
             data["carregado"] = True
+            logger.debug(f"Módulo lazy '{data['id']}' foi carregado e inicializado")
         except Exception:
             logger.error(traceback.format_exc())
 
