@@ -12,7 +12,9 @@ class Component(QtWidgets.QWidget):
     def __init__(self, modulo=None):
         super().__init__()
         self.modulo = modulo
+        self._is_initializing = True  # Flag para evitar emissões durante inicialização
         self.setup_ui()
+        self._is_initializing = False
 
     def setup_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -53,12 +55,14 @@ class Component(QtWidgets.QWidget):
         self._validar_selecao()
 
     def _on_target_changed(self, texto):
-        self._validar_selecao()
-        self.targetChanged.emit(texto)
+        if not self._is_initializing:
+            self._validar_selecao()
+            self.targetChanged.emit(texto)
 
     def _on_source_changed(self, texto):
-        self._validar_selecao()
-        self.sourceChanged.emit(texto)
+        if not self._is_initializing:
+            self._validar_selecao()
+            self.sourceChanged.emit(texto)
 
     def _validar_selecao(self):
         target = self.combo_target.currentText()
@@ -91,7 +95,7 @@ class Component(QtWidgets.QWidget):
 
         self.combo_target.blockSignals(False)
         self.combo_source.blockSignals(False)
-        self._validar_selecao()
+        # Não chamar _validar_selecao() aqui para evitar emissões desnecessárias
 
     def adicionar_ponto_tabela(self, vista, pos):
         pos_str = f"{pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f}"

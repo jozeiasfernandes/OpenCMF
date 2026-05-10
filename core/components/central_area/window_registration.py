@@ -25,6 +25,88 @@ class WindowRegistration(QtWidgets.QWidget):
         self.db_click_filter = RegistrationDoubleClickFilter(self)
         self.setup_ui()
 
+    def connect_properties_panel(self, properties_panel) -> None:
+        """Conecta o painel de propriedades para sincronização."""
+        if properties_panel:
+            properties_panel.positionChanged.connect(lambda pos: self._apply_transform_change("position", pos))
+            properties_panel.rotationChanged.connect(lambda rot: self._apply_transform_change("rotation", rot))
+            properties_panel.scaleChanged.connect(lambda scl: self._apply_transform_change("scale", scl))
+            properties_panel.colorChanged.connect(lambda col: self._apply_render_change("color", col))
+            properties_panel.opacityChanged.connect(lambda op: self._apply_render_change("opacity", op))
+            properties_panel.representationChanged.connect(lambda rep: self._apply_render_change("representation", rep))
+            properties_panel.ambientChanged.connect(lambda amb: self._apply_render_change("ambient", amb))
+            properties_panel.diffuseChanged.connect(lambda dif: self._apply_render_change("diffuse", dif))
+            properties_panel.specularChanged.connect(lambda spec: self._apply_render_change("specular", spec))
+            properties_panel.specularPowerChanged.connect(lambda pwr: self._apply_render_change("specular_power", pwr))
+            properties_panel.edgeVisibilityChanged.connect(lambda vis: self._apply_render_change("edge_visibility", vis))
+
+    def _apply_transform_change(self, transform_type: str, values: list) -> None:
+        """Aplica mudanças de transformação aos objetos nas vistas."""
+        for view_name, objetos in [("A", self.objetos_a), ("B", self.objetos_b)]:
+            for nome_objeto in objetos.keys():
+                self._apply_transform_to_object(view_name, nome_objeto, transform_type, values)
+
+    def _apply_render_change(self, render_type: str, value) -> None:
+        """Aplica mudanças de renderização aos objetos nas vistas."""
+        for view_name, objetos in [("A", self.objetos_a), ("B", self.objetos_b)]:
+            for nome_objeto in objetos.keys():
+                self._apply_render_to_object(view_name, nome_objeto, render_type, value)
+
+    def _apply_transform_to_object(self, view_name: str, object_name: str, transform_type: str, values: list) -> None:
+        """Aplica transformação específica a um objeto em uma vista."""
+        view = self.view_a if view_name == "A" else self.view_b
+        actors = view.renderer.GetActors()
+        actors.InitTraversal()
+
+        for _ in range(actors.GetNumberOfItems()):
+            actor = actors.GetNextActor()
+            if hasattr(actor, "name") and actor.name == object_name:
+                if transform_type == "position":
+                    actor.SetPosition(values)
+                elif transform_type == "rotation":
+                    actor.SetOrientation(values)
+                elif transform_type == "scale":
+                    actor.SetScale(values)
+                break
+
+        view.render()
+
+    def _apply_render_to_object(self, view_name: str, object_name: str, render_type: str, value) -> None:
+        """Aplica propriedade de renderização específica a um objeto em uma vista."""
+        view = self.view_a if view_name == "A" else self.view_b
+        actors = view.renderer.GetActors()
+        actors.InitTraversal()
+
+        for _ in range(actors.GetNumberOfItems()):
+            actor = actors.GetNextActor()
+            if hasattr(actor, "name") and actor.name == object_name:
+                prop = actor.GetProperty()
+
+                if render_type == "color":
+                    prop.SetColor(value)
+                elif render_type == "opacity":
+                    prop.SetOpacity(value)
+                elif render_type == "representation":
+                    if value.lower() == "surface":
+                        prop.SetRepresentationToSurface()
+                    elif value.lower() == "wireframe":
+                        prop.SetRepresentationToWireframe()
+                    elif value.lower() == "points":
+                        prop.SetRepresentationToPoints()
+                elif render_type == "ambient":
+                    prop.SetAmbient(value)
+                elif render_type == "diffuse":
+                    prop.SetDiffuse(value)
+                elif render_type == "specular":
+                    prop.SetSpecular(value)
+                elif render_type == "specular_power":
+                    prop.SetSpecularPower(value)
+                elif render_type == "edge_visibility":
+                    prop.SetEdgeVisibility(value)
+                break
+
+        view.render()
+
     def setup_ui(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)

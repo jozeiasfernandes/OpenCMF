@@ -144,7 +144,92 @@ class Component(QtWidgets.QWidget):
     def __init__(self, modulo=None):
         super().__init__()
         self.modulo = modulo
+        self.current_object_name = None
+        self.patient_path = None
+        self.object_properties = None
+        self._is_initializing = True  # Flag para evitar emissões durante inicialização
         self._setup_ui()
+        self._is_initializing = False
+
+    def set_patient_path(self, path: str) -> None:
+        """Define o caminho do paciente para salvar alterações."""
+        from pathlib import Path
+        self.patient_path = Path(path)
+
+    def load_object_properties(self, object_name: str) -> None:
+        """Carrega as propriedades de um objeto específico."""
+        self.current_object_name = object_name
+
+        if not self.modulo or not hasattr(self.modulo, 'widget_objetos'):
+            return
+
+        # Obter propriedades do objeto através do widget de objetos
+        props = self.modulo.widget_objetos.get_object_properties(object_name)
+        if props:
+            self.object_properties = props
+            self.load_from_props(props)
+        else:
+            # Se não encontrou propriedades, limpar painel
+            self._clear_properties()
+
+    def _clear_properties(self) -> None:
+        """Limpa todas as propriedades do painel."""
+        self.vec_pos.set_values([0, 0, 0])
+        self.vec_rot.set_values([0, 0, 0])
+        self.vec_scl.set_values([1, 1, 1])
+        self.color_picker.set_rgb([1, 1, 1])
+        self.row_opacity.set_value(1.0)
+        self.combo_repr.setCurrentText("Surface")
+        self.row_ambient.set_value(0.1)
+        self.row_diffuse.set_value(0.7)
+        self.row_specular.set_value(0.2)
+        self.row_specular_pwr.set_value(10.0)
+        self.check_edges.setChecked(False)
+
+    def _save_property_change(self, property_name: str, value) -> None:
+        """Salva uma alteração de propriedade no objeto e no arquivo .json."""
+        if not self.object_properties or not self.patient_path:
+            return
+
+        # Atualizar propriedade no objeto
+        if property_name == "position":
+            self.object_properties.transform["position"] = value
+        elif property_name == "rotation":
+            self.object_properties.transform["rotation"] = value
+        elif property_name == "scale":
+            self.object_properties.transform["scale"] = value
+        elif property_name == "color":
+            self.object_properties.render["color"] = value
+        elif property_name == "opacity":
+            self.object_properties.opacity = value
+        elif property_name == "representation":
+            self.object_properties.render["representation"] = value.lower()
+        elif property_name == "ambient":
+            self.object_properties.render["ambient"] = value
+        elif property_name == "diffuse":
+            self.object_properties.render["diffuse"] = value
+        elif property_name == "specular":
+            self.object_properties.render["specular"] = value
+        elif property_name == "specular_power":
+            self.object_properties.render["specular_power"] = value
+        elif property_name == "edge_visibility":
+            self.object_properties.render["edge_visibility"] = value
+
+        # Salvar no arquivo .json
+        self._save_to_json()
+
+    def _save_to_json(self) -> None:
+        """Salva as propriedades atuais no arquivo .json."""
+        if not self.object_properties or not self.patient_path:
+            return
+
+        json_path = self.patient_path / self.object_properties.file_path
+        try:
+            import json
+            with open(json_path.with_suffix(".json"), "w", encoding="utf-8") as f:
+                json.dump(self.object_properties.to_json(), f, indent=4, ensure_ascii=False)
+        except Exception as error:
+            print(f"Erro ao salvar propriedades: {error}")
 
     def _setup_ui(self) -> None:
         layout = QtWidgets.QVBoxLayout(self)
@@ -159,9 +244,9 @@ class Component(QtWidgets.QWidget):
         self.vec_rot = Vec3SliderWidget(-180.0, 180.0, decimals=1)
         self.vec_scl = Vec3SliderWidget(0.01, 10.0, defaults=(1, 1, 1), decimals=3)
 
-        self.vec_pos.changed.connect(self.positionChanged.emit)
-        self.vec_rot.changed.connect(self.rotationChanged.emit)
-        self.vec_scl.changed.connect(self.scaleChanged.emit)
+        self.vec_pos.changed.connect(lambda v: (self._emit_if_not_loading("position", v), self._save_property_change("position", v)))
+        self.vec_rot.changed.connect(lambda v: (self._emit_if_not_loading("rotation", v), self._save_property_change("rotation", v)))
+        self.vec_scl.changed.connect(lambda v: (self._emit_if_not_loading("scale", v), self._save_property_change("scale", v)))
 
         lay_t.addRow("Localização:", self.vec_pos)
         lay_t.addRow("Rotação:",     self.vec_rot)
@@ -174,42 +259,45 @@ class Component(QtWidgets.QWidget):
 
         # ColorPickerWidget vem do core.color
         self.color_picker = ColorPickerWidget()
-        self.color_picker.colorChanged.connect(self.colorChanged.emit)
+        self.color_picker.colorChanged.connect(lambda c: (self._emit_if_not_loading("color", c), self._save_property_change("color", c)))
         lay_a.addRow("Cor:", self.color_picker)
 
         self.row_opacity = AxisSliderRow("", 0.0, 1.0, 1.0)
-        self.row_opacity.changed.connect(self.opacityChanged.emit)
+        self.row_opacity.changed.connect(lambda v: (self._emit_if_not_loading("opacity", v), self._save_property_change("opacity", v)))
         lay_a.addRow("Opacidade:", self.row_opacity)
 
         self.combo_repr = QtWidgets.QComboBox()
         self.combo_repr.addItems(["Surface", "Wireframe", "Points"])
-        self.combo_repr.currentTextChanged.connect(self.representationChanged.emit)
+        self.combo_repr.currentTextChanged.connect(lambda t: (self._emit_if_not_loading("representation", t), self._save_property_change("representation", t)))
         lay_a.addRow("Representação:", self.combo_repr)
 
         self.row_ambient = AxisSliderRow("", 0.0, 1.0, 0.1)
-        self.row_ambient.changed.connect(self.ambientChanged.emit)
+        self.row_ambient.changed.connect(lambda v: (self._emit_if_not_loading("ambient", v), self._save_property_change("ambient", v)))
         lay_a.addRow("Ambiente:", self.row_ambient)
 
         self.row_diffuse = AxisSliderRow("", 0.0, 1.0, 0.7)
-        self.row_diffuse.changed.connect(self.diffuseChanged.emit)
+        self.row_diffuse.changed.connect(lambda v: (self._emit_if_not_loading("diffuse", v), self._save_property_change("diffuse", v)))
         lay_a.addRow("Difuso:", self.row_diffuse)
 
         self.row_specular = AxisSliderRow("", 0.0, 1.0, 0.2)
-        self.row_specular.changed.connect(self.specularChanged.emit)
+        self.row_specular.changed.connect(lambda v: (self._emit_if_not_loading("specular", v), self._save_property_change("specular", v)))
         lay_a.addRow("Especular:", self.row_specular)
 
         self.row_specular_pwr = AxisSliderRow("", 1.0, 128.0, 10.0, decimals=1)
-        self.row_specular_pwr.changed.connect(self.specularPowerChanged.emit)
+        self.row_specular_pwr.changed.connect(lambda v: (self._emit_if_not_loading("specular_power", v), self._save_property_change("specular_power", v)))
         lay_a.addRow("Brilho:", self.row_specular_pwr)
 
         self.check_edges = QtWidgets.QCheckBox("Mostrar Arestas")
-        self.check_edges.toggled.connect(self.edgeVisibilityChanged.emit)
+        self.check_edges.toggled.connect(lambda v: (self._emit_if_not_loading("edge_visibility", v), self._save_property_change("edge_visibility", v)))
         lay_a.addRow("", self.check_edges)
 
         layout.addWidget(group_a)
         layout.addStretch()
 
     def load_from_props(self, props) -> None:
+        # Flag para evitar emissões durante carregamento
+        self._is_loading_props = True
+        
         t = props.transform if isinstance(props.transform, dict) else vars(props.transform)
         r = props.render    if isinstance(props.render,    dict) else vars(props.render)
 
@@ -226,6 +314,34 @@ class Component(QtWidgets.QWidget):
         self.row_specular.set_value(r.get("specular", 0.2))
         self.row_specular_pwr.set_value(r.get("specular_power", 10.0))
         self.check_edges.setChecked(r.get("edge_visibility", False))
+        
+        self._is_loading_props = False
+
+    def _emit_if_not_loading(self, property_name: str, value) -> None:
+        """Emite o sinal apenas se não estiver carregando propriedades."""
+        if not self._is_loading_props:
+            if property_name == "position":
+                self.positionChanged.emit(value)
+            elif property_name == "rotation":
+                self.rotationChanged.emit(value)
+            elif property_name == "scale":
+                self.scaleChanged.emit(value)
+            elif property_name == "color":
+                self.colorChanged.emit(value)
+            elif property_name == "opacity":
+                self.opacityChanged.emit(value)
+            elif property_name == "representation":
+                self.representationChanged.emit(value)
+            elif property_name == "ambient":
+                self.ambientChanged.emit(value)
+            elif property_name == "diffuse":
+                self.diffuseChanged.emit(value)
+            elif property_name == "specular":
+                self.specularChanged.emit(value)
+            elif property_name == "specular_power":
+                self.specularPowerChanged.emit(value)
+            elif property_name == "edge_visibility":
+                self.edgeVisibilityChanged.emit(value)
 
 
 # ---------------------------------------------------------------------------
@@ -281,3 +397,4 @@ if __name__ == "__main__":
     win.setCentralWidget(scroll)
     win.show()
     sys.exit(app.exec())
+

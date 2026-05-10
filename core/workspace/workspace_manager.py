@@ -54,8 +54,7 @@ class WorkspaceManager(QtWidgets.QWidget):
 
         self.btn_config = QtWidgets.QPushButton()
         self.btn_config.setFixedSize(30, 30)
-        self._apply_icon(self.btn_config, "config.svg")
-
+        self._apply_icon(self.btn_config, "config_branco.svg")
         self.btn_config.clicked.connect(self._abrir_seletor_componentes)
 
         header_grid.addWidget(self.btn_home, 0, 0)
@@ -74,7 +73,8 @@ class WorkspaceManager(QtWidgets.QWidget):
         button.setCursor(QtCore.Qt.PointingHandCursor)
 
     def set_patient_path(self, path: str):
-        if self.current_patient_path == path: return
+        if self.current_patient_path == path:
+            return
         self.current_patient_path = path
         if modulo := self.get_modulo_ativo():
             self._safe_inicializar(modulo)
@@ -82,9 +82,11 @@ class WorkspaceManager(QtWidgets.QWidget):
     def clear(self):
         logger.debug("Iniciando limpeza do WorkspaceManager")
         for data in self._lazy_registry.values():
-            if inst := data.get("instancia"): self._cleanup_module_instance(inst)
+            if inst := data.get("instancia"):
+                self._cleanup_module_instance(inst)
 
-        while self.tab_bar.count(): self.tab_bar.removeTab(0)
+        while self.tab_bar.count():
+            self.tab_bar.removeTab(0)
         while self.container_paginas.count():
             w = self.container_paginas.widget(0)
             self.container_paginas.removeWidget(w)
@@ -95,9 +97,11 @@ class WorkspaceManager(QtWidgets.QWidget):
 
     def _cleanup_module_instance(self, instancia: Any):
         try:
-            if hasattr(instancia, "concluido"): instancia.concluido.disconnect()
-            if hasattr(instancia, "_cleanup"): instancia._cleanup()
-        except:
+            if hasattr(instancia, "concluido"):
+                instancia.concluido.disconnect()
+            if hasattr(instancia, "_cleanup"):
+                instancia._cleanup()
+        except Exception:
             pass
 
     def adicionar_modulo(self, id_modulo: str, modulo_ref: Any, on_concluido=None):
@@ -109,7 +113,7 @@ class WorkspaceManager(QtWidgets.QWidget):
                 temp = modulo_ref()
                 title = getattr(temp, 'nome', title)
                 del temp
-            except:
+            except Exception:
                 pass
         else:
             title = getattr(modulo_ref, 'nome', title)
@@ -119,26 +123,41 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.container_paginas.addWidget(container)
 
         self._lazy_registry[container] = {
-            "id": id_modulo, "classe": modulo_ref, "instancia": modulo_ref if not is_class else None,
-            "carregado": not is_class, "on_concluido": on_concluido, "container": container
+            "id": id_modulo,
+            "classe": modulo_ref,
+            "instancia": modulo_ref if not is_class else None,
+            "carregado": not is_class,
+            "on_concluido": on_concluido,
+            "container": container,
         }
 
-        if not is_class: self._build_module_layout(container, modulo_ref)
-        if self.tab_bar.count() == 1: self._on_tab_changed(0)
+        if not is_class:
+            # FIX #3: conectar on_concluido também para instâncias diretas (não-lazy)
+            if on_concluido and hasattr(modulo_ref, "concluido"):
+                modulo_ref.concluido.connect(on_concluido)
+            self._build_module_layout(container, modulo_ref)
+
+        if self.tab_bar.count() == 1:
+            self._on_tab_changed(0)
 
     def _on_tab_changed(self, index: int):
-        if index < 0: return
+        if index < 0:
+            return
         self.container_paginas.setCurrentIndex(index)
         self.currentChanged.emit(index)
 
         container = self.container_paginas.widget(index)
         if data := self._lazy_registry.get(container):
-            if not data["carregado"]: self._load_lazy_module(data)
-            if inst := data.get("instancia"): self._safe_inicializar(inst)
+            if not data["carregado"]:
+                self._load_lazy_module(data)
+            # FIX #4: adiar inicializar para após o widget estar visível/dimensionado
+            if inst := data.get("instancia"):
+                QtCore.QTimer.singleShot(0, lambda i=inst: self._safe_inicializar(i))
             self._sync_active_view()
 
     def _safe_inicializar(self, instancia: Any):
-        if not self.current_patient_path: return
+        if not self.current_patient_path:
+            return
         path_modulo = getattr(instancia, 'pasta_paciente', None)
         if str(path_modulo) != str(self.current_patient_path):
             if hasattr(instancia, 'inicializar'):
@@ -155,10 +174,21 @@ class WorkspaceManager(QtWidgets.QWidget):
             self.tab_bar.setTabText(tab_idx, getattr(instancia, 'nome', data["id"]))
             self._build_module_layout(data["container"], instancia)
             data["carregado"] = True
-        except:
+        except Exception:
             logger.error(traceback.format_exc())
 
     def _build_module_layout(self, container: QtWidgets.QWidget, modulo: Any):
+        # FIX #1: limpar layout existente antes de construir, evitando layouts empilhados
+        existing_layout = container.layout()
+        if existing_layout is not None:
+            # Esvaziar e descartar o layout antigo de forma segura
+            while existing_layout.count():
+                item = existing_layout.takeAt(0)
+                if w := item.widget():
+                    w.setParent(None)
+                    w.deleteLater()
+            QtWidgets.QWidget().setLayout(existing_layout)
+
         data = self._lazy_registry.get(container)
         container.setProperty("modulo_instancia", weakref.ref(modulo))
 
@@ -167,13 +197,20 @@ class WorkspaceManager(QtWidgets.QWidget):
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         center = QtWidgets.QWidget()
-        data["layout_central"] = QtWidgets.QVBoxLayout(center)
-        data["layout_central"].setContentsMargins(0, 0, 0, 0)
+        layout_central = QtWidgets.QVBoxLayout(center)
+        layout_central.setContentsMargins(0, 0, 0, 0)
+        layout_central.setSpacing(0)
+        data["layout_central"] = layout_central
 
+        # Toolbar estática do módulo — sempre no índice 0
         if hasattr(modulo, "get_workspace_toolbar") and (tb := modulo.get_workspace_toolbar()):
-            data["layout_central"].addWidget(tb)
+            tb.setProperty("_is_static_toolbar", True)
+            layout_central.addWidget(tb)
+
+        # Workspace view — marcado para identificação de posição em inserções dinâmicas
         if hasattr(modulo, "get_workspace") and (vw := modulo.get_workspace()):
-            data["layout_central"].addWidget(vw, 1)
+            vw.setProperty("_is_workspace_view", True)
+            layout_central.addWidget(vw, 1)
 
         data["sidebar"] = ToolboxesManager()
         if hasattr(modulo, 'get_toolboxes'):
@@ -197,7 +234,8 @@ class WorkspaceManager(QtWidgets.QWidget):
 
     def _refresh_viewer(self, modulo: Any):
         viewer = getattr(modulo, 'viewer', None)
-        if hasattr(viewer, 'refresh_display'): viewer.refresh_display()
+        if hasattr(viewer, 'refresh_display'):
+            viewer.refresh_display()
 
     def _abrir_seletor_componentes(self):
         if not self._config_window:
@@ -208,15 +246,32 @@ class WorkspaceManager(QtWidgets.QWidget):
     def _on_componente_configurado(self, categoria, caminho, ativo):
         modulo = self.get_modulo_ativo()
         data = self._lazy_registry.get(self.container_paginas.currentWidget())
-        if not modulo or not data: return
+        if not modulo or not data:
+            return
 
         if ativo:
             comp = ComponentLoader.carregar(caminho, modulo)
-            if not comp: return
+            if not comp:
+                return
             if categoria == "toolbars":
-                data["layout_central"].insertWidget(0, comp)
+                # FIX #2: inserir toolbar dinâmica ANTES do workspace view,
+                # respeitando qualquer toolbar estática já presente
+                layout = data["layout_central"]
+                insert_pos = 0
+                for i in range(layout.count()):
+                    item = layout.itemAt(i)
+                    w = item.widget() if item else None
+                    if w and w.property("_is_workspace_view"):
+                        # inserir imediatamente antes do workspace view
+                        insert_pos = i
+                        break
+                    insert_pos = i + 1
+                comp.setProperty("__module_path__", caminho)
+                layout.insertWidget(insert_pos, comp)
             elif categoria == "toolboxes":
-                idx = data["sidebar"].adicionar_widget(getattr(comp, 'toolbox_name', caminho.stem.title()), comp)
+                idx = data["sidebar"].adicionar_widget(
+                    getattr(comp, 'toolbox_name', caminho.stem.title()), comp
+                )
                 data["sidebar"].stack.setCurrentIndex(idx)
         else:
             self._remover_componente(categoria, caminho, data)
@@ -225,22 +280,26 @@ class WorkspaceManager(QtWidgets.QWidget):
         if categoria == "toolbars":
             layout = data["layout_central"]
             for i in range(layout.count()):
-                w = layout.itemAt(i).widget()
-                if w and getattr(w, '__module_path__', None) == caminho:
+                item = layout.itemAt(i)
+                w = item.widget() if item else None
+                if w and w.property("__module_path__") == caminho:
                     layout.removeWidget(w)
                     w.setParent(None)
                     w.deleteLater()
                     break
         elif categoria == "toolboxes":
-            if sb := data.get("sidebar"): sb.remover_widget_por_caminho(caminho)
+            if sb := data.get("sidebar"):
+                sb.remover_widget_por_caminho(caminho)
 
     def count(self):
         return self.container_paginas.count()
+
 
 if __name__ == "__main__":
     import sys
     from PySide6 import QtWidgets
 
+    logging.basicConfig(level=logging.DEBUG)
     logger.info("Iniciando WorkspaceManager em modo standalone...")
 
     app = QtWidgets.QApplication(sys.argv)
@@ -263,7 +322,7 @@ if __name__ == "__main__":
             def get_toolboxes(self):
                 return {
                     "Informações": QtWidgets.QLabel("Painel de informações do módulo"),
-                    "Configurações": QtWidgets.QLabel("Configurações rápidas")
+                    "Configurações": QtWidgets.QLabel("Configurações rápidas"),
                 }
 
         workspace.adicionar_modulo("test_module", TestModule())
@@ -272,10 +331,10 @@ if __name__ == "__main__":
             nome = "Visualizador"
 
             def get_workspace(self):
-                from PySide6.QtWidgets import QTextEdit
-                text = QTextEdit()
+                text = QtWidgets.QTextEdit()
                 text.setPlainText(
-                    "Área de trabalho principal do Visualizador.\n\nAqui viria o conteúdo principal do módulo.")
+                    "Área de trabalho principal do Visualizador.\n\nAqui viria o conteúdo principal do módulo."
+                )
                 return text
 
         workspace.adicionar_modulo("viewer", AnotherTest())
@@ -284,6 +343,5 @@ if __name__ == "__main__":
         logger.error(f"Erro ao adicionar módulos de teste: {e}")
 
     workspace.show()
-
     logger.info("WorkspaceManager iniciado com sucesso.")
     sys.exit(app.exec())

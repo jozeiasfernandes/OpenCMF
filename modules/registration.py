@@ -10,6 +10,7 @@ from core.base_module.base import ModuloBase
 from core.components.central_area.window_registration import WindowRegistration
 from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
 from core.components.toolboxes.registration_toolbox import Component
+from core.components.toolboxes.objetct_properties_toolbox import Component as PropertiesComponent
 from core.components.toolbars.registration_toolbar import Component as RegistrationToolbar
 from core.imports.object_manager import ObjectManager
 
@@ -30,6 +31,7 @@ class Modulo(ModuloBase):
         self.view_registration = WindowRegistration()
         self.widget_reg = Component()
         self.widget_objetos = ObjetoManagerWidget()
+        self.widget_propriedades = PropertiesComponent(self)
 
         self._conectar_sinais()
 
@@ -53,9 +55,15 @@ class Modulo(ModuloBase):
         self.object_manager = ObjectManager(caminho_paciente)
         self.object_manager.object_added.connect(self._on_object_added_manager)
         self.object_manager.load_existing_objects()
-
-        # Passar caminho do paciente para o widget de objetos
+        
+        # Passar caminho do paciente para os widgets
         self.widget_objetos.set_patient_path(caminho_paciente)
+        if hasattr(self.widget_propriedades, 'set_patient_path'):
+            self.widget_propriedades.set_patient_path(caminho_paciente)
+        
+        # Conectar sinais de sincronização
+        self.widget_objetos.objetoSelecionado.connect(self._on_objeto_selecionado)
+        self.view_registration.connect_properties_panel(self.widget_propriedades)
 
     # --- Interface pública ---
 
@@ -72,7 +80,11 @@ class Modulo(ModuloBase):
         return toolbar
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        return {"Alinhar Objetos": self.widget_reg, "Objetos": self.widget_objetos}
+        return {
+            "Alinhar Objetos": self.widget_reg,
+            "Objetos": self.widget_objetos,
+            "Propriedades": self.widget_propriedades
+        }
 
     # --- Carregamento e sincronização ---
 
@@ -188,6 +200,11 @@ class Modulo(ModuloBase):
             "volume": "Volume",
             "implants": "Implantes"
         }.get(tipo_pasta, "Outros")
+
+    def _on_objeto_selecionado(self, nome_objeto: str) -> None:
+        """Chamado quando um objeto é selecionado na lista."""
+        if hasattr(self.widget_propriedades, 'load_object_properties'):
+            self.widget_propriedades.load_object_properties(nome_objeto)
 
 
 if __name__ == "__main__":

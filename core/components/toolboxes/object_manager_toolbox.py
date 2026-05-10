@@ -19,6 +19,7 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
     colorChanged = QtCore.Signal(str, QtGui.QColor)
     deleteRequested = QtCore.Signal(str)
     nomeAlterado = QtCore.Signal(str, str)
+    objetoSelecionado = QtCore.Signal(str)  # Novo sinal para seleção de objeto
 
     def __init__(self, parent=None, patient_path: Optional[str] = None):
         super().__init__(parent)
@@ -26,10 +27,13 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
         self.objetos_mapeados = {}
         self.patient_path = Path(patient_path) if patient_path else None
         self.object_properties: Dict[str, ObjectProperties] = {}
+        self._is_initializing = True  # Flag para evitar emissões durante inicialização
         self._setup_ui()
         
         if self.patient_path:
             self.carregar_objetos_da_pasta()
+
+        self._is_initializing = False
 
     def set_patient_path(self, path: str) -> None:
         """Define o caminho do paciente e carrega os objetos."""
@@ -123,9 +127,23 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
         self.tree_widget.setColumnWidth(1, 100)
         self.tree_widget.setColumnWidth(2, 40)
 
+        self.tree_widget.itemClicked.connect(self._on_item_clicked)
         self.tree_widget.itemChanged.connect(self._handle_item_changed)
         self.tree_widget.doubleClicked.connect(self._on_double_clicked)
         layout.addWidget(self.tree_widget)
+
+    def get_object_properties(self, object_name: str) -> Optional[ObjectProperties]:
+        """Retorna as propriedades de um objeto pelo nome."""
+        objeto_id = self.objetos_mapeados.get(object_name)
+        if objeto_id and objeto_id in self.object_properties:
+            return self.object_properties[objeto_id]
+        return None
+
+    def _on_item_clicked(self, item: QtWidgets.QTreeWidgetItem, column: int) -> None:
+        """Chamado quando um item é clicado (seleção simples)."""
+        if item and item.parent() is not None:  # Não é uma categoria
+            nome_objeto = item.text(0)
+            self.objetoSelecionado.emit(nome_objeto)
 
     def _get_or_create_category(self, cat_name: str) -> QtWidgets.QTreeWidgetItem:
         if cat_name not in self.cats:
@@ -181,7 +199,8 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
             self.object_properties[objeto_id].opacity = opacity_float
             self.salvar_alteracao_objeto(objeto_id)
         
-        self.opacityChanged.emit(name, opacity_float)
+        if not self._is_initializing:  # Evitar emissão durante inicialização
+            self.opacityChanged.emit(name, opacity_float)
 
     def _show_context_menu(self, position: QtCore.QPoint) -> None:
         item = self.tree_widget.itemAt(position)
