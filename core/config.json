@@ -1,0 +1,17 @@
+{
+    "app_info": {
+        "id": "opencmf.surgicalplanning.1.0",
+        "titulo": "OpenCMF - Modular Surgical Planning",
+        "version": "1.0.0"
+    },
+    "preferencias": {
+        "tema": "dark",
+        "idioma": "pt_BR",
+        "autosave": true
+    },
+    "diretorios": {
+        "patients": "patients",
+        "flows": "flows",
+        "icons": "icons"
+    }
+}
