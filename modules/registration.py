@@ -49,17 +49,13 @@ class Modulo(ModuloBase):
         self.widget_objetos.nomeAlterado.connect(self._on_nome_alterado)
 
     def inicializar(self, caminho_paciente: str) -> None:
-        novo_path = str(Path(caminho_paciente).resolve())
-        if self.pasta_paciente == novo_path:
-            return
-
-        super().inicializar(novo_path)
-        self.pasta_paciente = novo_path
-        logger.info(f"Módulo Registro inicializado para: {novo_path}")
-
-        self.object_manager = ObjectManager(novo_path)
+        super().inicializar(caminho_paciente)
+        self.object_manager = ObjectManager(caminho_paciente)
         self.object_manager.object_added.connect(self._on_object_added_manager)
         self.object_manager.load_existing_objects()
+
+        # Passar caminho do paciente para o widget de objetos
+        self.widget_objetos.set_patient_path(caminho_paciente)
 
     # --- Interface pública ---
 

@@ -1,11 +1,14 @@
 import sys
 import logging
 import random
+import json
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 import vtkmodules.all as vtk
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+
+from core.imports.models_import import ObjectProperties
 
 logger = logging.getLogger("ObjectManagerWidget")
 
@@ -17,11 +20,90 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
     deleteRequested = QtCore.Signal(str)
     nomeAlterado = QtCore.Signal(str, str)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, patient_path: Optional[str] = None):
         super().__init__(parent)
         self.cats = {}
         self.objetos_mapeados = {}
+        self.patient_path = Path(patient_path) if patient_path else None
+        self.object_properties: Dict[str, ObjectProperties] = {}
         self._setup_ui()
+        
+        if self.patient_path:
+            self.carregar_objetos_da_pasta()
+
+    def set_patient_path(self, path: str) -> None:
+        """Define o caminho do paciente e carrega os objetos."""
+        self.patient_path = Path(path)
+        self.carregar_objetos_da_pasta()
+
+    def carregar_objetos_da_pasta(self) -> None:
+        """Carrega todos os objetos da pasta do paciente a partir dos arquivos .json."""
+        if not self.patient_path or not self.patient_path.exists():
+            logger.warning(f"Caminho do paciente não existe: {self.patient_path}")
+            return
+
+        # Limpar lista atual
+        self.tree_widget.clear()
+        self.cats.clear()
+        self.objetos_mapeados.clear()
+        self.object_properties.clear()
+
+        loaded_count = 0
+        for json_file in self.patient_path.rglob("*.json"):
+            if "project" in json_file.parts:
+                continue
+            
+            try:
+                with open(json_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    props = ObjectProperties.from_json(data)
+                    
+                    # Mapear tipo para categoria de exibição
+                    categoria = self._mapear_tipo_para_categoria(props.type)
+                    
+                    # Adicionar à lista
+                    self.adicionar_objeto_lista(
+                        props.name,
+                        categoria,
+                        props.render["color"],
+                        objeto_id=props.id
+                    )
+                    
+                    # Armazenar propriedades
+                    self.object_properties[props.id] = props
+                    loaded_count += 1
+                    
+            except (json.JSONDecodeError, TypeError, ValueError) as error:
+                logger.warning(f"Erro ao carregar objeto de {json_file}: {error}")
+                continue
+
+        logger.info(f"Objetos carregados da pasta: {loaded_count} para paciente {self.patient_path}")
+
+    def _mapear_tipo_para_categoria(self, tipo: str) -> str:
+        """Mapeia o tipo do arquivo para a categoria de exibição."""
+        mapeamento = {
+            "surfaces": "Superfícies",
+            "photos": "Fotografias", 
+            "volume": "Volume",
+            "others": "Outros"
+        }
+        return mapeamento.get(tipo, "Outros")
+
+    def salvar_alteracao_objeto(self, objeto_id: str) -> None:
+        """Salva as alterações de um objeto no arquivo .json."""
+        if objeto_id not in self.object_properties:
+            logger.warning(f"Objeto {objeto_id} não encontrado para salvar")
+            return
+
+        props = self.object_properties[objeto_id]
+        json_path = self.patient_path / props.file_path
+        
+        try:
+            with open(json_path.with_suffix(".json"), "w", encoding="utf-8") as f:
+                json.dump(props.to_json(), f, indent=4, ensure_ascii=False)
+            logger.debug(f"Alterações salvas para objeto: {props.name}")
+        except Exception as error:
+            logger.error(f"Erro ao salvar alterações do objeto {props.name}: {error}")
 
     def _setup_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -70,11 +152,16 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
             self.objetos_mapeados[nome] = objeto_id
             item.setData(0, QtCore.Qt.UserRole, objeto_id)
 
+        # Obter opacidade das propriedades se disponível
+        opacity_value = 100
+        if objeto_id and objeto_id in self.object_properties:
+            opacity_value = int(self.object_properties[objeto_id].opacity * 100)
+
         slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         slider.setRange(0, 100)
-        slider.setValue(100)
+        slider.setValue(opacity_value)
         slider.setFixedHeight(16)
-        slider.valueChanged.connect(lambda v: self.opacityChanged.emit(nome, v / 100.0))
+        slider.valueChanged.connect(lambda v, n=nome: self._on_opacity_changed(n, v))
         self.tree_widget.setItemWidget(item, 1, slider)
 
         btn_color = QtWidgets.QPushButton()
@@ -82,8 +169,19 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
         c = cor if cor else (0.3, 0.6, 1.0)
         color_hex = QtGui.QColor.fromRgbF(c[0], c[1], c[2]).name()
         btn_color.setStyleSheet(f"background-color: {color_hex}; border-radius: 8px; border: 1px solid #888;")
-        btn_color.clicked.connect(lambda: self._pick_color(nome, btn_color))
+        btn_color.clicked.connect(lambda _, n=nome, b=btn_color: self._pick_color(n, b))
         self.tree_widget.setItemWidget(item, 2, btn_color)
+
+    def _on_opacity_changed(self, name: str, value: int) -> None:
+        opacity_float = value / 100.0
+        
+        # Salvar alteração de opacidade
+        objeto_id = self.objetos_mapeados.get(name)
+        if objeto_id and objeto_id in self.object_properties:
+            self.object_properties[objeto_id].opacity = opacity_float
+            self.salvar_alteracao_objeto(objeto_id)
+        
+        self.opacityChanged.emit(name, opacity_float)
 
     def _show_context_menu(self, position: QtCore.QPoint) -> None:
         item = self.tree_widget.itemAt(position)
@@ -108,6 +206,8 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
             return
 
         nome_original = item.text(0)
+        objeto_id = item.data(0, QtCore.Qt.UserRole)
+        
         novo_nome, ok = QtWidgets.QInputDialog.getText(
             self,
             "Renomear Objeto",
@@ -118,6 +218,12 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
 
         if ok and novo_nome and novo_nome != nome_original:
             item.setText(0, novo_nome)
+            
+            # Atualizar propriedades e salvar
+            if objeto_id and objeto_id in self.object_properties:
+                self.object_properties[objeto_id].name = novo_nome
+                self.salvar_alteracao_objeto(objeto_id)
+            
             self.nomeAlterado.emit(nome_original, novo_nome)
             logger.info(f"Objeto renomeado: {nome_original} -> {novo_nome}")
 
@@ -125,6 +231,15 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
         color = QtWidgets.QColorDialog.getColor()
         if color.isValid():
             button.setStyleSheet(f"background-color: {color.name()}; border-radius: 8px; border: 1px solid #888;")
+            
+            # Salvar alteração de cor
+            objeto_id = self.objetos_mapeados.get(name)
+            if objeto_id and objeto_id in self.object_properties:
+                self.object_properties[objeto_id].render["color"] = [
+                    color.redF(), color.greenF(), color.blueF()
+                ]
+                self.salvar_alteracao_objeto(objeto_id)
+            
             self.colorChanged.emit(name, color)
 
 

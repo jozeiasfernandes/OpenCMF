@@ -45,7 +45,7 @@ class WorkspaceManager(QtWidgets.QWidget):
 
         self.btn_home = QtWidgets.QPushButton()
         self.btn_home.setFixedSize(30, 30)
-        self._apply_icon(self.btn_home, "home.svg", QtWidgets.QStyle.SP_DirHomeIcon)
+        self._apply_icon(self.btn_home, "home.svg")
         self.btn_home.clicked.connect(self.home_solicitada.emit)
 
         self.tab_bar = QtWidgets.QTabBar()
@@ -54,7 +54,8 @@ class WorkspaceManager(QtWidgets.QWidget):
 
         self.btn_config = QtWidgets.QPushButton()
         self.btn_config.setFixedSize(30, 30)
-        self._apply_icon(self.btn_config, "config_branco.svg", QtWidgets.QStyle.SP_ComputerIcon)
+        self._apply_icon(self.btn_config, "config.svg")
+
         self.btn_config.clicked.connect(self._abrir_seletor_componentes)
 
         header_grid.addWidget(self.btn_home, 0, 0)
@@ -66,9 +67,9 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.layout_principal.addWidget(self.header)
         self.layout_principal.addWidget(self.container_paginas)
 
-    def _apply_icon(self, button, name, fallback):
+    def _apply_icon(self, button, name):
         path = self.base_dir / "appearance" / "icons" / name
-        icon = QtGui.QIcon(str(path)) if path.exists() else self.style().standardIcon(fallback)
+        icon = QtGui.QIcon(str(path))
         button.setIcon(icon)
         button.setCursor(QtCore.Qt.PointingHandCursor)
 
