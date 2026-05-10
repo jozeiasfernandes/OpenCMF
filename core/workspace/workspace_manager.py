@@ -14,11 +14,23 @@ from core.workspace.componentes_list import Components_List
 
 logger = logging.getLogger("WorkspaceManager")
 
+_SIDEBAR_WIDTH = 280
+
 
 def get_resource_path() -> Path:
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
     return Path(__file__).resolve().parents[2]
+
+
+def _aplicar_tamanho_splitter(splitter: QtWidgets.QSplitter, sidebar_width: int):
+    total = splitter.width()
+    if total <= 0:
+        QtCore.QTimer.singleShot(50, lambda: _aplicar_tamanho_splitter(splitter, sidebar_width))
+        return
+    sidebar = splitter.widget(1)
+    tab_bar_w = sidebar.tab_bar.sizeHint().width() if hasattr(sidebar, 'tab_bar') else 25
+    splitter.setSizes([total - tab_bar_w, tab_bar_w])
 
 
 class WorkspaceManager(QtWidgets.QWidget):
@@ -33,38 +45,72 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.current_patient_path = ""
         self._init_ui()
 
+    def minimumSizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(0, 0)
+
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(800, 600)
+
     def _init_ui(self):
         self.layout_principal = QtWidgets.QVBoxLayout(self)
         self.layout_principal.setContentsMargins(0, 0, 0, 0)
         self.layout_principal.setSpacing(0)
 
         self.header = QtWidgets.QWidget()
-        self.header.setFixedHeight(45)
-        header_grid = QtWidgets.QGridLayout(self.header)
-        header_grid.setContentsMargins(5, 0, 5, 0)
+        self.header.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Fixed
+        )
+        self.header.setFixedHeight(42)
+        self.header.setMinimumSize(0, 0)
+
+        header_layout = QtWidgets.QHBoxLayout(self.header)
+        header_layout.setContentsMargins(6, 4, 6, 4)
+        header_layout.setSpacing(4)
 
         self.btn_home = QtWidgets.QPushButton()
+        self.btn_home.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_home.setIconSize(QtCore.QSize(18, 18))
         self.btn_home.setFixedSize(30, 30)
         self._apply_icon(self.btn_home, "home.svg")
         self.btn_home.clicked.connect(self.home_solicitada.emit)
 
         self.tab_bar = QtWidgets.QTabBar()
         self.tab_bar.setDocumentMode(True)
+        self.tab_bar.setDrawBase(False)
+        self.tab_bar.setMovable(True)
+        self.tab_bar.setExpanding(False)
+        self.tab_bar.setUsesScrollButtons(True)
+        self.tab_bar.setElideMode(QtCore.Qt.ElideRight)
+        self.tab_bar.setIconSize(QtCore.QSize(16, 16))
+        self.tab_bar.setSizePolicy(
+            QtWidgets.QSizePolicy.Maximum,
+            QtWidgets.QSizePolicy.Fixed
+        )
         self.tab_bar.currentChanged.connect(self._on_tab_changed)
 
         self.btn_config = QtWidgets.QPushButton()
+        self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_config.setIconSize(QtCore.QSize(18, 18))
         self.btn_config.setFixedSize(30, 30)
         self._apply_icon(self.btn_config, "config_branco.svg")
         self.btn_config.clicked.connect(self._abrir_seletor_componentes)
 
-        header_grid.addWidget(self.btn_home, 0, 0)
-        header_grid.addWidget(self.tab_bar, 0, 1)
-        header_grid.setColumnStretch(2, 1)
-        header_grid.addWidget(self.btn_config, 0, 3)
+        header_layout.addWidget(self.btn_home, 0, QtCore.Qt.AlignVCenter)
+        header_layout.addWidget(self.tab_bar, 0, QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
+        header_layout.addStretch(1)
+        header_layout.addWidget(self.btn_config, 0, QtCore.Qt.AlignVCenter)
 
         self.container_paginas = QtWidgets.QStackedWidget()
+        self.container_paginas.setContentsMargins(0, 0, 0, 0)
+        self.container_paginas.setMinimumSize(0, 0)
+        self.container_paginas.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+
         self.layout_principal.addWidget(self.header)
-        self.layout_principal.addWidget(self.container_paginas)
+        self.layout_principal.addWidget(self.container_paginas, 1)
 
     def _apply_icon(self, button, name):
         path = self.base_dir / "appearance" / "icons" / name
@@ -80,7 +126,6 @@ class WorkspaceManager(QtWidgets.QWidget):
             self._safe_inicializar(modulo)
 
     def clear(self):
-        logger.debug("Iniciando limpeza do WorkspaceManager")
         for data in self._lazy_registry.values():
             if inst := data.get("instancia"):
                 self._cleanup_module_instance(inst)
@@ -132,7 +177,6 @@ class WorkspaceManager(QtWidgets.QWidget):
         }
 
         if not is_class:
-            # FIX #3: conectar on_concluido também para instâncias diretas (não-lazy)
             if on_concluido and hasattr(modulo_ref, "concluido"):
                 modulo_ref.concluido.connect(on_concluido)
             self._build_module_layout(container, modulo_ref)
@@ -150,7 +194,6 @@ class WorkspaceManager(QtWidgets.QWidget):
         if data := self._lazy_registry.get(container):
             if not data["carregado"]:
                 self._load_lazy_module(data)
-            # FIX #4: adiar inicializar para após o widget estar visível/dimensionado
             if inst := data.get("instancia"):
                 QtCore.QTimer.singleShot(0, lambda i=inst: self._safe_inicializar(i))
             self._sync_active_view()
@@ -178,10 +221,8 @@ class WorkspaceManager(QtWidgets.QWidget):
             logger.error(traceback.format_exc())
 
     def _build_module_layout(self, container: QtWidgets.QWidget, modulo: Any):
-        # FIX #1: limpar layout existente antes de construir, evitando layouts empilhados
         existing_layout = container.layout()
         if existing_layout is not None:
-            # Esvaziar e descartar o layout antigo de forma segura
             while existing_layout.count():
                 item = existing_layout.takeAt(0)
                 if w := item.widget():
@@ -190,37 +231,100 @@ class WorkspaceManager(QtWidgets.QWidget):
             QtWidgets.QWidget().setLayout(existing_layout)
 
         data = self._lazy_registry.get(container)
+
         container.setProperty("modulo_instancia", weakref.ref(modulo))
+        container.setContentsMargins(0, 0, 0, 0)
+        container.setMinimumSize(0, 0)
+        container.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
 
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        splitter.setChildrenCollapsible(True)
+        splitter.setOpaqueResize(False)
+        splitter.setHandleWidth(1)
+        splitter.setContentsMargins(0, 0, 0, 0)
+        splitter.setMinimumSize(0, 0)
+        splitter.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+
         center = QtWidgets.QWidget()
+        center.setContentsMargins(0, 0, 0, 0)
+        center.setMinimumSize(0, 0)
+        center.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+
         layout_central = QtWidgets.QVBoxLayout(center)
         layout_central.setContentsMargins(0, 0, 0, 0)
         layout_central.setSpacing(0)
         data["layout_central"] = layout_central
 
-        # Toolbar estática do módulo — sempre no índice 0
-        if hasattr(modulo, "get_workspace_toolbar") and (tb := modulo.get_workspace_toolbar()):
+        if (
+                hasattr(modulo, "get_workspace_toolbar")
+                and (tb := modulo.get_workspace_toolbar())
+        ):
             tb.setProperty("_is_static_toolbar", True)
+            tb.setContentsMargins(0, 0, 0, 0)
+            tb.setMinimumSize(0, 0)
+            tb.setSizePolicy(
+                QtWidgets.QSizePolicy.Expanding,
+                QtWidgets.QSizePolicy.Fixed
+            )
             layout_central.addWidget(tb)
 
-        # Workspace view — marcado para identificação de posição em inserções dinâmicas
-        if hasattr(modulo, "get_workspace") and (vw := modulo.get_workspace()):
+        if (
+                hasattr(modulo, "get_workspace")
+                and (vw := modulo.get_workspace())
+        ):
             vw.setProperty("_is_workspace_view", True)
+            vw.setContentsMargins(0, 0, 0, 0)
+            vw.setMinimumSize(0, 0)
+            vw.setSizePolicy(
+                QtWidgets.QSizePolicy.Expanding,
+                QtWidgets.QSizePolicy.Expanding
+            )
+            for child in vw.findChildren(QtWidgets.QWidget):
+                child.setMinimumSize(0, 0)
             layout_central.addWidget(vw, 1)
 
-        data["sidebar"] = ToolboxesManager()
+        sidebar = ToolboxesManager()
+        sidebar.setContentsMargins(0, 0, 0, 0)
+        sidebar.setMinimumSize(0, 0)
+
+        sidebar.setMaximumWidth(600)
+        sidebar.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+        data["sidebar"] = sidebar
+
         if hasattr(modulo, 'get_toolboxes'):
             for label, widget in modulo.get_toolboxes().items():
-                data["sidebar"].adicionar_widget(label, widget)
+                widget.setContentsMargins(0, 0, 0, 0)
+                widget.setMinimumSize(0, 0)
+                widget.setSizePolicy(
+                    QtWidgets.QSizePolicy.Preferred,
+                    QtWidgets.QSizePolicy.Preferred
+                )
+                sidebar.adicionar_widget(label, widget)
 
         splitter.addWidget(center)
-        splitter.addWidget(data["sidebar"])
+        splitter.addWidget(sidebar)
         splitter.setStretchFactor(0, 1)
-        layout.addWidget(splitter)
+        splitter.setStretchFactor(1, 0)
+
+        layout.addWidget(splitter, 1)
+
+        QtCore.QTimer.singleShot(0, lambda s=splitter: _aplicar_tamanho_splitter(s, _SIDEBAR_WIDTH))
 
     def get_modulo_ativo(self) -> Optional[Any]:
         if current := self.container_paginas.currentWidget():
@@ -254,15 +358,12 @@ class WorkspaceManager(QtWidgets.QWidget):
             if not comp:
                 return
             if categoria == "toolbars":
-                # FIX #2: inserir toolbar dinâmica ANTES do workspace view,
-                # respeitando qualquer toolbar estática já presente
                 layout = data["layout_central"]
                 insert_pos = 0
                 for i in range(layout.count()):
                     item = layout.itemAt(i)
                     w = item.widget() if item else None
                     if w and w.property("_is_workspace_view"):
-                        # inserir imediatamente antes do workspace view
                         insert_pos = i
                         break
                     insert_pos = i + 1
@@ -296,52 +397,9 @@ class WorkspaceManager(QtWidgets.QWidget):
 
 
 if __name__ == "__main__":
-    import sys
-    from PySide6 import QtWidgets
-
-    logging.basicConfig(level=logging.DEBUG)
-    logger.info("Iniciando WorkspaceManager em modo standalone...")
-
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
-
     workspace = WorkspaceManager()
-    workspace.setWindowTitle("OpenCMF - Workspace Manager")
     workspace.resize(1280, 720)
-
-    try:
-        class TestModule:
-            nome = "Módulo de Teste"
-
-            def get_workspace(self):
-                label = QtWidgets.QLabel("Bem-vindo ao Workspace de Teste!\n\nEste é um módulo de exemplo.")
-                label.setAlignment(QtCore.Qt.AlignCenter)
-                label.setStyleSheet("font-size: 18px; color: #888;")
-                return label
-
-            def get_toolboxes(self):
-                return {
-                    "Informações": QtWidgets.QLabel("Painel de informações do módulo"),
-                    "Configurações": QtWidgets.QLabel("Configurações rápidas"),
-                }
-
-        workspace.adicionar_modulo("test_module", TestModule())
-
-        class AnotherTest:
-            nome = "Visualizador"
-
-            def get_workspace(self):
-                text = QtWidgets.QTextEdit()
-                text.setPlainText(
-                    "Área de trabalho principal do Visualizador.\n\nAqui viria o conteúdo principal do módulo."
-                )
-                return text
-
-        workspace.adicionar_modulo("viewer", AnotherTest())
-
-    except Exception as e:
-        logger.error(f"Erro ao adicionar módulos de teste: {e}")
-
     workspace.show()
-    logger.info("WorkspaceManager iniciado com sucesso.")
     sys.exit(app.exec())

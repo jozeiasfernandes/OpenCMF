@@ -23,10 +23,10 @@ class WindowRegistration(QtWidgets.QWidget):
         self.pontos_b = []
         self.current_point_size = 1.5
         self.db_click_filter = RegistrationDoubleClickFilter(self)
+        self.setMinimumSize(0, 0)
         self.setup_ui()
 
     def connect_properties_panel(self, properties_panel) -> None:
-        """Conecta o painel de propriedades para sincronização."""
         if properties_panel:
             properties_panel.positionChanged.connect(lambda pos: self._apply_transform_change("position", pos))
             properties_panel.rotationChanged.connect(lambda rot: self._apply_transform_change("rotation", rot))
@@ -41,23 +41,19 @@ class WindowRegistration(QtWidgets.QWidget):
             properties_panel.edgeVisibilityChanged.connect(lambda vis: self._apply_render_change("edge_visibility", vis))
 
     def _apply_transform_change(self, transform_type: str, values: list) -> None:
-        """Aplica mudanças de transformação aos objetos nas vistas."""
         for view_name, objetos in [("A", self.objetos_a), ("B", self.objetos_b)]:
             for nome_objeto in objetos.keys():
                 self._apply_transform_to_object(view_name, nome_objeto, transform_type, values)
 
     def _apply_render_change(self, render_type: str, value) -> None:
-        """Aplica mudanças de renderização aos objetos nas vistas."""
         for view_name, objetos in [("A", self.objetos_a), ("B", self.objetos_b)]:
             for nome_objeto in objetos.keys():
                 self._apply_render_to_object(view_name, nome_objeto, render_type, value)
 
     def _apply_transform_to_object(self, view_name: str, object_name: str, transform_type: str, values: list) -> None:
-        """Aplica transformação específica a um objeto em uma vista."""
         view = self.view_a if view_name == "A" else self.view_b
         actors = view.renderer.GetActors()
         actors.InitTraversal()
-
         for _ in range(actors.GetNumberOfItems()):
             actor = actors.GetNextActor()
             if hasattr(actor, "name") and actor.name == object_name:
@@ -68,20 +64,16 @@ class WindowRegistration(QtWidgets.QWidget):
                 elif transform_type == "scale":
                     actor.SetScale(values)
                 break
-
         view.render()
 
     def _apply_render_to_object(self, view_name: str, object_name: str, render_type: str, value) -> None:
-        """Aplica propriedade de renderização específica a um objeto em uma vista."""
         view = self.view_a if view_name == "A" else self.view_b
         actors = view.renderer.GetActors()
         actors.InitTraversal()
-
         for _ in range(actors.GetNumberOfItems()):
             actor = actors.GetNextActor()
             if hasattr(actor, "name") and actor.name == object_name:
                 prop = actor.GetProperty()
-
                 if render_type == "color":
                     prop.SetColor(value)
                 elif render_type == "opacity":
@@ -104,7 +96,6 @@ class WindowRegistration(QtWidgets.QWidget):
                 elif render_type == "edge_visibility":
                     prop.SetEdgeVisibility(value)
                 break
-
         view.render()
 
     def setup_ui(self):
@@ -113,11 +104,26 @@ class WindowRegistration(QtWidgets.QWidget):
         self.main_layout.setSpacing(0)
 
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.splitter.setMinimumSize(0, 0)
+        self.splitter.setChildrenCollapsible(True)
 
         self.container_a = QtWidgets.QWidget()
+        self.container_a.setMinimumSize(0, 0)
+        self.container_a.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
         layout_a = QtWidgets.QVBoxLayout(self.container_a)
         layout_a.setContentsMargins(4, 4, 4, 4)
+        layout_a.setSpacing(2)
+
         self.view_a = Janela3DSurface("Vista A", "#00AAFF")
+        self.view_a.setMinimumSize(0, 0)          # impede travamento ao redimensionar
+        self.view_a.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+
         self.combo_a = QtWidgets.QComboBox()
         self.combo_a.setPlaceholderText("Selecionar objeto Vista A...")
         layout_a.addWidget(self.view_a, stretch=1)
@@ -125,9 +131,22 @@ class WindowRegistration(QtWidgets.QWidget):
         layout_a.addWidget(self.combo_a)
 
         self.container_b = QtWidgets.QWidget()
+        self.container_b.setMinimumSize(0, 0)
+        self.container_b.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
         layout_b = QtWidgets.QVBoxLayout(self.container_b)
         layout_b.setContentsMargins(4, 4, 4, 4)
+        layout_b.setSpacing(2)
+
         self.view_b = Janela3DSurface("Vista B", "#555555")
+        self.view_b.setMinimumSize(0, 0)          # impede travamento ao redimensionar
+        self.view_b.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
+
         self.combo_b = QtWidgets.QComboBox()
         self.combo_b.setPlaceholderText("Selecionar objeto Vista B...")
         layout_b.addWidget(self.view_b, stretch=1)
@@ -136,6 +155,8 @@ class WindowRegistration(QtWidgets.QWidget):
 
         self.splitter.addWidget(self.container_a)
         self.splitter.addWidget(self.container_b)
+        self.splitter.setStretchFactor(0, 1)
+        self.splitter.setStretchFactor(1, 1)
         self.main_layout.addWidget(self.splitter)
 
         self.combo_a.currentTextChanged.connect(lambda texto: self._on_combo_changed("A", texto))

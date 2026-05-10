@@ -14,9 +14,6 @@ from core.components.toolboxes.objetct_properties_toolbox import Component as Pr
 from core.components.toolbars.registration_toolbar import Component as RegistrationToolbar
 from core.imports.object_manager import ObjectManager
 
-# os.environ["VTK_SILENT_ERRORS"] = "1"
-# vtk.vtkObject.GlobalWarningDisplayOff()
-
 logger = logging.getLogger("RegistrationModule")
 
 
@@ -29,9 +26,30 @@ class Modulo(ModuloBase):
         self.object_manager: Optional[ObjectManager] = None
 
         self.view_registration = WindowRegistration()
+        self.view_registration.setMinimumSize(0, 0)
+
         self.widget_reg = Component()
+        self.widget_reg.setMinimumSize(0, 0)
+        self.widget_reg.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Preferred      # Preferred: não força expansão vertical
+        )
+
         self.widget_objetos = ObjetoManagerWidget()
+        self.widget_objetos.setMinimumSize(0, 0)
+        self.widget_objetos.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Preferred
+        )
+
         self.widget_propriedades = PropertiesComponent(self)
+        self.widget_propriedades.setMinimumSize(0, 0)
+        self.widget_propriedades.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Preferred
+        )
+
+        self._toolbar: Optional[QtWidgets.QToolBar] = None  # cache — nunca recriar
 
         self._conectar_sinais()
 
@@ -55,13 +73,11 @@ class Modulo(ModuloBase):
         self.object_manager = ObjectManager(caminho_paciente)
         self.object_manager.object_added.connect(self._on_object_added_manager)
         self.object_manager.load_existing_objects()
-        
-        # Passar caminho do paciente para os widgets
+
         self.widget_objetos.set_patient_path(caminho_paciente)
         if hasattr(self.widget_propriedades, 'set_patient_path'):
             self.widget_propriedades.set_patient_path(caminho_paciente)
-        
-        # Conectar sinais de sincronização
+
         self.widget_objetos.objetoSelecionado.connect(self._on_objeto_selecionado)
         self.view_registration.connect_properties_panel(self.widget_propriedades)
 
@@ -71,13 +87,24 @@ class Modulo(ModuloBase):
         return self.view_registration
 
     def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
+        if self._toolbar is not None:            # cache: nunca recriar nem reconectar sinais
+            return self._toolbar
+
         toolbar = RegistrationToolbar()
+        toolbar.setMinimumSize(0, 0)
+        toolbar.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Fixed          # altura fixa — nunca empurra o layout
+        )
+
         h = toolbar.handler
         h.importRequested.connect(lambda: self._importar_objeto("surfaces", "Importado"))
         h.deletePointRequested.connect(self.view_registration.remover_ultimo_marcador)
         h.pointSizeChanged.connect(self.view_registration.set_ponto_raio)
         h.resetLayoutRequested.connect(self.view_registration.reset_layout_vistas)
-        return toolbar
+
+        self._toolbar = toolbar
+        return self._toolbar
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         return {
@@ -175,8 +202,10 @@ class Modulo(ModuloBase):
         pts_a = self.view_registration.get_points_a()
         pts_b = self.view_registration.get_points_b()
         if len(pts_a) < 3 or len(pts_a) != len(pts_b):
-            QtWidgets.QMessageBox.warning(self.view_registration, "Aviso",
-                                          "Marque pelo menos 3 pontos correspondentes em cada vista.")
+            QtWidgets.QMessageBox.warning(
+                self.view_registration, "Aviso",
+                "Marque pelo menos 3 pontos correspondentes em cada vista."
+            )
             return
         logger.info(f"Iniciando registro com {len(pts_a)} pontos.")
 
@@ -202,7 +231,6 @@ class Modulo(ModuloBase):
         }.get(tipo_pasta, "Outros")
 
     def _on_objeto_selecionado(self, nome_objeto: str) -> None:
-        """Chamado quando um objeto é selecionado na lista."""
         if hasattr(self.widget_propriedades, 'load_object_properties'):
             self.widget_propriedades.load_object_properties(nome_objeto)
 
