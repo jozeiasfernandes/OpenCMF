@@ -1,4 +1,5 @@
 # core/scene/scene_bridge.py
+# core/scene/scene_bridge.py
 
 from .events.event_bus import EventBus
 from .registry.object_registry import ObjectRegistry
@@ -46,7 +47,7 @@ class SceneBridge:
         self.renderer.remove_actor(object_id)
         self.renderer.refresh()
 
-    def _on_object_updated(self, object_id: str, property: str, value: any):
+    def _on_object_updated(self, object_id: str, **kwargs):
         obj = self.objects.get(object_id)
         actor = self.actors.get(object_id)
 
