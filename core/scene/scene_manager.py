@@ -1,4 +1,7 @@
 '''
+SceneManager → Registries → EventBus → Observers
+
+
 recebe comandos
 conversa com registries
 emite eventos
@@ -14,7 +17,14 @@ Ele NÃO:
 renderiza
 salva JSON diretamente
 manipula Qt diretamente
+
+Separação de estados:
+* SceneState (contexto)
+* SelectionManager (seleção)
+* ObjectRegistry (dados)
+* ActorRegistry (render mapping)
 '''
+
 
 
 from typing import Optional
@@ -41,6 +51,10 @@ class SceneManager:
         self.actors = actor_registry
         self.selection = selection_manager
 
+    # -------------------------
+    # Object lifecycle
+    # -------------------------
+
     def add_object(self, obj: SceneObject):
         self.objects.register(obj)
 
@@ -55,7 +69,7 @@ class SceneManager:
             return
 
         self.objects.unregister(obj_id)
-        self.actors.remove(obj_id)
+        self.actors.unregister(obj_id)
         self.selection.deselect(obj_id)
 
         self.events.emit(
@@ -63,17 +77,26 @@ class SceneManager:
             object_id=obj_id
         )
 
+    # -------------------------
+    # Selection
+    # -------------------------
+
     def select_object(self, obj_id: str, multi: bool = False):
         if not multi:
             self.selection.clear()
 
         self.selection.select(obj_id)
+
         self.state.selected_object_ids = self.selection.get_selected()
 
         self.events.emit(
             "SELECTION_CHANGED",
             selected_ids=self.state.selected_object_ids
         )
+
+    # -------------------------
+    # Property updates
+    # -------------------------
 
     def update_visibility(self, obj_id: str, visible: bool):
         obj = self.objects.get(obj_id)
@@ -116,8 +139,16 @@ class SceneManager:
             value=color
         )
 
+    # -------------------------
+    # Queries
+    # -------------------------
+
     def get_object(self, obj_id: str) -> Optional[SceneObject]:
         return self.objects.get(obj_id)
+
+    # -------------------------
+    # State sync
+    # -------------------------
 
     def sync_state(self):
         self.state.scene_metadata["object_count"] = self.objects.count()
