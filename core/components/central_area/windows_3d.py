@@ -72,24 +72,20 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.vtkWidget.SetInteractorStyle(style)
         self.vtkWidget.Start()
 
-    def adicionar_objeto(self, id_obj, polydata, cor=(0.7, 0.7, 0.8), opacidade=1.0):
+    def adicionar_objeto(self, id_obj, polydata, cor=(0.7, 0.7, 0.8), opacidade=1.0, nome_amigavel=""):
         if id_obj in self.atores_malha:
             self.renderer.RemoveActor(self.atores_malha[id_obj])
 
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputData(polydata)
-
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
+
+        actor.id = id_obj
+        actor.name = nome_amigavel
+
         actor.GetProperty().SetColor(cor)
         actor.GetProperty().SetOpacity(opacidade)
-        actor.GetProperty().SetAmbient(0.2)
-        actor.GetProperty().SetDiffuse(0.7)
-        actor.GetProperty().SetSpecular(0.3)
-
-        self.renderer.AddActor(actor)
-        self.atores_malha[id_obj] = actor
-        self.render()
 
     def remover_objeto(self, id_obj):
         if id_obj in self.atores_malha:
