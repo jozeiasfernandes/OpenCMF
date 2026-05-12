@@ -19,22 +19,13 @@ class EventBus:
     def __init__(self):
         self._subscribers: Dict[str, List[Callable[..., None]]] = defaultdict(list)
 
-    # -------------------------
-    # Subscription management
-    # -------------------------
-
     def subscribe(self, event: str, callback: Callable[..., None]):
         if callback not in self._subscribers[event]:
             self._subscribers[event].append(callback)
 
     def unsubscribe(self, event: str, callback: Callable[..., None]):
-        if event in self._subscribers:
-            if callback in self._subscribers[event]:
-                self._subscribers[event].remove(callback)
-
-    # -------------------------
-    # Event emission
-    # -------------------------
+        if event in self._subscribers and callback in self._subscribers[event]:
+            self._subscribers[event].remove(callback)
 
     def emit(self, event: str, **payload: Any):
         if event not in self._subscribers:
@@ -44,14 +35,10 @@ class EventBus:
             try:
                 callback(**payload)
             except Exception:
-                pass
-
-    # -------------------------
-    # Cleanup
-    # -------------------------
+                continue
 
     def clear(self, event: Optional[str] = None):
         if event:
             self._subscribers.pop(event, None)
-        else:
-            self._subscribers.clear()
+            return
+        self._subscribers.clear()

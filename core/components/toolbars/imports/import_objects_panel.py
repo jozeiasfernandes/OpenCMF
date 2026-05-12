@@ -1,3 +1,30 @@
+'''
+Fluxo:
+* ImportObjectsPanel emite o sinal.
+*Controller (ou o componente que coordena a cena) recebe esse sinal.
+* Controller abre um QFileDialog para o usuário escolher o arquivo STL/VTI/JPG.
+* Controller chama o ObjectManager (que refatoramos antes).
+
+O ObjectManager  tem o "poder" de copiar o arquivo para a pasta do paciente e criar a estrutura de pastas.
+
+Quando o arquivo for salvo com sucesso na pasta do paciente pelo ObjectManager, o sistema precisa "dar vida" a esse arquivo na tela. É aqui que a pasta scene entra:
+
+* O SceneObject (que está em core/scene/) é instanciado para representar esse novo objeto.
+* O ObjectRegistry (também na pasta de cena) guarda esse objeto para que o sistema saiba que ele existe.
+* A VTKActorFactory (que analisamos hoje) pega esse SceneObject e cria o ator 3D para ser exibido na tela.
+
+Resumo Arquitetural:
+Camada UI: ImportObjectsPanel
+
+Camada de Lógica: SceneController & ObjectManager
+
+Camada de Dados: SceneObject & ObjectSaver
+
+Camada Gráfica: VTKActorFactory
+
+'''
+
+
 import sys
 from pathlib import Path
 from typing import Optional, Callable

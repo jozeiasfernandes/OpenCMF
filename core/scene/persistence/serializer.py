@@ -1,48 +1,34 @@
 '''
 Persistência real
 '''
-
 import json
-from typing import Dict, Any
+import dataclasses
+from typing import Dict, Any, List
 from ..scene_object import SceneObject
 
 
 class Serializer:
-    def serialize_object(self, obj: SceneObject) -> Dict[str, Any]:
-        return {
-            "id": obj.id,
-            "name": obj.name,
-            "type": obj.type,
-            "visible": obj.visible,
-            "opacity": obj.opacity,
-            "color": obj.color,
-            "transform": obj.transform,
-            "metadata": obj.metadata,
-            "file_path": obj.file_path,
+    def save(self, objects: List[SceneObject]) -> str:
+        data = [self._serialize(obj) for obj in objects]
+        return json.dumps(data, indent=2, ensure_ascii=False)
+
+    def load(self, raw: str) -> List[SceneObject]:
+        data = json.loads(raw)
+        return [self._deserialize(item) for item in data]
+
+    def _serialize(self, obj: SceneObject) -> Dict[str, Any]:
+        data = dataclasses.asdict(obj)
+        data.pop("vtk_actor_ref", None)
+        return data
+
+    def _deserialize(self, data: Dict[str, Any]) -> SceneObject:
+        clean_data = {
+            key: value
+            for key, value in data.items()
+            if key in {f.name for f in dataclasses.fields(SceneObject)}
         }
 
-    def deserialize_object(self, data: Dict[str, Any]) -> SceneObject:
-        return SceneObject(
-            id=data["id"],
-            name=data.get("name", "Object"),
-            type=data.get("type", "generic"),
-            visible=data.get("visible", True),
-            opacity=data.get("opacity", 1.0),
-            color=tuple(data.get("color", (1.0, 1.0, 1.0))),
-            transform=data.get("transform", {
-                "position": [0.0, 0.0, 0.0],
-                "rotation": [0.0, 0.0, 0.0],
-                "scale": [1.0, 1.0, 1.0],
-            }),
-            metadata=data.get("metadata", {}),
-            file_path=data.get("file_path"),
-            vtk_actor_ref=None,
-        )
+        if "color" in clean_data:
+            clean_data["color"] = tuple(clean_data["color"])
 
-    def save(self, objects: list[SceneObject]) -> str:
-        data = [self.serialize_object(obj) for obj in objects]
-        return json.dumps(data, indent=2)
-
-    def load(self, raw: str) -> list[SceneObject]:
-        data = json.loads(raw)
-        return [self.deserialize_object(obj) for obj in data]
+        return SceneObject(**clean_data)

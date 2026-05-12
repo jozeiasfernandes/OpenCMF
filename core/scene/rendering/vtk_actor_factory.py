@@ -31,44 +31,40 @@ color
 visibility
 
 '''
-
-
 from typing import Any
 from ..scene_object import SceneObject
-
 
 class VTKActorFactory:
     def __init__(self, vtk_module: Any):
         self._vtk = vtk_module
 
-    def create(self, obj: SceneObject) -> Any:
+    def create(self, scene_object: SceneObject) -> Any:
         actor = self._vtk.vtkActor()
 
-        self._apply_geometry(actor, obj)
-        self._apply_transform(actor, obj)
-        self._apply_properties(actor, obj)
+        self._apply_geometry(actor, scene_object)
+        self._apply_transform(actor, scene_object)
+        self._apply_properties(actor, scene_object)
 
         return actor
 
-    def _apply_geometry(self, actor: Any, obj: SceneObject):
-        mesh = obj.data.get("mesh")
-        if not mesh:
+    def _apply_geometry(self, actor: Any, scene_object: SceneObject):
+        if not scene_object.mesh_data:
             return
 
         mapper = self._vtk.vtkPolyDataMapper()
-        mapper.SetInputData(mesh)
+        mapper.SetInputData(scene_object.mesh_data)
         actor.SetMapper(mapper)
 
-    def _apply_transform(self, actor: Any, obj: SceneObject):
-        t = obj.transform
+    def _apply_transform(self, actor: Any, scene_object: SceneObject):
+        transform = scene_object.transform
 
-        actor.SetPosition(*t.get("position", [0, 0, 0]))
-        actor.SetScale(*t.get("scale", [1, 1, 1]))
-        actor.SetOrientation(*t.get("rotation", [0, 0, 0]))
+        actor.SetPosition(*transform["position"])
+        actor.SetScale(*transform["scale"])
+        actor.SetOrientation(*transform["rotation"])
 
-    def _apply_properties(self, actor: Any, obj: SceneObject):
-        prop = actor.GetProperty()
+    def _apply_properties(self, actor: Any, scene_object: SceneObject):
+        properties = actor.GetProperty()
 
-        prop.SetOpacity(obj.opacity)
-        prop.SetColor(*obj.color)
-        actor.SetVisibility(obj.visible)
+        properties.SetOpacity(scene_object.opacity)
+        properties.SetColor(*scene_object.color)
+        actor.SetVisibility(int(scene_object.visible))
