@@ -22,13 +22,8 @@ class ObjectSaver:
         self._registry = registry
 
     def to_json(self, objects: Optional[Iterable[SceneObject]] = None) -> str:
-        """
-        Serializa objetos para string JSON.
-
-        Se ``objects`` for omitido, usa ``registry.all()`` (ordem do dict interno).
-        """
-        objs = list(objects) if objects is not None else self._registry.all()
-        return self._serializer.save(objs)
+        target_objects = list(objects) if objects is not None else self._registry.all()
+        return self._serializer.save(target_objects)
 
     def save_to_file(
         self,
@@ -37,6 +32,8 @@ class ObjectSaver:
         objects: Optional[Iterable[SceneObject]] = None,
         encoding: str = "utf-8",
     ) -> None:
-        filepath = Path(path)
-        filepath.parent.mkdir(parents=True, exist_ok=True)
-        filepath.write_text(self.to_json(objects), encoding=encoding)
+        file_path = Path(path)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+
+        json_content = self.to_json(objects)
+        file_path.write_text(json_content, encoding=encoding)
