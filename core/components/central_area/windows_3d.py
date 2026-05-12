@@ -1,23 +1,22 @@
-import vtk
-import sys
 import os
-os.environ["QT_API"] = "pyside6"
-
-from PySide6 import QtWidgets, QtCore
+import sys
+import vtk
+from PySide6 import QtCore, QtWidgets
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+from core.scene.rendering.vtk_scene_renderer import VTKSceneRenderer
 
+os.environ["QT_API"] = "pyside6"
 
 class Janela3DSurface(QtWidgets.QWidget):
     maximizeRequested = QtCore.Signal(bool)
-    pointPicked = QtCore.Signal(str, tuple)
+    objectSelected = QtCore.Signal(str)
 
-    def __init__(self, nome, cor_borda, parent=None):
+    def __init__(self, nome, cor_borda, parent=None, scene_manager=None):
         super().__init__(parent)
         self.nome = nome
         self.cor_borda = cor_borda
+        self.scene_manager = scene_manager
         self.is_maximized = False
-        self.atores_malha = {}
-
         self._setup_ui()
         self._setup_vtk()
 
@@ -55,7 +54,6 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.header_layout.addWidget(self.btn_max)
 
         self.vtkWidget = QVTKRenderWindowInteractor(self.container)
-
         self.container_layout.addWidget(self.header)
         self.container_layout.addWidget(self.vtkWidget)
         self.main_layout.addWidget(self.container)
@@ -63,35 +61,51 @@ class Janela3DSurface(QtWidgets.QWidget):
     def _setup_vtk(self):
         self.renderer = vtk.vtkRenderer()
         self.renderer.SetBackground(0.05, 0.05, 0.05)
+        self.vtk_scene_renderer = VTKSceneRenderer(self.renderer)
         self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
         self.vtkWidget.GetRenderWindow().SetMultiSamples(8)
+        self.picker = vtk.vtkPropPicker()
 
     def setup_interactors(self):
         self.vtkWidget.Initialize()
         style = vtk.vtkInteractorStyleTrackballCamera()
+        style.AddObserver("LeftButtonPressEvent", self._on_left_click)
         self.vtkWidget.SetInteractorStyle(style)
         self.vtkWidget.Start()
 
-    def adicionar_objeto(self, id_obj, polydata, cor=(0.7, 0.7, 0.8), opacidade=1.0, nome_amigavel=""):
-        if id_obj in self.atores_malha:
-            self.renderer.RemoveActor(self.atores_malha[id_obj])
+    def _on_left_click(self, obj, event):
+        x, y = self.vtkWidget.GetInteractor().GetEventPosition()
+        self.picker.Pick(x, y, 0, self.renderer)
+        actor = self.picker.GetActor()
 
+        if actor and hasattr(actor, 'id'):
+            obj_id = actor.id
+            self.objectSelected.emit(obj_id)
+            if self.scene_manager:
+                self.scene_manager.selection.select(obj_id)
+        else:
+            if self.scene_manager:
+                self.scene_manager.selection.clear()
+
+        obj.OnLeftButtonDown()
+
+    def adicionar_objeto(self, id_obj, polydata, cor=(0.7, 0.7, 0.8), opacidade=1.0, nome_amigavel=""):
+        self.vtk_scene_renderer.remove_actor(id_obj)
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputData(polydata)
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
-
         actor.id = id_obj
         actor.name = nome_amigavel
-
+        actor.PickableOn()
         actor.GetProperty().SetColor(cor)
         actor.GetProperty().SetOpacity(opacidade)
+        self.vtk_scene_renderer.add_actor(id_obj, actor)
+        self.render()
 
     def remover_objeto(self, id_obj):
-        if id_obj in self.atores_malha:
-            self.renderer.RemoveActor(self.atores_malha[id_obj])
-            del self.atores_malha[id_obj]
-            self.render()
+        self.vtk_scene_renderer.remove_actor(id_obj)
+        self.render()
 
     def render(self):
         if hasattr(self.vtkWidget, "GetRenderWindow"):
@@ -106,25 +120,16 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.btn_max.setText("❐" if self.is_maximized else "▢")
         self.maximizeRequested.emit(self.is_maximized)
 
-
-
-
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
-
     janela_teste = Janela3DSurface("Vista de Superfície", "#00AAFF")
     janela_teste.resize(800, 600)
     janela_teste.show()
-
     janela_teste.setup_interactors()
-
-
     sphere = vtk.vtkSphereSource()
     sphere.SetThetaResolution(30)
     sphere.SetPhiResolution(30)
     sphere.Update()
-
     janela_teste.adicionar_objeto("esfera_teste", sphere.GetOutput(), cor=(0.2, 0.6, 1.0))
     janela_teste.reset_camera()
-
     sys.exit(app.exec())

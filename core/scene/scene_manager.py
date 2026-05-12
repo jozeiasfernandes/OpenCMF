@@ -24,10 +24,8 @@ Separação de estados:
 * ObjectRegistry (dados)
 * ActorRegistry (render mapping)
 '''
+from typing import Optional, List, Any
 
-
-
-from typing import Optional
 from .scene_object import SceneObject
 from .scene_state import SceneState
 from .events.event_bus import EventBus
@@ -58,104 +56,69 @@ class SceneManager:
         self.actors = actor_registry
         self.selection = selection_manager
 
-    # -------------------------
-    # Object lifecycle
-    # -------------------------
-
     def add_object(self, obj: SceneObject):
         self.objects.register(obj)
-
         self.events.emit(
             OBJECT_ADDED,
-            object_id=obj.id
+            object_id=obj.id,
+            obj=obj
         )
+        self.sync_state()
 
     def remove_object(self, obj_id: str):
-        obj = self.objects.get(obj_id)
-        if not obj:
+        if not self.objects.has(obj_id):
             return
-
         self.objects.unregister(obj_id)
         self.actors.unregister(obj_id)
         self.selection.deselect(obj_id)
-
         self.events.emit(
             OBJECT_REMOVED,
             object_id=obj_id
         )
-
-    # -------------------------
-    # Selection
-    # -------------------------
+        self.sync_state()
 
     def select_object(self, obj_id: str, multi: bool = False):
-        if not multi:
-            self.selection.clear()
-
-        self.selection.select(obj_id)
-
+        self.selection.select(obj_id, exclusive=not multi)
         self.state.selected_object_ids = self.selection.get_selected()
-
-        self.events.emit(
-            SELECTION_CHANGED,
-            selected_ids=self.state.selected_object_ids
-        )
-
-    # -------------------------
-    # Property updates
-    # -------------------------
 
     def update_visibility(self, obj_id: str, visible: bool):
         obj = self.objects.get(obj_id)
-        if not obj:
-            return
-
-        obj.visible = visible
-
-        self.events.emit(
-            VISIBILITY_CHANGED,
-            object_id=obj_id,
-            visible=visible
-        )
+        if obj:
+            obj.visible = visible
+            self.events.emit(
+                VISIBILITY_CHANGED,
+                object_id=obj_id,
+                visible=visible
+            )
 
     def update_opacity(self, obj_id: str, opacity: float):
         obj = self.objects.get(obj_id)
-        if not obj:
-            return
+        if obj:
+            obj.opacity = opacity
+            self._emit_update(obj_id, "opacity", opacity)
 
-        obj.opacity = opacity
-
-        self.events.emit(
-            OBJECT_UPDATED,
-            object_id=obj_id,
-            property="opacity",
-            value=opacity
-        )
-
-    def update_color(self, obj_id: str, color):
+    def update_color(self, obj_id: str, color: Any):
         obj = self.objects.get(obj_id)
-        if not obj:
-            return
+        if obj:
+            obj.color = color
+            self._emit_update(obj_id, "color", color)
 
-        obj.color = color
+    def update_transform(self, obj_id: str, transform_data: dict):
+        obj = self.objects.get(obj_id)
+        if obj:
+            obj.transform = transform_data
+            self._emit_update(obj_id, "transform", transform_data)
 
+    def _emit_update(self, obj_id: str, prop: str, value: Any):
         self.events.emit(
             OBJECT_UPDATED,
             object_id=obj_id,
-            property="color",
-            value=color
+            property=prop,
+            value=value
         )
-
-    # -------------------------
-    # Queries
-    # -------------------------
 
     def get_object(self, obj_id: str) -> Optional[SceneObject]:
         return self.objects.get(obj_id)
-
-    # -------------------------
-    # State sync
-    # -------------------------
 
     def sync_state(self):
         self.state.scene_metadata["object_count"] = self.objects.count()

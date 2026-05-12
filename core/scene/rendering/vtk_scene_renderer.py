@@ -60,10 +60,18 @@ class VTKSceneRenderer:
         self._actors[obj_id] = actor
         self._renderer.AddActor(actor)
 
+    def register_actor(self, obj_id: str, actor):
+        """Regista um ator já adicionado ao renderer (evita AddActor duplicado)."""
+        self._actors[obj_id] = actor
+
     def remove_actor(self, obj_id: str):
         actor = self._actors.pop(obj_id, None)
         if actor:
             self._renderer.RemoveActor(actor)
+
+    def reset_tracked_actors(self):
+        """Limpa o mapa local (p.ex. após remover atores diretamente do renderer)."""
+        self._actors.clear()
 
     def refresh(self):
         self._renderer.Render()

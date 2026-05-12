@@ -183,7 +183,7 @@ if __name__ == "__main__":
     import sys
     from PySide6 import QtWidgets, QtCore, QtGui
     from core.scene.persistence.serializer import Serializer
-    from core.assets.patient_file_manager import ObjectManager
+    from core.assets.object_manager import ObjectManager
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")

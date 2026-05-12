@@ -12,13 +12,13 @@ from core.base_module.base import ModuloBase
 from core.scene.scene_object import SceneObject
 from core.scene.scene_state import SceneState
 from core.scene.scene_manager import SceneManager
-from core.scene.events.scene_events import OBJECT_UPDATED, VISIBILITY_CHANGED
+from core.scene.events.scene_events import REGISTRATION_IMPORT_REQUESTED
 from core.scene.events.event_bus import EventBus
 from core.scene.registry.object_registry import ObjectRegistry
 from core.scene.registry.actor_registry import ActorRegistry
 from core.scene.selection.selection_manager import SelectionManager
 from core.scene.persistence.serializer import Serializer
-from core.assets.patient_file_manager import ObjectManager
+from core.assets.object_manager import ObjectManager
 from core.components.central_area.window_registration import WindowRegistration
 from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
 from core.components.toolboxes.registration_toolbox import Component as RegistrationToolbox
@@ -44,38 +44,12 @@ class Modulo(ModuloBase):
             SelectionManager(),
         )
 
-        self.view_registration = WindowRegistration()
+        self.view_registration = WindowRegistration(scene_manager=self.scene_manager)
         self.widget_reg = RegistrationToolbox()
         self.widget_objetos = ObjetoManagerWidget()
         self.widget_propriedades = PropertiesComponent(self)
 
-        self._subscribe_scene_to_registration_views()
         self._conectar_sinais()
-
-    def _subscribe_scene_to_registration_views(self) -> None:
-        bus = self.scene_manager.events
-
-        bus.subscribe(VISIBILITY_CHANGED, self._scene_on_visibility_changed)
-        bus.subscribe(OBJECT_UPDATED, self._scene_on_object_updated_for_views)
-
-        bus.subscribe("registration.import_requested",
-                      lambda **kw: self._fluxo_importacao(kw.get('category'), kw.get('subcategory')))
-
-        bus.subscribe("registration.delete_last_marker", self.view_registration.remover_ultimo_marcador)
-        bus.subscribe("registration.reset_layout", self.view_registration.reset_layout_vistas)
-        bus.subscribe("registration.point_size_changed",
-                      lambda **kw: self.view_registration.set_ponto_raio(kw.get('size')))
-
-    def _scene_on_visibility_changed(self, object_id: str, visible: bool, **_kwargs) -> None:
-        self.view_registration.set_objeto_visibilidade(object_id, visible)
-
-    def _scene_on_object_updated_for_views(self, object_id: str, **kwargs) -> None:
-        prop = kwargs.get("property")
-        value = kwargs.get("value")
-        if prop == "opacity":
-            self.view_registration._apply_render_change("opacity", value, object_id)
-        elif prop == "color":
-            self.view_registration._apply_render_change("color", value, object_id)
 
     def _conectar_sinais(self):
         self.widget_reg.solicitarAlinhamento.connect(self._executar_registro)
@@ -115,7 +89,16 @@ class Modulo(ModuloBase):
     def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
         if self._toolbar is None:
             self._toolbar = RegistrationToolbar(scene_manager=self.scene_manager)
+            self.scene_manager.events.subscribe(
+                REGISTRATION_IMPORT_REQUESTED,
+                self._on_registration_import_requested,
+            )
         return self._toolbar
+
+    def _on_registration_import_requested(self, **kwargs) -> None:
+        category = kwargs.get("category") or ""
+        subcategory = kwargs.get("subcategory") or ""
+        self._fluxo_importacao(category, subcategory)
     def _clear_registration_scene_objects(self) -> None:
         for obj in list(self.scene_manager.objects.all()):
             self.scene_manager.remove_object(obj.id)

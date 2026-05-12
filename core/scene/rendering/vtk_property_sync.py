@@ -78,3 +78,27 @@ class VTKPropertySync:
         actor.SetPosition(*map(float, position))
         actor.SetScale(*map(float, scale))
         actor.SetOrientation(*map(float, rotation))
+
+    def sync_all(self, obj: SceneObject, actor: Any):
+        """Alias usado pela SceneBridge para reaplicar todo o estado do objeto no ator."""
+        self.sync(obj, actor)
+
+    def apply_property(self, actor: Any, property: str, value: Any):
+        """Atualiza um único campo no ator (payload típico de OBJECT_UPDATED)."""
+        if not actor or not property:
+            return
+        prop = actor.GetProperty()
+        if property == "opacity" and prop:
+            prop.SetOpacity(float(value))
+            return
+        if property == "color" and prop and value:
+            r, g, b = value
+            prop.SetColor(float(r), float(g), float(b))
+            return
+        if property == "transform" and isinstance(value, dict):
+            position = value.get("position", [0.0, 0.0, 0.0])
+            scale = value.get("scale", [1.0, 1.0, 1.0])
+            rotation = value.get("rotation", [0.0, 0.0, 0.0])
+            actor.SetPosition(*map(float, position))
+            actor.SetScale(*map(float, scale))
+            actor.SetOrientation(*map(float, rotation))
