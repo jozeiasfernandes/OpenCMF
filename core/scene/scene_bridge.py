@@ -2,6 +2,12 @@
 # core/scene/scene_bridge.py
 
 from .events.event_bus import EventBus
+from .events.scene_events import (
+    OBJECT_ADDED,
+    OBJECT_REMOVED,
+    OBJECT_UPDATED,
+    VISIBILITY_CHANGED,
+)
 from .registry.object_registry import ObjectRegistry
 from .registry.actor_registry import ActorRegistry
 from .rendering.vtk_actor_factory import VTKActorFactory
@@ -28,10 +34,10 @@ class SceneBridge:
         self._setup_subscriptions()
 
     def _setup_subscriptions(self):
-        self.events.subscribe("OBJECT_ADDED", self._on_object_added)
-        self.events.subscribe("OBJECT_REMOVED", self._on_object_removed)
-        self.events.subscribe("OBJECT_UPDATED", self._on_object_updated)
-        self.events.subscribe("VISIBILITY_CHANGED", self._on_visibility_changed)
+        self.events.subscribe(OBJECT_ADDED, self._on_object_added)
+        self.events.subscribe(OBJECT_REMOVED, self._on_object_removed)
+        self.events.subscribe(OBJECT_UPDATED, self._on_object_updated)
+        self.events.subscribe(VISIBILITY_CHANGED, self._on_visibility_changed)
 
     def _on_object_added(self, object_id: str):
         obj = self.objects.get(object_id)

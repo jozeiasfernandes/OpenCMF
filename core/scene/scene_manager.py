@@ -31,6 +31,13 @@ from typing import Optional
 from .scene_object import SceneObject
 from .scene_state import SceneState
 from .events.event_bus import EventBus
+from .events.scene_events import (
+    OBJECT_ADDED,
+    OBJECT_REMOVED,
+    OBJECT_UPDATED,
+    SELECTION_CHANGED,
+    VISIBILITY_CHANGED,
+)
 from .registry.object_registry import ObjectRegistry
 from .registry.actor_registry import ActorRegistry
 from .selection.selection_manager import SelectionManager
@@ -59,7 +66,7 @@ class SceneManager:
         self.objects.register(obj)
 
         self.events.emit(
-            "OBJECT_ADDED",
+            OBJECT_ADDED,
             object_id=obj.id
         )
 
@@ -73,7 +80,7 @@ class SceneManager:
         self.selection.deselect(obj_id)
 
         self.events.emit(
-            "OBJECT_REMOVED",
+            OBJECT_REMOVED,
             object_id=obj_id
         )
 
@@ -90,7 +97,7 @@ class SceneManager:
         self.state.selected_object_ids = self.selection.get_selected()
 
         self.events.emit(
-            "SELECTION_CHANGED",
+            SELECTION_CHANGED,
             selected_ids=self.state.selected_object_ids
         )
 
@@ -106,7 +113,7 @@ class SceneManager:
         obj.visible = visible
 
         self.events.emit(
-            "VISIBILITY_CHANGED",
+            VISIBILITY_CHANGED,
             object_id=obj_id,
             visible=visible
         )
@@ -119,7 +126,7 @@ class SceneManager:
         obj.opacity = opacity
 
         self.events.emit(
-            "OBJECT_UPDATED",
+            OBJECT_UPDATED,
             object_id=obj_id,
             property="opacity",
             value=opacity
@@ -133,7 +140,7 @@ class SceneManager:
         obj.color = color
 
         self.events.emit(
-            "OBJECT_UPDATED",
+            OBJECT_UPDATED,
             object_id=obj_id,
             property="color",
             value=color

@@ -1,26 +1,13 @@
-'''
-UI
- ↓
-SceneManager
- ↓
-EventBus
- ↓
-Observers
+"""Nomes canónicos de eventos publicados no EventBus de cena."""
 
+OBJECT_ADDED = "OBJECT_ADDED"
+OBJECT_REMOVED = "OBJECT_REMOVED"
+OBJECT_UPDATED = "OBJECT_UPDATED"
+SELECTION_CHANGED = "SELECTION_CHANGED"
+VISIBILITY_CHANGED = "VISIBILITY_CHANGED"
 
-class EventBus:
-    def subscribe(self, event, callback):
-        ...
-
-    def unsubscribe(self, event, callback):
-        ...
-
-    def emit(self, event, **kwargs):
-        ...
-
-OBJECT_ADDED
-OBJECT_REMOVED
-OBJECT_UPDATED
-SELECTION_CHANGED
-VISIBILITY_CHANGED
-'''
+# Intenções da toolbar de registo (UI → ouvintes opcionais; payload nos emits)
+REGISTRATION_IMPORT_REQUESTED = "REGISTRATION_IMPORT_REQUESTED"
+REGISTRATION_POINT_SIZE_CHANGED = "REGISTRATION_POINT_SIZE_CHANGED"
+REGISTRATION_DELETE_LAST_MARKER = "REGISTRATION_DELETE_LAST_MARKER"
+REGISTRATION_RESET_LAYOUT = "REGISTRATION_RESET_LAYOUT"
