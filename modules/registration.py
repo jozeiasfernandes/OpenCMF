@@ -29,20 +29,14 @@ logger = logging.getLogger("OpenCMF.RegistrationModule")
 
 
 class Modulo(ModuloBase):
-    def __init__(self):
+    def __init__(self, scene_manager: Optional[SceneManager] = None):
         super().__init__()
         self.nome = "Alinhar objetos"
         self.id = "modulo.registration"
         self._toolbar: Optional[QtWidgets.QToolBar] = None
         self.serializer = Serializer()
 
-        self.scene_manager = SceneManager(
-            SceneState(),
-            EventBus(),
-            ObjectRegistry(),
-            ActorRegistry(),
-            SelectionManager(),
-        )
+        self.scene_manager = scene_manager or self._criar_scene_manager_padrao()
 
         self.view_registration = WindowRegistration(scene_manager=self.scene_manager)
         self.widget_reg = RegistrationToolbox()
@@ -51,62 +45,50 @@ class Modulo(ModuloBase):
 
         self._conectar_sinais()
 
+    def _criar_scene_manager_padrao(self) -> SceneManager:
+        bus = EventBus()
+        return SceneManager(
+            SceneState(),
+            bus,
+            ObjectRegistry(),
+            ActorRegistry(),
+            SelectionManager(event_bus=bus),
+        )
+
     def _conectar_sinais(self):
         self.widget_reg.solicitarAlinhamento.connect(self._executar_registro)
         self.widget_reg.limparPontos.connect(self._resetar_pontos)
-
-        self.widget_reg.targetChanged.connect(lambda obj_id: self._carregar_na_vista_por_id(obj_id, "A"))
-        self.widget_reg.sourceChanged.connect(lambda obj_id: self._carregar_na_vista_por_id(obj_id, "B"))
+        self.widget_reg.targetChanged.connect(lambda oid: self._carregar_na_vista_por_id(oid, "A"))
+        self.widget_reg.sourceChanged.connect(lambda oid: self._carregar_na_vista_por_id(oid, "B"))
 
         self.view_registration.requisitarCarregamentoObjeto.connect(self._on_requisicao_central_carregamento)
         self.view_registration.pontoAdicionado.connect(self.widget_reg.adicionar_ponto_tabela)
 
-        self.widget_objetos.objetoToggled.connect(
-            lambda oid, vis: self.scene_manager.update_visibility(oid, vis)
-        )
-        self.widget_objetos.opacityChanged.connect(
-            lambda oid, val: self.scene_manager.update_opacity(oid, val)
-        )
-        self.widget_objetos.colorChanged.connect(self._on_color_changed_via_scene)
+        self.widget_objetos.objetoToggled.connect(self.scene_manager.update_visibility)
+        self.widget_objetos.opacityChanged.connect(self.scene_manager.update_opacity)
+        self.widget_objetos.colorChanged.connect(self._on_color_changed_ui)
 
     def inicializar(self, caminho_paciente: str) -> None:
         super().inicializar(caminho_paciente)
         self.object_manager = ObjectManager(caminho_paciente, self.serializer)
-        self.object_manager.object_added.connect(self._on_scene_object_added)
-        self.object_manager.object_removed.connect(self._on_object_removed_from_scene)
 
-        self._clear_registration_scene_objects()
-        self.object_manager.load_patient_data()
+        self.object_manager.object_added.connect(self._on_scene_object_added)
+        self.object_manager.object_removed.connect(self.scene_manager.remove_object)
 
         self.scene_manager.state.set_patient(caminho_paciente)
-        self.scene_manager.sync_state()
         self.widget_objetos.set_patient_path(caminho_paciente)
         self.view_registration.connect_properties_panel(self.widget_propriedades)
+
+        self.object_manager.load_patient_data()
 
     def get_workspace(self) -> QtWidgets.QWidget:
         return self.view_registration
 
     def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
-        if self._toolbar is None:
+        if not self._toolbar:
             self._toolbar = RegistrationToolbar(scene_manager=self.scene_manager)
-            self.scene_manager.events.subscribe(
-                REGISTRATION_IMPORT_REQUESTED,
-                self._on_registration_import_requested,
-            )
+            self.scene_manager.events.subscribe(REGISTRATION_IMPORT_REQUESTED, self._on_import_request)
         return self._toolbar
-
-    def _on_registration_import_requested(self, **kwargs) -> None:
-        category = kwargs.get("category") or ""
-        subcategory = kwargs.get("subcategory") or ""
-        self._fluxo_importacao(category, subcategory)
-    def _clear_registration_scene_objects(self) -> None:
-        for obj in list(self.scene_manager.objects.all()):
-            self.scene_manager.remove_object(obj.id)
-
-    def _on_color_changed_via_scene(self, id_obj: str, color: QtGui.QColor) -> None:
-        self.scene_manager.update_color(
-            id_obj, (color.redF(), color.greenF(), color.blueF())
-        )
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         return {
@@ -115,42 +97,34 @@ class Modulo(ModuloBase):
             "Propriedades": self.widget_propriedades
         }
 
-    def _fluxo_importacao(self, categoria: str, subcategoria: str):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self.view_registration,
-            "Selecionar Arquivo",
-            "",
-            "Malhas (*.stl *.obj)"
-        )
+    def _on_import_request(self, **kwargs):
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(None, "Importar Malha", "", "Malhas (*.stl *.obj)")
         if path:
-            obj_id = uuid.uuid4().hex[:12]
-            self.object_manager.import_external_file(path, categoria, obj_id)
+            self.object_manager.import_external_file(
+                path,
+                kwargs.get("category", ""),
+                uuid.uuid4().hex[:12]
+            )
 
     def _on_scene_object_added(self, obj: SceneObject):
-        self.scene_manager.add_object(obj)
+        if not self.scene_manager.objects.has(obj.id):
+            self.scene_manager.add_object(obj)
+
         self.widget_objetos.adicionar_objeto_lista(
             obj.name, obj.type, QtGui.QColor.fromRgbF(*obj.color), objeto_id=obj.id
         )
-        objs_data = [{"id": o.id, "name": o.name} for o in self.object_manager.objects.values()]
-        self.widget_reg.atualizar_combos(objs_data)
-        self.view_registration.atualizar_lista_objetos([o['name'] for o in objs_data])
+        self._atualizar_ui_combos()
 
-    def _on_object_removed_from_scene(self, obj_id: str) -> None:
-        self.scene_manager.remove_object(obj_id)
+    def _atualizar_ui_combos(self):
+        objs = [{"id": o.id, "name": o.name} for o in self.scene_manager.objects.all()]
+        self.widget_reg.atualizar_combos(objs)
+        self.view_registration.atualizar_lista_objetos([o['name'] for o in objs])
 
-    def _scene_object_by_name(self, nome: str) -> Optional[SceneObject]:
-        for o in self.scene_manager.objects.all():
-            if o.name == nome:
-                return o
-        return None
+    def _on_color_changed_ui(self, oid: str, color: QtGui.QColor):
+        self.scene_manager.update_color(oid, (color.redF(), color.greenF(), color.blueF()))
 
     def _on_requisicao_central_carregamento(self, vista_id, nome):
-        obj = self._scene_object_by_name(nome)
-        if obj is None and getattr(self, "object_manager", None):
-            obj = next(
-                (o for o in self.object_manager.objects.values() if o.name == nome),
-                None,
-            )
+        obj = next((o for o in self.scene_manager.objects.all() if o.name == nome), None)
         if obj:
             combo = self.widget_reg.combo_target if vista_id == "A" else self.widget_reg.combo_source
             combo.blockSignals(True)
@@ -158,10 +132,8 @@ class Modulo(ModuloBase):
             combo.blockSignals(False)
             self._carregar_na_vista(obj, vista_id)
 
-    def _carregar_na_vista_por_id(self, id_obj, vista):
-        obj = self.scene_manager.get_object(id_obj)
-        if obj is None and getattr(self, "object_manager", None):
-            obj = self.object_manager.objects.get(id_obj)
+    def _carregar_na_vista_por_id(self, oid, vista):
+        obj = self.scene_manager.get_object(oid)
         if obj:
             self._carregar_na_vista(obj, vista)
 
@@ -169,9 +141,11 @@ class Modulo(ModuloBase):
         full_path = Path(self.pasta_paciente) / obj.file_path
         if not full_path.exists():
             return
+
         reader = vtk.vtkSTLReader()
         reader.SetFileName(str(full_path))
         reader.Update()
+
         if vista == "A":
             self.view_registration.adicionar_malha_vista_a(obj.name, reader.GetOutput(), obj_id=obj.id)
         else:
@@ -190,8 +164,7 @@ if __name__ == "__main__":
     app.setStyle("Fusion")
 
     test_path = os.path.abspath("./teste_paciente")
-    if not os.path.exists(test_path):
-        os.makedirs(test_path)
+    os.makedirs(test_path, exist_ok=True)
 
     modulo = Modulo()
     modulo.inicializar(test_path)
