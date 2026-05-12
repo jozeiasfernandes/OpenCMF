@@ -24,10 +24,10 @@ Camada Gráfica: VTKActorFactory
 
 '''
 
-
 import sys
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional, Callable, List, Tuple
+
 from PySide6.QtWidgets import (
     QWidget, QPushButton, QLabel, QFrame,
     QVBoxLayout, QGridLayout, QApplication
@@ -36,27 +36,34 @@ from PySide6.QtCore import Qt, Signal, QPoint, QSize, QEvent
 from PySide6.QtGui import QIcon
 from core.localization.translator import get_base_dir, tr
 
+# Centralização de cores e estilos para fácil manutenção
+COLORS = {
+    "surfaces": "#b0a8c0",
+    "photos": "#c9a7a0",
+    "volume": "#bcd4d0",
+    "hover": "#ffffff"
+}
+
 
 def get_icon_path(icon_name: str) -> str:
-    base_dir = get_base_dir()
-    candidate = base_dir / "appearance" / "icons" / icon_name
-    return str(candidate) if candidate.exists() else ""
+    path = get_base_dir() / "appearance" / "icons" / icon_name
+    return str(path) if path.exists() else ""
 
 
-class Card(QPushButton):
-    def __init__(self, texto: str, cor: str, icone_nome: str, parent: Optional[QWidget] = None):
-        super().__init__(texto, parent)
+class ImportCard(QPushButton):
+    def __init__(self, text: str, category_key: str, icon_name: str, parent=None):
+        super().__init__(text, parent)
         self.setFixedSize(130, 40)
-        self.setLayoutDirection(Qt.LeftToRight)
 
-        icon_path = get_icon_path(icone_nome)
+        icon_path = get_icon_path(icon_name)
         if icon_path:
             self.setIcon(QIcon(icon_path))
-            self.setIconSize(QSize(30, 30))
+            self.setIconSize(QSize(24, 24))
 
+        color = COLORS.get(category_key, "#cccccc")
         self.setStyleSheet(f"""
             QPushButton {{
-                background-color: {cor};
+                background-color: {color};
                 border-radius: 4px;
                 color: black;
                 font-weight: bold;
@@ -65,89 +72,98 @@ class Card(QPushButton):
                 text-align: left;
                 padding-left: 10px;
             }}
-            QPushButton:hover {{
-                background-color: #ffffff;
-            }}
+            QPushButton:hover {{ background-color: {COLORS['hover']}; }}
         """)
 
 
-class Secao(QFrame):
-    def __init__(self, titulo: str, itens: list[tuple[str, str]], cor: str, callback: Callable[[str, str], None], parent: Optional[QWidget] = None):
+class ImportSection(QFrame):
+    def __init__(self, title: str, category_key: str, items: List[Tuple[str, str]],
+                 callback: Callable[[str, str], None], parent=None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(8)
-        layout.setAlignment(Qt.AlignLeft)
 
-        label = QLabel(titulo, self)
-        label.setStyleSheet("color: white; font-size: 13px; font-weight: bold;")
+        label = QLabel(title.upper())
+        label.setStyleSheet("color: #888; font-size: 11px; font-weight: bold; letter-spacing: 1px;")
         layout.addWidget(label)
 
         grid = QGridLayout()
-        grid.setAlignment(Qt.AlignLeft)
-        grid.setHorizontalSpacing(8)
-        grid.setVerticalSpacing(8)
+        grid.setSpacing(8)
 
-        colunas = 4
-        for i, (nome, icone) in enumerate(itens):
-            btn = Card(nome, cor, icone, self)
-            btn.clicked.connect(lambda _, n=nome, t=titulo: callback(t, n))
-            grid.addWidget(btn, i // colunas, i % colunas)
+        for i, (name, icon) in enumerate(items):
+            btn = ImportCard(name, category_key, icon, self)
+            # Usamos o category_key para o sinal ser processável pelo ObjectManager
+            btn.clicked.connect(lambda _, n=name, k=category_key: callback(k, n))
+            grid.addWidget(btn, i // 4, i % 4)
 
         layout.addLayout(grid)
 
 
 class ImportObjectsPanel(QFrame):
+    # Sinal emite (categoria_interna, subcategoria_traduzida)
     importRequested = Signal(str, str)
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setWindowFlags(Qt.Popup | Qt.FramelessWindowHint)
         self.setMinimumWidth(580)
+        self.setObjectName("ImportPanel")
 
         self.setStyleSheet("""
-            QFrame {
+            QFrame#ImportPanel {
                 background-color: #2b2b2b;
                 border: 1px solid #444;
-                border-radius: 4px;
+                border-radius: 6px;
             }
         """)
 
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(15, 15, 15, 15)
-        layout.setSpacing(20)
-        layout.setAlignment(Qt.AlignTop | Qt.AlignLeft)
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(15, 15, 15, 15)
+        self.main_layout.setSpacing(25)
 
-        self._setup_sections(layout)
+        self._setup_sections()
 
-    def _setup_sections(self, layout: QVBoxLayout) -> None:
-        superficies = [
-            (tr("import.superficies.cranio", "Crânio"), "cranio.svg"),
-            (tr("import.superficies.maxila", "Maxila"), "maxilla.svg"),
-            (tr("import.superficies.mandibula", "Mandíbula"), "mandible.svg"),
-            (tr("import.superficies.pele", "Pele"), "face.svg"),
-            (tr("import.superficies.outros", "Outros"), "stl.svg")
+    def _setup_sections(self) -> None:
+        sections = [
+            (
+                tr("import.secao.superficies", "Superfícies"),
+                "surfaces",
+                [
+                    (tr("import.superficies.cranio", "Crânio"), "cranio.svg"),
+                    (tr("import.superficies.maxila", "Maxila"), "maxilla.svg"),
+                    (tr("import.superficies.mandibula", "Mandíbula"), "mandible.svg"),
+                    (tr("import.superficies.pele", "Pele"), "face.svg"),
+                    (tr("import.superficies.outros", "Outros"), "stl.svg")
+                ]
+            ),
+            (
+                tr("import.secao.fotografias", "Fotografias"),
+                "photos",
+                [
+                    (tr("import.fotografias.frente", "Frente"), "fronte.svg"),
+                    (tr("import.fotografias.perfil", "Perfil"), "perfil.svg"),
+                    (tr("import.fotografias.intrabucal", "Intrabucal"), "photo.svg")
+                ]
+            ),
+            (
+                tr("import.secao.volume", "Volume"),
+                "volume",
+                [(tr("import.volumes.volume_vti", "Volume .vti"), "vti.svg")]
+            )
         ]
-        layout.addWidget(Secao(tr("import.secao.superficies", "Superfícies"), superficies, "#b0a8c0", self._on_item_clicked, self))
 
-        fotografias = [
-            (tr("import.fotografias.frente", "Frente"), "fronte.svg"),
-            (tr("import.fotografias.perfil", "Perfil"), "perfil.svg"),
-            (tr("import.fotografias.intrabucal", "Intrabucal"), "photo.svg"),
-            (tr("import.fotografias.outros", "Outros"), "photo.svg")
-        ]
-        layout.addWidget(Secao(tr("import.secao.fotografias", "Fotografias"), fotografias, "#c9a7a0", self._on_item_clicked, self))
+        for title, key, items in sections:
+            sec = ImportSection(title, key, items, self._on_item_clicked, self)
+            self.main_layout.addWidget(sec)
 
-        volumes = [(tr("import.volumes.volume_vti", "Volume .vti"), "vti.svg")]
-        layout.addWidget(Secao(tr("import.secao.volume", "Volume"), volumes, "#bcd4d0", self._on_item_clicked, self))
-
-    def _on_item_clicked(self, categoria: str, subcategoria: str) -> None:
-        self.importRequested.emit(categoria, subcategoria)
+    def _on_item_clicked(self, category_key: str, subcategory: str) -> None:
+        self.importRequested.emit(category_key, subcategory)
         self.hide()
 
     def show_under(self, widget: QWidget) -> None:
-        pos = widget.mapToGlobal(QPoint(0, widget.height() + 2))
-        self.move(pos)
+        point = widget.mapToGlobal(QPoint(0, widget.height() + 5))
+        self.move(point)
         self.show()
         self.setFocus()
 

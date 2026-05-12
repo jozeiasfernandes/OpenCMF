@@ -1,20 +1,24 @@
-import vtk
 import sys
 import os
 import logging
-from typing import Optional, Dict
+import vtk
+import uuid
 from pathlib import Path
+from typing import Optional, Dict
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.base_module.base import ModuloBase
+from core.scene.scene_object import SceneObject
+from core.scene.persistence.serializer import Serializer
+from core.assets.patient_file_manager import ObjectManager
+
 from core.components.central_area.window_registration import WindowRegistration
 from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
-from core.components.toolboxes.registration_toolbox import Component
+from core.components.toolboxes.registration_toolbox import Component as RegistrationToolbox
 from core.components.toolboxes.objetct_properties_toolbox import Component as PropertiesComponent
 from core.components.toolbars.registration_toolbar import Component as RegistrationToolbar
-from core.imports.object_manager import ObjectManager
 
-logger = logging.getLogger("RegistrationModule")
+logger = logging.getLogger("OpenCMF.RegistrationModule")
 
 
 class Modulo(ModuloBase):
@@ -22,34 +26,14 @@ class Modulo(ModuloBase):
         super().__init__()
         self.nome = "Alinhar objetos"
         self.id = "modulo.registration"
-        self.pasta_paciente = None
-        self.object_manager: Optional[ObjectManager] = None
+        self._toolbar: Optional[QtWidgets.QToolBar] = None
+
+        self.serializer = Serializer()
 
         self.view_registration = WindowRegistration()
-        self.view_registration.setMinimumSize(0, 0)
-
-        self.widget_reg = Component()
-        self.widget_reg.setMinimumSize(0, 0)
-        self.widget_reg.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Preferred      # Preferred: não força expansão vertical
-        )
-
+        self.widget_reg = RegistrationToolbox()
         self.widget_objetos = ObjetoManagerWidget()
-        self.widget_objetos.setMinimumSize(0, 0)
-        self.widget_objetos.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Preferred
-        )
-
         self.widget_propriedades = PropertiesComponent(self)
-        self.widget_propriedades.setMinimumSize(0, 0)
-        self.widget_propriedades.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.Preferred
-        )
-
-        self._toolbar: Optional[QtWidgets.QToolBar] = None  # cache — nunca recriar
 
         self._conectar_sinais()
 
@@ -66,44 +50,28 @@ class Modulo(ModuloBase):
         self.widget_objetos.opacityChanged.connect(self._on_opacity_changed)
         self.widget_objetos.colorChanged.connect(self._on_color_changed)
         self.widget_objetos.deleteRequested.connect(self._on_delete_requested)
-        self.widget_objetos.nomeAlterado.connect(self._on_nome_alterado)
 
     def inicializar(self, caminho_paciente: str) -> None:
         super().inicializar(caminho_paciente)
-        self.object_manager = ObjectManager(caminho_paciente)
-        self.object_manager.object_added.connect(self._on_object_added_manager)
-        self.object_manager.load_existing_objects()
+
+        self.object_manager = ObjectManager(caminho_paciente, self.serializer)
+        self.object_manager.object_added.connect(self._on_scene_object_added)
+        self.object_manager.load_patient_data()
 
         self.widget_objetos.set_patient_path(caminho_paciente)
-        if hasattr(self.widget_propriedades, 'set_patient_path'):
-            self.widget_propriedades.set_patient_path(caminho_paciente)
-
-        self.widget_objetos.objetoSelecionado.connect(self._on_objeto_selecionado)
         self.view_registration.connect_properties_panel(self.widget_propriedades)
-
-    # --- Interface pública ---
 
     def get_workspace(self) -> QtWidgets.QWidget:
         return self.view_registration
 
     def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
-        if self._toolbar is not None:            # cache: nunca recriar nem reconectar sinais
-            return self._toolbar
-
-        toolbar = RegistrationToolbar()
-        toolbar.setMinimumSize(0, 0)
-        toolbar.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Fixed          # altura fixa — nunca empurra o layout
-        )
-
-        h = toolbar.handler
-        h.importRequested.connect(lambda: self._importar_objeto("surfaces", "Importado"))
-        h.deletePointRequested.connect(self.view_registration.remover_ultimo_marcador)
-        h.pointSizeChanged.connect(self.view_registration.set_ponto_raio)
-        h.resetLayoutRequested.connect(self.view_registration.reset_layout_vistas)
-
-        self._toolbar = toolbar
+        if self._toolbar is None:
+            self._toolbar = RegistrationToolbar()
+            h = self._toolbar.handler
+            h.importRequested.connect(self._fluxo_importacao)
+            h.deletePointRequested.connect(self.view_registration.remover_ultimo_marcador)
+            h.pointSizeChanged.connect(self.view_registration.set_ponto_raio)
+            h.resetLayoutRequested.connect(self.view_registration.reset_layout_vistas)
         return self._toolbar
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
@@ -113,69 +81,62 @@ class Modulo(ModuloBase):
             "Propriedades": self.widget_propriedades
         }
 
-    # --- Carregamento e sincronização ---
-
-    def _on_requisicao_central_carregamento(self, vista_id, nome):
-        if vista_id == "A":
-            self.widget_reg.combo_target.blockSignals(True)
-            self.widget_reg.combo_target.setCurrentText(nome)
-            self.widget_reg.combo_target.blockSignals(False)
-            self._on_target_combo_changed(nome)
-        else:
-            self.widget_reg.combo_source.blockSignals(True)
-            self.widget_reg.combo_source.setCurrentText(nome)
-            self.widget_reg.combo_source.blockSignals(False)
-            self._on_source_combo_changed(nome)
-
-    def _on_target_combo_changed(self, nome: str):
-        if not nome:
-            return
-        props = next((p for p in self.object_manager.objects.values() if p.name == nome), None)
-        if props:
-            self._carregar_na_vista(props, "A")
-
-    def _on_source_combo_changed(self, nome: str):
-        if not nome:
-            return
-        props = next((p for p in self.object_manager.objects.values() if p.name == nome), None)
-        if props:
-            self._carregar_na_vista(props, "B")
-
-    def _carregar_na_vista(self, props, vista: str):
-        path = Path(self.pasta_paciente) / props.file_path
-        if not path.exists():
-            logger.error(f"Arquivo não encontrado: {path}")
-            return
-
-        reader = vtk.vtkSTLReader()
-        reader.SetFileName(str(path))
-        reader.Update()
-
-        polydata = reader.GetOutput()
-        if vista == "A":
-            self.view_registration.adicionar_malha_vista_a(props.name, polydata)
-        else:
-            self.view_registration.adicionar_malha_vista_b(props.name, polydata)
-
-    # --- Gerenciamento de objetos ---
-
-    def _on_object_added_manager(self, props):
-        categoria = self._mapear_categoria_para_tipo(props.type)
-        self.widget_objetos.adicionar_objeto_lista(
-            props.name, categoria, props.render["color"], objeto_id=props.id
+    def _fluxo_importacao(self, categoria: str, subcategoria: str):
+        file_filter = "Arquivos Suportados (*.stl *.vti *.obj);;STL (*.stl);;VTK XML (*.vti)"
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self.view_registration, "Selecionar Arquivo", "", file_filter
         )
-        nomes_objetos = [obj.name for obj in self.object_manager.objects.values()]
+
+        if path:
+            obj_id = str(uuid.uuid4())
+            self.object_manager.import_external_file(path, categoria, obj_id)
+
+    def _on_scene_object_added(self, obj: SceneObject):
+        self.widget_objetos.adicionar_objeto_lista(
+            obj.name, obj.type, QtGui.QColor.fromRgbF(*obj.color), objeto_id=obj.id
+        )
+
+        nomes_objetos = [o.name for o in self.object_manager.objects.values()]
         self.widget_reg.atualizar_combos(nomes_objetos)
         self.view_registration.atualizar_lista_objetos(nomes_objetos)
 
-    def _on_objeto_toggled(self, nome, visivel):
-        if not visivel:
-            self.view_registration.remover_objeto(nome)
+    def _on_requisicao_central_carregamento(self, vista_id, nome):
+        combo = self.widget_reg.combo_target if vista_id == "A" else self.widget_reg.combo_source
+        combo.blockSignals(True)
+        combo.setCurrentText(nome)
+        combo.blockSignals(False)
+
+        if vista_id == "A":
+            self._on_target_combo_changed(nome)
         else:
-            if nome == self.widget_reg.get_target_name():
-                self._on_target_combo_changed(nome)
-            elif nome == self.widget_reg.get_source_name():
-                self._on_source_combo_changed(nome)
+            self._on_source_combo_changed(nome)
+
+    def _on_target_combo_changed(self, nome: str):
+        obj = next((o for o in self.object_manager.objects.values() if o.name == nome), None)
+        if obj:
+            self._carregar_na_vista(obj, "A")
+
+    def _on_source_combo_changed(self, nome: str):
+        obj = next((o for o in self.object_manager.objects.values() if o.name == nome), None)
+        if obj:
+            self._carregar_na_vista(obj, "B")
+
+    def _carregar_na_vista(self, obj: SceneObject, vista: str):
+        full_path = Path(self.pasta_paciente) / obj.file_path
+        if not full_path.exists():
+            return
+
+        reader = vtk.vtkSTLReader()
+        reader.SetFileName(str(full_path))
+        reader.Update()
+
+        if vista == "A":
+            self.view_registration.adicionar_malha_vista_a(obj.name, reader.GetOutput())
+        else:
+            self.view_registration.adicionar_malha_vista_b(obj.name, reader.GetOutput())
+
+    def _on_objeto_toggled(self, nome, visivel):
+        self.view_registration.set_objeto_visibilidade(nome, visivel)
 
     def _on_opacity_changed(self, nome, valor):
         self.view_registration.set_objeto_opacidade(nome, valor)
@@ -187,52 +148,19 @@ class Modulo(ModuloBase):
     def _on_delete_requested(self, nome):
         self.view_registration.remover_objeto(nome)
 
-    def _on_nome_alterado(self, nome_original: str, novo_nome: str) -> None:
-        for props in self.object_manager.objects.values():
-            if props.name == nome_original:
-                props.name = novo_nome
-                break
-        nomes = [obj.name for obj in self.object_manager.objects.values()]
-        self.widget_reg.atualizar_combos(nomes)
-        self.view_registration.atualizar_lista_objetos(nomes)
-
-    # --- Operações ---
-
     def _executar_registro(self):
         pts_a = self.view_registration.get_points_a()
         pts_b = self.view_registration.get_points_b()
+
         if len(pts_a) < 3 or len(pts_a) != len(pts_b):
-            QtWidgets.QMessageBox.warning(
-                self.view_registration, "Aviso",
-                "Marque pelo menos 3 pontos correspondentes em cada vista."
-            )
+            QtWidgets.QMessageBox.warning(self.view_registration, "Aviso", "Selecione pontos correspondentes.")
             return
-        logger.info(f"Iniciando registro com {len(pts_a)} pontos.")
+
+        logger.info("Executando registro...")
 
     def _resetar_pontos(self):
         self.view_registration.limpar_marcadores()
         self.widget_reg.limpar_tabela()
-
-    def _importar_objeto(self, categoria: str, subcategoria: str) -> None:
-        if not self.object_manager:
-            return
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self.view_registration, "Importar STL", "", "STL (*.stl)"
-        )
-        if path:
-            self.object_manager.import_object(path, categoria, subcategoria)
-
-    def _mapear_categoria_para_tipo(self, tipo_pasta: str) -> str:
-        return {
-            "surfaces": "Superfícies",
-            "photos": "Fotografias",
-            "volume": "Volume",
-            "implants": "Implantes"
-        }.get(tipo_pasta, "Outros")
-
-    def _on_objeto_selecionado(self, nome_objeto: str) -> None:
-        if hasattr(self.widget_propriedades, 'load_object_properties'):
-            self.widget_propriedades.load_object_properties(nome_objeto)
 
 
 if __name__ == "__main__":

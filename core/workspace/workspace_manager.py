@@ -274,11 +274,12 @@ class WorkspaceManager(QtWidgets.QWidget):
         ):
             tb.setProperty("_is_static_toolbar", True)
             tb.setContentsMargins(0, 0, 0, 0)
-            tb.setMinimumSize(0, 0)
+
             tb.setSizePolicy(
                 QtWidgets.QSizePolicy.Expanding,
-                QtWidgets.QSizePolicy.Fixed
+                QtWidgets.QSizePolicy.Preferred
             )
+
             layout_central.addWidget(tb)
 
         if (
