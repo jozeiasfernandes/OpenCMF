@@ -16,12 +16,12 @@ from .rendering.vtk_scene_renderer import VTKSceneRenderer
 
 class SceneBridge:
     def __init__(
-        self,
-        event_bus: EventBus,
-        object_registry: ObjectRegistry,
-        actor_registry: ActorRegistry,
-        renderer: VTKSceneRenderer,
-        factory: VTKActorFactory
+            self,
+            event_bus: EventBus,
+            object_registry: ObjectRegistry,
+            actor_registry: ActorRegistry,
+            renderer: VTKSceneRenderer,
+            factory: VTKActorFactory
     ):
         self.events = event_bus
         self.objects = object_registry
@@ -29,6 +29,7 @@ class SceneBridge:
         self.renderer = renderer
         self.factory = factory
         self.sync = VTKPropertySync()
+
         self._setup_subscriptions()
 
     def _setup_subscriptions(self):
@@ -38,20 +39,21 @@ class SceneBridge:
         self.events.subscribe(VISIBILITY_CHANGED, self._on_visibility_changed)
 
     def _on_object_added(self, object_id: str, obj=None):
-        if obj is None:
-            obj = self.objects.get(object_id)
-        if not obj or self.actors.has(object_id):
+        target_obj = obj or self.objects.get(object_id)
+
+        if not target_obj or self.actors.has(object_id):
             return
 
-        actor = self.factory.create(obj)
+        actor = self.factory.create(target_obj)
         self.actors.register(object_id, actor)
         self.renderer.add_actor(object_id, actor)
         self.renderer.refresh()
 
     def _on_object_removed(self, object_id: str):
-        self.actors.unregister(object_id)
-        self.renderer.remove_actor(object_id)
-        self.renderer.refresh()
+        if self.actors.has(object_id):
+            self.actors.unregister(object_id)
+            self.renderer.remove_actor(object_id)
+            self.renderer.refresh()
 
     def _on_object_updated(self, object_id: str, property: str = None, value: Any = None):
         actor = self.actors.get(object_id)
@@ -64,10 +66,11 @@ class SceneBridge:
             obj = self.objects.get(object_id)
             if obj:
                 self.sync.sync_all(obj, actor)
+
         self.renderer.refresh()
 
     def _on_visibility_changed(self, object_id: str, visible: bool):
         actor = self.actors.get(object_id)
         if actor:
-            actor.SetVisibility(1 if visible else 0)
+            actor.SetVisibility(int(visible))
             self.renderer.refresh()

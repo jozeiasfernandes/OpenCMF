@@ -9,8 +9,6 @@ EventBus
 Observers (Renderer / Registry / UI adapters)
 '''
 
-
-
 from collections import defaultdict
 from typing import Callable, Any, Dict, List, Optional
 
@@ -24,21 +22,24 @@ class EventBus:
             self._subscribers[event].append(callback)
 
     def unsubscribe(self, event: str, callback: Callable[..., None]):
-        if event in self._subscribers and callback in self._subscribers[event]:
-            self._subscribers[event].remove(callback)
+        if event in self._subscribers:
+            try:
+                self._subscribers[event].remove(callback)
+            except ValueError:
+                pass
 
     def emit(self, event: str, **payload: Any):
         if event not in self._subscribers:
             return
 
-        for callback in list(self._subscribers[event]):
+        for callback in self._subscribers[event][:]:
             try:
                 callback(**payload)
             except Exception:
-                continue
+                pass
 
     def clear(self, event: Optional[str] = None):
         if event:
             self._subscribers.pop(event, None)
-            return
-        self._subscribers.clear()
+        else:
+            self._subscribers.clear()
