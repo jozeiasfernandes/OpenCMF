@@ -1,11 +1,12 @@
 import os
 import sys
 import vtk
-from PySide6 import QtCore, QtWidgets
+from PySide6 import QtCore, QtWidgets, QtGui
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from core.scene.rendering.vtk_scene_renderer import VTKSceneRenderer
 
 os.environ["QT_API"] = "pyside6"
+
 
 class Janela3DSurface(QtWidgets.QWidget):
     maximizeRequested = QtCore.Signal(bool)
@@ -53,6 +54,7 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.header_layout.addStretch()
         self.header_layout.addWidget(self.btn_max)
 
+        # QVTKRenderWindowInteractor já age como o interactor
         self.vtkWidget = QVTKRenderWindowInteractor(self.container)
         self.container_layout.addWidget(self.header)
         self.container_layout.addWidget(self.vtkWidget)
@@ -67,14 +69,24 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.picker = vtk.vtkPropPicker()
 
     def setup_interactors(self):
+        """Inicializa o sistema de interação padrão."""
         self.vtkWidget.Initialize()
+
+        # Estilo padrão: Trackball Camera para rotação/zoom
         style = vtk.vtkInteractorStyleTrackballCamera()
+
+        # Importante: O observer deve ser adicionado ao estilo ou ao interactor
+        # Para seleção de objetos, usamos o LeftButtonPressEvent
         style.AddObserver("LeftButtonPressEvent", self._on_left_click)
+
         self.vtkWidget.SetInteractorStyle(style)
         self.vtkWidget.Start()
 
     def _on_left_click(self, obj, event):
-        x, y = self.vtkWidget.GetInteractor().GetEventPosition()
+        """Trata o clique para seleção de objetos no modo navegação."""
+        # CORREÇÃO: vtkWidget já possui GetEventPosition
+        x, y = self.vtkWidget.GetEventPosition()
+
         self.picker.Pick(x, y, 0, self.renderer)
         actor = self.picker.GetActor()
 
@@ -87,7 +99,13 @@ class Janela3DSurface(QtWidgets.QWidget):
             if self.scene_manager:
                 self.scene_manager.selection.clear()
 
+        # Permite que o VTK processe o evento (essencial para girar a câmera)
         obj.OnLeftButtonDown()
+
+    def set_interactor_style(self, style):
+        """Troca dinamicamente o comportamento do mouse."""
+        self.vtkWidget.SetInteractorStyle(style)
+        self.render()
 
     def adicionar_objeto(self, id_obj, polydata, cor=(0.7, 0.7, 0.8), opacidade=1.0, nome_amigavel=""):
         self.vtk_scene_renderer.remove_actor(id_obj)
@@ -95,8 +113,12 @@ class Janela3DSurface(QtWidgets.QWidget):
         mapper.SetInputData(polydata)
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
+
+        # Tags para identificação
         actor.id = id_obj
         actor.name = nome_amigavel
+        actor.is_marker = False
+
         actor.PickableOn()
         actor.GetProperty().SetColor(cor)
         actor.GetProperty().SetOpacity(opacidade)
@@ -120,16 +142,17 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.btn_max.setText("❐" if self.is_maximized else "▢")
         self.maximizeRequested.emit(self.is_maximized)
 
+
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     janela_teste = Janela3DSurface("Vista de Superfície", "#00AAFF")
     janela_teste.resize(800, 600)
     janela_teste.show()
     janela_teste.setup_interactors()
+
     sphere = vtk.vtkSphereSource()
-    sphere.SetThetaResolution(30)
-    sphere.SetPhiResolution(30)
     sphere.Update()
     janela_teste.adicionar_objeto("esfera_teste", sphere.GetOutput(), cor=(0.2, 0.6, 1.0))
     janela_teste.reset_camera()
+
     sys.exit(app.exec())

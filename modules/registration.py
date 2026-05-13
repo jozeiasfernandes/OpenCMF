@@ -12,7 +12,10 @@ from core.base_module.base import ModuloBase
 from core.scene.scene_object import SceneObject
 from core.scene.scene_state import SceneState
 from core.scene.scene_manager import SceneManager
-from core.scene.events.scene_events import REGISTRATION_IMPORT_REQUESTED
+from core.scene.events.scene_events import (
+    REGISTRATION_IMPORT_REQUESTED,
+    INTERACTION_MODE_CHANGED
+)
 from core.scene.events.event_bus import EventBus
 from core.scene.registry.object_registry import ObjectRegistry
 from core.scene.registry.actor_registry import ActorRegistry
@@ -67,6 +70,15 @@ class Modulo(ModuloBase):
         self.widget_objetos.objetoToggled.connect(self.scene_manager.update_visibility)
         self.widget_objetos.opacityChanged.connect(self.scene_manager.update_opacity)
         self.widget_objetos.colorChanged.connect(self._on_color_changed_ui)
+
+        # Inscrição para o evento de mudança de modo vindo da toolbar
+        self.scene_manager.events.subscribe(INTERACTION_MODE_CHANGED, self._on_interaction_mode_changed)
+
+    def _on_interaction_mode_changed(self, mode: str):
+        """Informa a WindowRegistration sobre o novo modo de interação"""
+        logger.info(f"Alterando modo de interação para: {mode}")
+        if hasattr(self.view_registration, "set_interaction_mode"):
+            self.view_registration.set_interaction_mode(mode)
 
     def inicializar(self, caminho_paciente: str) -> None:
         super().inicializar(caminho_paciente)

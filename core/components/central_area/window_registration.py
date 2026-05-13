@@ -12,6 +12,7 @@ from core.scene.events.scene_events import (
     REGISTRATION_POINT_SIZE_CHANGED,
     REGISTRATION_RESET_LAYOUT,
     VISIBILITY_CHANGED,
+    INTERACTION_MODE_CHANGED  # Adicionado
 )
 
 if TYPE_CHECKING:
@@ -39,6 +40,8 @@ class WindowRegistration(QtWidgets.QWidget):
         self.pontos_a = []
         self.pontos_b = []
         self.current_point_size = 1.5
+        self.current_mode = "select"  # Modo inicial padrão
+
         self.db_click_filter = RegistrationDoubleClickFilter(self)
         self.setMinimumSize(0, 0)
         self.setup_ui()
@@ -54,6 +57,26 @@ class WindowRegistration(QtWidgets.QWidget):
         bus.subscribe(REGISTRATION_DELETE_LAST_MARKER, self._on_scene_bus_delete_last_marker)
         bus.subscribe(REGISTRATION_RESET_LAYOUT, self._on_scene_bus_reset_layout)
         bus.subscribe(REGISTRATION_POINT_SIZE_CHANGED, self._on_scene_bus_point_size)
+        bus.subscribe(INTERACTION_MODE_CHANGED, self.set_interaction_mode)
+
+    def set_interaction_mode(self, mode: str, **kwargs):
+        """Alterna entre modo de navegação e modo de marcação de pontos."""
+        self.current_mode = mode
+        logger.info(f"Modo de interação definido para: {mode}")
+
+        # Cursor visual para feedback ao usuário
+        cursor = QtCore.Qt.ArrowCursor if mode == "select" else QtCore.Qt.CrossCursor
+        self.view_a.setCursor(cursor)
+        self.view_b.setCursor(cursor)
+
+        # Se for seleção, garantimos que o estilo de trackball está ativo
+        for view in [self.view_a, self.view_b]:
+            if mode == "select":
+                style = vtk.vtkInteractorStyleTrackballCamera()
+                view.vtkWidget.GetRenderWindow().GetInteractor().SetInteractorStyle(style)
+            else:
+                # No modo add_point, mantemos o estilo mas nossa lógica de clique cuidará do resto
+                pass
 
     def _on_scene_bus_visibility(self, object_id: str, visible: bool, **_kwargs) -> None:
         self.set_objeto_visibilidade(object_id, visible)
@@ -85,7 +108,6 @@ class WindowRegistration(QtWidgets.QWidget):
         if size is not None:
             self.set_ponto_raio(float(size))
 
-    # --- MÉTODOS DE API E INTEGRAÇÃO ---
     def remover_ultimo_marcador(self):
         for view, lista in [(self.view_a, self.pontos_a), (self.view_b, self.pontos_b)]:
             if not lista:
@@ -161,7 +183,6 @@ class WindowRegistration(QtWidgets.QWidget):
     def _properties_opacity_via_scene(self, id_obj: str, op: float) -> None:
         self._scene_manager.update_opacity(id_obj, op)
 
-    # --- LÓGICA DE ATORES ---
     def _find_actor_by_id(self, view, identifier):
         actors = view.renderer.GetActors()
         actors.InitTraversal()
@@ -226,7 +247,6 @@ class WindowRegistration(QtWidgets.QWidget):
                         actor.SetScale(values)
             view.render()
 
-    # --- UI E EVENTOS ---
     def setup_ui(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -273,12 +293,12 @@ class WindowRegistration(QtWidgets.QWidget):
         camera = view.renderer.GetActiveCamera()
 
         presets = {
-            "Frontal":   ([0, 0, 0], [0, 0, 1], [0, 1, 0]),
+            "Frontal": ([0, 0, 0], [0, 0, 1], [0, 1, 0]),
             "Posterior": ([0, 0, 0], [0, 0, -1], [0, 1, 0]),
-            "Direita":   ([0, 0, 0], [1, 0, 0], [0, 1, 0]),
-            "Esquerda":  ([0, 0, 0], [-1, 0, 0], [0, 1, 0]),
-            "Superior":  ([0, 0, 0], [0, 1, 0], [0, 0, -1]),
-            "Inferior":  ([0, 0, 0], [0, -1, 0], [0, 0, 1]),
+            "Direita": ([0, 0, 0], [1, 0, 0], [0, 1, 0]),
+            "Esquerda": ([0, 0, 0], [-1, 0, 0], [0, 1, 0]),
+            "Superior": ([0, 0, 0], [0, 1, 0], [0, 0, -1]),
+            "Inferior": ([0, 0, 0], [0, -1, 0], [0, 0, 1]),
         }
 
         if view_name in presets:
@@ -329,9 +349,15 @@ class WindowRegistration(QtWidgets.QWidget):
         self.view_b.render()
 
     def _on_click_a(self, obj, event):
+        # Se estivermos em modo seleção, permitimos o comportamento padrão do VTK
+        if self.current_mode == "select":
+            return
         self._pick_point(self.view_a, "A", self.pontos_a, (1, 0, 0))
 
     def _on_click_b(self, obj, event):
+        # Se estivermos em modo seleção, permitimos o comportamento padrão do VTK
+        if self.current_mode == "select":
+            return
         self._pick_point(self.view_b, "B", self.pontos_b, (0, 1, 0))
 
     def _pick_point(self, view, side_label, points_list, color):
