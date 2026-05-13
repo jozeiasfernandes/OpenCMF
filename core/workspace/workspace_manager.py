@@ -355,7 +355,7 @@ class WorkspaceManager(QtWidgets.QWidget):
             return
 
         if ativo:
-            comp = ComponentLoader.carregar(caminho, modulo)
+            comp = ComponentLoader.carregar(caminho, modulo, categoria)
             if not comp:
                 return
             if categoria == "toolbars":
@@ -375,6 +375,24 @@ class WorkspaceManager(QtWidgets.QWidget):
                     getattr(comp, 'toolbox_name', caminho.stem.title()), comp
                 )
                 data["sidebar"].stack.setCurrentIndex(idx)
+            elif categoria == "central_area":
+                layout = data["layout_central"]
+                slot_found = False
+                for i in range(layout.count()):
+                    item = layout.itemAt(i)
+                    w = item.widget() if item else None
+                    if w and w.property("_is_workspace_view"):
+                        slot_found = True
+                        mod_path = w.property("__module_path__")
+                        if mod_path is None:
+                            data.setdefault("_central_original_view", w)
+                        layout.removeWidget(w)
+                        w.hide()
+                if not slot_found and "_central_original_view" not in data:
+                    return
+                comp.setProperty("_is_workspace_view", True)
+                comp.setProperty("__module_path__", caminho)
+                layout.addWidget(comp, 1)
         else:
             self._remover_componente(categoria, caminho, data)
 
@@ -392,6 +410,19 @@ class WorkspaceManager(QtWidgets.QWidget):
         elif categoria == "toolboxes":
             if sb := data.get("sidebar"):
                 sb.remover_widget_por_caminho(caminho)
+        elif categoria == "central_area":
+            layout = data["layout_central"]
+            for i in range(layout.count()):
+                item = layout.itemAt(i)
+                w = item.widget() if item else None
+                if w and w.property("__module_path__") == caminho:
+                    layout.removeWidget(w)
+                    w.setParent(None)
+                    w.deleteLater()
+                    break
+            if orig := data.get("_central_original_view"):
+                layout.addWidget(orig, 1)
+                orig.show()
 
     def count(self):
         return self.container_paginas.count()

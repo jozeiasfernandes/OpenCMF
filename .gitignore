@@ -11,8 +11,8 @@ __pycache__/
 Thumbs.db
 
 patients/
-pack_code/
-/pack_code/
+utils/
+/utils/
 
 /core/config.json
 /tests/
