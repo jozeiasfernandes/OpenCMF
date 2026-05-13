@@ -24,6 +24,7 @@ Separação de estados:
 * ObjectRegistry (dados)
 * ActorRegistry (render mapping)
 '''
+
 from typing import Optional, List, Any
 
 from .scene_object import SceneObject
@@ -33,7 +34,6 @@ from .events.scene_events import (
     OBJECT_ADDED,
     OBJECT_REMOVED,
     OBJECT_UPDATED,
-    SELECTION_CHANGED,
     VISIBILITY_CHANGED,
 )
 from .registry.object_registry import ObjectRegistry

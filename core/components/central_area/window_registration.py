@@ -12,7 +12,7 @@ from core.scene.events.scene_events import (
     REGISTRATION_POINT_SIZE_CHANGED,
     REGISTRATION_RESET_LAYOUT,
     VISIBILITY_CHANGED,
-    INTERACTION_MODE_CHANGED  # Adicionado
+    INTERACTION_MODE_CHANGED
 )
 
 if TYPE_CHECKING:
@@ -40,7 +40,7 @@ class WindowRegistration(QtWidgets.QWidget):
         self.pontos_a = []
         self.pontos_b = []
         self.current_point_size = 1.5
-        self.current_mode = "select"  # Modo inicial padrão
+        self.current_mode = "select"
 
         self.db_click_filter = RegistrationDoubleClickFilter(self)
         self.setMinimumSize(0, 0)
@@ -60,23 +60,19 @@ class WindowRegistration(QtWidgets.QWidget):
         bus.subscribe(INTERACTION_MODE_CHANGED, self.set_interaction_mode)
 
     def set_interaction_mode(self, mode: str, **kwargs):
-        """Alterna entre modo de navegação e modo de marcação de pontos."""
         self.current_mode = mode
-        logger.info(f"Modo de interação definido para: {mode}")
-
-        # Cursor visual para feedback ao usuário
         cursor = QtCore.Qt.ArrowCursor if mode == "select" else QtCore.Qt.CrossCursor
         self.view_a.setCursor(cursor)
         self.view_b.setCursor(cursor)
 
-        # Se for seleção, garantimos que o estilo de trackball está ativo
         for view in [self.view_a, self.view_b]:
+            interactor = view.vtkWidget.GetRenderWindow().GetInteractor()
             if mode == "select":
                 style = vtk.vtkInteractorStyleTrackballCamera()
-                view.vtkWidget.GetRenderWindow().GetInteractor().SetInteractorStyle(style)
+                interactor.SetInteractorStyle(style)
             else:
-                # No modo add_point, mantemos o estilo mas nossa lógica de clique cuidará do resto
-                pass
+                style = vtk.vtkInteractorStyleUser()
+                interactor.SetInteractorStyle(style)
 
     def _on_scene_bus_visibility(self, object_id: str, visible: bool, **_kwargs) -> None:
         self.set_objeto_visibilidade(object_id, visible)
@@ -121,7 +117,6 @@ class WindowRegistration(QtWidgets.QWidget):
                     lista.pop()
                     break
             view.render()
-        logger.info("Último marcador removido das vistas.")
 
     def limpar_marcadores(self):
         for view, lista in [(self.view_a, self.pontos_a), (self.view_b, self.pontos_b)]:
@@ -209,7 +204,8 @@ class WindowRegistration(QtWidgets.QWidget):
     def _apply_render_change(self, render_type, value, identifier=None):
         for view in [self.view_a, self.view_b]:
             if identifier:
-                actors = [self._find_actor_by_id(view, identifier)]
+                target = self._find_actor_by_id(view, identifier)
+                actors = [target] if target else []
             else:
                 actors = []
                 it = view.renderer.GetActors()
@@ -219,15 +215,13 @@ class WindowRegistration(QtWidgets.QWidget):
                     if not getattr(a, "is_marker", False):
                         actors.append(a)
             for actor in actors:
-                if not actor:
-                    continue
+                if not actor: continue
                 prop = actor.GetProperty()
                 if render_type == "color":
-                    c = value
-                    if isinstance(c, QtGui.QColor):
-                        prop.SetColor(c.redF(), c.greenF(), c.blueF())
+                    if isinstance(value, QtGui.QColor):
+                        prop.SetColor(value.redF(), value.greenF(), value.blueF())
                     else:
-                        prop.SetColor(c)
+                        prop.SetColor(value)
                 elif render_type == "opacity":
                     prop.SetOpacity(value)
                 view.render()
@@ -251,47 +245,35 @@ class WindowRegistration(QtWidgets.QWidget):
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-
         for side in ["A", "B"]:
             container = QtWidgets.QWidget()
             layout = QtWidgets.QVBoxLayout(container)
             layout.setContentsMargins(4, 4, 4, 4)
-
             view = Janela3DSurface(f"Vista {side}", "#202020")
             view.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-
             controls_layout = QtWidgets.QHBoxLayout()
             combo_mesh = QtWidgets.QComboBox()
             combo_mesh.setPlaceholderText("Selecionar objeto...")
-
             combo_view = QtWidgets.QComboBox()
             combo_view.addItems(["Frontal", "Posterior", "Direita", "Esquerda", "Superior", "Inferior"])
             combo_view.setFixedWidth(110)
-
             controls_layout.addWidget(combo_mesh, stretch=1)
             controls_layout.addWidget(combo_view)
-
             layout.addWidget(view, stretch=1)
             layout.addWidget(QtWidgets.QLabel("Referência (Fixo):" if side == "A" else "Móvel (Alinhamento):"))
             layout.addLayout(controls_layout)
-
             setattr(self, f"view_{side.lower()}", view)
             setattr(self, f"combo_{side.lower()}", combo_mesh)
             self.splitter.addWidget(container)
-
             combo_view.currentTextChanged.connect(lambda t, s=side: self._on_view_presets_changed(s, t))
-
         self.main_layout.addWidget(self.splitter)
-
         self.combo_a.currentTextChanged.connect(lambda t: self._on_combo_changed("A", t))
         self.combo_b.currentTextChanged.connect(lambda t: self._on_combo_changed("B", t))
-
         QtCore.QTimer.singleShot(100, self._finalize_setup)
 
     def _on_view_presets_changed(self, side, view_name):
         view = self.view_a if side == "A" else self.view_b
         camera = view.renderer.GetActiveCamera()
-
         presets = {
             "Frontal": ([0, 0, 0], [0, 0, 1], [0, 1, 0]),
             "Posterior": ([0, 0, 0], [0, 0, -1], [0, 1, 0]),
@@ -300,7 +282,6 @@ class WindowRegistration(QtWidgets.QWidget):
             "Superior": ([0, 0, 0], [0, 1, 0], [0, 0, -1]),
             "Inferior": ([0, 0, 0], [0, -1, 0], [0, 0, 1]),
         }
-
         if view_name in presets:
             f, p, u = presets[view_name]
             camera.SetFocalPoint(*f)
@@ -349,15 +330,11 @@ class WindowRegistration(QtWidgets.QWidget):
         self.view_b.render()
 
     def _on_click_a(self, obj, event):
-        # Se estivermos em modo seleção, permitimos o comportamento padrão do VTK
-        if self.current_mode == "select":
-            return
+        if self.current_mode == "select": return
         self._pick_point(self.view_a, "A", self.pontos_a, (1, 0, 0))
 
     def _on_click_b(self, obj, event):
-        # Se estivermos em modo seleção, permitimos o comportamento padrão do VTK
-        if self.current_mode == "select":
-            return
+        if self.current_mode == "select": return
         self._pick_point(self.view_b, "B", self.pontos_b, (0, 1, 0))
 
     def _pick_point(self, view, side_label, points_list, color):
@@ -384,11 +361,8 @@ class WindowRegistration(QtWidgets.QWidget):
         view.renderer.AddActor(actor)
         view.render()
 
-    def get_points_a(self):
-        return self.pontos_a
-
-    def get_points_b(self):
-        return self.pontos_b
+    def get_points_a(self): return self.pontos_a
+    def get_points_b(self): return self.pontos_b
 
 
 if __name__ == "__main__":

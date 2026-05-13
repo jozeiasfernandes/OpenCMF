@@ -13,8 +13,10 @@ SceneObject
 └── vtk_actor_ref
 
 '''
+
+
 from dataclasses import dataclass, field
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, List
 
 
 @dataclass
@@ -22,17 +24,14 @@ class SceneObject:
     id: str
     name: str = "Object"
     type: str = "generic"
-
     visible: bool = True
     opacity: float = 1.0
     color: Tuple[float, float, float] = (1.0, 1.0, 1.0)
-
-    transform: Dict[str, list[float]] = field(default_factory=lambda: {
+    transform: Dict[str, List[float]] = field(default_factory=lambda: {
         "position": [0.0, 0.0, 0.0],
         "rotation": [0.0, 0.0, 0.0],
         "scale": [1.0, 1.0, 1.0],
     })
-
     metadata: Dict[str, Any] = field(default_factory=dict)
     mesh_data: Optional[Any] = None
     file_path: Optional[str] = None

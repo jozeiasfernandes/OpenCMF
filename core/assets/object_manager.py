@@ -1,6 +1,7 @@
 import shutil
 import logging
 import uuid
+import json
 from typing import Dict, Optional, List
 from pathlib import Path
 from PySide6.QtCore import QObject, Signal
@@ -24,6 +25,7 @@ class ObjectManager(QObject):
         self.event_bus = event_bus
         self.project_file = self.patient_path / "project" / "scene.cmf"
         self.project_file.parent.mkdir(parents=True, exist_ok=True)
+        self._current_objects: List[SceneObject] = []
 
     def import_external_file(self, file_path: str, category: str, obj_id: Optional[str] = None) -> Optional[SceneObject]:
         try:
@@ -42,10 +44,11 @@ class ObjectManager(QObject):
                 type=category,
                 file_path=str(rel_path)
             )
+            self._current_objects.append(scene_obj)
+            self.save_scene(self._current_objects)
             if self.event_bus:
                 self.event_bus.emit(OBJECT_ADDED, object=scene_obj)
             self.object_added.emit(scene_obj)
-            logger.info(f"Objeto importado e notificado: {scene_obj.name}")
             return scene_obj
         except Exception as e:
             logger.error(f"Erro na importação: {e}", exc_info=True)
@@ -53,12 +56,12 @@ class ObjectManager(QObject):
 
     def save_scene(self, objects: List[SceneObject]):
         try:
+            self._current_objects = objects
             json_string = self.serializer.save(objects)
             with open(self.project_file, "w", encoding="utf-8") as f:
                 f.write(json_string)
-            logger.info("Cena salva com sucesso no disco.")
         except Exception as e:
-            logger.error(f"Erro ao salvar cena: {e}")
+            logger.error(f"Erro ao salvar cena .cmf: {e}")
 
     def load_patient_data(self):
         if not self.project_file.exists():
@@ -66,14 +69,21 @@ class ObjectManager(QObject):
         try:
             with open(self.project_file, "r", encoding="utf-8") as f:
                 raw_data = f.read()
-            loaded_objects = self.serializer.load(raw_data)
-            for obj in loaded_objects:
+            self._current_objects = self.serializer.load(raw_data)
+            for obj in self._current_objects:
                 if self.event_bus:
                     self.event_bus.emit(OBJECT_ADDED, object=obj)
                 self.object_added.emit(obj)
-            logger.info(f"{len(loaded_objects)} objetos carregados do projeto.")
         except Exception as e:
-            logger.error(f"Erro ao carregar cena: {e}")
+            logger.error(f"Erro ao carregar projeto .cmf: {e}")
+
+    def remove_object(self, object_id: str):
+        obj_to_remove = next((o for o in self._current_objects if o.id == object_id), None)
+        if obj_to_remove:
+            self.delete_physical_file(obj_to_remove.file_path)
+            self._current_objects = [o for o in self._current_objects if o.id != object_id]
+            self.save_scene(self._current_objects)
+            self.object_removed.emit(object_id)
 
     def _get_unique_path(self, target_dir: Path, source: Path) -> Path:
         dest = target_dir / source.name
@@ -89,4 +99,4 @@ class ObjectManager(QObject):
             if full_path.exists():
                 full_path.unlink()
         except Exception as e:
-            logger.warning(f"Não foi possível deletar arquivo físico: {e}")
+            logger.warning(f"Erro ao deletar arquivo físico: {e}")

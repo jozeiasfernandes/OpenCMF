@@ -30,7 +30,6 @@ from core.components.toolbars.registration_toolbar import Component as Registrat
 
 logger = logging.getLogger("OpenCMF.RegistrationModule")
 
-
 class Modulo(ModuloBase):
     def __init__(self, scene_manager: Optional[SceneManager] = None):
         super().__init__()
@@ -38,14 +37,11 @@ class Modulo(ModuloBase):
         self.id = "modulo.registration"
         self._toolbar: Optional[QtWidgets.QToolBar] = None
         self.serializer = Serializer()
-
         self.scene_manager = scene_manager or self._criar_scene_manager_padrao()
-
         self.view_registration = WindowRegistration(scene_manager=self.scene_manager)
         self.widget_reg = RegistrationToolbox()
         self.widget_objetos = ObjetoManagerWidget()
         self.widget_propriedades = PropertiesComponent(self)
-
         self._conectar_sinais()
 
     def _criar_scene_manager_padrao(self) -> SceneManager:
@@ -63,35 +59,32 @@ class Modulo(ModuloBase):
         self.widget_reg.limparPontos.connect(self._resetar_pontos)
         self.widget_reg.targetChanged.connect(lambda oid: self._carregar_na_vista_por_id(oid, "A"))
         self.widget_reg.sourceChanged.connect(lambda oid: self._carregar_na_vista_por_id(oid, "B"))
-
         self.view_registration.requisitarCarregamentoObjeto.connect(self._on_requisicao_central_carregamento)
         self.view_registration.pontoAdicionado.connect(self.widget_reg.adicionar_ponto_tabela)
-
-        self.widget_objetos.objetoToggled.connect(self.scene_manager.update_visibility)
-        self.widget_objetos.opacityChanged.connect(self.scene_manager.update_opacity)
+        self.widget_objetos.objetoToggled.connect(self._on_visibility_toggled)
+        self.widget_objetos.opacityChanged.connect(self._on_opacity_changed_ui)
         self.widget_objetos.colorChanged.connect(self._on_color_changed_ui)
-
-        # Inscrição para o evento de mudança de modo vindo da toolbar
         self.scene_manager.events.subscribe(INTERACTION_MODE_CHANGED, self._on_interaction_mode_changed)
 
     def _on_interaction_mode_changed(self, mode: str):
-        """Informa a WindowRegistration sobre o novo modo de interação"""
-        logger.info(f"Alterando modo de interação para: {mode}")
         if hasattr(self.view_registration, "set_interaction_mode"):
             self.view_registration.set_interaction_mode(mode)
 
     def inicializar(self, caminho_paciente: str) -> None:
         super().inicializar(caminho_paciente)
         self.object_manager = ObjectManager(caminho_paciente, self.serializer)
-
         self.object_manager.object_added.connect(self._on_scene_object_added)
         self.object_manager.object_removed.connect(self.scene_manager.remove_object)
-
         self.scene_manager.state.set_patient(caminho_paciente)
         self.widget_objetos.set_patient_path(caminho_paciente)
         self.view_registration.connect_properties_panel(self.widget_propriedades)
-
         self.object_manager.load_patient_data()
+        QtCore.QTimer.singleShot(0, self._sincronizar_cena_inicial)
+
+    def _sincronizar_cena_inicial(self):
+        for obj in self.scene_manager.objects.all():
+            self.scene_manager.update_visibility(obj.id, obj.visible)
+        self._atualizar_ui_combos()
 
     def get_workspace(self) -> QtWidgets.QWidget:
         return self.view_registration
@@ -114,7 +107,7 @@ class Modulo(ModuloBase):
         if path:
             self.object_manager.import_external_file(
                 path,
-                kwargs.get("category", ""),
+                kwargs.get("category", "models"),
                 uuid.uuid4().hex[:12]
             )
 
@@ -123,8 +116,13 @@ class Modulo(ModuloBase):
             self.scene_manager.add_object(obj)
 
         self.widget_objetos.adicionar_objeto_lista(
-            obj.name, obj.type, QtGui.QColor.fromRgbF(*obj.color), objeto_id=obj.id
+            obj.name,
+            obj.type,
+            QtGui.QColor.fromRgbF(*obj.color),
+            objeto_id=obj.id
         )
+
+        self.scene_manager.update_visibility(obj.id, obj.visible)
         self._atualizar_ui_combos()
 
     def _atualizar_ui_combos(self):
@@ -132,8 +130,27 @@ class Modulo(ModuloBase):
         self.widget_reg.atualizar_combos(objs)
         self.view_registration.atualizar_lista_objetos([o['name'] for o in objs])
 
+    def _on_visibility_toggled(self, oid: str, visible: bool):
+        self.scene_manager.update_visibility(oid, visible)
+        obj = self.scene_manager.get_object(oid)
+        if obj:
+            obj.visible = visible
+            self.object_manager.save_scene(self.scene_manager.objects.all())
+
+    def _on_opacity_changed_ui(self, oid: str, opacity: float):
+        self.scene_manager.update_opacity(oid, opacity)
+        obj = self.scene_manager.get_object(oid)
+        if obj:
+            obj.opacity = opacity
+            self.object_manager.save_scene(self.scene_manager.objects.all())
+
     def _on_color_changed_ui(self, oid: str, color: QtGui.QColor):
-        self.scene_manager.update_color(oid, (color.redF(), color.greenF(), color.blueF()))
+        rgb = (color.redF(), color.greenF(), color.blueF())
+        self.scene_manager.update_color(oid, rgb)
+        obj = self.scene_manager.get_object(oid)
+        if obj:
+            obj.color = rgb
+            self.object_manager.save_scene(self.scene_manager.objects.all())
 
     def _on_requisicao_central_carregamento(self, vista_id, nome):
         obj = next((o for o in self.scene_manager.objects.all() if o.name == nome), None)
@@ -153,11 +170,9 @@ class Modulo(ModuloBase):
         full_path = Path(self.pasta_paciente) / obj.file_path
         if not full_path.exists():
             return
-
         reader = vtk.vtkSTLReader()
         reader.SetFileName(str(full_path))
         reader.Update()
-
         if vista == "A":
             self.view_registration.adicionar_malha_vista_a(obj.name, reader.GetOutput(), obj_id=obj.id)
         else:
@@ -170,29 +185,22 @@ class Modulo(ModuloBase):
         self.view_registration.limpar_marcadores()
         self.widget_reg.limpar_tabela()
 
-
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
-
     test_path = os.path.abspath("./teste_paciente")
     os.makedirs(test_path, exist_ok=True)
-
     modulo = Modulo()
     modulo.inicializar(test_path)
-
     window = QtWidgets.QMainWindow()
     window.resize(1200, 800)
     window.setCentralWidget(modulo.get_workspace())
     window.addToolBar(modulo.get_workspace_toolbar())
-
     dock = QtWidgets.QDockWidget("Painel de Controle")
     tabs = QtWidgets.QTabWidget()
     for titulo, widget in modulo.get_toolboxes().items():
         tabs.addTab(widget, titulo)
     dock.setWidget(tabs)
-
     window.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
     window.show()
-
     sys.exit(app.exec())
