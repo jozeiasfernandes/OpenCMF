@@ -149,7 +149,7 @@ class Component(QtWidgets.QWidget):
         self._callbacks = None
 
     def _on_object_updated(self, **kwargs):
-        props = {"name", "type", "visible", "opacity", "color", "transform", "storage", "size_bytes"}
+        props = {"name", "type", "visible", "opacity", "color", "transforms", "storage", "size_bytes"}
         if not kwargs.get("property") or kwargs.get("property") in props:
             self._refresh_from_scene()
 

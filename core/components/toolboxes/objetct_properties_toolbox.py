@@ -1,7 +1,7 @@
 """
 core.components.toolboxes.object_properties_toolbox
 =====================================================
-Painel de propriedades de objetos 3-D (transform + aparência).
+Painel de propriedades de objetos 3-D (transforms + aparência).
 
 Depende de:
   • core.color.ColorPickerWidget  — seletor de cor completo

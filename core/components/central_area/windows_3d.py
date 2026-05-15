@@ -4,6 +4,7 @@ import vtk
 from PySide6 import QtCore, QtWidgets, QtGui
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from core.scene.rendering.vtk_scene_renderer import VTKSceneRenderer
+from core.scene.events.scene_events import SELECTION_CHANGED
 
 os.environ["QT_API"] = "pyside6"
 
@@ -12,14 +13,56 @@ class Janela3DSurface(QtWidgets.QWidget):
     maximizeRequested = QtCore.Signal(bool)
     objectSelected = QtCore.Signal(str)
 
+    # Cores de highlight
+    COLOR_SELECTED = (1.0, 0.8, 0.0)   # amarelo
+    COLOR_DEFAULT  = (0.7, 0.7, 0.8)   # cinza padrão (fallback)
+
     def __init__(self, nome, cor_borda, parent=None, scene_manager=None):
         super().__init__(parent)
         self.nome = nome
         self.cor_borda = cor_borda
         self.scene_manager = scene_manager
         self.is_maximized = False
+
+        # Guarda a cor original de cada ator para restaurar ao desselecionar
+        self._actor_base_colors: dict[str, tuple] = {}
+
         self._setup_ui()
         self._setup_vtk()
+        self._connect_selection_manager()
+
+    # ------------------------------------------------------------------
+    # Conexão com SelectionManager
+    # ------------------------------------------------------------------
+
+    def _connect_selection_manager(self):
+        """Assina SELECTION_CHANGED no event_bus do scene_manager."""
+        if not self.scene_manager:
+            return
+        bus = getattr(self.scene_manager, "event_bus", None)
+        if bus is None:
+            return
+        # event_bus.subscribe(event_name, callback)
+        bus.subscribe(SELECTION_CHANGED, self._on_selection_changed)
+
+    def _on_selection_changed(self, selected_ids: list[str]):
+        """Atualiza highlight de todos os atores conforme a seleção atual."""
+        actors = self.vtk_scene_renderer.get_actors()   # dict {id: vtkActor}
+        for obj_id, actor in actors.items():
+            if getattr(actor, "is_marker", False):
+                continue
+            if obj_id in selected_ids:
+                actor.GetProperty().SetColor(self.COLOR_SELECTED)
+                actor.GetProperty().SetAmbient(0.3)
+            else:
+                base = self._actor_base_colors.get(obj_id, self.COLOR_DEFAULT)
+                actor.GetProperty().SetColor(base)
+                actor.GetProperty().SetAmbient(0.0)
+        self.render()
+
+    # ------------------------------------------------------------------
+    # UI / VTK setup (sem alterações relevantes)
+    # ------------------------------------------------------------------
 
     def _setup_ui(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -39,7 +82,9 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.header_layout.setContentsMargins(10, 0, 5, 0)
 
         self.lbl_nome = QtWidgets.QLabel(self.nome.upper())
-        self.lbl_nome.setStyleSheet("color: white; font-size: 10px; font-weight: bold; border: none;")
+        self.lbl_nome.setStyleSheet(
+            "color: white; font-size: 10px; font-weight: bold; border: none;"
+        )
 
         self.btn_max = QtWidgets.QPushButton("▢")
         self.btn_max.setFixedSize(22, 22)
@@ -54,8 +99,8 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.header_layout.addStretch()
         self.header_layout.addWidget(self.btn_max)
 
-        # QVTKRenderWindowInteractor já age como o interactor
         self.vtkWidget = QVTKRenderWindowInteractor(self.container)
+
         self.container_layout.addWidget(self.header)
         self.container_layout.addWidget(self.vtkWidget)
         self.main_layout.addWidget(self.container)
@@ -69,64 +114,82 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.picker = vtk.vtkPropPicker()
 
     def setup_interactors(self):
-        """Inicializa o sistema de interação padrão."""
         self.vtkWidget.Initialize()
-
-        # Estilo padrão: Trackball Camera para rotação/zoom
         style = vtk.vtkInteractorStyleTrackballCamera()
-
-        # Importante: O observer deve ser adicionado ao estilo ou ao interactor
-        # Para seleção de objetos, usamos o LeftButtonPressEvent
         style.AddObserver("LeftButtonPressEvent", self._on_left_click)
-
         self.vtkWidget.SetInteractorStyle(style)
         self.vtkWidget.Start()
 
-    def _on_left_click(self, obj, event):
-        """Trata o clique para seleção de objetos no modo navegação."""
-        # CORREÇÃO: vtkWidget já possui GetEventPosition
-        x, y = self.vtkWidget.GetEventPosition()
+    # ------------------------------------------------------------------
+    # Interação — clique esquerdo
+    # ------------------------------------------------------------------
 
+    def _on_left_click(self, obj, event):
+        x, y = self.vtkWidget.GetEventPosition()
         self.picker.Pick(x, y, 0, self.renderer)
         actor = self.picker.GetActor()
 
-        if actor and hasattr(actor, 'id'):
+        if actor and hasattr(actor, "id"):
             obj_id = actor.id
             self.objectSelected.emit(obj_id)
             if self.scene_manager:
-                self.scene_manager.selection.select(obj_id)
+                # Ctrl pressionado → seleção múltipla (toggle); caso contrário exclusiva
+                modifiers = QtWidgets.QApplication.keyboardModifiers()
+                if modifiers & QtCore.Qt.ControlModifier:
+                    self.scene_manager.selection.toggle(obj_id)
+                else:
+                    self.scene_manager.selection.select(obj_id, exclusive=True)
         else:
             if self.scene_manager:
                 self.scene_manager.selection.clear()
 
-        # Permite que o VTK processe o evento (essencial para girar a câmera)
         obj.OnLeftButtonDown()
 
+    # ------------------------------------------------------------------
+    # API pública
+    # ------------------------------------------------------------------
+
     def set_interactor_style(self, style):
-        """Troca dinamicamente o comportamento do mouse."""
         self.vtkWidget.SetInteractorStyle(style)
         self.render()
 
-    def adicionar_objeto(self, id_obj, polydata, cor=(0.7, 0.7, 0.8), opacidade=1.0, nome_amigavel=""):
+    def adicionar_objeto(
+        self,
+        id_obj: str,
+        polydata,
+        cor: tuple = (0.7, 0.7, 0.8),
+        opacidade: float = 1.0,
+        nome_amigavel: str = "",
+    ):
         self.vtk_scene_renderer.remove_actor(id_obj)
+
         mapper = vtk.vtkPolyDataMapper()
         mapper.SetInputData(polydata)
+
         actor = vtk.vtkActor()
         actor.SetMapper(mapper)
-
-        # Tags para identificação
         actor.id = id_obj
         actor.name = nome_amigavel
         actor.is_marker = False
-
         actor.PickableOn()
         actor.GetProperty().SetColor(cor)
         actor.GetProperty().SetOpacity(opacidade)
+
+        # Salva a cor base para restaurar ao desselecionar
+        self._actor_base_colors[id_obj] = cor
+
         self.vtk_scene_renderer.add_actor(id_obj, actor)
+
+        # Se esse objeto já estava selecionado (ex.: re-add após update), mantém highlight
+        if self.scene_manager and self.scene_manager.selection.is_selected(id_obj):
+            actor.GetProperty().SetColor(self.COLOR_SELECTED)
+            actor.GetProperty().SetAmbient(0.3)
+
         self.render()
 
-    def remover_objeto(self, id_obj):
+    def remover_objeto(self, id_obj: str):
         self.vtk_scene_renderer.remove_actor(id_obj)
+        self._actor_base_colors.pop(id_obj, None)
         self.render()
 
     def render(self):
@@ -143,6 +206,7 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.maximizeRequested.emit(self.is_maximized)
 
 
+# ----------------------------------------------------------------------
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     janela_teste = Janela3DSurface("Vista de Superfície", "#00AAFF")

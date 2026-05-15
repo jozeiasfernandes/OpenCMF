@@ -67,7 +67,7 @@ class VolumeViewerToolbar(QtWidgets.QToolBar):
                 color: #888; 
                 font-size: 10px; 
                 font-weight: bold; 
-                text-transform: uppercase;
+                text-transforms: uppercase;
             }
         """)
 

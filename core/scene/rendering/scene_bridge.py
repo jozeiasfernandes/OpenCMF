@@ -1,17 +1,17 @@
 from typing import Any
 
-from .events.event_bus import EventBus
-from .events.scene_events import (
+from core.scene.events.event_bus import EventBus
+from core.scene.events.scene_events import (
     OBJECT_ADDED,
     OBJECT_REMOVED,
     OBJECT_UPDATED,
     VISIBILITY_CHANGED,
 )
-from .registry.actor_registry import ActorRegistry
-from .registry.object_registry import ObjectRegistry
-from .rendering.vtk_actor_factory import VTKActorFactory
-from .rendering.vtk_property_sync import VTKPropertySync
-from .rendering.vtk_scene_renderer import VTKSceneRenderer
+from core.scene.registry.actor_registry import ActorRegistry
+from core.scene.registry.object_registry import ObjectRegistry
+from core.scene.rendering.vtk_actor_factory import VTKActorFactory
+from core.scene.rendering.vtk_property_sync import VTKPropertySync
+from core.scene.rendering.vtk_scene_renderer import VTKSceneRenderer
 
 
 class SceneBridge:

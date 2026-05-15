@@ -7,7 +7,7 @@ SceneObject
 ├── visible
 ├── opacity
 ├── color
-├── transform
+├── transforms
 ├── metadata
 ├── file_path
 └── vtk_actor_ref

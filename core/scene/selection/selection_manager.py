@@ -1,17 +1,3 @@
-'''
-Centraliza seleção global.
-
-Hoje sua seleção está espalhada:
-
-toolbox
-tabela
-VTK picker
-
-Tudo deveria convergir aqui.
-
-'''
-
-
 from typing import List, Set, Optional
 from core.scene.events.scene_events import SELECTION_CHANGED
 
@@ -21,13 +7,23 @@ class SelectionManager:
         self._selected_ids: Set[str] = set()
         self._bus = event_bus
 
+    @property
+    def selected_ids(self) -> List[str]:
+        return list(self._selected_ids)
+
     def _emit(self):
         if self._bus:
-            self._bus.emit(SELECTION_CHANGED, selected_ids=list(self._selected_ids))
+            self._bus.emit(SELECTION_CHANGED, selected_ids=self.selected_ids)
 
     def select(self, obj_id: str, exclusive: bool = True):
+        if not obj_id:
+            return
+
         if exclusive:
+            if len(self._selected_ids) == 1 and obj_id in self._selected_ids:
+                return
             self._selected_ids.clear()
+
         self._selected_ids.add(obj_id)
         self._emit()
 
@@ -51,9 +47,6 @@ class SelectionManager:
     def set_selection(self, ids: List[str]):
         self._selected_ids = set(ids)
         self._emit()
-
-    def get_selected(self) -> List[str]:
-        return list(self._selected_ids)
 
     def get_first_selected(self) -> Optional[str]:
         return next(iter(self._selected_ids)) if self._selected_ids else None

@@ -6,16 +6,13 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.scene.events.scene_events import (
-    OBJECT_ADDED,
-    OBJECT_REMOVED,
-    OBJECT_UPDATED,
-    VISIBILITY_CHANGED,
-    SELECTION_CHANGED,
+    OBJECT_ADDED, OBJECT_REMOVED, OBJECT_UPDATED,
+    VISIBILITY_CHANGED, SELECTION_CHANGED,
 )
 
 os.environ["QT_API"] = "pyside6"
 
-_TIPO_EXIBICAO = {
+DISPLAY_TYPES = {
     "surfaces": "Superfícies",
     "photos": "Fotografias",
     "volume": "Volume",
@@ -33,48 +30,34 @@ class RuntimeState:
     orphan: bool = False
 
 
-def _fase_para_objeto(obj: Any) -> str:
-    md = getattr(obj, "metadata", None) or {}
+def _get_object_group(obj: Any) -> str:
+    metadata = getattr(obj, "metadata", {}) or {}
+    group = metadata.get("group") or metadata.get("phase")
+    if group:
+        return str(group)
 
-    if isinstance(md, dict):
-        group = md.get("group") or md.get("phase")
-
-        if group:
-            return str(group)
-
-    obj_type = getattr(obj, "type", None) or "generic"
-
-    return _TIPO_EXIBICAO.get(obj_type, str(obj_type))
+    obj_type = getattr(obj, "type", "generic")
+    return DISPLAY_TYPES.get(obj_type, str(obj_type))
 
 
-def _obter_tamanho_formatado(obj: Any) -> str:
-    md = getattr(obj, "metadata", None) or {}
-
-    size = md.get("size_bytes")
-
-    if size is None:
-        size = sys.getsizeof(obj)
-
-    size = float(size)
+def _format_size(obj: Any) -> str:
+    metadata = getattr(obj, "metadata", {}) or {}
+    size = float(metadata.get("size_bytes", sys.getsizeof(obj)))
 
     for unit in ["B", "KB", "MB", "GB"]:
         if size < 1024:
             return f"{size:.1f} {unit}"
-
         size /= 1024
-
     return f"{size:.1f} TB"
 
 
-def _obter_local_exato(obj: Any) -> str:
-    md = getattr(obj, "metadata", None) or {}
+def _get_storage_path(obj: Any) -> str:
+    metadata = getattr(obj, "metadata", {}) or {}
+    path = metadata.get("file_path") or metadata.get("origin")
 
-    path = md.get("file_path") or md.get("origin")
-
-    if path and os.path.exists(path):
-        return path
-
-    return str(md.get("storage", "RAM")).upper()
+    if path and os.path.exists(str(path)):
+        return str(path)
+    return str(metadata.get("storage", "RAM")).upper()
 
 
 class SceneMonitorCenter(QtWidgets.QWidget):
@@ -82,195 +65,63 @@ class SceneMonitorCenter(QtWidgets.QWidget):
 
     def __init__(self, modulo=None):
         super().__init__()
-
         self._modulo = modulo
         self._bound_bus = None
-        self._callbacks: Optional[List[Tuple[str, Callable]]] = None
-
+        self._callbacks: List[Tuple[str, Callable]] = []
         self._group_items: Dict[str, QtWidgets.QTreeWidgetItem] = {}
         self._object_items: Dict[str, QtWidgets.QTreeWidgetItem] = {}
 
         self.setup_ui()
-        self._bind_to_scene_manager()
-
-        self.destroyed.connect(self._teardown_scene_bindings)
+        self._bind_to_scene()
+        self.destroyed.connect(self._teardown_scene)
 
     def setup_ui(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
-
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
         self.header = QtWidgets.QFrame()
-
         self.header.setFixedHeight(38)
+        self.header.setStyleSheet("background: #1f1f1f; border-bottom: 1px solid #3d3d3d;")
 
-        self.header.setStyleSheet("""
-            QFrame {
-                background: #1f1f1f;
-                border-bottom: 1px solid #3d3d3d;
-            }
-        """)
-
-        self.header_layout = QtWidgets.QHBoxLayout(self.header)
-
-        self.header_layout.setContentsMargins(12, 0, 12, 0)
-
-        self.lbl_title = QtWidgets.QLabel("Scene monitor")
-
-        self.lbl_title.setStyleSheet("""
-            QLabel {
-                color: white;
-                font-size: 12px;
-                font-weight: bold;
-            }
-        """)
-
-        self.header_layout.addWidget(self.lbl_title)
-        self.header_layout.addStretch()
-
+        header_layout = QtWidgets.QHBoxLayout(self.header)
+        title = QtWidgets.QLabel("Scene Monitor")
+        title.setStyleSheet("color: white; font-size: 12px; font-weight: bold;")
+        header_layout.addWidget(title)
         self.main_layout.addWidget(self.header)
 
-        self.splitter_main = QtWidgets.QSplitter()
-
-        self.main_layout.addWidget(self.splitter_main)
-
-        self.left_panel = QtWidgets.QFrame()
-
-        self.left_panel.setMinimumWidth(420)
-
-        self.left_layout = QtWidgets.QVBoxLayout(self.left_panel)
-
-        self.left_layout.setContentsMargins(4, 4, 4, 4)
+        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.main_layout.addWidget(self.splitter)
 
         self.tree = QtWidgets.QTreeWidget()
-
         self.tree.setColumnCount(6)
-
-        self.tree.setHeaderLabels([
-            "Nome",
-            "Tipo",
-            "Status",
-            "Actors",
-            "Memória",
-            "Local",
-        ])
-
+        self.tree.setHeaderLabels(["Nome", "Tipo", "Status", "Actors", "Memória", "Local"])
         self.tree.setAlternatingRowColors(True)
-        self.tree.setUniformRowHeights(True)
-
-        self.tree.setStyleSheet("""
-            QTreeWidget {
-                background: #2b2b2b;
-                color: #eeeeee;
-                border: 1px solid #3d3d3d;
-                font-size: 11px;
-            }
-
-            QTreeWidget::item:selected {
-                background: #404040;
-            }
-        """)
+        self.tree.setStyleSheet("background: #2b2b2b; color: #eee; font-size: 11px;")
+        self.tree.itemClicked.connect(self._handle_item_click)
 
         header = self.tree.header()
-
-        header.setSectionResizeMode(
-            0,
-            QtWidgets.QHeaderView.Stretch
-        )
-
-        header.setSectionResizeMode(
-            1,
-            QtWidgets.QHeaderView.ResizeToContents
-        )
-
-        header.setSectionResizeMode(
-            2,
-            QtWidgets.QHeaderView.ResizeToContents
-        )
-
-        header.setSectionResizeMode(
-            3,
-            QtWidgets.QHeaderView.ResizeToContents
-        )
-
-        header.setSectionResizeMode(
-            4,
-            QtWidgets.QHeaderView.ResizeToContents
-        )
-
-        self.tree.itemClicked.connect(
-            self._on_item_clicked
-        )
-
-        self.left_layout.addWidget(self.tree)
-
-        self.splitter_main.addWidget(self.left_panel)
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        for i in range(1, 6):
+            header.setSectionResizeMode(i, QtWidgets.QHeaderView.ResizeToContents)
 
         self.inspector = QtWidgets.QTreeWidget()
-
-        self.inspector.setMinimumWidth(350)
-
         self.inspector.setColumnCount(2)
+        self.inspector.setHeaderLabels(["Propriedade", "Valor"])
+        self.inspector.setStyleSheet("background: #252526; color: #eee; font-size: 11px;")
 
-        self.inspector.setHeaderLabels([
-            "Propriedade",
-            "Valor"
-        ])
-
-        self.inspector.setAlternatingRowColors(True)
-
-        self.inspector.setStyleSheet("""
-            QTreeWidget {
-                background: #252526;
-                color: #eeeeee;
-                border: 1px solid #3d3d3d;
-                font-size: 11px;
-            }
-
-            QTreeWidget::item:selected {
-                background: #404040;
-            }
-        """)
-
-        inspector_header = self.inspector.header()
-
-        inspector_header.setSectionResizeMode(
-            0,
-            QtWidgets.QHeaderView.ResizeToContents
-        )
-
-        inspector_header.setSectionResizeMode(
-            1,
-            QtWidgets.QHeaderView.Stretch
-        )
-
-        self.splitter_main.addWidget(self.inspector)
-
-        self.splitter_main.setStretchFactor(0, 2)
-        self.splitter_main.setStretchFactor(1, 1)
+        self.splitter.addWidget(self.tree)
+        self.splitter.addWidget(self.inspector)
+        self.splitter.setStretchFactor(0, 2)
 
     def _scene_manager(self):
         return getattr(self._modulo, "scene_manager", None)
 
-    def _bind_to_scene_manager(self):
+    def _bind_to_scene(self):
         sm = self._scene_manager()
+        if not sm or not hasattr(sm, "events"): return
 
-        if not sm:
-            return
-
-        bus = getattr(sm, "events", None)
-
-        if not bus:
-            return
-
-        if self._bound_bus is bus:
-            return
-
-        self._teardown_scene_bindings()
-
-        self._bound_bus = bus
-
+        self._bound_bus = sm.events
         self._callbacks = [
             (OBJECT_ADDED, self._on_object_added),
             (OBJECT_REMOVED, self._on_object_removed),
@@ -279,506 +130,188 @@ class SceneMonitorCenter(QtWidgets.QWidget):
             (SELECTION_CHANGED, self._on_selection_changed),
         ]
 
-        for event_name, callback in self._callbacks:
-            bus.subscribe(event_name, callback)
+        for event, cb in self._callbacks:
+            self._bound_bus.subscribe(event, cb)
 
-        self._build_initial_tree()
+        self._refresh_tree()
 
-    def _teardown_scene_bindings(self):
-        if self._bound_bus and self._callbacks:
-            for event_name, callback in self._callbacks:
-                self._bound_bus.unsubscribe(
-                    event_name,
-                    callback
-                )
+    def _teardown_scene(self):
+        if self._bound_bus:
+            for event, cb in self._callbacks:
+                self._bound_bus.unsubscribe(event, cb)
 
-        self._bound_bus = None
-        self._callbacks = None
-
-    def _build_initial_tree(self):
+    def _refresh_tree(self):
         sm = self._scene_manager()
-
-        if not sm:
-            return
+        if not sm or not hasattr(sm, "objects"): return
 
         self.tree.clear()
-
         self._group_items.clear()
         self._object_items.clear()
 
-        objects = sorted(
-            sm.objects.all(),
-            key=lambda obj: (obj.name or "").lower()
-        )
+        objects = sm.objects.all()
+        if not objects: return
 
-        for obj in objects:
-            self._create_object_item(obj)
+        for obj in sorted(objects, key=lambda x: (getattr(x, 'name', '') or "").lower()):
+            self._create_or_update_item(obj)
 
-    def _get_group_item(self, group_name):
-        item = self._group_items.get(group_name)
+    def _get_group(self, name):
+        if name in self._group_items: return self._group_items[name]
 
-        if item:
-            return item
-
-        item = QtWidgets.QTreeWidgetItem([group_name])
-
+        item = QtWidgets.QTreeWidgetItem([name])
         item.setFirstColumnSpanned(True)
-
-        font = item.font(0)
-
-        font.setBold(True)
-
-        item.setFont(0, font)
-
-        brush = QtGui.QBrush(
-            QtGui.QColor("#90CAF9")
-        )
-
-        for col in range(self.tree.columnCount()):
-            item.setForeground(col, brush)
-
+        item.setFont(0, QtGui.QFont("Segoe UI", 9, QtGui.QFont.Bold))
+        item.setForeground(0, QtGui.QColor("#90CAF9"))
         self.tree.addTopLevelItem(item)
-
-        self._group_items[group_name] = item
-
+        self._group_items[name] = item
         return item
 
-    def _create_object_item(self, obj):
-        if obj.id in self._object_items:
-            self._update_object_item(obj)
-            return
+    def _create_or_update_item(self, obj):
+        if not hasattr(obj, 'id'): return
 
-        runtime = self._build_runtime_state(obj)
+        runtime = self._get_runtime_state(obj)
+        is_new = obj.id not in self._object_items
 
-        parent_item = self._get_group_item(
-            _fase_para_objeto(obj)
-        )
+        if is_new:
+            parent = self._get_group(_get_object_group(obj))
+            item = QtWidgets.QTreeWidgetItem(parent)
+            item.setData(0, QtCore.Qt.UserRole, obj.id)
+            self._object_items[obj.id] = item
+        else:
+            item = self._object_items[obj.id]
 
-        item = QtWidgets.QTreeWidgetItem([
-            obj.name or obj.id,
-            getattr(obj, "type", "generic"),
-            self._runtime_to_text(runtime),
-            str(self._get_actor_count(obj.id)),
-            _obter_tamanho_formatado(obj),
-            _obter_local_exato(obj),
-        ])
+        item.setText(0, getattr(obj, 'name', obj.id) or obj.id)
+        item.setText(1, getattr(obj, "type", "generic"))
+        item.setText(2, self._state_to_text(runtime))
+        item.setText(3, str(self._count_actors(obj.id)))
+        item.setText(4, _format_size(obj))
+        item.setText(5, _get_storage_path(obj))
 
-        item.setData(
-            0,
-            QtCore.Qt.UserRole,
-            obj.id
-        )
+        self._apply_style(item, runtime)
+        self._update_actor_nodes(item, obj.id)
 
-        self._apply_runtime_visual(item, runtime)
-
-        parent_item.addChild(item)
-
-        self._object_items[obj.id] = item
-
-        self._rebuild_actor_children(item, obj.id)
-
-    def _rebuild_actor_children(self, parent_item, object_id):
-        parent_item.takeChildren()
-
-        actors = self._get_actors_by_object(object_id)
-
-        for index, actor in enumerate(actors):
-            actor_item = QtWidgets.QTreeWidgetItem([
-                f"vtkActor_{index}",
-                type(actor).__name__,
-                "RENDER",
-                "",
-                "",
-                "",
-            ])
-
-            brush = QtGui.QBrush(
-                QtGui.QColor("#80CBC4")
-            )
-
-            for col in range(actor_item.columnCount()):
-                actor_item.setForeground(col, brush)
-
-            parent_item.addChild(actor_item)
-
-    def _build_runtime_state(self, obj):
+    def _get_runtime_state(self, obj) -> RuntimeState:
         sm = self._scene_manager()
-
-        selection = getattr(sm, "selection", None)
-
         selected = False
-
-        if selection:
-            try:
-                if hasattr(selection, "selected_ids"):
-                    selected = obj.id in selection.selected_ids
-
-                elif hasattr(selection, "get_selected_ids"):
-                    selected = obj.id in selection.get_selected_ids()
-
-                elif hasattr(selection, "get_selection"):
-                    selected = obj.id in selection.get_selection()
-
-                elif hasattr(selection, "get_first_selected"):
-                    selected = (
-                        obj.id ==
-                        selection.get_first_selected()
-                    )
-
-            except Exception:
-                selected = False
+        if hasattr(sm, "selection"):
+            selection = sm.selection
+            ids = getattr(selection, "selected_ids", [])
+            if callable(ids): ids = ids()
+            selected = obj.id in ids if isinstance(ids, (list, set, tuple)) else obj.id == ids
 
         return RuntimeState(
-            loaded=True,
             visible=getattr(obj, "visible", True),
             selected=selected,
-            dirty=False,
-            orphan=self._is_orphan_object(obj.id),
+            orphan=self._count_actors(obj.id) == 0
         )
 
-    @staticmethod
-    def _runtime_to_text(runtime):
-        flags = []
-
-        flags.append(
-            "VISIBLE"
-            if runtime.visible
-            else "HIDDEN"
-        )
-
-        if runtime.selected:
-            flags.append("SELECTED")
-
-        if runtime.dirty:
-            flags.append("DIRTY")
-
-        if runtime.orphan:
-            flags.append("ORPHAN")
-
+    def _state_to_text(self, state):
+        flags = ["VISIBLE" if state.visible else "HIDDEN"]
+        if state.selected: flags.append("SELECTED")
+        if state.orphan: flags.append("ORPHAN")
         return " | ".join(flags)
 
-    @staticmethod
-    def _apply_runtime_visual(item, runtime):
-        color = "#4CAF50"
+    def _apply_style(self, item, state):
+        color = "#42A5F5" if state.selected else (
+            "#EF5350" if state.orphan else ("#4CAF50" if state.visible else "#757575"))
+        brush = QtGui.QBrush(QtGui.QColor(color))
+        for i in range(self.tree.columnCount()):
+            item.setForeground(i, brush)
 
-        if not runtime.visible:
-            color = "#757575"
+    def _count_actors(self, obj_id):
+        return len(self._get_actors_safe(obj_id))
 
-        if runtime.selected:
-            color = "#42A5F5"
-
-        if runtime.orphan:
-            color = "#EF5350"
-
-        brush = QtGui.QBrush(
-            QtGui.QColor(color)
-        )
-
-        for col in range(item.columnCount()):
-            item.setForeground(col, brush)
-
-    def _get_actors_by_object(self, object_id):
+    def _get_actors_safe(self, obj_id) -> list:
         sm = self._scene_manager()
+        if not sm or not hasattr(sm, "actors"): return []
 
-        if not sm:
-            return []
-
-        actor_registry = getattr(sm, "actors", None)
-
-        if not actor_registry:
-            return []
-
-        if hasattr(actor_registry, "get_actors_by_object"):
-            try:
-                return (
-                    actor_registry.get_actors_by_object(
-                        object_id
-                    ) or []
-                )
-
-            except Exception:
-                return []
-
+        registry = sm.actors
+        for method_name in ["get_actors_by_object", "get_by_object", "get"]:
+            method = getattr(registry, method_name, None)
+            if callable(method):
+                try:
+                    return method(obj_id) or []
+                except:
+                    continue
         return []
 
-    def _get_actor_count(self, object_id):
-        return len(
-            self._get_actors_by_object(object_id)
-        )
+    def _update_actor_nodes(self, parent_item, obj_id):
+        parent_item.takeChildren()
+        actors = self._get_actors_safe(obj_id)
 
-    def _is_orphan_object(self, object_id):
-        return self._get_actor_count(object_id) == 0
-
-    def _update_object_item(self, obj):
-        item = self._object_items.get(obj.id)
-
-        if not item:
-            self._create_object_item(obj)
-            return
-
-        runtime = self._build_runtime_state(obj)
-
-        item.setText(0, obj.name or obj.id)
-        item.setText(1, getattr(obj, "type", "generic"))
-        item.setText(2, self._runtime_to_text(runtime))
-        item.setText(3, str(self._get_actor_count(obj.id)))
-        item.setText(4, _obter_tamanho_formatado(obj))
-        item.setText(5, _obter_local_exato(obj))
-
-        self._apply_runtime_visual(item, runtime)
-
-        self._rebuild_actor_children(item, obj.id)
-
-    def _remove_object_item(self, object_id):
-        item = self._object_items.pop(
-            object_id,
-            None
-        )
-
-        if not item:
-            return
-
-        parent = item.parent()
-
-        if not parent:
-            return
-
-        index = parent.indexOfChild(item)
-
-        if index >= 0:
-            parent.takeChild(index)
-
-    def _refresh_selection_visuals(self):
-        sm = self._scene_manager()
-
-        if not sm:
-            return
-
-        for object_id in self._object_items:
-            obj = sm.objects.get(object_id)
-
-            if obj:
-                self._update_object_item(obj)
-
-    def _highlight_selection(self, object_id):
-        item = self._object_items.get(object_id)
-
-        if not item:
-            return
-
-        self.tree.blockSignals(True)
-
-        self.tree.setCurrentItem(item)
-
-        self.tree.blockSignals(False)
+        for i, actor in enumerate(actors):
+            child = QtWidgets.QTreeWidgetItem(parent_item, [f"Actor_{i}", type(actor).__name__, "RENDER"])
+            child.setForeground(0, QtGui.QColor("#80CBC4"))
 
     def _populate_inspector(self, obj):
         self.inspector.clear()
+        state = self._get_runtime_state(obj)
 
-        runtime = self._build_runtime_state(obj)
+        sections = {
+            "Objeto": {"Nome": getattr(obj, 'name', 'N/A'), "ID": obj.id, "Tipo": getattr(obj, "type", "gen")},
+            "Transform": getattr(obj, "transforms", {}),
+            "Status": {"Visible": state.visible, "Selected": state.selected, "Orphan": state.orphan}
+        }
 
-        self._add_inspector_section(
-            "Objeto",
-            {
-                "Nome": obj.name,
-                "UUID": obj.id,
-                "Tipo": getattr(obj, "type", "generic"),
-                "Grupo": _fase_para_objeto(obj),
-            }
-        )
+        for title, data in sections.items():
+            root = QtWidgets.QTreeWidgetItem([title])
+            root.setFont(0, QtGui.QFont("", -1, QtGui.QFont.Bold))
+            self.inspector.addTopLevelItem(root)
 
-        transform = (
-            getattr(obj, "transform", None)
-            or {}
-        )
-
-        self._add_inspector_section(
-            "Transform",
-            {
-                "Position": str(
-                    transform.get(
-                        "position",
-                        [0, 0, 0]
-                    )
-                ),
-                "Rotation": str(
-                    transform.get(
-                        "rotation",
-                        [0, 0, 0]
-                    )
-                ),
-                "Scale": str(
-                    transform.get(
-                        "scale",
-                        [1, 1, 1]
-                    )
-                ),
-            }
-        )
-
-        self._add_inspector_section(
-            "Runtime",
-            {
-                "Visible": str(runtime.visible),
-                "Selected": str(runtime.selected),
-                "Dirty": str(runtime.dirty),
-                "Orphan": str(runtime.orphan),
-                "Actors": str(
-                    self._get_actor_count(obj.id)
-                ),
-            }
-        )
-
-        self._populate_vtk_section(obj)
-
-    def _add_inspector_section(self, title, data):
-        root = QtWidgets.QTreeWidgetItem([title])
-
-        font = root.font(0)
-
-        font.setBold(True)
-
-        root.setFont(0, font)
-
-        self.inspector.addTopLevelItem(root)
-
-        for key, value in data.items():
-            child = QtWidgets.QTreeWidgetItem([
-                str(key),
-                str(value)
-            ])
-
-            root.addChild(child)
-
-        root.setExpanded(True)
-
-    def _populate_vtk_section(self, obj):
-        actors = self._get_actors_by_object(obj.id)
-
-        root = QtWidgets.QTreeWidgetItem(["VTK"])
-
-        font = root.font(0)
-
-        font.setBold(True)
-
-        root.setFont(0, font)
-
-        self.inspector.addTopLevelItem(root)
-
-        for index, actor in enumerate(actors):
-            actor_item = QtWidgets.QTreeWidgetItem([
-                f"vtkActor_{index}",
-                type(actor).__name__
-            ])
-
-            root.addChild(actor_item)
-
-            mapper = None
-
-            if hasattr(actor, "GetMapper"):
-                mapper = actor.GetMapper()
-
-            if mapper:
-                mapper_item = QtWidgets.QTreeWidgetItem([
-                    "Mapper",
-                    type(mapper).__name__
-                ])
-
-                actor_item.addChild(mapper_item)
-
-        root.setExpanded(True)
+            if isinstance(data, dict):
+                for k, v in data.items():
+                    QtWidgets.QTreeWidgetItem(root, [str(k), str(v)])
+            root.setExpanded(True)
 
     def _on_object_added(self, object=None, **kwargs):
-        if isinstance(object, dict):
-            return
+        obj = object or kwargs.get("object")
+        if obj and not isinstance(obj, dict):
+            self._create_or_update_item(obj)
 
-    def _on_object_removed(
-        self,
-        object_id=None,
-        **kwargs
-    ):
-        if object_id:
-            self._remove_object_item(object_id)
+    def _on_object_removed(self, object_id=None, **kwargs):
+        oid = object_id or kwargs.get("object_id")
+        if item := self._object_items.pop(oid, None):
+            if parent := item.parent(): parent.removeChild(item)
 
-    def _on_object_updated(
-        self,
-        object=None,
-        **kwargs
-    ):
-        if object:
-            self._update_object_item(object)
+    def _on_object_updated(self, object=None, **kwargs):
+        obj = object or kwargs.get("object")
+        if obj and not isinstance(obj, dict):
+            self._create_or_update_item(obj)
 
-    def _on_visibility_changed(
-        self,
-        object_id=None,
-        **kwargs
-    ):
+    def _on_visibility_changed(self, object_id=None, **kwargs):
+        oid = object_id or kwargs.get("object_id")
         sm = self._scene_manager()
+        if sm and oid:
+            if obj := sm.objects.get(oid): self._create_or_update_item(obj)
 
-        if not sm or not object_id:
-            return
+    def _on_selection_changed(self, selected_ids=None, **kwargs):
+        ids = selected_ids or kwargs.get("selected_ids", [])
+        sm = self._scene_manager()
+        if not sm: return
 
-        obj = sm.objects.get(object_id)
+        for obj_id, item in self._object_items.items():
+            if obj := sm.objects.get(obj_id):
+                self._create_or_update_item(obj)
 
-        if obj:
-            self._update_object_item(obj)
+        if ids and isinstance(ids, (list, tuple)):
+            if obj := sm.objects.get(ids[0]):
+                self._populate_inspector(obj)
 
-    def _on_selection_changed(
-        self,
-        selected_ids=None,
-        **kwargs
-    ):
-        self._refresh_selection_visuals()
-
-        selected_ids = (
-            selected_ids
-            or kwargs.get("selected_ids")
-            or []
-        )
-
-        if selected_ids:
-            object_id = selected_ids[0]
-
-            self._highlight_selection(object_id)
-
-            sm = self._scene_manager()
-
-            if sm:
-                obj = sm.objects.get(object_id)
-
-                if obj:
-                    self._populate_inspector(obj)
-
-    def _on_item_clicked(self, item, column):
-        object_id = item.data(
-            0,
-            QtCore.Qt.UserRole
-        )
-
-        if not object_id:
-            return
-
-        self.itemSelected.emit(object_id)
+    def _handle_item_click(self, item, _):
+        obj_id = item.data(0, QtCore.Qt.UserRole)
+        if not obj_id: return
 
         sm = self._scene_manager()
+        if sm:
+            if hasattr(sm, "select_object"):
+                sm.select_object(obj_id)
 
-        if sm and hasattr(sm, "select_object"):
-            sm.select_object(
-                object_id,
-                multi=False
-            )
-
-            obj = sm.objects.get(object_id)
-
-            if obj:
+            if obj := sm.objects.get(obj_id):
+                self.itemSelected.emit(obj)
                 self._populate_inspector(obj)
 
 
 class Component(SceneMonitorCenter):
     toolbox_name = "Monitor de Cena"
-
-    def __init__(self, modulo=None):
-        super().__init__(modulo=modulo)
 
 
 if __name__ == "__main__":

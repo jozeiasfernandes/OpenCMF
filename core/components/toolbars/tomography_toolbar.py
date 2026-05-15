@@ -101,7 +101,7 @@ class TomographyToolbarHandler(QtCore.QObject):
                 color: #888; 
                 font-size: 10px; 
                 font-weight: bold; 
-                text-transform: uppercase;
+                text-transforms: uppercase;
                 margin-left: 5px;
             }
         """)
