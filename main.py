@@ -5,7 +5,7 @@ import ctypes
 import vtk
 from pathlib import Path
 from typing import Optional
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.base_module.base import FluxoBase
 from core.localization.translator import tr
@@ -65,6 +65,17 @@ class MainWindow(QtWidgets.QMainWindow):
         qss_path = self.base_dir / "appearance" / "themes" / f"{theme}.qss"
         if qss_path.exists():
             self.setStyleSheet(qss_path.read_text(encoding="utf-8"))
+
+        self.setup_icon()
+
+
+
+    def setup_icon(self):
+        icon_path = self.base_dir / "appearance" / "icons" / "cmf.svg"
+        if icon_path.exists():
+            app_icon = QtGui.QIcon(str(icon_path))
+            self.setWindowIcon(app_icon)
+            QtWidgets.QApplication.setWindowIcon(app_icon)
 
     def back_to_home(self):
         if hasattr(self.home, 'update_list'):
