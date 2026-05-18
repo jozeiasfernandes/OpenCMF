@@ -5,6 +5,8 @@ from PySide6 import QtCore, QtWidgets, QtGui
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from core.scene.rendering.vtk_scene_renderer import VTKSceneRenderer
 from core.scene.events.scene_events import SELECTION_CHANGED
+from core.shortcut.shortcuts import get_shortcuts_by_scope, match_shortcut
+
 
 os.environ["QT_API"] = "pyside6"
 
@@ -25,6 +27,8 @@ class Janela3DSurface(QtWidgets.QWidget):
         self._setup_ui()
         self._setup_vtk()
         self._connect_selection_manager()
+        self.shortcuts = get_shortcuts_by_scope("view3d")
+        self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
     def _connect_selection_manager(self):
         if not self.scene_manager:
@@ -166,6 +170,88 @@ class Janela3DSurface(QtWidgets.QWidget):
         self.is_maximized = not self.is_maximized
         self.btn_max.setText("❐" if self.is_maximized else "▢")
         self.maximizeRequested.emit(self.is_maximized)
+
+    def keyPressEvent(self, event):
+        action = match_shortcut(event, self.shortcuts)
+
+        if action:
+            self.execute_action(action)
+            event.accept()
+        else:
+            super().keyPressEvent(event)
+
+    def execute_action(self, action_id: str):
+        # Mapeamento das visões 3D: (pos_x, pos_y, pos_z, view_up_x, view_up_y, view_up_z)
+        view_maps = {
+            "view3d.frontal": (0, -1, 0, 0, 0, 1),
+            "view3d.right": (1, 0, 0, 0, 0, 1),
+            "view3d.left": (-1, 0, 0, 0, 0, 1),
+            "view3d.superior": (0, 0, 1, 0, -1, 0),
+            "view3d.inferior": (0, 0, -1, 0, 1, 0),
+        }
+
+        # 1. Alteração de Câmera (Visões Padrão)
+        if action_id in view_maps:
+            cam = self.renderer.GetActiveCamera()
+            coords = view_maps[action_id]
+
+            # Correção: Desempacotamento explícito usando '*' para compatibilidade com VTK C++
+            cam.SetPosition(*coords[:3])
+            cam.SetViewUp(*coords[3:])
+            cam.SetFocalPoint(0, 0, 0)
+
+            self.renderer.ResetCamera()
+            self.render()
+
+        # 2. Projeção Ortogonal / Perspectiva
+        elif action_id == "view3d.orthogonal":
+            cam = self.renderer.GetActiveCamera()
+            cam.SetParallelProjection(not cam.GetParallelProjection())
+            self.render()
+
+        # 3. Deleção de Objetos Selecionados
+        elif action_id == "view3d.delete_object":
+            if self.scene_manager and self.scene_manager.selection.selected_ids:
+                # Criação de uma lista estática e isolada dos IDs para evitar conflito de iteração
+                to_delete = list(self.scene_manager.selection.selected_ids)
+
+                # Limpa a seleção antes do processamento para blindar a UI contra glitches
+                self.scene_manager.selection.clear()
+
+                for obj_id in to_delete:
+                    self.scene_manager.remove_object(obj_id)
+
+                self.render()
+
+        # 4. Isolamento Anatômico e Foco
+        elif action_id in ["view3d.mandible", "view3d.maxilla", "view3d.skull", "view3d.chin"]:
+            anatomy_keywords = {
+                "view3d.mandible": ["mandibula", "mandible"],
+                "view3d.maxilla": ["maxila", "maxilla"],
+                "view3d.skull": ["cranio", "skull"],
+                "view3d.chin": ["mento", "queixo", "chin"],
+            }
+
+            keywords = anatomy_keywords[action_id]
+            target_actor = None
+            target_id = None
+
+            # Varredura segura nos atores ativos do renderizador VTK
+            actors = self.vtk_scene_renderer.get_actors()
+            for obj_id, actor in actors.items():
+                actor_name = getattr(actor, "name", "") or ""
+                if any(kw in obj_id.lower() or kw in actor_name.lower() for kw in keywords):
+                    target_actor = actor
+                    target_id = obj_id
+                    break
+
+            # Aplica a seleção exclusiva e ajusta o zoom da câmera no objeto encontrado
+            if target_id and self.scene_manager:
+                self.scene_manager.selection.select(target_id, exclusive=True)
+
+            if target_actor:
+                self.renderer.ResetCamera(target_actor.GetBounds())
+                self.render()
 
 
 if __name__ == "__main__":

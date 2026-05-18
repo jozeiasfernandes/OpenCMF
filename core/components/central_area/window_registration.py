@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 import vtk
 
+from core.shortcut.shortcuts import get_shortcuts_by_scope, match_shortcut
 from core.components.menus.windows_registration_menu import WindowsRegistrationMenu
 from core.components.central_area.windows_3d import Janela3DSurface
 from core.scene.events.scene_events import (
@@ -48,6 +49,7 @@ class WindowRegistration(QtWidgets.QWidget):
         self.setMinimumSize(0, 0)
         self.setup_ui()
         self._bind_scene_listeners()
+        self.shortcuts = get_shortcuts_by_scope("view3d")
 
     # ====================== SETUP UI ======================
     def setup_ui(self):
@@ -441,6 +443,210 @@ class WindowRegistration(QtWidgets.QWidget):
 
     def get_points_b(self):
         return self.pontos_b
+
+    # ====================== SHORTCUTS ======================
+
+    def keyPressEvent(self, event):
+        action = match_shortcut(event, self.shortcuts)
+
+        if action:
+            # Identificar qual view está ativa/focada
+            active_view = self._get_active_view()
+            if active_view:
+                self.execute_action(action, active_view)
+                event.accept()
+            else:
+                super().keyPressEvent(event)
+        else:
+            super().keyPressEvent(event)
+
+    def _get_active_view(self):
+        """Retorna a view que atualmente tem foco"""
+        if self.view_a.hasFocus():
+            return self.view_a
+        elif self.view_b.hasFocus():
+            return self.view_b
+        elif self.view_c.hasFocus():
+            return self.view_c
+        return self.view_c  # Default
+
+    def execute_action(self, action_id: str, view):
+        """Executa ação com a view específica"""
+
+        # CORREÇÃO: Os valores de câmera estavam trocados
+        view_maps = {
+            "view3d.frontal": {
+                "position": (0, -100, 0),  # X, Y, Z
+                "view_up": (0, 0, 1),  # Up vector
+                "focal": (0, 0, 0)
+            },
+            "view3d.right": {
+                "position": (100, 0, 0),
+                "view_up": (0, 0, 1),
+                "focal": (0, 0, 0)
+            },
+            "view3d.left": {
+                "position": (-100, 0, 0),
+                "view_up": (0, 0, 1),
+                "focal": (0, 0, 0)
+            },
+            "view3d.superior": {
+                "position": (0, 0, 100),
+                "view_up": (0, 1, 0),
+                "focal": (0, 0, 0)
+            },
+            "view3d.inferior": {
+                "position": (0, 0, -100),
+                "view_up": (0, -1, 0),
+                "focal": (0, 0, 0)
+            },
+        }
+
+        # 1. Alteração de Câmera
+        if action_id in view_maps:
+            cam = view.renderer.GetActiveCamera()
+            config = view_maps[action_id]
+
+            cam.SetPosition(config["position"])
+            cam.SetViewUp(config["view_up"])
+            cam.SetFocalPoint(config["focal"])
+
+            view.renderer.ResetCamera()
+            view.render()
+            logger.debug(f"View alterada para: {action_id}")
+            return
+
+        # 2. Projeção Ortogonal/Perspectiva
+        elif action_id == "view3d.orthogonal":
+            cam = view.renderer.GetActiveCamera()
+            current = cam.GetParallelProjection()
+            cam.SetParallelProjection(not current)
+            view.render()
+            logger.debug(f"Projeção alterada: {'Ortogonal' if not current else 'Perspectiva'}")
+            return
+
+        # 3. Deleção de Objetos
+        elif action_id == "view3d.delete_object":
+            if self._scene_manager and hasattr(self._scene_manager, 'selection'):
+                selected_ids = list(self._scene_manager.selection.selected_ids)
+                if selected_ids:
+                    self._scene_manager.selection.clear()
+                    for obj_id in selected_ids:
+                        self._scene_manager.remove_object(obj_id)
+                    for v in [self.view_a, self.view_b, self.view_c]:
+                        v.render()
+                    logger.debug(f"Objetos deletados: {selected_ids}")
+            return
+
+        # 4. Isolamento Anatômico
+        elif action_id in ["view3d.mandible", "view3d.maxilla", "view3d.skull", "view3d.chin"]:
+            anatomy_keywords = {
+                "view3d.mandible": ["mandibula", "mandible"],
+                "view3d.maxilla": ["maxila", "maxilla"],
+                "view3d.skull": ["cranio", "skull"],
+                "view3d.chin": ["mento", "queixo", "chin"],
+            }
+
+            keywords = anatomy_keywords[action_id]
+            target_actor = None
+            target_id = None
+
+            # Buscar em todas as views
+            for v in [self.view_a, self.view_b, self.view_c]:
+                # Método seguro para obter atores
+                if hasattr(v, 'vtk_scene_renderer'):
+                    actors = v.vtk_scene_renderer.get_actors()
+                    for obj_id, actor in actors.items():
+                        actor_name = getattr(actor, "name", "") or ""
+                        if any(kw in obj_id.lower() or kw in actor_name.lower() for kw in keywords):
+                            target_actor = actor
+                            target_id = obj_id
+                            break
+                if target_actor:
+                    break
+
+            if target_id and self._scene_manager:
+                self._scene_manager.selection.select(target_id, exclusive=True)
+
+            if target_actor:
+                bounds = target_actor.GetBounds()
+                # Verifica se os bounds são válidos
+                if bounds and all(b is not None for b in bounds):
+                    view.renderer.ResetCamera(bounds)
+                    view.render()
+                    logger.debug(f"Focado em: {action_id} (ID: {target_id})")
+            return
+
+    def _setup_keyboard_focus(self):
+        """Configura as views 3D para receberem eventos de teclado"""
+        for view in [self.view_a, self.view_b, self.view_c]:
+            # Permite que a view receba foco
+            view.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+            view.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
+
+            # Instala event filter para capturar cliques e dar foco
+            view.installEventFilter(self)
+
+            # Para o VTK widget interno também receber foco
+            vtk_widget = view.vtkWidget
+            vtk_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
+            vtk_widget.installEventFilter(self)
+
+    def eventFilter(self, obj, event):
+        """Captura eventos para dar foco às views quando clicadas"""
+        if event.type() == QtCore.QEvent.MouseButtonPress:
+            # Verifica se o objeto é uma view ou o VTK widget
+            if obj in [self.view_a, self.view_b, self.view_c,
+                       self.view_a.vtkWidget, self.view_b.vtkWidget, self.view_c.vtkWidget]:
+                # Dá foco à view correspondente
+                if obj in [self.view_a, self.view_a.vtkWidget]:
+                    self.view_a.setFocus()
+                elif obj in [self.view_b, self.view_b.vtkWidget]:
+                    self.view_b.setFocus()
+                elif obj in [self.view_c, self.view_c.vtkWidget]:
+                    self.view_c.setFocus()
+
+        return super().eventFilter(obj, event)
+
+    def _finalize_setup(self):
+        self.view_a.setup_interactors()
+        self.view_b.setup_interactors()
+        self.view_c.setup_interactors()
+
+        self.view_a.vtkWidget.GetRenderWindow().GetInteractor().AddObserver(
+            "LeftButtonPressEvent", self._on_click_a)
+        self.view_b.vtkWidget.GetRenderWindow().GetInteractor().AddObserver(
+            "LeftButtonPressEvent", self._on_click_b)
+
+        self.reset_layout_vistas()
+        self._connect_context_menus()
+
+        # ADICIONE ESTA LINHA:
+        self._setup_keyboard_focus()
+
+        # Dá foco inicial à view central
+        self.view_c.setFocus()
+
+    def keyPressEvent(self, event):
+        # Log para debug
+        logger.debug(f"Tecla pressionada: {event.key()}, modificadores: {event.modifiers()}")
+
+        action = match_shortcut(event, self.shortcuts)
+
+        if action:
+            logger.debug(f"Ação encontrada: {action}")
+            active_view = self._get_active_view()
+            if active_view:
+                logger.debug(f"View ativa: {active_view}")
+                self.execute_action(action, active_view)
+                event.accept()
+            else:
+                logger.debug("Nenhuma view ativa encontrada")
+                super().keyPressEvent(event)
+        else:
+            logger.debug(f"Nenhuma ação mapeada para: {event.key()}")
+            super().keyPressEvent(event)
+
 
 
 if __name__ == "__main__":

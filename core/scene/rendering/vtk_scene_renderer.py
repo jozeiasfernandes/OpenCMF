@@ -75,3 +75,6 @@ class VTKSceneRenderer:
 
     def refresh(self):
         self._renderer.Render()
+
+    def get_actors(self) -> dict:
+        return self._actors
