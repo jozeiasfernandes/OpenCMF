@@ -90,7 +90,7 @@ class WindowRegistration(QtWidgets.QWidget):
             del self.objetos_a[object_id]
         if object_id in self.objetos_b:
             del self.objetos_b[object_id]
-        for view in (self.view_a, self.view_b):
+        for view in (self.view_a, self.view_b, self.view_c):
             view.vtk_scene_renderer.remove_actor(object_id)
             view.render()
 
@@ -146,7 +146,7 @@ class WindowRegistration(QtWidgets.QWidget):
                     view.render()
 
     def set_objeto_visibilidade(self, identifier: str, visivel: bool):
-        for view in [self.view_a, self.view_b]:
+        for view in [self.view_a, self.view_b, self.view_c]:
             actor = self._find_actor_by_id(view, identifier)
             if actor:
                 actor.SetVisibility(visivel)
@@ -189,20 +189,28 @@ class WindowRegistration(QtWidgets.QWidget):
 
     def adicionar_malha_vista_a(self, nome, polydata, obj_id=None):
         self._limpar_atores_da_vista(self.view_a)
+        for prev_id in self.objetos_a:
+            self.view_c.remover_objeto(prev_id)
         identifier = obj_id or nome
         self.objetos_a = {identifier: polydata}
         self.view_a.adicionar_objeto(identifier, polydata, cor=(0.7, 0.7, 0.9), nome_amigavel=nome)
+        self.view_c.adicionar_objeto(identifier, polydata, cor=(0.7, 0.7, 0.9), nome_amigavel=nome)
         self.view_a.render()
+        self.view_c.render()
 
     def adicionar_malha_vista_b(self, nome, polydata, obj_id=None):
         self._limpar_atores_da_vista(self.view_b)
+        for prev_id in self.objetos_b:
+            self.view_c.remover_objeto(prev_id)
         identifier = obj_id or nome
         self.objetos_b = {identifier: polydata}
         self.view_b.adicionar_objeto(identifier, polydata, cor=(0.9, 0.9, 0.7), nome_amigavel=nome)
+        self.view_c.adicionar_objeto(identifier, polydata, cor=(0.9, 0.9, 0.7), nome_amigavel=nome)
         self.view_b.render()
+        self.view_c.render()
 
     def _apply_render_change(self, render_type, value, identifier=None):
-        for view in [self.view_a, self.view_b]:
+        for view in [self.view_a, self.view_b, self.view_c]:
             if identifier:
                 target = self._find_actor_by_id(view, identifier)
                 actors = [target] if target else []
@@ -227,7 +235,7 @@ class WindowRegistration(QtWidgets.QWidget):
                 view.render()
 
     def _apply_transform_change(self, transform_type, values):
-        for view in [self.view_a, self.view_b]:
+        for view in [self.view_a, self.view_b, self.view_c]:
             it = view.renderer.GetActors()
             it.InitTraversal()
             for _ in range(it.GetNumberOfItems()):
@@ -244,29 +252,36 @@ class WindowRegistration(QtWidgets.QWidget):
     def setup_ui(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.main_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
+        self.top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         for side in ["A", "B"]:
             container = QtWidgets.QWidget()
             layout = QtWidgets.QVBoxLayout(container)
-            layout.setContentsMargins(4, 4, 4, 4)
+            layout.setContentsMargins(0, 0, 0, 0)
             view = Janela3DSurface(f"Vista {side}", "#202020")
             view.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
             controls_layout = QtWidgets.QHBoxLayout()
             combo_mesh = QtWidgets.QComboBox()
-            combo_mesh.setPlaceholderText("Selecionar objeto...")
+            combo_mesh.setPlaceholderText("Referência (Fixo):" if side == "A" else "Móvel (Alinhamento):")
             combo_view = QtWidgets.QComboBox()
             combo_view.addItems(["Frontal", "Posterior", "Direita", "Esquerda", "Superior", "Inferior"])
             combo_view.setFixedWidth(110)
             controls_layout.addWidget(combo_mesh, stretch=1)
             controls_layout.addWidget(combo_view)
             layout.addWidget(view, stretch=1)
-            layout.addWidget(QtWidgets.QLabel("Referência (Fixo):" if side == "A" else "Móvel (Alinhamento):"))
             layout.addLayout(controls_layout)
             setattr(self, f"view_{side.lower()}", view)
             setattr(self, f"combo_{side.lower()}", combo_mesh)
-            self.splitter.addWidget(container)
+            self.top_splitter.addWidget(container)
             combo_view.currentTextChanged.connect(lambda t, s=side: self._on_view_presets_changed(s, t))
-        self.main_layout.addWidget(self.splitter)
+        self.main_splitter.addWidget(self.top_splitter)
+        
+        self.view_c = Janela3DSurface("Visor Geral", "#202020")
+        self.view_c.header.hide()
+        self.view_c.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.main_splitter.addWidget(self.view_c)
+        
+        self.main_layout.addWidget(self.main_splitter)
         self.combo_a.currentTextChanged.connect(lambda t: self._on_combo_changed("A", t))
         self.combo_b.currentTextChanged.connect(lambda t: self._on_combo_changed("B", t))
         QtCore.QTimer.singleShot(100, self._finalize_setup)
@@ -318,16 +333,21 @@ class WindowRegistration(QtWidgets.QWidget):
     def _finalize_setup(self):
         self.view_a.setup_interactors()
         self.view_b.setup_interactors()
+        self.view_c.setup_interactors()
         self.view_a.vtkWidget.GetRenderWindow().GetInteractor().AddObserver("LeftButtonPressEvent", self._on_click_a)
         self.view_b.vtkWidget.GetRenderWindow().GetInteractor().AddObserver("LeftButtonPressEvent", self._on_click_b)
         self.reset_layout_vistas()
 
     def reset_layout_vistas(self):
-        w = self.splitter.width()
+        w = self.top_splitter.width()
         if w > 0:
-            self.splitter.setSizes([w // 2, w // 2])
+            self.top_splitter.setSizes([w // 2, w // 2])
+        h = self.main_splitter.height()
+        if h > 0:
+            self.main_splitter.setSizes([h // 2, h // 2])
         self.view_a.render()
         self.view_b.render()
+        self.view_c.render()
 
     def _on_click_a(self, obj, event):
         if self.current_mode == "select": return
