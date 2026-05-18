@@ -207,26 +207,26 @@ class WindowRegistration(QtWidgets.QWidget):
     def adicionar_malha_vista_a(self, nome, polydata, obj_id=None):
         self._limpar_atores_da_vista(self.view_a)
         for prev_id in list(self.objetos_a.keys()):
-            self.view_c.remover_objeto(prev_id)
+            self.view_c.del_object(prev_id)
 
         identifier = obj_id or nome
         self.objetos_a = {identifier: polydata}
 
-        self.view_a.adicionar_objeto(identifier, polydata, cor=(0.7, 0.7, 0.9), nome_amigavel=nome)
-        self.view_c.adicionar_objeto(identifier, polydata, cor=(0.7, 0.7, 0.9), nome_amigavel=nome)
+        self.view_a.add_object(identifier, polydata, cor=(0.7, 0.7, 0.9), nome_amigavel=nome)
+        self.view_c.add_object(identifier, polydata, cor=(0.7, 0.7, 0.9), nome_amigavel=nome)
         self.view_a.render()
         self.view_c.render()
 
     def adicionar_malha_vista_b(self, nome, polydata, obj_id=None):
         self._limpar_atores_da_vista(self.view_b)
         for prev_id in list(self.objetos_b.keys()):
-            self.view_c.remover_objeto(prev_id)
+            self.view_c.del_object(prev_id)
 
         identifier = obj_id or nome
         self.objetos_b = {identifier: polydata}
 
-        self.view_b.adicionar_objeto(identifier, polydata, cor=(0.9, 0.9, 0.7), nome_amigavel=nome)
-        self.view_c.adicionar_objeto(identifier, polydata, cor=(0.9, 0.9, 0.7), nome_amigavel=nome)
+        self.view_b.add_object(identifier, polydata, cor=(0.9, 0.9, 0.7), nome_amigavel=nome)
+        self.view_c.add_object(identifier, polydata, cor=(0.9, 0.9, 0.7), nome_amigavel=nome)
         self.view_b.render()
         self.view_c.render()
 
