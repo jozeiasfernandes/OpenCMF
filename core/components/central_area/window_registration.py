@@ -28,7 +28,6 @@ class RegistrationDoubleClickFilter(QtCore.QObject):
 
 
 class WindowRegistration(QtWidgets.QWidget):
-    # ==================== SIGNALS ====================
     pontoAdicionado = QtCore.Signal(str, list)
     requisitarCarregamentoObjeto = QtCore.Signal(str, str)
 
@@ -36,7 +35,6 @@ class WindowRegistration(QtWidgets.QWidget):
         super().__init__()
         self._scene_manager = scene_manager
 
-        # Dados
         self.objetos_a = {}
         self.objetos_b = {}
         self.pontos_a = []
@@ -51,7 +49,6 @@ class WindowRegistration(QtWidgets.QWidget):
         self._bind_scene_listeners()
         self.shortcuts = get_shortcuts_by_scope("view3d")
 
-    # ====================== SETUP UI ======================
     def setup_ui(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -92,7 +89,6 @@ class WindowRegistration(QtWidgets.QWidget):
 
         self.main_splitter.addWidget(self.top_splitter)
 
-        # Visor Geral (C)
         self.view_c = Janela3DSurface("Visor Geral", "#202020")
         self.view_c.header.hide()
         self.view_c.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -100,7 +96,6 @@ class WindowRegistration(QtWidgets.QWidget):
 
         self.main_layout.addWidget(self.main_splitter)
 
-        # Conexões
         self.combo_a.currentTextChanged.connect(lambda t: self._on_combo_changed("A", t))
         self.combo_b.currentTextChanged.connect(lambda t: self._on_combo_changed("B", t))
 
@@ -108,16 +103,12 @@ class WindowRegistration(QtWidgets.QWidget):
 
     def _connect_context_menus(self):
         for side, view in [("A", self.view_a), ("B", self.view_b)]:
-            # Ativa menu de contexto customizado
             view.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
-
-            # Conecta o sinal de clique direito
             view.customContextMenuRequested.connect(
                 lambda pos, s=side: self._open_context_menu(s, pos)
             )
 
     def _open_context_menu(self, side: str, position: QtCore.QPoint):
-        """Abre o menu de contexto na vista correspondente"""
         view = self.view_a if side == "A" else self.view_b
         menu = WindowsRegistrationMenu(self, view, side)
         menu.exec(view.mapToGlobal(position))
@@ -134,6 +125,8 @@ class WindowRegistration(QtWidgets.QWidget):
 
         self.reset_layout_vistas()
         self._connect_context_menus()
+        self._setup_keyboard_focus()
+        self.view_c.setFocus()
 
     def reset_layout_vistas(self):
         w = self.top_splitter.width()
@@ -148,7 +141,92 @@ class WindowRegistration(QtWidgets.QWidget):
         self.view_b.render()
         self.view_c.render()
 
-    # ====================== SCENE LISTENERS ======================
+    def atualizar_lista_objetos(self, nomes_objetos: list):
+        if not nomes_objetos:
+            return
+
+        for combo in [self.combo_a, self.combo_b]:
+            combo.blockSignals(True)
+            combo.clear()
+            combo.addItem("")
+            combo.addItems(nomes_objetos)
+            combo.blockSignals(False)
+
+        if nomes_objetos:
+            self.combo_a.setCurrentText(nomes_objetos[0])
+
+        if len(nomes_objetos) > 1:
+            self.combo_b.setCurrentText(nomes_objetos[1])
+        elif nomes_objetos:
+            self.combo_b.setCurrentText(nomes_objetos[0])
+
+    def _verificar_e_atualizar_vistas(self):
+        objeto_a_carregado = len(self.objetos_a) > 0
+        objeto_b_carregado = len(self.objetos_b) > 0
+
+        logger.debug(f"Objeto A carregado: {objeto_a_carregado}, Objeto B carregado: {objeto_b_carregado}")
+
+        if objeto_a_carregado and objeto_b_carregado:
+            logger.debug("Ambos objetos carregados, atualizando vistas para frontal")
+            self._atualizar_vistas_para_frontal()
+        else:
+            QtCore.QTimer.singleShot(100, self._verificar_e_atualizar_vistas)
+
+    def _atualizar_vistas_para_frontal(self):
+        for view_name, view in [("A", self.view_a), ("B", self.view_b), ("C", self.view_c)]:
+            if not view.renderer:
+                logger.warning(f"View {view_name}: renderer não encontrado")
+                continue
+
+            camera = view.renderer.GetActiveCamera()
+            camera.SetPosition(0, -100, 0)
+            camera.SetViewUp(0, 0, 1)
+            camera.SetFocalPoint(0, 0, 0)
+            camera.SetParallelProjection(False)
+
+            view.renderer.ResetCamera()
+            view.render()
+            view.render()
+
+            logger.debug(f"View {view_name} atualizada para orientação frontal")
+
+        self.reset_layout_vistas()
+
+    def _on_combo_changed(self, vista_id, nome_objeto):
+        if nome_objeto:
+            self.requisitarCarregamentoObjeto.emit(vista_id, nome_objeto)
+            QtCore.QTimer.singleShot(100, self._verificar_e_atualizar_vistas)
+
+    def adicionar_malha_vista_a(self, nome, polydata, obj_id=None):
+        self._limpar_atores_da_vista(self.view_a)
+        for prev_id in list(self.objetos_a.keys()):
+            self.view_c.del_object(prev_id)
+
+        identifier = obj_id or nome
+        self.objetos_a = {identifier: polydata}
+
+        self.view_a.add_object(identifier, polydata, cor=(0.7, 0.7, 0.9), nome_amigavel=nome)
+        self.view_c.add_object(identifier, polydata, cor=(0.7, 0.7, 0.9), nome_amigavel=nome)
+        self.view_a.render()
+        self.view_c.render()
+
+        QtCore.QTimer.singleShot(50, self._verificar_e_atualizar_vistas)
+
+    def adicionar_malha_vista_b(self, nome, polydata, obj_id=None):
+        self._limpar_atores_da_vista(self.view_b)
+        for prev_id in list(self.objetos_b.keys()):
+            self.view_c.del_object(prev_id)
+
+        identifier = obj_id or nome
+        self.objetos_b = {identifier: polydata}
+
+        self.view_b.add_object(identifier, polydata, cor=(0.9, 0.9, 0.7), nome_amigavel=nome)
+        self.view_c.add_object(identifier, polydata, cor=(0.9, 0.9, 0.7), nome_amigavel=nome)
+        self.view_b.render()
+        self.view_c.render()
+
+        QtCore.QTimer.singleShot(50, self._verificar_e_atualizar_vistas)
+
     def _bind_scene_listeners(self) -> None:
         if self._scene_manager is None:
             return
@@ -176,7 +254,6 @@ class WindowRegistration(QtWidgets.QWidget):
                 style = vtk.vtkInteractorStyleUser()
             interactor.SetInteractorStyle(style)
 
-    # ====================== SCENE BUS HANDLERS ======================
     def _on_scene_bus_visibility(self, object_id: str, visible: bool, **_kwargs) -> None:
         self.set_objeto_visibilidade(object_id, visible)
 
@@ -205,41 +282,6 @@ class WindowRegistration(QtWidgets.QWidget):
         if size is not None:
             self.set_ponto_raio(float(size))
 
-    # ====================== OBJECT MANAGEMENT ======================
-    def adicionar_malha_vista_a(self, nome, polydata, obj_id=None):
-        self._limpar_atores_da_vista(self.view_a)
-        for prev_id in list(self.objetos_a.keys()):
-            self.view_c.del_object(prev_id)
-
-        identifier = obj_id or nome
-        self.objetos_a = {identifier: polydata}
-
-        self.view_a.add_object(identifier, polydata, cor=(0.7, 0.7, 0.9), nome_amigavel=nome)
-        self.view_c.add_object(identifier, polydata, cor=(0.7, 0.7, 0.9), nome_amigavel=nome)
-        self.view_a.render()
-        self.view_c.render()
-
-    def adicionar_malha_vista_b(self, nome, polydata, obj_id=None):
-        self._limpar_atores_da_vista(self.view_b)
-        for prev_id in list(self.objetos_b.keys()):
-            self.view_c.del_object(prev_id)
-
-        identifier = obj_id or nome
-        self.objetos_b = {identifier: polydata}
-
-        self.view_b.add_object(identifier, polydata, cor=(0.9, 0.9, 0.7), nome_amigavel=nome)
-        self.view_c.add_object(identifier, polydata, cor=(0.9, 0.9, 0.7), nome_amigavel=nome)
-        self.view_b.render()
-        self.view_c.render()
-
-    def atualizar_lista_objetos(self, nomes_objetos: list):
-        for combo in [self.combo_a, self.combo_b]:
-            combo.blockSignals(True)
-            combo.clear()
-            combo.addItem("")
-            combo.addItems(nomes_objetos)
-            combo.blockSignals(False)
-
     def set_objeto_visibilidade(self, identifier: str, visivel: bool):
         for view in [self.view_a, self.view_b, self.view_c]:
             actor = self._find_actor_by_id(view, identifier)
@@ -247,7 +289,6 @@ class WindowRegistration(QtWidgets.QWidget):
                 actor.SetVisibility(visivel)
                 view.render()
 
-    # ====================== MARKERS / POINTS ======================
     def _pick_point(self, view, side_label, points_list, color):
         interactor = view.vtkWidget.GetRenderWindow().GetInteractor()
         x, y = interactor.GetEventPosition()
@@ -280,7 +321,6 @@ class WindowRegistration(QtWidgets.QWidget):
         for view, lista in [(self.view_a, self.pontos_a), (self.view_b, self.pontos_b)]:
             if not lista:
                 continue
-            # ... (mantive a lógica original)
             actors = view.renderer.GetActors()
             actors.InitTraversal()
             atores_na_cena = [actors.GetNextActor() for _ in range(actors.GetNumberOfItems())]
@@ -293,7 +333,6 @@ class WindowRegistration(QtWidgets.QWidget):
 
     def limpar_marcadores(self):
         for view, lista in [(self.view_a, self.pontos_a), (self.view_b, self.pontos_b)]:
-            # ... (lógica mantida)
             actors = view.renderer.GetActors()
             actors.InitTraversal()
             atores_para_remover = []
@@ -319,7 +358,6 @@ class WindowRegistration(QtWidgets.QWidget):
                         source.SetRadius(novo_raio)
             view.render()
 
-    # ====================== RENDER & TRANSFORM ======================
     def _find_actor_by_id(self, view, identifier):
         actors = view.renderer.GetActors()
         actors.InitTraversal()
@@ -385,11 +423,10 @@ class WindowRegistration(QtWidgets.QWidget):
                         actor.SetScale(values)
             view.render()
 
-    # ====================== PROPERTIES PANEL ======================
     def connect_properties_panel(self, properties_panel) -> None:
         if not properties_panel:
             return
-        # ... (mantido igual)
+        pass
 
     def _properties_color_via_scene(self, id_obj: str, col: QtGui.QColor) -> None:
         if self._scene_manager:
@@ -398,11 +435,6 @@ class WindowRegistration(QtWidgets.QWidget):
     def _properties_opacity_via_scene(self, id_obj: str, op: float) -> None:
         if self._scene_manager:
             self._scene_manager.update_opacity(id_obj, op)
-
-    # ====================== COMBO & VIEW PRESETS ======================
-    def _on_combo_changed(self, vista_id, nome_objeto):
-        if nome_objeto:
-            self.requisitarCarregamentoObjeto.emit(vista_id, nome_objeto)
 
     def _on_view_presets_changed(self, side, view_name):
         view = self.view_a if side == "A" else self.view_b
@@ -425,7 +457,6 @@ class WindowRegistration(QtWidgets.QWidget):
             view.renderer.ResetCamera()
             view.render()
 
-    # ====================== INTERACTION ======================
     def _on_click_a(self, obj, event):
         if self.current_mode == "select":
             return
@@ -436,21 +467,16 @@ class WindowRegistration(QtWidgets.QWidget):
             return
         self._pick_point(self.view_b, "B", self.pontos_b, (0, 1, 0))
 
-
-    # ====================== GETTERS ======================
     def get_points_a(self):
         return self.pontos_a
 
     def get_points_b(self):
         return self.pontos_b
 
-    # ====================== SHORTCUTS ======================
-
     def keyPressEvent(self, event):
         action = match_shortcut(event, self.shortcuts)
 
         if action:
-            # Identificar qual view está ativa/focada
             active_view = self._get_active_view()
             if active_view:
                 self.execute_action(action, active_view)
@@ -461,23 +487,19 @@ class WindowRegistration(QtWidgets.QWidget):
             super().keyPressEvent(event)
 
     def _get_active_view(self):
-        """Retorna a view que atualmente tem foco"""
         if self.view_a.hasFocus():
             return self.view_a
         elif self.view_b.hasFocus():
             return self.view_b
         elif self.view_c.hasFocus():
             return self.view_c
-        return self.view_c  # Default
+        return self.view_c
 
     def execute_action(self, action_id: str, view):
-        """Executa ação com a view específica"""
-
-        # CORREÇÃO: Os valores de câmera estavam trocados
         view_maps = {
             "view3d.frontal": {
-                "position": (0, -100, 0),  # X, Y, Z
-                "view_up": (0, 0, 1),  # Up vector
+                "position": (0, -100, 0),
+                "view_up": (0, 0, 1),
                 "focal": (0, 0, 0)
             },
             "view3d.right": {
@@ -502,7 +524,6 @@ class WindowRegistration(QtWidgets.QWidget):
             },
         }
 
-        # 1. Alteração de Câmera
         if action_id in view_maps:
             cam = view.renderer.GetActiveCamera()
             config = view_maps[action_id]
@@ -516,7 +537,6 @@ class WindowRegistration(QtWidgets.QWidget):
             logger.debug(f"View alterada para: {action_id}")
             return
 
-        # 2. Projeção Ortogonal/Perspectiva
         elif action_id == "view3d.orthogonal":
             cam = view.renderer.GetActiveCamera()
             current = cam.GetParallelProjection()
@@ -525,7 +545,6 @@ class WindowRegistration(QtWidgets.QWidget):
             logger.debug(f"Projeção alterada: {'Ortogonal' if not current else 'Perspectiva'}")
             return
 
-        # 3. Deleção de Objetos
         elif action_id == "view3d.delete_object":
             if self._scene_manager and hasattr(self._scene_manager, 'selection'):
                 selected_ids = list(self._scene_manager.selection.selected_ids)
@@ -538,7 +557,6 @@ class WindowRegistration(QtWidgets.QWidget):
                     logger.debug(f"Objetos deletados: {selected_ids}")
             return
 
-        # 4. Isolamento Anatômico
         elif action_id in ["view3d.mandible", "view3d.maxilla", "view3d.skull", "view3d.chin"]:
             anatomy_keywords = {
                 "view3d.mandible": ["mandibula", "mandible"],
@@ -551,9 +569,7 @@ class WindowRegistration(QtWidgets.QWidget):
             target_actor = None
             target_id = None
 
-            # Buscar em todas as views
             for v in [self.view_a, self.view_b, self.view_c]:
-                # Método seguro para obter atores
                 if hasattr(v, 'vtk_scene_renderer'):
                     actors = v.vtk_scene_renderer.get_actors()
                     for obj_id, actor in actors.items():
@@ -570,7 +586,6 @@ class WindowRegistration(QtWidgets.QWidget):
 
             if target_actor:
                 bounds = target_actor.GetBounds()
-                # Verifica se os bounds são válidos
                 if bounds and all(b is not None for b in bounds):
                     view.renderer.ResetCamera(bounds)
                     view.render()
@@ -578,27 +593,18 @@ class WindowRegistration(QtWidgets.QWidget):
             return
 
     def _setup_keyboard_focus(self):
-        """Configura as views 3D para receberem eventos de teclado"""
         for view in [self.view_a, self.view_b, self.view_c]:
-            # Permite que a view receba foco
             view.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
             view.setFocus(QtCore.Qt.FocusReason.OtherFocusReason)
-
-            # Instala event filter para capturar cliques e dar foco
             view.installEventFilter(self)
-
-            # Para o VTK widget interno também receber foco
             vtk_widget = view.vtkWidget
             vtk_widget.setFocusPolicy(QtCore.Qt.FocusPolicy.StrongFocus)
             vtk_widget.installEventFilter(self)
 
     def eventFilter(self, obj, event):
-        """Captura eventos para dar foco às views quando clicadas"""
         if event.type() == QtCore.QEvent.MouseButtonPress:
-            # Verifica se o objeto é uma view ou o VTK widget
             if obj in [self.view_a, self.view_b, self.view_c,
                        self.view_a.vtkWidget, self.view_b.vtkWidget, self.view_c.vtkWidget]:
-                # Dá foco à view correspondente
                 if obj in [self.view_a, self.view_a.vtkWidget]:
                     self.view_a.setFocus()
                 elif obj in [self.view_b, self.view_b.vtkWidget]:
@@ -607,46 +613,6 @@ class WindowRegistration(QtWidgets.QWidget):
                     self.view_c.setFocus()
 
         return super().eventFilter(obj, event)
-
-    def _finalize_setup(self):
-        self.view_a.setup_interactors()
-        self.view_b.setup_interactors()
-        self.view_c.setup_interactors()
-
-        self.view_a.vtkWidget.GetRenderWindow().GetInteractor().AddObserver(
-            "LeftButtonPressEvent", self._on_click_a)
-        self.view_b.vtkWidget.GetRenderWindow().GetInteractor().AddObserver(
-            "LeftButtonPressEvent", self._on_click_b)
-
-        self.reset_layout_vistas()
-        self._connect_context_menus()
-
-        # ADICIONE ESTA LINHA:
-        self._setup_keyboard_focus()
-
-        # Dá foco inicial à view central
-        self.view_c.setFocus()
-
-    def keyPressEvent(self, event):
-        # Log para debug
-        logger.debug(f"Tecla pressionada: {event.key()}, modificadores: {event.modifiers()}")
-
-        action = match_shortcut(event, self.shortcuts)
-
-        if action:
-            logger.debug(f"Ação encontrada: {action}")
-            active_view = self._get_active_view()
-            if active_view:
-                logger.debug(f"View ativa: {active_view}")
-                self.execute_action(action, active_view)
-                event.accept()
-            else:
-                logger.debug("Nenhuma view ativa encontrada")
-                super().keyPressEvent(event)
-        else:
-            logger.debug(f"Nenhuma ação mapeada para: {event.key()}")
-            super().keyPressEvent(event)
-
 
 
 if __name__ == "__main__":
