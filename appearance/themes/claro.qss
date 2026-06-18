@@ -1,3 +1,8 @@
+* {
+    color: #212529;
+    font-family: "Segoe UI", sans-serif;
+}
+
 QWidget {
     background-color: #F8F9FA;
     color: #212529;

@@ -68,7 +68,7 @@ class PaginaConfig(QtWidgets.QWidget):
             self.combo_idioma.setCurrentIndex(index)
 
     def _carregar_temas(self):
-        themes_dir = Path(__file__).resolve().parents[2] / "themes"
+        themes_dir = Path(__file__).resolve().parents[3] / "appearance" / "themes"
 
         if not themes_dir.exists():
             self.combo_temas.addItem(tr("configs.default_theme"), userData=None)

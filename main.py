@@ -52,9 +52,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.home.editor_solicitado.connect(lambda: self.stack.setCurrentWidget(self.flow_editor))
         self.home.config_solicitada.connect(lambda: self.stack.setCurrentWidget(self.settings_page))
 
+        self.settings_page.tema_alterado.connect(self.apply_theme)
+
         self.workspace.home_solicitada.connect(self.back_to_home)
         self.workspace.currentChanged.connect(self.sync_active_module)
-
         self.settings_page.voltar_solicitado.connect(self.back_to_home)
 
     def _setup_appearance(self):
@@ -67,6 +68,20 @@ class MainWindow(QtWidgets.QMainWindow):
             self.setStyleSheet(qss_path.read_text(encoding="utf-8"))
 
         self.setup_icon()
+
+    def apply_theme(self, qss_path_str: str):
+        qss_path = Path(qss_path_str)
+        if qss_path.exists():
+            try:
+                style = qss_path.read_text(encoding="utf-8")
+                QtWidgets.QApplication.instance().setStyleSheet(style)
+
+                theme_name = qss_path.stem
+                settings.set("preferencias", "tema", theme_name)
+                settings.save()
+                logger.info(f"Tema alterado para: {theme_name}")
+            except Exception as e:
+                logger.error(f"Erro ao aplicar tema: {e}")
 
 
 
