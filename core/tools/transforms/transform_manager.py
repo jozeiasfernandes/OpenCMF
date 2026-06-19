@@ -15,7 +15,7 @@ from collections import defaultdict
 from copy import deepcopy
 from typing import Dict, List, Mapping, Sequence, Tuple, Optional
 
-from ..scene_object import SceneObject
+from core.scene.scene_object import SceneObject
 
 TransformDict = Dict[str, List[float]]
 
