@@ -28,7 +28,7 @@ class ToolsTab(QtWidgets.QWidget):
         buttons.addWidget(btn_down)
         buttons.addStretch()
 
-        # Conexões existentes
+        # Conexões
         self.list_all.itemDoubleClicked.connect(
             lambda item: self.transfer(item, self.list_selected)
         )
@@ -36,8 +36,9 @@ class ToolsTab(QtWidgets.QWidget):
             lambda item: self.transfer(item, self.list_all)
         )
 
-
+        # === Checkbox em ambas as listas ===
         self.list_all.itemChanged.connect(self._on_item_changed)
+        self.list_selected.itemChanged.connect(self._on_item_changed)
 
         layout.addWidget(self.list_all)
         layout.addWidget(self.list_selected)
@@ -47,7 +48,7 @@ class ToolsTab(QtWidgets.QWidget):
         if not self.tools_path.exists():
             return
 
-        for path in sorted(self.tools_path.glob("*.py")):
+        for path in sorted(self.tools_path.glob("*.py")):   # Note: use glob or rglob conforme sua preferência
             if path.name == "__init__.py":
                 continue
 
@@ -56,21 +57,20 @@ class ToolsTab(QtWidgets.QWidget):
 
             # Torna o item checkable
             item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-            item.setCheckState(QtCore.Qt.Unchecked)  # inicia desmarcado
+            item.setCheckState(QtCore.Qt.Unchecked)
 
             self.list_all.addItem(item)
 
     def _on_item_changed(self, item):
         """Move o item conforme o estado do checkbox"""
         if item.checkState() == QtCore.Qt.Checked:
-            # Move para a lista selecionada
+            # Deve estar na lista selecionada
             if item.listWidget() is self.list_all:
                 self.list_all.takeItem(self.list_all.row(item))
                 self.list_selected.addItem(item)
-                # Garante que o checkbox fique visível na outra lista (opcional)
                 item.setCheckState(QtCore.Qt.Checked)
         else:
-            # Move de volta para a lista principal
+            # Deve voltar para a lista principal
             if item.listWidget() is self.list_selected:
                 self.list_selected.takeItem(self.list_selected.row(item))
                 self.list_all.addItem(item)
@@ -79,7 +79,8 @@ class ToolsTab(QtWidgets.QWidget):
         self.tools_changed.emit()
 
     def transfer(self, item, target):
-        source = (self.list_all if target is self.list_selected else self.list_selected)
+        """Transferência via double-click"""
+        source = self.list_all if target is self.list_selected else self.list_selected
         source.takeItem(source.row(item))
         target.addItem(item)
 
@@ -113,14 +114,11 @@ class ToolsTab(QtWidgets.QWidget):
 
 if __name__ == "__main__":
     import sys
-
     app = QtWidgets.QApplication(sys.argv)
     tools_path = Path("./core/tools")
 
-
     def get_name(path):
         return path.stem.replace("_", " ").title()
-
 
     window = ToolsTab(tools_path, get_name)
     window.setWindowTitle("Teste da Aba Tools")

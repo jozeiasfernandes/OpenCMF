@@ -89,7 +89,7 @@ class Components_List(QtWidgets.QDialog):
 
         main_layout.addWidget(self.tabs)
 
-        self.btn_confirmar = QtWidgets.QPushButton("Confirmar")
+        self.btn_confirmar = QtWidgets.QPushButton("Fechar")
         self.btn_confirmar.setFixedHeight(36)
         self.btn_confirmar.clicked.connect(self.accept)
 
