@@ -57,10 +57,12 @@ class Components_List(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.workspace_dir = Path(__file__).resolve().parent
-        self.components_path = self.workspace_dir.parent / "components"
+        self.root_dir = Path(__file__).resolve().parents[2]
+        self.components_path = self.root_dir / "core" / "components"
+        self.tools_path = self.root_dir / "core" / "tools"
+
         self.setWindowTitle("OpenCMF - Componentes")
-        self.resize(500, 600)
+        self.resize(900, 600)
         self.setup_ui()
 
     def setup_ui(self):
@@ -71,6 +73,9 @@ class Components_List(QtWidgets.QDialog):
         self.tabs = QtWidgets.QTabWidget()
         self.tabs.setTabPosition(QtWidgets.QTabWidget.West)
         self.tabs.setStyleSheet("QTabBar::tab { height: 80px; width: 40px; }")
+
+        # Aba Tools substituída por widget customizado de duas listas
+        self.tabs.addTab(self._create_tools_tab(), "Tools")
 
         self.tabs.addTab(self._create_group("toolbars", mode="card"), "Toolbars")
         self.tabs.addTab(self._create_group("toolboxes", mode="check"), "Toolboxes")
@@ -87,6 +92,52 @@ class Components_List(QtWidgets.QDialog):
         footer.addWidget(self.btn_confirmar)
         main_layout.addLayout(footer)
 
+    def _create_tools_tab(self):
+        widget = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout(widget)
+
+        self.list_all = QtWidgets.QListWidget()
+        self.list_selected = QtWidgets.QListWidget()
+
+        # Carrega tools na lista da esquerda
+        for path in self._get_files_recursively(self.tools_path):
+            item = QtWidgets.QListWidgetItem(self._obter_nome_componente(path))
+            item.setData(QtCore.Qt.UserRole, path)
+            self.list_all.addItem(item)
+
+        # Botões de reordenação
+        btn_layout = QtWidgets.QVBoxLayout()
+        btn_up = QtWidgets.QPushButton("▲")
+        btn_down = QtWidgets.QPushButton("▼")
+        btn_up.clicked.connect(lambda: self._move_item(-1))
+        btn_down.clicked.connect(lambda: self._move_item(1))
+        btn_layout.addStretch()
+        btn_layout.addWidget(btn_up)
+        btn_layout.addWidget(btn_down)
+        btn_layout.addStretch()
+
+        # Eventos de transferência
+        self.list_all.itemDoubleClicked.connect(lambda i: self._transferir(i, self.list_selected))
+        self.list_selected.itemDoubleClicked.connect(lambda i: self._transferir(i, self.list_all))
+
+        layout.addWidget(self.list_all)
+        layout.addLayout(btn_layout)
+        layout.addWidget(self.list_selected)
+        return widget
+
+    def _move_item(self, direction):
+        row = self.list_selected.currentRow()
+        new_row = row + direction
+        if 0 <= new_row < self.list_selected.count():
+            item = self.list_selected.takeItem(row)
+            self.list_selected.insertItem(new_row, item)
+            self.list_selected.setCurrentRow(new_row)
+
+    def _transferir(self, item, target_list):
+        source_list = self.list_all if target_list == self.list_selected else self.list_selected
+        source_list.takeItem(source_list.row(item))
+        target_list.addItem(item)
+
     def _create_group(self, folder_name, mode):
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
@@ -98,7 +149,7 @@ class Components_List(QtWidgets.QDialog):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
 
-        files = self._get_py_files(folder_name)
+        files = self._get_files_recursively(self.components_path / folder_name)
         group = QtWidgets.QButtonGroup(content) if mode == "radio" else None
 
         for path in files:
@@ -107,7 +158,8 @@ class Components_List(QtWidgets.QDialog):
                 widget = ComponentCard(display_name, path)
                 selector = widget.selector
             else:
-                selector = QtWidgets.QCheckBox(display_name) if mode == "check" else QtWidgets.QRadioButton(display_name)
+                selector = QtWidgets.QCheckBox(display_name) if mode == "check" else QtWidgets.QRadioButton(
+                    display_name)
                 selector.setStyleSheet("font-size: 12px; padding: 4px;")
                 widget = selector
 
@@ -123,10 +175,9 @@ class Components_List(QtWidgets.QDialog):
         scroll.setWidget(content)
         return scroll
 
-    def _get_py_files(self, subfolder):
-        path = self.components_path / subfolder
-        if not path.exists(): return []
-        return sorted([f for f in path.iterdir() if f.suffix == ".py" and f.name != "__init__.py"])
+    def _get_files_recursively(self, directory: Path):
+        if not directory.exists(): return []
+        return sorted([f for f in directory.rglob("*.py") if f.name != "__init__.py"])
 
     def _obter_nome_componente(self, caminho_arquivo: Path) -> str:
         try:
@@ -135,12 +186,11 @@ class Components_List(QtWidgets.QDialog):
             if spec and spec.loader:
                 modulo = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(modulo)
-
-                if hasattr(modulo, 'Component') and hasattr(modulo.Component, 'toolbox_name'):
-                    return modulo.Component.toolbox_name
+                if hasattr(modulo, 'Component'):
+                    comp_class = getattr(modulo, 'Component')
+                    return getattr(comp_class, 'toolbox_name', caminho_arquivo.stem.replace("_", " ").title())
         except Exception:
             pass
-
         return caminho_arquivo.stem.replace("_", " ").title()
 
 
