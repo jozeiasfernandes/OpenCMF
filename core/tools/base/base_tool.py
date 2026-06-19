@@ -18,6 +18,8 @@ class InteractionContext:
 class BaseTool:
     name = "base_tool"
     display_name = "Base Tool"
+    icon = None
+    tool_tip = ""
     cursor = None
 
     def __init__(self):
