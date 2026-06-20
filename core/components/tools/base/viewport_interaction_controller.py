@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from PySide6 import QtWidgets
 
-from core.tools.base.tool_manager import ToolManager
+from core.components.tools.base.tool_manager import ToolManager
 
 
 class ViewportInteractionController:

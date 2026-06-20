@@ -1,5 +1,4 @@
-import vtk
-from core.tools.base.base_tool import BaseTool
+from core.components.tools.base.base_tool import BaseTool
 
 
 class MoveTool(BaseTool):

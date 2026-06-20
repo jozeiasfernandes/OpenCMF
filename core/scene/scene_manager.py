@@ -12,7 +12,7 @@ from .events.scene_events import (
 from .registry.object_registry import ObjectRegistry
 from .registry.actor_registry import ActorRegistry
 from .selection.selection_manager import SelectionManager
-from ..tools.transforms.transform_manager import TransformManager
+from core.components.tools.transforms import TransformManager
 
 
 class SceneManager:

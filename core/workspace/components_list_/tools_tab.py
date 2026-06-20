@@ -48,7 +48,7 @@ class ToolsTab(QtWidgets.QWidget):
         if not self.tools_path.exists():
             return
 
-        for path in sorted(self.tools_path.glob("*.py")):   # Note: use glob or rglob conforme sua preferência
+        for path in sorted(self.tools_path.glob("*.py")):
             if path.name == "__init__.py":
                 continue
 
@@ -115,7 +115,7 @@ class ToolsTab(QtWidgets.QWidget):
 if __name__ == "__main__":
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    tools_path = Path("./core/tools")
+    tools_path = Path("./core/components/tools")
 
     def get_name(path):
         return path.stem.replace("_", " ").title()

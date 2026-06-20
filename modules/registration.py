@@ -27,7 +27,7 @@ from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
 from core.components.toolboxes.registration_toolbox import Component as RegistrationToolbox
 from core.components.toolboxes.objetct_properties_toolbox import Component as PropertiesComponent
 from core.components.toolbars.registration_toolbar import Component as RegistrationToolbar
-from core.tools.transforms.transform_manager import TransformManager
+from core.components.tools.transforms.transform_manager import TransformManager
 
 logger = logging.getLogger("OpenCMF.RegistrationModule")
 

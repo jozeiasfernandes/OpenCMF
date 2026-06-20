@@ -3,8 +3,8 @@ from typing import List, TYPE_CHECKING
 from PySide6 import QtWidgets, QtCore, QtGui
 
 if TYPE_CHECKING:
-    from core.tools.base.base_tool import BaseTool
-    from core.tools.base.base_tool import InteractionContext
+    from core.components.tools.base.base_tool import BaseTool
+    from core.components.tools.base.base_tool import InteractionContext
 
 
 class BaseToolbarHandler(QtCore.QObject):

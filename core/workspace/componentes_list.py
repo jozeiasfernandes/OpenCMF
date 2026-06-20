@@ -59,9 +59,10 @@ class Components_List(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.root_dir = Path(__file__).resolve().parents[2]
+        self.root_dir = Path(__file__).resolve().parent.parent.parent
         self.components_path = self.root_dir / "core" / "components"
-        self.tools_path = self.root_dir / "core" / "tools"
+        self.tools_path = self.root_dir / "core" / "components"/ "tools"
+        print(self.root_dir)
 
         self.setWindowTitle("OpenCMF - Componentes")
         self.resize(900, 600)

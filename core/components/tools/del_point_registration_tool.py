@@ -1,4 +1,4 @@
-from core.tools.base.base_tool import BaseTool
+from core.components.tools.base.base_tool import BaseTool
 from core.scene.events.scene_events import REGISTRATION_DELETE_LAST_MARKER
 
 class DelPointRegistrationTool(BaseTool):

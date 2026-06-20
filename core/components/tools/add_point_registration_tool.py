@@ -1,6 +1,6 @@
 import vtk
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.tools.base.base_tool import BaseTool
+from core.components.tools.base.base_tool import BaseTool
 from core.localization.translator import get_base_dir
 
 class AddPointRegistrationTool(BaseTool):

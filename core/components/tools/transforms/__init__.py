@@ -20,7 +20,7 @@ from __future__ import annotations
 
 from typing import Dict, Optional, Type
 
-from core.tools.base.base_tool import (
+from core.components.tools.base.base_tool import (
     BaseTool,
     InteractionContext,
 )
