@@ -6,6 +6,10 @@ class MoveTool(BaseTool):
     name = "move"
     display_name = "Mover Objeto"
     cursor = None
+    icon = "move.svg"
+    tool_tip = "Mover Objeto"
+
+
 
     def __init__(self):
         super().__init__()

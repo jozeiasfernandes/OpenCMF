@@ -42,3 +42,79 @@ class AddPointRegistrationTool(BaseTool):
     def on_deactivate(self) -> None:
         if self.context and self.context.window:
             self.context.window.unsetCursor()
+
+
+if __name__ == "__main__":
+    import sys
+    from PySide6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+    # Certifique-se de que o vtkmodules esteja instalado (pip install vtk)
+    from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+    import vtkmodules.all as vtk
+
+    app = QApplication(sys.argv)
+    window = QMainWindow()
+
+    # 1. Widget do VTK
+    frame = QWidget()
+    layout = QVBoxLayout(frame)
+    vtkWidget = QVTKRenderWindowInteractor(frame)
+    layout.addWidget(vtkWidget)
+    window.setCentralWidget(frame)
+
+    # 2. Setup do Renderizador
+    ren = vtk.vtkRenderer()
+    vtkWidget.GetRenderWindow().AddRenderer(ren)
+
+    # Adicionando um objeto (Cubo)
+    cube = vtk.vtkCubeSource()
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(cube.GetOutputPort())
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+    ren.AddActor(actor)
+    ren.ResetCamera()
+
+
+    # 3. Mock do Contexto
+    class MockContext:
+        def __init__(self, renderer, window):
+            self.renderer = renderer
+            self.window = window
+            self.event_bus = type('MockBus', (), {
+                'emit': lambda self, name, **kwargs: print(
+                    f"\n[SUCESSO] Evento '{name}' emitido com posição: {kwargs['position']}")
+            })()
+
+        def render(self):  # Método necessário pois a Tool chama self.render()
+            vtkWidget.GetRenderWindow().Render()
+
+
+    # 4. Inicialização da Tool
+    tool = AddPointRegistrationTool()
+    tool.context = MockContext(ren, window)
+    tool.on_activate()  # Define o cursor
+
+
+    # 5. Conectar o clique do mouse do VTK à Tool
+    def handle_click(obj, event):
+        # Acessa o interator através do widget diretamente
+        interactor = vtkWidget.GetRenderWindow().GetInteractor()
+        x, y = interactor.GetEventPosition()
+
+        # O VTK usa o sistema de coordenadas de tela invertido (Y de baixo para cima)
+        _, height = vtkWidget.GetSize()
+        y = height - y
+
+        if not tool.mouse_press(x, y, "left"):
+            print("Clique fora do objeto.")
+
+
+    # A correção está aqui: acessar o interator via render window
+    render_window = vtkWidget.GetRenderWindow()
+    interactor = render_window.GetInteractor()
+    interactor.AddObserver("LeftButtonPressEvent", handle_click)
+
+    window.show()
+    vtkWidget.Initialize()
+
+    sys.exit(app.exec())

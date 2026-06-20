@@ -1,10 +1,13 @@
 from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Optional, Any
-
+from typing import Optional, Any, TYPE_CHECKING
 import vtk
+from PySide6 import QtGui, QtWidgets
+from core.localization.translator import get_base_dir
 
+if TYPE_CHECKING:
+    # Evita importação circular, mantendo apenas para checagem de tipos
+    pass
 
 @dataclass(slots=True)
 class InteractionContext:
@@ -16,34 +19,36 @@ class InteractionContext:
 
 
 class BaseTool:
-    name = "base_tool"
-    display_name = "Base Tool"
-    icon = None
-    tool_tip = ""
-    cursor = None
+    name: str = "base_tool"
+    display_name: str = "Base Tool"
+    icon: Optional[str] = None
+    tool_tip: str = ""
+    cursor: Optional[QtGui.QCursor] = None
 
     def __init__(self):
         self.context: Optional[InteractionContext] = None
-        self.active = False
+        self.active: bool = False
+
+    def get_qicon(self) -> QtGui.QIcon:
+        """Carrega o ícone baseado no nome definido na classe."""
+        if self.icon:
+            path = get_base_dir() / "appearance" / "icons" / self.icon
+            if path.exists():
+                return QtGui.QIcon(str(path))
+        return QtWidgets.QApplication.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon)
 
     def activate(self, context: InteractionContext) -> None:
         self.context = context
         self.active = True
-
-        if self.cursor is not None and context.window is not None:
-            context.window.setCursor(self.cursor)
-
+        if self.cursor is not None and self.context.window is not None:
+            self.context.window.setCursor(self.cursor)
         self.on_activate()
 
     def deactivate(self) -> None:
-        if not self.context:
-            return
-
-        if self.context.window is not None:
-            self.context.window.unsetCursor()
-
-        self.on_deactivate()
-
+        if self.context:
+            if self.context.window is not None:
+                self.context.window.unsetCursor()
+            self.on_deactivate()
         self.active = False
         self.context = None
 
@@ -53,21 +58,11 @@ class BaseTool:
     def on_deactivate(self) -> None:
         pass
 
-    def mouse_press(
-        self,
-        x: int,
-        y: int,
-        button: str,
-        modifiers: Any = None,
-    ) -> bool:
+    # Métodos de interface (padrão)
+    def mouse_press(self, x: int, y: int, button: str, modifiers: Any = None) -> bool:
         return False
 
-    def mouse_move(
-        self,
-        x: int,
-        y: int,
-        modifiers: Any = None,
-    ) -> bool:
+    def mouse_move(self, x: int, y: int, modifiers: Any = None) -> bool:
         return False
 
     def mouse_release(
