@@ -1,4 +1,5 @@
 import importlib.util
+import json
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from core.localization.translator import get_base_dir, tr
@@ -13,9 +14,14 @@ class ToolsTab(QtWidgets.QWidget):
         self.toolbars_path = components_path / "toolbars"
         self.tools_path = components_path / "tools"
         self._get_name = get_name_callback
+
         self._setup_ui()
         self._load_toolbars()
 
+        if self.combo_toolbar.count() > 0:
+            self.combo_toolbar.setCurrentIndex(0)
+
+    # --- Setup da UI ---
     def _setup_ui(self):
         main_layout = QtWidgets.QVBoxLayout(self)
         top_layout = QtWidgets.QHBoxLayout()
@@ -61,107 +67,106 @@ class ToolsTab(QtWidgets.QWidget):
         list_layout.addLayout(buttons)
         main_layout.addLayout(list_layout)
 
+    # --- Gerenciamento de Toolbar (CRUD) ---
     def _create_new_toolbar(self):
         name, ok = QtWidgets.QInputDialog.getText(self, "Nova Toolbar", "Nome da Toolbar:")
-        if ok and name:
-            class_name = name.replace(" ", "").capitalize()
-            file_name = name.lower().replace(" ", "_") + ".py"
-            object_name = file_name.replace(".py", "")
-            file_path = self.toolbars_path / file_name
+        if not (ok and name): return
 
-            if not file_path.exists():
-                template_path = self.components_path.parent / "workspace" / "components_list_" / "toolbar_template.py"
+        class_name = name.replace(" ", "").capitalize()
+        file_name = name.lower().replace(" ", "_") + ".py"
+        object_name = file_name.replace(".py", "")
+        file_path = self.toolbars_path / file_name
 
-                try:
-                    with open(template_path, "r", encoding="utf-8") as f:
-                        template_content = f.read()
-
-                    final_content = template_content.format(
-                        class_name=class_name,
-                        name=name,
-                        object_name=object_name
-                    )
-
-                    with open(file_path, "w", encoding="utf-8") as f:
-                        f.write(final_content)
-
-                    self.combo_toolbar.clear()
-                    self._load_toolbars()
-
-                except Exception as e:
-                    QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao ler o template: {e}")
-            else:
-                QtWidgets.QMessageBox.warning(self, "Erro", "Já existe uma toolbar com este nome.")
-
-    def _delete_current_toolbar(self):
-        index = self.combo_toolbar.currentIndex()
-        if index == -1:
+        if file_path.exists():
+            QtWidgets.QMessageBox.warning(self, "Erro", "Já existe uma toolbar com este nome.")
             return
 
-        file_path = self.combo_toolbar.currentData()
-        toolbar_name = self.combo_toolbar.currentText()
+        template_path = self.components_path.parent / "workspace" / "components_list_" / "toolbar_template.py"
+        try:
+            with open(template_path, "r", encoding="utf-8") as f:
+                content = f.read().format(class_name=class_name, name=name, object_name=object_name)
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            self.combo_toolbar.clear()
+            self._load_toolbars()
+        except Exception as e:
+            QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao criar template: {e}")
 
-        reply = QtWidgets.QMessageBox.question(
-            self,
-            "Excluir Toolbar",
-            f"Deseja realmente excluir a toolbar '{toolbar_name}'?",
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
-            QtWidgets.QMessageBox.No
-        )
+    def _delete_current_toolbar(self):
+        file_path = self.combo_toolbar.currentData()
+        if not file_path or not isinstance(file_path, Path): return
+
+        reply = QtWidgets.QMessageBox.question(self, "Excluir Toolbar",
+                                               f"Deseja realmente excluir a toolbar '{self.combo_toolbar.currentText()}'?",
+                                               QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
 
         if reply == QtWidgets.QMessageBox.Yes:
             try:
-                if file_path.exists():
-                    file_path.unlink()
+                for suffix in [".py", ".png", ".json"]:
+                    p = file_path.with_suffix(suffix)
+                    if p.exists(): p.unlink()
 
-                    thumb_path = file_path.with_suffix(".png")
-                    if thumb_path.exists():
-                        thumb_path.unlink()
-
-                    self.combo_toolbar.clear()
-                    self._load_toolbars()
+                self.combo_toolbar.blockSignals(True)
+                self.combo_toolbar.clear()
+                self._load_toolbars()
+                self.combo_toolbar.blockSignals(False)
+                self.tools_changed.emit()
             except Exception as e:
-                QtWidgets.QMessageBox.critical(self, "Erro", f"Não foi possível excluir o arquivo: {e}")
+                QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao excluir: {e}")
 
+    # --- Carregamento e Persistência ---
     def _load_toolbars(self):
-        if not self.toolbars_path.exists():
-            return
+        if not self.toolbars_path.exists(): return
+        self.combo_toolbar.clear()
         for path in sorted(self.toolbars_path.glob("*.py")):
-            if path.name == "__init__.py":
-                continue
-            display_name = self._obter_nome_toolbar(path)
-            self.combo_toolbar.addItem(display_name, userData=path)
+            if path.name != "__init__.py":
+                self.combo_toolbar.addItem(self._obter_nome_toolbar(path), userData=path)
 
-    def _obter_nome_toolbar(self, path: Path) -> str:
+    def _load_tools(self, exclude_paths=None):
+        exclude_paths = exclude_paths or []
+        if not self.tools_path.exists(): return
+
+        for path in sorted(self.tools_path.glob("*.py")):
+            if path.name != "__init__.py" and path not in exclude_paths:
+                item = QtWidgets.QListWidgetItem(self._get_name(path))
+                item.setData(QtCore.Qt.UserRole, path)
+                item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+                self.list_all.addItem(item)
+
+    def _load_selected_tools(self, toolbar_path: Path):
+        json_path = toolbar_path.with_suffix(".json")
+        if not json_path.exists(): return []
         try:
-            spec = importlib.util.spec_from_file_location(path.stem, path)
-            if spec and spec.loader:
-                module = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(module)
-                if hasattr(module, 'Component'):
-                    if hasattr(module.Component, 'toolbar_name'):
-                        return module.Component.toolbar_name
-                    return module.Component().windowTitle()
-        except Exception:
-            pass
-        return path.stem.replace("_", " ").title()
+            with open(json_path, "r", encoding="utf-8") as f:
+                return [Path(p) for p in json.load(f)]
+        except:
+            return []
 
+    def _save_selected_tools(self, toolbar_path: Path):
+        json_path = toolbar_path.with_suffix(".json")
+        tools = [self.list_selected.item(i).data(QtCore.Qt.UserRole) for i in range(self.list_selected.count())]
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump([str(t) for t in tools], f, indent=4)
+
+    # --- Lógica de UI e Interação ---
     def _on_toolbar_changed(self, text):
+        self.list_all.blockSignals(True)
+        self.list_selected.blockSignals(True)
         self.list_all.clear()
         self.list_selected.clear()
-        self._load_tools()
 
-    def _load_tools(self):
-        if not self.tools_path.exists():
-            return
-        for path in sorted(self.tools_path.glob("*.py")):
-            if path.name == "__init__.py":
-                continue
-            item = QtWidgets.QListWidgetItem(self._get_name(path))
-            item.setData(QtCore.Qt.UserRole, path)
-            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-            item.setCheckState(QtCore.Qt.Unchecked)
-            self.list_all.addItem(item)
+        toolbar_path = self.combo_toolbar.currentData()
+        if toolbar_path:
+            saved = self._load_selected_tools(toolbar_path)
+            self._load_tools(exclude_paths=saved)
+            for path in saved:
+                if path.exists():
+                    item = QtWidgets.QListWidgetItem(self._get_name(path))
+                    item.setData(QtCore.Qt.UserRole, path)
+                    item.setCheckState(QtCore.Qt.Checked)
+                    self.list_selected.addItem(item)
+        self.list_all.blockSignals(False)
+        self.list_selected.blockSignals(False)
 
     def _on_item_changed(self, item):
         self.list_all.blockSignals(True)
@@ -184,19 +189,32 @@ class ToolsTab(QtWidgets.QWidget):
         target.addItem(item)
         item.setCheckState(QtCore.Qt.Checked if target is self.list_selected else QtCore.Qt.Unchecked)
         self.tools_changed.emit()
+        self._save_selected_tools(self.combo_toolbar.currentData())
 
     def move_item(self, direction):
         row = self.list_selected.currentRow()
         if row < 0: return
         new_row = row + direction
-        if not (0 <= new_row < self.list_selected.count()): return
-        item = self.list_selected.takeItem(row)
-        self.list_selected.insertItem(new_row, item)
-        self.list_selected.setCurrentRow(new_row)
-        self.tools_changed.emit()
+        if 0 <= new_row < self.list_selected.count():
+            item = self.list_selected.takeItem(row)
+            self.list_selected.insertItem(new_row, item)
+            self.list_selected.setCurrentRow(new_row)
+            self.tools_changed.emit()
 
+    # --- Utilitários ---
     def selected_tools(self):
         return [self.list_selected.item(i).data(QtCore.Qt.UserRole) for i in range(self.list_selected.count())]
+
+    def _obter_nome_toolbar(self, path: Path) -> str:
+        try:
+            spec = importlib.util.spec_from_file_location(path.stem, path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            if hasattr(module, 'Component'):
+                return getattr(module.Component, 'toolbar_name', module.Component().windowTitle())
+        except:
+            pass
+        return path.stem.replace("_", " ").title()
 
 if __name__ == "__main__":
     import sys
