@@ -1,6 +1,7 @@
 import importlib.util
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
+from core.localization.translator import get_base_dir, tr
 
 
 class ToolsTab(QtWidgets.QWidget):
@@ -23,10 +24,10 @@ class ToolsTab(QtWidgets.QWidget):
         self.combo_toolbar = QtWidgets.QComboBox()
         self.combo_toolbar.currentTextChanged.connect(self._on_toolbar_changed)
 
-        btn_new_toolbar = QtWidgets.QPushButton("Criar Nova Toolbar")
+        btn_new_toolbar = QtWidgets.QPushButton(tr("Criar Nova Toolbar"))
         btn_new_toolbar.clicked.connect(self._create_new_toolbar)
 
-        top_layout.addWidget(QtWidgets.QLabel("Toolbar:"))
+        top_layout.addWidget(QtWidgets.QLabel(tr("Toolbar:")))
         top_layout.addWidget(self.combo_toolbar, stretch=1)
         top_layout.addWidget(btn_new_toolbar)
 
