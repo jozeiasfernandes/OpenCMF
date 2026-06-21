@@ -21,8 +21,9 @@ class ToolsTab(QtWidgets.QWidget):
     # --- UI Setup ---
     def _setup_ui(self):
         main_layout = QtWidgets.QVBoxLayout(self)
-        top_layout = QtWidgets.QHBoxLayout()
 
+        # --- Topo: Seleção de Toolbar ---
+        top_layout = QtWidgets.QHBoxLayout()
         self.combo_toolbar = QtWidgets.QComboBox()
         self.combo_toolbar.currentTextChanged.connect(self._on_toolbar_changed)
 
@@ -39,33 +40,49 @@ class ToolsTab(QtWidgets.QWidget):
         top_layout.addWidget(btn_delete)
         main_layout.addLayout(top_layout)
 
+        # --- Listas: Ferramentas ---
         list_layout = QtWidgets.QHBoxLayout()
+
+        # Lista Esquerda (Disponíveis)
         self.list_all = QtWidgets.QListWidget()
 
+        # Lista Direita (Selecionadas + Ações)
         right_container = QtWidgets.QVBoxLayout()
         self.list_selected = QtWidgets.QListWidget()
-        btn_add = QtWidgets.QPushButton(tr("Adicionar tools à toolbar atual"))
+
+        btn_add = QtWidgets.QPushButton(tr("Adicionar"))
         btn_add.clicked.connect(self._add_selected_from_list_all)
+
+        btn_remove = QtWidgets.QPushButton(tr("Remover"))
+        btn_remove.clicked.connect(self._remove_selected_tool)
+
+        btn_remove_all = QtWidgets.QPushButton(tr("Remover Tudo"))
+        btn_remove_all.setStyleSheet("color: red;")
+        btn_remove_all.clicked.connect(self._remove_all_tools)
+
         right_container.addWidget(self.list_selected)
         right_container.addWidget(btn_add)
+        right_container.addWidget(btn_remove)
+        right_container.addWidget(btn_remove_all)
 
         list_layout.addWidget(self.list_all)
         list_layout.addLayout(right_container)
 
-        # Botões de mover
+        # Botões de mover (▲▼)
         move_buttons = QtWidgets.QVBoxLayout()
         btn_up = QtWidgets.QPushButton("▲")
         btn_down = QtWidgets.QPushButton("▼")
         btn_up.clicked.connect(lambda: self._move_item(-1))
         btn_down.clicked.connect(lambda: self._move_item(1))
-        move_buttons.addStretch();
+        move_buttons.addStretch()
         move_buttons.addWidget(btn_up)
-        move_buttons.addWidget(btn_down);
+        move_buttons.addWidget(btn_down)
         move_buttons.addStretch()
 
         list_layout.addLayout(move_buttons)
         main_layout.addLayout(list_layout)
 
+        # Conexões de clique duplo
         self.list_all.itemDoubleClicked.connect(lambda item: self._transfer(item, self.list_selected))
         self.list_selected.itemDoubleClicked.connect(lambda item: self._transfer(item, self.list_all))
 
@@ -140,6 +157,31 @@ class ToolsTab(QtWidgets.QWidget):
             self.service.delete_toolbar(path)
             self._load_toolbars_list()
             self.tools_changed.emit()
+
+    def _remove_selected_tool(self):
+        """Remove a ferramenta selecionada da lista e a devolve para a lista de 'disponíveis'."""
+        current_item = self.list_selected.currentItem()
+        if not current_item:
+            return
+
+        # Remove da lista selecionada e devolve para a lista "all"
+        self.list_selected.takeItem(self.list_selected.row(current_item))
+        self.list_all.addItem(current_item)
+
+        self._save_state()
+
+    def _remove_all_tools(self):
+        """Limpa toda a lista selecionada e move tudo para a lista de 'disponíveis'."""
+        if self.list_selected.count() == 0:
+            return
+
+        if QtWidgets.QMessageBox.question(self, "Confirmação",
+                                          "Remover todas as ferramentas desta toolbar?") == QtWidgets.QMessageBox.Yes:
+            while self.list_selected.count() > 0:
+                item = self.list_selected.takeItem(0)
+                self.list_all.addItem(item)
+
+            self._save_state()
 
 if __name__ == "__main__":
     import sys
