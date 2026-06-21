@@ -1,0 +1,6 @@
+[
+    "tools\\del_point_registration_tool.py",
+    "tools\\add_point_registration_tool.py",
+    "tools\\scale_tool.py",
+    "tools\\select_tool.py"
+]

@@ -47,6 +47,9 @@ class ToolsTab(QtWidgets.QWidget):
         self.list_all = QtWidgets.QListWidget()
         self.list_selected = QtWidgets.QListWidget()
 
+        btn_add = QtWidgets.QPushButton(tr("Adicionar tools"))
+        btn_add.clicked.connect(self._add_selected_from_list_all)
+
         buttons = QtWidgets.QVBoxLayout()
         btn_up = QtWidgets.QPushButton("▲")
         btn_down = QtWidgets.QPushButton("▼")
@@ -56,6 +59,11 @@ class ToolsTab(QtWidgets.QWidget):
         buttons.addWidget(btn_up)
         buttons.addWidget(btn_down)
         buttons.addStretch()
+
+
+        buttons.addWidget(btn_add)  # Adicione antes dos botões de cima/baixo
+        buttons.addWidget(btn_up)
+        buttons.addWidget(btn_down)
 
         self.list_all.itemDoubleClicked.connect(lambda item: self.transfer(item, self.list_selected))
         self.list_selected.itemDoubleClicked.connect(lambda item: self.transfer(item, self.list_all))
@@ -84,13 +92,22 @@ class ToolsTab(QtWidgets.QWidget):
         template_path = self.components_path.parent / "workspace" / "components_list_" / "toolbar_template.py"
         try:
             with open(template_path, "r", encoding="utf-8") as f:
-                content = f.read().format(class_name=class_name, name=name, object_name=object_name)
+                content = f.read()
+
+            content = content.replace("{class_name}", class_name)
+            content = content.replace("{name}", name)
+            content = content.replace("{object_name}", object_name)
+
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
+
             self.combo_toolbar.clear()
             self._load_toolbars()
+
         except Exception as e:
-            QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao criar template: {e}")
+            import traceback
+            traceback.print_exc()
+            QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao criar template: {str(e)}")
 
     def _delete_current_toolbar(self):
         file_path = self.combo_toolbar.currentData()
@@ -115,6 +132,18 @@ class ToolsTab(QtWidgets.QWidget):
                 QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao excluir: {e}")
 
     # --- Carregamento e Persistência ---
+    def _add_selected_from_list_all(self):
+        toolbar_path = self.combo_toolbar.currentData()
+        if not toolbar_path:
+            QtWidgets.QMessageBox.warning(self, "Aviso", "Selecione uma toolbar primeiro.")
+            return
+
+        self._save_selected_tools(toolbar_path)
+        self.tools_changed.emit()
+
+        QtWidgets.QMessageBox.information(self, "Sucesso",
+                                          f"Ferramentas aplicadas na toolbar '{self.combo_toolbar.currentText()}'.")
+
     def _load_toolbars(self):
         if not self.toolbars_path.exists(): return
         self.combo_toolbar.clear()
@@ -135,18 +164,38 @@ class ToolsTab(QtWidgets.QWidget):
 
     def _load_selected_tools(self, toolbar_path: Path):
         json_path = toolbar_path.with_suffix(".json")
-        if not json_path.exists(): return []
+        if not json_path.exists():
+            return []
+
         try:
             with open(json_path, "r", encoding="utf-8") as f:
-                return [Path(p) for p in json.load(f)]
+                data = json.load(f)
+
+            full_paths = []
+            for item in data:
+                full_path = self.components_path / item
+                full_paths.append(full_path)
+
+            return full_paths
         except:
             return []
 
     def _save_selected_tools(self, toolbar_path: Path):
         json_path = toolbar_path.with_suffix(".json")
-        tools = [self.list_selected.item(i).data(QtCore.Qt.UserRole) for i in range(self.list_selected.count())]
+
+        tools = [self.list_selected.item(i).data(QtCore.Qt.UserRole)
+                 for i in range(self.list_selected.count())]
+
+        relative_tools = []
+        for t in tools:
+            try:
+                rel = t.relative_to(self.components_path)
+                relative_tools.append(str(rel))
+            except ValueError:
+                relative_tools.append(t.name)
+
         with open(json_path, "w", encoding="utf-8") as f:
-            json.dump([str(t) for t in tools], f, indent=4)
+            json.dump(relative_tools, f, indent=4)
 
     # --- Lógica de UI e Interação ---
     def _on_toolbar_changed(self, text):

@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from core.scene.scene_manager import SceneManager
 
 
-class {class_name}Handler(QtCore.QObject):
+class Teste_jsonHandler(QtCore.QObject):
     def __init__(self, toolbar: QtWidgets.QToolBar, scene_manager: Optional["SceneManager"] = None):
         super().__init__()
         self.toolbar = toolbar
@@ -22,7 +22,7 @@ class {class_name}Handler(QtCore.QObject):
 
     def load_tools_from_json(self):
         self.toolbar.clear()
-        self.toolbar.addWidget(QtWidgets.QLabel("{name}"))
+        self.toolbar.addWidget(QtWidgets.QLabel("teste_json"))
 
         if not self.json_path.exists():
             return
@@ -40,14 +40,14 @@ class {class_name}Handler(QtCore.QObject):
 
 
 class Component(QtWidgets.QToolBar):
-    toolbar_name = "{name}"
+    toolbar_name = "teste_json"
 
     def __init__(self, modulo=None, scene_manager: Optional["SceneManager"] = None):
         super().__init__()
         self.modulo = modulo
         self.setWindowTitle(self.toolbar_name)
-        self.setObjectName("{object_name}")
-        self.handler = {class_name}Handler(self, scene_manager=scene_manager)
+        self.setObjectName("teste_json")
+        self.handler = Teste_jsonHandler(self, scene_manager=scene_manager)
 
     def refresh(self):
         self.handler.load_tools_from_json()
@@ -61,7 +61,7 @@ if __name__ == "__main__":
     toolbar = Component()
     main_window.addToolBar(toolbar)
 
-    main_window.setWindowTitle("Debug Toolbar: {name}")
+    main_window.setWindowTitle("Debug Toolbar: teste_json")
     main_window.resize(400, 100)
     main_window.show()
 
