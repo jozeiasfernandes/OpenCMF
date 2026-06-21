@@ -61,8 +61,6 @@ class Components_List(QtWidgets.QDialog):
         super().__init__(parent)
         self.root_dir = Path(__file__).resolve().parent.parent.parent
         self.components_path = self.root_dir / "core" / "components"
-        self.tools_path = self.root_dir / "core" / "components"/ "tools"
-        print(self.root_dir)
 
         self.setWindowTitle("OpenCMF - Componentes")
         self.resize(900, 600)
@@ -77,13 +75,14 @@ class Components_List(QtWidgets.QDialog):
         self.tabs.setTabPosition(QtWidgets.QTabWidget.West)
         self.tabs.setStyleSheet("QTabBar::tab { height: 80px; width: 40px; }")
 
-        # Aba Tools (carregada do arquivo tools_tab.py)
+
         def get_name(path):
             return path.stem.replace("_", " ").title()
 
-        self.tools_tab = ToolsTab(self.tools_path, get_name)
+        self.tools_tab = ToolsTab(self.components_path, get_name)
         self.tabs.addTab(self.tools_tab, "Tools")
 
+        self.tabs.addTab(self.tools_tab, "Tools")
         self.tabs.addTab(self._create_group("toolbars", mode="card"), "Toolbars")
         self.tabs.addTab(self._create_group("toolboxes", mode="check"), "Toolboxes")
         self.tabs.addTab(self._create_group("central_area", mode="radio"), "Central")
