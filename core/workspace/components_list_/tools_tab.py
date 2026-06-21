@@ -18,7 +18,6 @@ class ToolsTab(QtWidgets.QWidget):
 
     def _setup_ui(self):
         main_layout = QtWidgets.QVBoxLayout(self)
-
         top_layout = QtWidgets.QHBoxLayout()
 
         self.combo_toolbar = QtWidgets.QComboBox()
@@ -27,9 +26,14 @@ class ToolsTab(QtWidgets.QWidget):
         btn_new_toolbar = QtWidgets.QPushButton(tr("Criar Nova Toolbar"))
         btn_new_toolbar.clicked.connect(self._create_new_toolbar)
 
+        btn_delete_toolbar = QtWidgets.QPushButton(tr("Excluir Toolbar"))
+        btn_delete_toolbar.setStyleSheet("color: red;")
+        btn_delete_toolbar.clicked.connect(self._delete_current_toolbar)
+
         top_layout.addWidget(QtWidgets.QLabel(tr("Toolbar:")))
         top_layout.addWidget(self.combo_toolbar, stretch=1)
         top_layout.addWidget(btn_new_toolbar)
+        top_layout.addWidget(btn_delete_toolbar)
 
         main_layout.addLayout(top_layout)
 
@@ -60,25 +64,64 @@ class ToolsTab(QtWidgets.QWidget):
     def _create_new_toolbar(self):
         name, ok = QtWidgets.QInputDialog.getText(self, "Nova Toolbar", "Nome da Toolbar:")
         if ok and name:
+            class_name = name.replace(" ", "").capitalize()
             file_name = name.lower().replace(" ", "_") + ".py"
+            object_name = file_name.replace(".py", "")
             file_path = self.toolbars_path / file_name
+
             if not file_path.exists():
-                template = f'''from PySide6 import QtWidgets
+                template_path = self.components_path.parent / "workspace" / "components_list_" / "toolbar_template.py"
 
-class Component(QtWidgets.QToolBar):
-    toolbar_name = "{name}"
+                try:
+                    with open(template_path, "r", encoding="utf-8") as f:
+                        template_content = f.read()
 
-    def __init__(self, modulo=None, scene_manager=None):
-        super().__init__()
-        self.setWindowTitle("{name}")
-        self.setObjectName("{file_name.replace('.py', '')}")
-'''
-                with open(file_path, "w", encoding="utf-8") as f:
-                    f.write(template)
-                self.combo_toolbar.clear()
-                self._load_toolbars()
+                    final_content = template_content.format(
+                        class_name=class_name,
+                        name=name,
+                        object_name=object_name
+                    )
+
+                    with open(file_path, "w", encoding="utf-8") as f:
+                        f.write(final_content)
+
+                    self.combo_toolbar.clear()
+                    self._load_toolbars()
+
+                except Exception as e:
+                    QtWidgets.QMessageBox.critical(self, "Erro", f"Falha ao ler o template: {e}")
             else:
                 QtWidgets.QMessageBox.warning(self, "Erro", "Já existe uma toolbar com este nome.")
+
+    def _delete_current_toolbar(self):
+        index = self.combo_toolbar.currentIndex()
+        if index == -1:
+            return
+
+        file_path = self.combo_toolbar.currentData()
+        toolbar_name = self.combo_toolbar.currentText()
+
+        reply = QtWidgets.QMessageBox.question(
+            self,
+            "Excluir Toolbar",
+            f"Deseja realmente excluir a toolbar '{toolbar_name}'?",
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No
+        )
+
+        if reply == QtWidgets.QMessageBox.Yes:
+            try:
+                if file_path.exists():
+                    file_path.unlink()
+
+                    thumb_path = file_path.with_suffix(".png")
+                    if thumb_path.exists():
+                        thumb_path.unlink()
+
+                    self.combo_toolbar.clear()
+                    self._load_toolbars()
+            except Exception as e:
+                QtWidgets.QMessageBox.critical(self, "Erro", f"Não foi possível excluir o arquivo: {e}")
 
     def _load_toolbars(self):
         if not self.toolbars_path.exists():
