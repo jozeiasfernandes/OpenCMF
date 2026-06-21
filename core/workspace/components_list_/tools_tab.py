@@ -149,7 +149,8 @@ class ToolsTab(QtWidgets.QWidget):
         self.combo_toolbar.clear()
         for path in sorted(self.toolbars_path.glob("*.py")):
             if path.name != "__init__.py":
-                self.combo_toolbar.addItem(self._obter_nome_toolbar(path), userData=path)
+                abs_path = path.resolve()
+                self.combo_toolbar.addItem(self._obter_nome_toolbar(abs_path), userData=abs_path)
 
     def _load_tools(self, exclude_paths=None):
         exclude_paths = exclude_paths or []
@@ -180,22 +181,30 @@ class ToolsTab(QtWidgets.QWidget):
         except:
             return []
 
-    def _save_selected_tools(self, toolbar_path: Path):
-        json_path = toolbar_path.with_suffix(".json")
+    def _save_selected_tools(self, toolbar_path: Path) -> None:
+        # Resolve o caminho para absoluto antes de qualquer operação
+        abs_toolbar_path = toolbar_path.resolve()
+        json_path = abs_toolbar_path.with_suffix(".json")
 
+        # Garante que a pasta existe
+        json_path.parent.mkdir(parents=True, exist_ok=True)
+
+        # Coleta as ferramentas
         tools = [self.list_selected.item(i).data(QtCore.Qt.UserRole)
                  for i in range(self.list_selected.count())]
 
-        relative_tools = []
-        for t in tools:
-            try:
-                rel = t.relative_to(self.components_path)
-                relative_tools.append(str(rel))
-            except ValueError:
-                relative_tools.append(t.name)
+        # Salva o caminho absoluto real no disco
+        absolute_paths = [str(Path(p).resolve()) for p in filter(None, tools)]
 
-        with open(json_path, "w", encoding="utf-8") as f:
-            json.dump(relative_tools, f, indent=4)
+        try:
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(absolute_paths, f, indent=4, ensure_ascii=False)
+
+            # Debug visual no console
+            print(f"DEBUG: JSON gravado fisicamente em: {json_path}")
+
+        except Exception as e:
+            print(f"ERRO AO SALVAR JSON: {e}")
 
     # --- Lógica de UI e Interação ---
     def _on_toolbar_changed(self, text):
