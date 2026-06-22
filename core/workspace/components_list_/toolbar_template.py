@@ -21,7 +21,8 @@ class {class_name}Handler(BaseToolbarHandler):
         self.toolbar = toolbar
         self._scene_manager = scene_manager
 
-        self.components_path = Path(__file__).resolve().parent.parent
+        # CORREÇÃO: Renomeado para evitar conflito com a propriedade da classe base
+        self.root_path = Path(__file__).resolve().parent.parent
         self.json_path = Path(__file__).resolve().with_suffix(".json")
 
         self._setup_ui()
@@ -60,8 +61,8 @@ class {class_name}Handler(BaseToolbarHandler):
         candidate = Path(path_str)
         paths_to_try = [
             candidate,
-            self.components_path / candidate,
-            self.components_path / "tools" / candidate.name
+            self.root_path / candidate,
+            self.root_path / "tools" / candidate.name
         ]
         for p in paths_to_try:
             if p.exists(): return p.resolve()
@@ -75,7 +76,6 @@ class {class_name}Handler(BaseToolbarHandler):
 
             for _, obj in inspect.getmembers(module, inspect.isclass):
                 if issubclass(obj, BaseTool) and obj is not BaseTool:
-                    # Injeta o scene_manager na tool se ela suportar
                     return obj(scene_manager=self._scene_manager) if self._scene_manager else obj()
         except Exception:
             logger.error(f"Falha ao instanciar tool {path.name}:\n{traceback.format_exc()}")
@@ -90,7 +90,6 @@ class Component(QtWidgets.QToolBar):
         self.modulo = modulo
         self.setWindowTitle(self.toolbar_name)
         self.setObjectName("{object_name}")
-        # CORREÇÃO AQUI: A classe agora é instanciada corretamente em uma única linha
         self.handler = {class_name}Handler(self, scene_manager=scene_manager)
 
     def refresh(self):

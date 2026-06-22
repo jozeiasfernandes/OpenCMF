@@ -2,14 +2,17 @@ from typing import Optional, TYPE_CHECKING
 import json
 import importlib.util
 import inspect
+import logging
+import traceback
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
-from core.localization.translator import tr
 from core.components.tools.base.base_tool import BaseTool
 from core.components.tools.base.base_toolbar_handler import BaseToolbarHandler
 
 if TYPE_CHECKING:
     from core.scene.scene_manager import SceneManager
+
+logger = logging.getLogger("ToolbarLoader")
 
 
 class Teste_01Handler(BaseToolbarHandler):
@@ -17,7 +20,11 @@ class Teste_01Handler(BaseToolbarHandler):
         super().__init__(toolbar, context=None)
         self.toolbar = toolbar
         self._scene_manager = scene_manager
+
+        # CORREÇÃO: Renomeado para evitar conflito com a propriedade da classe base
+        self.root_path = Path(__file__).resolve().parent.parent
         self.json_path = Path(__file__).resolve().with_suffix(".json")
+
         self._setup_ui()
 
     def _setup_ui(self):
@@ -28,43 +35,38 @@ class Teste_01Handler(BaseToolbarHandler):
         self.clear_toolbar()
 
         if not self.json_path.exists():
+            logger.warning(f"Arquivo JSON não encontrado: {self.json_path}")
             return
 
         try:
             with open(self.json_path, "r", encoding="utf-8") as f:
                 tool_paths: list[str] = json.load(f)
-        except Exception:
+        except Exception as e:
+            logger.error(f"Erro ao ler JSON: {e}")
             return
 
-        components_root = self.components_path
-
         for path_str in tool_paths:
-            if not path_str:
-                continue
+            if not path_str: continue
 
-            full_path: Path = None
+            full_path = self._resolve_tool_path(path_str)
 
-            try:
-                candidate = Path(path_str)
+            if full_path and full_path.exists():
+                tool_instance = self._instanciar_tool(full_path)
+                if tool_instance:
+                    self.register_tool(tool_instance)
+            else:
+                logger.warning(f"Ferramenta não encontrada no caminho: {path_str}")
 
-                if not candidate.is_absolute():
-                    full_path = (components_root / candidate).resolve()
-                else:
-                    full_path = candidate.resolve()
-
-                if not full_path.exists():
-                    full_path = (components_root / candidate.name).resolve()
-
-                if not full_path.exists():
-                    full_path = (components_root / "tools" / candidate.name).resolve()
-
-                if full_path.exists():
-                    tool_instance = self._instanciar_tool(full_path)
-                    if tool_instance:
-                        self.register_tool(tool_instance)
-
-            except Exception:
-                pass
+    def _resolve_tool_path(self, path_str: str) -> Optional[Path]:
+        candidate = Path(path_str)
+        paths_to_try = [
+            candidate,
+            self.root_path / candidate,
+            self.root_path / "tools" / candidate.name
+        ]
+        for p in paths_to_try:
+            if p.exists(): return p.resolve()
+        return None
 
     def _instanciar_tool(self, path: Path) -> Optional[BaseTool]:
         try:
@@ -72,12 +74,11 @@ class Teste_01Handler(BaseToolbarHandler):
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
 
-            for name, obj in inspect.getmembers(module, inspect.isclass):
+            for _, obj in inspect.getmembers(module, inspect.isclass):
                 if issubclass(obj, BaseTool) and obj is not BaseTool:
-                    return obj()
+                    return obj(scene_manager=self._scene_manager) if self._scene_manager else obj()
         except Exception:
-            pass
-
+            logger.error(f"Falha ao instanciar tool {path.name}:\n{traceback.format_exc()}")
         return None
 
 
