@@ -4,24 +4,20 @@ from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 
 if TYPE_CHECKING:
-    from core.components.tools.base.base_tool import BaseTool, InteractionContext
-
+    from core.components.tools.base.base_tool import BaseTool
+    from core.components.tools.base.tool_manager import ToolManager
 
 class BaseToolbarHandler(QtCore.QObject):
-    def __init__(self, toolbar: QtWidgets.QToolBar, context: Optional[InteractionContext] = None):
+    def __init__(self, toolbar: QtWidgets.QToolBar, tool_manager: ToolManager):
         super().__init__()
         self.toolbar = toolbar
-        self.context = context
+        self.tool_manager = tool_manager # Agora armazena o gerenciador central
         self.action_group = QtGui.QActionGroup(self)
         self.action_group.setExclusive(True)
 
     @property
     def components_path(self) -> Path:
         return Path(__file__).resolve().parent.parent.parent
-
-    def load_tools(self, tools: List[BaseTool]):
-        for tool in tools:
-            self.register_tool(tool)
 
     def register_tool(self, tool: BaseTool):
         action = QtGui.QAction(tool.get_qicon(), tool.display_name, self.toolbar)
@@ -33,10 +29,9 @@ class BaseToolbarHandler(QtCore.QObject):
 
     def _handle_toggle(self, tool: BaseTool, checked: bool):
         if checked:
-            if self.context:
-                tool.activate(self.context)
+            self.tool_manager.activate_tool(tool)
         else:
-            tool.deactivate()
+            self.tool_manager.deactivate_all()
 
     def clear_toolbar(self):
         self.toolbar.clear()
