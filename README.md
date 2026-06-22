@@ -6,8 +6,15 @@ Developed **by surgeons, for surgeons**, this platform is built on the foundatio
 
 ## Architecture
 
-The separation into modules such as core, flows, modules, and patients ensures the system is extensible. This modular design allows the integration of new surgical tools without compromising the software core.
+The system follows a modular architecture to ensure extensibility and maintainability. By separating the project into distinct components, we allow for the integration of new surgical tools without compromising the stability of the software core.
 
+**Core**: The backbone of the application.
+
+**Flows**: Workflow management and orchestration.
+
+**Modules**: Plugin-based surgical tools.
+
+**Patients**: Data management and patient records integration.
 
 ## Requirements & Technologies
 

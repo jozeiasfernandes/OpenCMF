@@ -27,7 +27,7 @@ from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
 from core.components.toolboxes.registration_toolbox import Component as RegistrationToolbox
 from core.components.toolboxes.objetct_properties_toolbox import Component as PropertiesComponent
 from core.components.toolbars.registration_toolbar import Component as RegistrationToolbar
-from core.components.tools.transforms.transform_manager import TransformManager
+
 
 logger = logging.getLogger("OpenCMF.RegistrationModule")
 
@@ -47,14 +47,13 @@ class Modulo(ModuloBase):
 
     def _criar_scene_manager_padrao(self) -> SceneManager:
         bus = EventBus()
-        transform_mgr = TransformManager()
         return SceneManager(
             SceneState(),
             bus,
             ObjectRegistry(),
             ActorRegistry(),
             SelectionManager(event_bus=bus),
-            transform_mgr,
+
         )
 
     def _conectar_sinais(self):

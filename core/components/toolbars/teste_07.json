@@ -1,0 +1,5 @@
+[
+    "tools\\rotate_tool.py",
+    "tools\\select_tool.py",
+    "tools\\move_tool.py"
+]

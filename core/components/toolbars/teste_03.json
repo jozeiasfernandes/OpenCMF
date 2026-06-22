@@ -1,0 +1,8 @@
+[
+    "tools\\move_tool.py",
+    "tools\\rotate_tool.py",
+    "tools\\add_point_registration_tool.py",
+    "tools\\reset_view_registration_tool.py",
+    "tools\\select_tool.py",
+    "tools\\size_point_registration_tool.py"
+]

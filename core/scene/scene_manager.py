@@ -12,7 +12,7 @@ from .events.scene_events import (
 from .registry.object_registry import ObjectRegistry
 from .registry.actor_registry import ActorRegistry
 from .selection.selection_manager import SelectionManager
-from core.components.tools.transforms import TransformManager
+
 
 
 class SceneManager:
@@ -23,14 +23,12 @@ class SceneManager:
             object_registry: ObjectRegistry,
             actor_registry: ActorRegistry,
             selection_manager: SelectionManager,
-            transform_manager: TransformManager,
     ):
         self.state = state
         self.events = event_bus
         self.objects = object_registry
         self.actors = actor_registry
         self.selection = selection_manager
-        self.transform_manager = transform_manager
 
     def add_object(self, obj: SceneObject):
         self.objects.register(obj)
