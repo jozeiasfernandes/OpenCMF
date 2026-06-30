@@ -3,6 +3,7 @@ import importlib.util
 import logging
 from pathlib import Path
 from typing import List, Dict
+from core.workspace.components_list_.capture_toolbar_png import capture_toolbar_screenshot
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +90,9 @@ class ToolbarService:
         content = content.replace("{class_name}", class_name).replace("{name}", name).replace("{object_name}", file_name.replace(".py", ""))
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
+
+        if file_path.exists():
+            capture_toolbar_screenshot(file_path)
 
         json_path = file_path.with_suffix(".json")
         with open(json_path, "w", encoding="utf-8") as f:
