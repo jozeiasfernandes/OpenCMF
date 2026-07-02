@@ -1,29 +1,19 @@
 import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
 
-@dataclass
-class ObjectProperties:
-    id: str = field(default_factory=lambda: str(uuid.uuid4()))
-    name: str = ""
-    type: str = ""  # volume | surfaces | photos | others
-    file_path: str = ""
-    format: str = ""
-
-    visible: bool = True
-    locked: bool = False
-    selectable: bool = True
-    opacity: float = 1.0
-
-    transform: Dict[str, List[float]] = field(default_factory=lambda: {
+def default_transform() -> Dict:
+    return {
         "position": [0.0, 0.0, 0.0],
         "rotation": [0.0, 0.0, 0.0],
         "scale": [1.0, 1.0, 1.0]
-    })
+    }
 
-    render: Dict[str, Any] = field(default_factory=lambda: {
+
+def default_render() -> Dict:
+    return {
         "color": [1.0, 1.0, 1.0],
         "representation": "surface",
         "lighting": True,
@@ -44,49 +34,61 @@ class ObjectProperties:
         "lookup_table": "default",
         "color_map": {"preset": "grayscale", "invert": False},
         "texture": {"enabled": False, "file_path": ""}
-    })
+    }
 
-    volume: Dict[str, Any] = field(default_factory=lambda: {
+
+def default_volume() -> Dict:
+    return {
         "spacing": [0.0, 0.0, 0.0],
         "dimensions": [0, 0, 0],
         "window_level": {"level": 0, "width": 0},
         "interpolation": "linear",
         "volume_rendering": {"enabled": False, "mode": "composite"},
         "transfer_function": {"color": [], "opacity": []}
-    })
+    }
 
-    processing: Dict[str, Any] = field(default_factory=lambda: {
-        "thresholds": [],
-        "segmentation": {"method": "manual", "mask_path": ""},
-        "filters": []
-    })
 
-    clipping_planes: List[Dict[str, Any]] = field(default_factory=list)
-
-    lod: Dict[str, Any] = field(default_factory=lambda: {
-        "enabled": False,
-        "decimation": 0.5
-    })
-
-    interaction: Dict[str, bool] = field(default_factory=lambda: {
-        "draggable": True,
-        "rotatable": True,
-        "scalable": True,
-        "pickable": True
-    })
-
-    annotations: List[Dict[str, Any]] = field(default_factory=list)
-
-    metadata: Dict[str, Any] = field(default_factory=lambda: {
-        "created_at": datetime.now().isoformat(),
-        "updated_at": datetime.now().isoformat(),
+def default_metadata() -> Dict:
+    now = datetime.now().isoformat()
+    return {
+        "created_at": now,
+        "updated_at": now,
         "source": "import",
         "patient_id": "",
         "study_id": "",
         "modality": "",
         "date": "",
         "tags": []
-    })
+    }
+
+
+@dataclass
+class ObjectProperties:
+    id: str = field(default_factory=lambda: str(uuid.uuid4()))
+    name: str = ""
+    type: str = ""
+    file_path: str = ""
+    format: str = ""
+
+    visible: bool = True
+    locked: bool = False
+    selectable: bool = True
+    opacity: float = 1.0
+
+    transform: Dict = field(default_factory=default_transform)
+    render: Dict = field(default_factory=default_render)
+    volume: Dict = field(default_factory=default_volume)
+
+    processing: Dict = field(
+        default_factory=lambda: {"thresholds": [], "segmentation": {"method": "manual", "mask_path": ""},
+                                 "filters": []})
+    lod: Dict = field(default_factory=lambda: {"enabled": False, "decimation": 0.5})
+    interaction: Dict = field(
+        default_factory=lambda: {"draggable": True, "rotatable": True, "scalable": True, "pickable": True})
+
+    clipping_planes: List[Dict] = field(default_factory=list)
+    annotations: List[Dict] = field(default_factory=list)
+    metadata: Dict = field(default_factory=default_metadata)
 
     def to_json(self) -> dict:
         return asdict(self)

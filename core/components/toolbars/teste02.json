@@ -2,5 +2,6 @@
     "tools\\add_point_registration_tool.py",
     "tools\\del_point_registration_tool.py",
     "tools\\move_tool.py",
-    "tools\\size_point_registration_tool.py"
+    "tools\\size_point_registration_tool.py",
+    "tools\\import_objects_tool.py"
 ]
