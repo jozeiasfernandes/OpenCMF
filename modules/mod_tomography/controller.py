@@ -11,7 +11,7 @@ if root_path not in sys.path:
 from typing import Dict, Optional
 from PySide6 import QtWidgets, QtCore
 
-from core.base_module.base import ModuloBase
+from modules.base_module.base import ModuloBase
 from core.volume.dicom_engine import DicomEngine
 from core.volume.viewer import VolumeViewerWidget
 from core.volume.validator import DicomValidator

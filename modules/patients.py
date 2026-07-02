@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 from typing import Dict
 from PySide6 import QtWidgets, QtCore
-from core.base_module.base import ModuloBase
+from modules.base_module.base import ModuloBase
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 from modules.mod_patients.ui_components import SecaoRetratil, criar_linha_arquivo
 from modules.mod_patients.logic import buscar_cep_online, formatar_nome_diretorio

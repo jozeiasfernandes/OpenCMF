@@ -8,7 +8,7 @@ from typing import Optional, Dict
 
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from core.base_module.base import ModuloBase
+from modules.base_module.base import ModuloBase
 from core.scene.scene_object import SceneObject
 from core.scene.scene_state import SceneState
 from core.scene.scene_manager import SceneManager

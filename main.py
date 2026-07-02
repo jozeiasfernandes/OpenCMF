@@ -7,7 +7,8 @@ from pathlib import Path
 from typing import Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from core.base_module.base import FluxoBase
+
+from modules.base_module.base import FluxoBase
 from core.localization.translator import tr
 from core.workspace.workspace_manager import WorkspaceManager
 from core.home_page.settings_app import settings

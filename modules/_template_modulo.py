@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets, QtCore
-from core.base_module.base import ModuloBase
+from modules.base_module.base import ModuloBase
 
 
 class ModuloTemplate(ModuloBase):
