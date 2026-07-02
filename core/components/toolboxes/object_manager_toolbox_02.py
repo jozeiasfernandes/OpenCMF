@@ -173,10 +173,58 @@ class Component(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.manager = ObjetoManagerWidget()
         layout.addWidget(self.manager)
+        self._modulo = modulo # Armazenar modulo para acesso posterior
+
         if modulo:
-            self.manager.requestSave.connect(
-                lambda: modulo.patient_assets.save_scene() if hasattr(modulo, 'patient_assets') else None)
+            # Conecta o sinal requestSave a um novo slot que gerencia o salvamento
+            self.manager.requestSave.connect(self._handle_save_request)
             # Vincular demais sinais...
+
+    def _handle_save_request(self):
+        if hasattr(self._modulo, 'patient_assets') and self._modulo.patient_assets:
+            # Converte ObjectProperties para SceneObjects antes de salvar
+            scene_objects_to_save = []
+            for props_id, props in self.manager.object_properties.items():
+                # Aqui você precisaria de uma lógica para criar um SceneObject a partir de ObjectProperties
+                # Isso pode envolver carregar um SceneObject existente e atualizar suas propriedades
+                # Ou criar um novo SceneObject com base em props.
+
+                # Exemplo simplificado (assumindo que há um SceneObject correspondente já carregado
+                # ou que podemos criar um novo apenas com as propriedades relevantes para a cena)
+                # O ideal seria que o ObjectManager (do objects_manager) tivesse um método para
+                # sincronizar ou obter a lista atualizada de SceneObjects com base nas ObjectProperties
+
+                # Para uma solução funcional imediata, podemos iterar sobre os objetos atualmente carregados
+                # no ObjectManager do modulo e atualizar suas propriedades com base no ObjetoManagerWidget
+
+                # Se o ObjetoManager do objects_manager gerencia a "fonte da verdade" dos SceneObjects,
+                # e o widget é apenas uma view, o ideal seria que os signals do widget
+                # chamassem métodos no ObjectManager do objects_manager para atualizar os SceneObjects individuais.
+                # O requestSave seria um sinal para *persistir* o estado atual que já foi atualizado.
+
+                # Como o requestSave é emitido em cada modificação (visible, opacity, color, name),
+                # o cenário mais limpo é que o ObjectManager do objects_manager ou o SceneManager
+                # tenha slots para esses signals e atualize seus SceneObjects imediatamente.
+                # O requestSave então apenas acionaria o save_scene *da lista atual do ObjectManager do objects_manager*.
+
+                # Se o widget é a "fonte da verdade" e precisamos converter tudo:
+                from core.objects_manager.models import SceneObject # Import needed for SceneObject
+                scene_obj_color = props.render.get("color", [1.0, 1.0, 1.0])
+                scene_object_instance = SceneObject(
+                    id=props.id,
+                    name=props.name,
+                    type=props.type,
+                    visible=props.visible,
+                    opacity=props.opacity,
+                    color=(scene_obj_color[0], scene_obj_color[1], scene_obj_color[2]),
+                    # ... outras propriedades de SceneObject que possam ser relevantes
+                )
+                scene_objects_to_save.append(scene_object_instance)
+
+            # Chama o save_scene com a lista de SceneObjects convertidos
+            self._modulo.patient_assets.save_scene(scene_objects_to_save)
+        else:
+            logger.warning("Não foi possível salvar: patient_assets não encontrado no módulo.")
 
 
 if __name__ == "__main__":

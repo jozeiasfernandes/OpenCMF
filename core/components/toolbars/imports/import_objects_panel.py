@@ -1,7 +1,7 @@
 '''
 Fluxo:
 * ImportObjectsPanel emite o sinal.
-*Controller (ou o componente que coordena a cena) recebe esse sinal.
+* Controller (ou o componente que coordena a cena) recebe esse sinal.
 * Controller abre um QFileDialog para o usuário escolher o arquivo STL/VTI/JPG.
 * Controller chama o ObjectManager (que refatoramos antes).
 

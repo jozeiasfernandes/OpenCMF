@@ -1,15 +1,14 @@
 import shutil
 import logging
 import uuid
-import json
-from typing import Dict, Optional, List
+from typing import Optional, List
 from pathlib import Path
 from PySide6.QtCore import QObject, Signal
 
 from core.scene.scene_object import SceneObject
 from core.scene.persistence.serializer import Serializer
 from core.scene.events.scene_events import OBJECT_ADDED
-
+from core.scene.utils.scene_utils import SceneUtils
 
 logger = logging.getLogger("OpenCMF.ObjectManager")
 
@@ -24,52 +23,59 @@ class ObjectManager(QObject):
         self.serializer = serializer
         self.event_bus = event_bus
         self.project_file = self.patient_path / "project" / "scene.cmf"
+
         self.project_file.parent.mkdir(parents=True, exist_ok=True)
         self._current_objects: List[SceneObject] = []
 
-    def import_external_file(self, file_path: str, category: str, obj_id: Optional[str] = None) -> Optional[SceneObject]:
+    def import_external_file(self, file_path: str, category: str, obj_id: Optional[str] = None) -> Optional[
+        SceneObject]:
+        source = Path(file_path)
+        if not source.exists():
+            return None
+
         try:
-            source = Path(file_path)
-            if not source.exists():
-                return None
             target_dir = self.patient_path / category
             target_dir.mkdir(parents=True, exist_ok=True)
+
             destination = self._get_unique_path(target_dir, source)
             shutil.copy2(source, destination)
-            new_id = obj_id or str(uuid.uuid4())[:12]
-            rel_path = destination.relative_to(self.patient_path)
-            scene_obj = SceneObject(
-                id=new_id,
+
+            scene_obj = SceneUtils.create_from_file(
+                obj_id=obj_id or str(uuid.uuid4())[:12],
                 name=destination.stem,
-                type=category,
-                file_path=str(rel_path)
+                category=category,
+                rel_path=str(destination.relative_to(self.patient_path))
             )
+
             self._current_objects.append(scene_obj)
             self.save_scene(self._current_objects)
+
             if self.event_bus:
                 self.event_bus.emit(OBJECT_ADDED, object=scene_obj)
             self.object_added.emit(scene_obj)
+
             return scene_obj
+
         except Exception as e:
             logger.error(f"Erro na importação: {e}", exc_info=True)
             return None
 
-    def save_scene(self, objects: List[SceneObject]):
+    def save_scene(self, objects: List[SceneObject]) -> None:
         try:
             self._current_objects = objects
             json_string = self.serializer.save(objects)
-            with open(self.project_file, "w", encoding="utf-8") as f:
-                f.write(json_string)
+            self.project_file.write_text(json_string, encoding="utf-8")
         except Exception as e:
             logger.error(f"Erro ao salvar cena .cmf: {e}")
 
-    def load_patient_data(self):
+    def load_patient_data(self) -> None:
         if not self.project_file.exists():
             return
+
         try:
-            with open(self.project_file, "r", encoding="utf-8") as f:
-                raw_data = f.read()
+            raw_data = self.project_file.read_text(encoding="utf-8")
             self._current_objects = self.serializer.load(raw_data)
+
             for obj in self._current_objects:
                 if self.event_bus:
                     self.event_bus.emit(OBJECT_ADDED, object=obj)
@@ -77,10 +83,11 @@ class ObjectManager(QObject):
         except Exception as e:
             logger.error(f"Erro ao carregar projeto .cmf: {e}")
 
-    def remove_object(self, object_id: str):
+    def remove_object(self, object_id: str) -> None:
         obj_to_remove = next((o for o in self._current_objects if o.id == object_id), None)
+
         if obj_to_remove:
-            self.delete_physical_file(obj_to_remove.file_path)
+            self._delete_physical_file(obj_to_remove.file_path)
             self._current_objects = [o for o in self._current_objects if o.id != object_id]
             self.save_scene(self._current_objects)
             self.object_removed.emit(object_id)
@@ -93,7 +100,7 @@ class ObjectManager(QObject):
             counter += 1
         return dest
 
-    def delete_physical_file(self, rel_path: str):
+    def _delete_physical_file(self, rel_path: str) -> None:
         full_path = self.patient_path / rel_path
         try:
             if full_path.exists():
