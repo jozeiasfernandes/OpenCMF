@@ -1,4 +1,4 @@
-# base.py (A casca)
+# base_module.py (A casca)
 # Contém apenas o comportamento visual comum: o QVTKRenderWindowInteractor,
 # o indicator no canto (0,0) e o slider base. É aqui que você colocará a lógica
 # de maximizar/minimizar no futuro.

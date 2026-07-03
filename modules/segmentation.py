@@ -9,7 +9,7 @@ import vtkmodules.all as vtk
 from PySide6 import QtWidgets, QtCore
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
-from modules.base_module.base import ModuloBase
+from modules.base_module.base_module import ModuloBase
 from core.volume.segmentation_engine import SegmentacaoEngine
 
 # Componentes de UI importados conforme estrutura do projeto
