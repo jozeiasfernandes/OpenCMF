@@ -9,34 +9,34 @@ EventBus
 Observers (Renderer / Registry / UI adapters)
 '''
 
+import logging
 from collections import defaultdict
 from typing import Callable, Any, Dict, List, Optional
 
+logger = logging.getLogger("OpenCMF.EventBus")
 
 class EventBus:
     def __init__(self):
-        self._subscribers: Dict[str, List[Callable[..., None]]] = defaultdict(list)
+        self._subscribers: Dict[str, List[Callable]] = defaultdict(list)
 
-    def subscribe(self, event: str, callback: Callable[..., None]):
+    def subscribe(self, event: str, callback: Callable):
         if callback not in self._subscribers[event]:
             self._subscribers[event].append(callback)
 
-    def unsubscribe(self, event: str, callback: Callable[..., None]):
+    def unsubscribe(self, event: str, callback: Callable):
         if event in self._subscribers:
-            try:
+            if callback in self._subscribers[event]:
                 self._subscribers[event].remove(callback)
-            except ValueError:
-                pass
 
     def emit(self, event: str, **payload: Any):
         if event not in self._subscribers:
             return
-
         for callback in self._subscribers[event][:]:
             try:
                 callback(**payload)
-            except Exception:
-                pass
+            except Exception as e:
+                # Log do erro específico para facilitar debug (crucial no VTK/Qt)
+                logger.error(f"Erro no evento '{event}' ao chamar {callback.__name__}: {e}", exc_info=True)
 
     def clear(self, event: Optional[str] = None):
         if event:
