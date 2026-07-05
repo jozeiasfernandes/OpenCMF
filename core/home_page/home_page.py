@@ -21,6 +21,11 @@ FLOWS_DIR = BASE_DIR / "flows"
 ICONS_DIR = BASE_DIR / "appearance" / "icons"
 REGISTRATION_FLOW_NAME = "new_patient_registration.json"
 
+class ClickableLabel(QtWidgets.QLabel):
+    clicked = QtCore.Signal()
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()
 
 class Home_page(QtWidgets.QWidget):
     projeto_selecionado = QtCore.Signal(str, str)
@@ -56,7 +61,7 @@ class Home_page(QtWidgets.QWidget):
 
         cor_default = manager.get_color(theme, "status", "default")
 
-        self.btn_logo.setIcon(manager.get_icon("OpenCFM_Logo", color=cor_default, size=40))
+        self.btn_logo.setIcon(manager.get_icon("cmf", color=cor_default, size=40))
         self.btn_settings.setIcon(manager.get_icon("config", color=cor_default, size=24))
 
     def update_list(self):
@@ -68,27 +73,40 @@ class Home_page(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
 
+        # Definindo a função comum de abertura dos créditos
+        open_credits = lambda: Janela_Creditos(self).exec()
+
         # Configuração do botão de Logo
         self.btn_logo = QtWidgets.QPushButton()
-        self.btn_logo.setFixedSize(120, 40)
+        self.btn_logo.setFixedSize(24, 24)
         self.btn_logo.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_logo.setIconSize(QtCore.QSize(110, 40))
-        self.btn_logo.clicked.connect(lambda: Janela_Creditos(self).exec())
+        self.btn_logo.setIconSize(QtCore.QSize(24, 24))
+        self.btn_logo.clicked.connect(open_credits)
+        self.btn_logo.setStyleSheet("QPushButton { border: none; }")
+
+        # --- NOVA LABEL DE TEXTO CLICÁVEL ---
+        self.lbl_title = ClickableLabel("OpenCFM")
+        self.lbl_title.setCursor(QtCore.Qt.PointingHandCursor)
+        self.lbl_title.setStyleSheet(
+            "font-weight: bold; font-size: 16px; color: #FFFFFF;"
+        )
+        self.lbl_title.clicked.connect(open_credits)
+        # ------------------------------------
 
         # Configuração do botão de Settings
         self.btn_settings = QtWidgets.QPushButton()
-        self.btn_settings.setFixedSize(40, 40)
+        self.btn_settings.setFixedSize(24, 24)
         self.btn_settings.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_settings.setIconSize(QtCore.QSize(24, 24))
         self.btn_settings.clicked.connect(self.config_solicitada.emit)
-
-        # Adiciona efeitos simples de estilo para melhorar a interação (opcional)
-        self.btn_logo.setStyleSheet("QPushButton { border: none; }")
         self.btn_settings.setStyleSheet("QPushButton { border: none; }")
 
         layout.addWidget(self.btn_logo)
+        layout.addSpacing(10)
+        layout.addWidget(self.lbl_title)
         layout.addStretch()
         layout.addWidget(self.btn_settings)
+
         return panel
 
     def _build_projects_section(self):
