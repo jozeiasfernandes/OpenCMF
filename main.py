@@ -16,6 +16,7 @@ from core.home_page.home_page import Home_page
 from core.home_page.flow.flow_editor import PaginaEditorFluxo
 from core.home_page.extras.settings_page import PaginaConfig
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+from core.icons.icons_manager import IconManager
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - [%(name)s] %(message)s')
 logger = logging.getLogger("OpenCMF.Main")
@@ -25,9 +26,11 @@ def get_resource_path() -> Path:
     return Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
 
 class MainWindow(QtWidgets.QMainWindow):
+    theme_changed = QtCore.Signal()
     def __init__(self):
         super().__init__()
         self.base_dir = get_resource_path()
+        IconManager.set_base_path(self.base_dir / "appearance" / "icons")
         self.project_service = ProjectServiceHomePage(self.base_dir / "patients")
         self.current_patient_path: Optional[str] = None
         self.workflow: Optional[FluxoBase] = None
@@ -64,32 +67,46 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle(tr("main.window_title", settings.get("app_info", "titulo", "OpenCMF")))
 
         theme = settings.get("preferencias", "tema", "dark")
-        qss_path = self.base_dir / "appearance" / "themes" / f"{theme}.qss"
-        if qss_path.exists():
-            self.setStyleSheet(qss_path.read_text(encoding="utf-8"))
 
+        self.apply_theme_by_name(theme)
         self.setup_icon()
+
+    @classmethod
+    def get_instance(cls):
+        if cls._instance is None:
+            raise RuntimeError("IconManager deve ser inicializado com set_base_path() antes de ser usado.")
+        return cls._instance
 
     def apply_theme(self, qss_path_str: str):
         qss_path = Path(qss_path_str)
         if qss_path.exists():
+            theme_name = qss_path.stem  # Defina o nome primeiro
             try:
-                style = qss_path.read_text(encoding="utf-8")
-                QtWidgets.QApplication.instance().setStyleSheet(style)
-
-                theme_name = qss_path.stem
+                self.apply_theme_by_name(theme_name)
                 settings.set("preferencias", "tema", theme_name)
                 settings.save()
                 logger.info(f"Tema alterado para: {theme_name}")
             except Exception as e:
                 logger.error(f"Erro ao aplicar tema: {e}")
 
+        # Chama a atualização de ícones e emite o sinal para os outros widgets
+        self.setup_icon()
+        self.theme_changed.emit()
+
+    def apply_theme_by_name(self, theme_name):
+        qss_path = self.base_dir / "appearance" / "themes" / f"{theme_name}.qss"
+        if qss_path.exists():
+            QtWidgets.QApplication.instance().setStyleSheet(qss_path.read_text(encoding="utf-8"))
 
 
     def setup_icon(self):
-        icon_path = self.base_dir / "appearance" / "icons" / "cmf.svg"
-        if icon_path.exists():
-            app_icon = QtGui.QIcon(str(icon_path))
+        theme = settings.get("preferencias", "tema", "dark")
+        cor_icone = "#FFFFFF" if theme == "dark" else "#333333"
+
+        manager = IconManager.get_instance()
+        app_icon = manager.get_icon("cmf", color=cor_icone)
+
+        if not app_icon.isNull():
             self.setWindowIcon(app_icon)
             QtWidgets.QApplication.setWindowIcon(app_icon)
 

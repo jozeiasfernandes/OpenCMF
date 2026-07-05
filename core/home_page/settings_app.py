@@ -55,4 +55,13 @@ class SettingsManager:
         except IOError as e:
             logging.error(f"Failed to save settings: {e}")
 
+    @property
+    def tema(self) -> str:
+        return self.get("preferencias", "tema", "dark")
+
+    @tema.setter
+    def tema(self, value: str):
+        self.set("preferencias", "tema", value)
+        self.save()
+
 settings = SettingsManager()

@@ -1,13 +1,12 @@
-import sys
-from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
+from pathlib import Path
+import sys
+
+from core import settings, IconManager, tr, ProjectServiceHomePage, FlowServiceHomePage
 
 from core.home_page.extras.tela_creditos import Janela_Creditos
 from core.home_page.flow.fluxo_card import FluxoCard
-from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
-from core.home_page.managers.flow_service_home_page import FlowServiceHomePage
 from core.home_page.managers.project_list_formatter import format_and_add_to_list
-from core.localization.translator import tr
 
 
 def get_project_root():
@@ -35,6 +34,20 @@ class Home_page(QtWidgets.QWidget):
         self.flow_service = FlowServiceHomePage(FLOWS_DIR)
         self.init_ui()
         self.update_list()
+        QtCore.QTimer.singleShot(0, self._connect_theme_signal)
+
+    def _connect_theme_signal(self):
+        if hasattr(self.window(), 'theme_changed'):
+            self.window().theme_changed.connect(self.update_icons)
+            self.update_icons()
+
+    def update_icons(self):
+        theme = settings.get("preferencias", "tema", "dark")
+        manager = IconManager.get_instance()
+        cor = manager.get_icon_color(theme)
+
+        self.btn_logo.setIcon(manager.get_icon("OpenCFM_Logo", color=cor))
+        self.btn_settings.setIcon(manager.get_icon("config", color=cor))
 
     def init_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -53,26 +66,17 @@ class Home_page(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
 
+        # Apenas configure o tamanho, não carregue o ícone aqui
         self.btn_logo = QtWidgets.QPushButton()
         self.btn_logo.setFixedSize(120, 40)
         self.btn_logo.setCursor(QtCore.Qt.PointingHandCursor)
-
-        logo_path = ICONS_DIR / "OpenCFM_Logo - Branco.svg"
-        if logo_path.exists():
-            self.btn_logo.setIcon(QtGui.QIcon(str(logo_path)))
-            self.btn_logo.setIconSize(QtCore.QSize(110, 40))
-
+        self.btn_logo.setIconSize(QtCore.QSize(110, 40)) # Defina o tamanho aqui
         self.btn_logo.clicked.connect(lambda: Janela_Creditos(self).exec())
 
         self.btn_settings = QtWidgets.QPushButton()
         self.btn_settings.setFixedSize(40, 40)
         self.btn_settings.setCursor(QtCore.Qt.PointingHandCursor)
-
-        settings_icon = ICONS_DIR / "config.svg"
-        if settings_icon.exists():
-            self.btn_settings.setIcon(QtGui.QIcon(str(settings_icon)))
-            self.btn_settings.setIconSize(QtCore.QSize(24, 24))
-
+        self.btn_settings.setIconSize(QtCore.QSize(24, 24)) # Defina o tamanho aqui
         self.btn_settings.clicked.connect(self.config_solicitada.emit)
 
         layout.addWidget(self.btn_logo)

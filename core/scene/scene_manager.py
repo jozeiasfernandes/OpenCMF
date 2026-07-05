@@ -23,12 +23,14 @@ class SceneManager:
             object_registry: ObjectRegistry,
             actor_registry: ActorRegistry,
             selection_manager: SelectionManager,
+            transform_manager: Any = None
     ):
         self.state = state
         self.events = event_bus
         self.objects = object_registry
         self.actors = actor_registry
         self.selection = selection_manager
+        self.transform_manager = transform_manager
 
     def add_object(self, obj: SceneObject):
         self.objects.register(obj)
@@ -58,6 +60,8 @@ class SceneManager:
         obj = self.objects.get(obj_id)
         if obj and obj.visible != visible:
             obj.visible = visible
+            # Padronizando para usar a infraestrutura de updates
+            self._emit_update(obj_id, "visible", visible)
             self.events.emit(VISIBILITY_CHANGED, object_id=obj_id, visible=visible)
 
     def update_opacity(self, obj_id: str, opacity: float):

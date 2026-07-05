@@ -1,7 +1,6 @@
 import sys
 import logging
 from typing import TYPE_CHECKING, Optional
-
 from PySide6 import QtWidgets, QtCore, QtGui
 import vtk
 
@@ -19,7 +18,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger("OpenCMF.WindowRegistration")
 
-
 class RegistrationDoubleClickFilter(QtCore.QObject):
     def eventFilter(self, obj, event):
         if event.type() == QtCore.QEvent.MouseButtonDblClick:
@@ -34,17 +32,11 @@ class WindowRegistration(QtWidgets.QWidget):
     def __init__(self, scene_manager: Optional["SceneManager"] = None):
         super().__init__()
         self._scene_manager = scene_manager
-
-        self.objetos_a = {}
-        self.objetos_b = {}
-        self.pontos_a = []
-        self.pontos_b = []
+        self.objetos_a, self.objetos_b = {}, {}
+        self.pontos_a, self.pontos_b = [], {}
         self.current_point_size = 1.5
         self.current_mode = "select"
 
-        self.db_click_filter = RegistrationDoubleClickFilter(self)
-
-        self.setMinimumSize(0, 0)
         self.setup_ui()
         self._bind_scene_listeners()
         self.shortcuts = get_shortcuts_by_scope("view3d")
@@ -60,87 +52,65 @@ class WindowRegistration(QtWidgets.QWidget):
             container = QtWidgets.QWidget()
             layout = QtWidgets.QVBoxLayout(container)
             layout.setContentsMargins(0, 0, 0, 0)
-
             view = Janela3DSurface(f"Vista {side}", "#202020")
-            view.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-
-            controls_layout = QtWidgets.QHBoxLayout()
-            combo_mesh = QtWidgets.QComboBox()
-            combo_mesh.setPlaceholderText("Referência (Fixo):" if side == "A" else "Móvel (Alinhamento):")
-
-            combo_view = QtWidgets.QComboBox()
-            combo_view.addItems(["Frontal", "Posterior", "Direita", "Esquerda", "Superior", "Inferior"])
-            combo_view.setFixedWidth(110)
-
-            controls_layout.addWidget(combo_mesh, stretch=1)
-            controls_layout.addWidget(combo_view)
-
             layout.addWidget(view, stretch=1)
-            layout.addLayout(controls_layout)
+
+            combo = QtWidgets.QComboBox()
+            combo.setPlaceholderText("Referência" if side == "A" else "Móvel")
+            layout.addWidget(combo)
 
             setattr(self, f"view_{side.lower()}", view)
-            setattr(self, f"combo_{side.lower()}", combo_mesh)
-
+            setattr(self, f"combo_{side.lower()}", combo)
             self.top_splitter.addWidget(container)
-
-            combo_view.currentTextChanged.connect(
-                lambda t, s=side: self._on_view_presets_changed(s, t)
-            )
+            combo.currentTextChanged.connect(lambda t, s=side: self._on_combo_changed(s, t))
 
         self.main_splitter.addWidget(self.top_splitter)
-
         self.view_c = Janela3DSurface("Visor Geral", "#202020")
         self.view_c.header.hide()
-        self.view_c.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.main_splitter.addWidget(self.view_c)
-
         self.main_layout.addWidget(self.main_splitter)
 
-        self.combo_a.currentTextChanged.connect(lambda t: self._on_combo_changed("A", t))
-        self.combo_b.currentTextChanged.connect(lambda t: self._on_combo_changed("B", t))
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._init_vtk_resources()
 
-        QtCore.QTimer.singleShot(100, self._finalize_setup)
+    def _init_vtk_resources(self):
+
+        for v in [self.view_a, self.view_b, self.view_c]:
+            v.setup_interactors()
+            v.setFocusPolicy(QtCore.Qt.StrongFocus)
+            v.installEventFilter(self)
+
+        self.view_a.vtkWidget.GetRenderWindow().GetInteractor().AddObserver("LeftButtonPressEvent", self._on_click_a)
+        self.view_b.vtkWidget.GetRenderWindow().GetInteractor().AddObserver("LeftButtonPressEvent", self._on_click_b)
+
+        self._connect_context_menus()
+        self._setup_keyboard_focus()
+        self.reset_layout_vistas()
+        self.view_c.setFocus()
+
+
+    def reset_layout_vistas(self):
+        w = self.top_splitter.width()
+        h = self.main_splitter.height()
+        if w > 0: self.top_splitter.setSizes([w // 2, w // 2])
+        if h > 0: self.main_splitter.setSizes([h // 2, h // 2])
+
+        self.view_a.render()
+        self.view_b.render()
+        self.view_c.render()
 
     def _connect_context_menus(self):
         for side, view in [("A", self.view_a), ("B", self.view_b)]:
-            view.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
-            view.customContextMenuRequested.connect(
-                lambda pos, s=side: self._open_context_menu(s, pos)
-            )
+            view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+            view.customContextMenuRequested.connect(lambda pos, s=side: self._open_context_menu(s, pos))
 
     def _open_context_menu(self, side: str, position: QtCore.QPoint):
         view = self.view_a if side == "A" else self.view_b
         menu = WindowsRegistrationMenu(self, view, side)
         menu.exec(view.mapToGlobal(position))
 
-    def _finalize_setup(self):
-        self.view_a.setup_interactors()
-        self.view_b.setup_interactors()
-        self.view_c.setup_interactors()
-
-        self.view_a.vtkWidget.GetRenderWindow().GetInteractor().AddObserver(
-            "LeftButtonPressEvent", self._on_click_a)
-        self.view_b.vtkWidget.GetRenderWindow().GetInteractor().AddObserver(
-            "LeftButtonPressEvent", self._on_click_b)
-
-        self.reset_layout_vistas()
-        self._connect_context_menus()
-        self._setup_keyboard_focus()
-        self.view_c.setFocus()
-
-    def reset_layout_vistas(self):
-        w = self.top_splitter.width()
-        if w > 0:
-            self.top_splitter.setSizes([w // 2, w // 2])
-
-        h = self.main_splitter.height()
-        if h > 0:
-            self.main_splitter.setSizes([h // 2, h // 2])
-
-        self.view_a.render()
-        self.view_b.render()
-        self.view_c.render()
-
+ 
     def atualizar_lista_objetos(self, nomes_objetos: list):
         if not nomes_objetos:
             return
@@ -603,15 +573,8 @@ class WindowRegistration(QtWidgets.QWidget):
 
     def eventFilter(self, obj, event):
         if event.type() == QtCore.QEvent.MouseButtonPress:
-            if obj in [self.view_a, self.view_b, self.view_c,
-                       self.view_a.vtkWidget, self.view_b.vtkWidget, self.view_c.vtkWidget]:
-                if obj in [self.view_a, self.view_a.vtkWidget]:
-                    self.view_a.setFocus()
-                elif obj in [self.view_b, self.view_b.vtkWidget]:
-                    self.view_b.setFocus()
-                elif obj in [self.view_c, self.view_c.vtkWidget]:
-                    self.view_c.setFocus()
-
+            for v in [self.view_a, self.view_b, self.view_c]:
+                if obj in [v, v.vtkWidget]: v.setFocus()
         return super().eventFilter(obj, event)
 
 
