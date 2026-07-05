@@ -98,6 +98,15 @@ class Home_page(QtWidgets.QWidget):
         header.addWidget(QtWidgets.QLabel(f"<h3>{tr('home.recent_projects_title')}</h3>"))
         header.addStretch()
 
+        # --- Campo de busca (oculto por padrão) ---
+        self.search_input = QtWidgets.QLineEdit()
+        self.search_input.setPlaceholderText(tr("home.search_placeholder") or "Buscar...")
+        self.search_input.setFixedWidth(200)
+        self.search_input.hide()
+        self.search_input.textChanged.connect(self._filter_projects)
+        header.addWidget(self.search_input)
+
+        # --- Botão de busca (após o btn_remove_project na lógica de UI) ---
         self.btn_new_project = QtWidgets.QPushButton(tr("home.new_project_button"))
         self.btn_new_project.setFixedSize(150, 35)
         self.btn_new_project.clicked.connect(
@@ -108,8 +117,15 @@ class Home_page(QtWidgets.QWidget):
         self.btn_remove_project.setFixedSize(150, 35)
         self.btn_remove_project.clicked.connect(self._on_remove_clicked)
 
+        self.btn_search = QtWidgets.QPushButton()
+        self.btn_search.setFixedSize(35, 35)
+        self.btn_search.setIcon(IconManager.get_instance().get_icon("search"))
+        self.btn_search.clicked.connect(self._toggle_search)
+
+        # Adicionando ao layout
         header.addWidget(self.btn_new_project)
         header.addWidget(self.btn_remove_project)
+        header.addWidget(self.btn_search)
 
         self.projects_view = QtWidgets.QListWidget()
         self.projects_view.setMinimumHeight(150)
@@ -120,6 +136,24 @@ class Home_page(QtWidgets.QWidget):
         layout.addLayout(header)
         layout.addWidget(self.projects_view)
         return panel
+
+    def _toggle_search(self):
+        is_visible = self.search_input.isVisible()
+        self.search_input.setVisible(not is_visible)
+        if not is_visible:
+            self.search_input.setFocus()
+        else:
+            self.search_input.clear()  # Limpa ao fechar
+
+    def _filter_projects(self, text):
+        text = text.lower()
+        for i in range(self.projects_view.count()):
+            item = self.projects_view.item(i)
+            widget = self.projects_view.itemWidget(item)
+
+            nome_paciente = widget.data.get("paciente", {}).get("nome", "").lower()
+
+            item.setHidden(text not in nome_paciente)
 
     def _build_flows_section(self):
         panel = QtWidgets.QFrame()
