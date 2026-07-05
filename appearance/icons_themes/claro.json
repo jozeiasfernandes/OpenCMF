@@ -1,4 +1,16 @@
 {
-    "icon_color": "#242130",
-    "accent_color": "#12B886"
+    "icons": {
+        "status": {
+            "default": "#242130",
+            "hover": "#3a364d",
+            "disabled": "#a0a0a0",
+            "checked": "#12B886"
+        },
+        "feedback": {
+            "accent": "#12B886",
+            "warning": "#FF9900",
+            "error": "#FF0000",
+            "info": "#4fb3ff"
+        }
+    }
 }

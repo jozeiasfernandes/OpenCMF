@@ -11,6 +11,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from core.workspace.toolboxes_manager import ToolboxesManager
 from core.workspace.loader_components import ComponentLoader
 from core.workspace.componentes_list import Components_List
+from core import settings, IconManager, tr, ProjectServiceHomePage, FlowServiceHomePage
 
 logger = logging.getLogger("WorkspaceManager")
 
@@ -43,7 +44,19 @@ class WorkspaceManager(QtWidgets.QWidget):
         self._lazy_registry: Dict[QtWidgets.QWidget, Dict[str, Any]] = {}
         self._config_window = None
         self.current_patient_path = ""
+
         self._init_ui()
+
+        QtCore.QTimer.singleShot(0, self.update_icons)
+
+
+    def update_icons(self):
+        theme = settings.get("preferencias", "tema", "dark")
+        manager = IconManager.get_instance()
+        cor = manager.get_color(theme, "status", "default")
+
+        self.btn_home.setIcon(manager.get_icon("home", color=cor, size=18))
+        self.btn_config.setIcon(manager.get_icon("config", color=cor, size=18))
 
     def minimumSizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(0, 0)
@@ -56,44 +69,39 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.layout_principal.setContentsMargins(0, 0, 0, 0)
         self.layout_principal.setSpacing(0)
 
+        # Header
         self.header = QtWidgets.QWidget()
-        self.header.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Fixed
-        )
+        self.header.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.header.setFixedHeight(42)
-        self.header.setMinimumSize(0, 0)
 
         header_layout = QtWidgets.QHBoxLayout(self.header)
         header_layout.setContentsMargins(6, 4, 6, 4)
         header_layout.setSpacing(4)
 
+        # Botão Home
         self.btn_home = QtWidgets.QPushButton()
+        self.btn_home.setFixedSize(30, 30)
         self.btn_home.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_home.setIconSize(QtCore.QSize(18, 18))
-        self.btn_home.setFixedSize(30, 30)
-        self._apply_icon(self.btn_home, "home.svg")
+        self.btn_home.setStyleSheet("border: none;")  # Estilo limpo
         self.btn_home.clicked.connect(self.home_solicitada.emit)
 
+        # TabBar
         self.tab_bar = QtWidgets.QTabBar()
         self.tab_bar.setDocumentMode(True)
         self.tab_bar.setDrawBase(False)
         self.tab_bar.setMovable(True)
         self.tab_bar.setExpanding(False)
         self.tab_bar.setUsesScrollButtons(True)
-        self.tab_bar.setElideMode(QtCore.Qt.ElideRight)
         self.tab_bar.setIconSize(QtCore.QSize(16, 16))
-        self.tab_bar.setSizePolicy(
-            QtWidgets.QSizePolicy.Maximum,
-            QtWidgets.QSizePolicy.Fixed
-        )
         self.tab_bar.currentChanged.connect(self._on_tab_changed)
 
+        # Botão Config
         self.btn_config = QtWidgets.QPushButton()
+        self.btn_config.setFixedSize(30, 30)
         self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_config.setIconSize(QtCore.QSize(18, 18))
-        self.btn_config.setFixedSize(30, 30)
-        self._apply_icon(self.btn_config, "config_branco.svg")
+        self.btn_config.setStyleSheet("border: none;")  # Estilo limpo
         self.btn_config.clicked.connect(self._abrir_seletor_componentes)
 
         header_layout.addWidget(self.btn_home, 0, QtCore.Qt.AlignVCenter)
@@ -101,16 +109,12 @@ class WorkspaceManager(QtWidgets.QWidget):
         header_layout.addStretch(1)
         header_layout.addWidget(self.btn_config, 0, QtCore.Qt.AlignVCenter)
 
+        # Container de Páginas
         self.container_paginas = QtWidgets.QStackedWidget()
-        self.container_paginas.setContentsMargins(0, 0, 0, 0)
-        self.container_paginas.setMinimumSize(0, 0)
-        self.container_paginas.setSizePolicy(
-            QtWidgets.QSizePolicy.Expanding,
-            QtWidgets.QSizePolicy.Expanding
-        )
 
         self.layout_principal.addWidget(self.header)
         self.layout_principal.addWidget(self.container_paginas, 1)
+
 
     def _apply_icon(self, button, name):
         path = self.base_dir / "appearance" / "icons" / name

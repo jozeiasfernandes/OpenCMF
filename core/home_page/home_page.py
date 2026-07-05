@@ -41,21 +41,23 @@ class Home_page(QtWidgets.QWidget):
             self.window().theme_changed.connect(self.update_icons)
             self.update_icons()
 
-    def update_icons(self):
-        theme = settings.get("preferencias", "tema", "dark")
-        manager = IconManager.get_instance()
-        cor = manager.get_icon_color(theme)
-
-        self.btn_logo.setIcon(manager.get_icon("OpenCFM_Logo", color=cor))
-        self.btn_settings.setIcon(manager.get_icon("config", color=cor))
-
     def init_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(10, 50, 10, 10)
         layout.setSpacing(10)
+
         layout.addWidget(self._build_header())
         layout.addWidget(self._build_projects_section())
         layout.addWidget(self._build_flows_section())
+
+    def update_icons(self):
+        theme = settings.get("preferencias", "tema", "dark")
+        manager = IconManager.get_instance()
+
+        cor_default = manager.get_color(theme, "status", "default")
+
+        self.btn_logo.setIcon(manager.get_icon("OpenCFM_Logo", color=cor_default, size=40))
+        self.btn_settings.setIcon(manager.get_icon("config", color=cor_default, size=24))
 
     def update_list(self):
         self.refresh_projects()
@@ -66,18 +68,23 @@ class Home_page(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Apenas configure o tamanho, não carregue o ícone aqui
+        # Configuração do botão de Logo
         self.btn_logo = QtWidgets.QPushButton()
         self.btn_logo.setFixedSize(120, 40)
         self.btn_logo.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_logo.setIconSize(QtCore.QSize(110, 40)) # Defina o tamanho aqui
+        self.btn_logo.setIconSize(QtCore.QSize(110, 40))
         self.btn_logo.clicked.connect(lambda: Janela_Creditos(self).exec())
 
+        # Configuração do botão de Settings
         self.btn_settings = QtWidgets.QPushButton()
         self.btn_settings.setFixedSize(40, 40)
         self.btn_settings.setCursor(QtCore.Qt.PointingHandCursor)
-        self.btn_settings.setIconSize(QtCore.QSize(24, 24)) # Defina o tamanho aqui
+        self.btn_settings.setIconSize(QtCore.QSize(24, 24))
         self.btn_settings.clicked.connect(self.config_solicitada.emit)
+
+        # Adiciona efeitos simples de estilo para melhorar a interação (opcional)
+        self.btn_logo.setStyleSheet("QPushButton { border: none; }")
+        self.btn_settings.setStyleSheet("QPushButton { border: none; }")
 
         layout.addWidget(self.btn_logo)
         layout.addStretch()
