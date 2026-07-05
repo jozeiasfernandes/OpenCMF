@@ -1,6 +1,70 @@
-/*
- * fusion.qss - Qt Style Sheet
+/* Paleta de Cores Fusion:
+   Fundo principal: #0F172A
+   Superfícies (Cards): #1E293B
+   Destaque: #8B5CF6 (Violeta Fusion)
+   Texto: #F1F5F9
+*/
 
- */
+QWidget {
+    background-color: #0F172A;
+    color: #F1F5F9;
+    font-family: "Segoe UI", "Inter", sans-serif;
+    font-size: 10pt;
+    selection-background-color: #8B5CF6;
+    selection-color: #FFFFFF;
+}
 
+/* Botões Estilo Fusion */
+QPushButton {
+    background-color: #1E293B;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-weight: 500;
+}
+QPushButton:hover {
+    background-color: #334155;
+    border: 1px solid #475569;
+}
+QPushButton:pressed {
+    background-color: #0F172A;
+}
 
+/* Ações de Sucesso/Erro */
+QPushButton[status="sucesso"] { background-color: #10B981; border: none; }
+QPushButton[status="sucesso"]:hover { background-color: #059669; }
+
+QPushButton[status="erro"] { background-color: #EF4444; border: none; }
+QPushButton[status="erro"]:hover { background-color: #DC2626; }
+
+/* Entradas (Inputs) */
+QComboBox, QAbstractSpinBox, QLineEdit {
+    background-color: #1E293B;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    padding: 4px;
+    color: #F1F5F9;
+}
+QComboBox:hover, QLineEdit:focus {
+    border: 1px solid #8B5CF6;
+}
+
+/* Containers (Cards) */
+QFrame[tipo="card"] {
+    background-color: #1E293B;
+    border: 1px solid #334155;
+    border-radius: 8px;
+}
+
+/* ScrollBar Fusion */
+QScrollBar:vertical {
+    width: 8px;
+    background: transparent;
+}
+QScrollBar::handle:vertical {
+    background: #334155;
+    border-radius: 4px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #475569;
+}

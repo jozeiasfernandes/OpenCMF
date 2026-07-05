@@ -1,0 +1,76 @@
+/* Paleta Atom One Dark:
+   Fundo Principal: #282c34
+   Fundo Secundário (Sidebars/Cards): #21252b
+   Cor do Texto: #abb2bf
+   Destaques: #61afef (Azul), #98c379 (Verde), #c678dd (Roxo), #e5c07b (Amarelo)
+*/
+
+QWidget {
+    background-color: #282c34;
+    color: #abb2bf;
+    font-family: 'Segoe UI', 'Roboto', sans-serif;
+    font-size: 10pt;
+}
+
+/* Painéis laterais e containers */
+QFrame[tipo="sidebar"], QListWidget {
+    background-color: #21252b;
+    border: 1px solid #181a1f;
+}
+
+/* Botões Atom Style */
+QPushButton {
+    background-color: #282c34;
+    border: 1px solid #3e4451;
+    border-radius: 3px;
+    color: #abb2bf;
+    padding: 5px 15px;
+}
+QPushButton:hover {
+    background-color: #3e4451;
+    color: #ffffff;
+}
+QPushButton[tipo="primary"] {
+    background-color: #61afef;
+    color: #282c34;
+    font-weight: bold;
+    border: none;
+}
+QPushButton[tipo="primary"]:hover {
+    background-color: #528bff;
+}
+
+/* Inputs */
+QLineEdit, QComboBox, QAbstractSpinBox {
+    background-color: #1b1f23;
+    border: 1px solid #181a1f;
+    border-radius: 3px;
+    padding: 5px;
+    color: #abb2bf;
+}
+QLineEdit:focus {
+    border: 1px solid #61afef;
+}
+
+/* ScrollBar Atom */
+QScrollBar:vertical {
+    width: 10px;
+    background: #282c34;
+}
+QScrollBar::handle:vertical {
+    background: #4b5263;
+    border-radius: 5px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #5c6370;
+}
+
+/* Listas (File Explorer style) */
+QListWidget::item {
+    padding: 6px;
+}
+QListWidget::item:selected {
+    background-color: #3e4451;
+    color: #61afef;
+    border-left: 3px solid #61afef;
+}
