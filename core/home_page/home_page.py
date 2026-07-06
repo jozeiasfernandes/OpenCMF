@@ -1,9 +1,8 @@
-from PySide6 import QtWidgets, QtCore, QtGui
-from pathlib import Path
 import sys
+from pathlib import Path
+from PySide6 import QtWidgets, QtCore, QtGui
 
 from core import settings, IconManager, tr, ProjectServiceHomePage, FlowServiceHomePage
-
 from core.home_page.extras.tela_creditos import Janela_Creditos
 from core.home_page.flow.fluxo_card import FluxoCard
 from core.home_page.managers.project_list_formatter import format_and_add_to_list
@@ -21,11 +20,13 @@ FLOWS_DIR = BASE_DIR / "flows"
 ICONS_DIR = BASE_DIR / "appearance" / "icons"
 REGISTRATION_FLOW_NAME = "new_patient_registration.json"
 
+
 class ClickableLabel(QtWidgets.QLabel):
     clicked = QtCore.Signal()
 
     def mousePressEvent(self, event):
         self.clicked.emit()
+
 
 class Home_page(QtWidgets.QWidget):
     projeto_selecionado = QtCore.Signal(str, str)
@@ -37,14 +38,12 @@ class Home_page(QtWidgets.QWidget):
         super().__init__()
         self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
         self.flow_service = FlowServiceHomePage(FLOWS_DIR)
-        self.init_ui()
-        self.update_list()
-        QtCore.QTimer.singleShot(0, self._connect_theme_signal)
 
-    def _connect_theme_signal(self):
-        if hasattr(self.window(), 'theme_changed'):
-            self.window().theme_changed.connect(self.update_icons)
-            self.update_icons()
+        self.init_ui()
+        self.refresh_projects()
+        self.refresh_flows()
+
+        QtCore.QTimer.singleShot(0, self._connect_theme_signal)
 
     def init_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -55,28 +54,13 @@ class Home_page(QtWidgets.QWidget):
         layout.addWidget(self._build_projects_section())
         layout.addWidget(self._build_flows_section())
 
-    def update_icons(self):
-        theme = settings.get("preferencias", "tema", "dark")
-        manager = IconManager.get_instance()
-
-        cor_default = manager.get_color(theme, "status", "default")
-
-        self.btn_logo.setIcon(manager.get_icon("cmf", color=cor_default, size=40))
-        self.btn_settings.setIcon(manager.get_icon("config", color=cor_default, size=24))
-
-    def update_list(self):
-        self.refresh_projects()
-        self.refresh_flows()
-
     def _build_header(self):
         panel = QtWidgets.QFrame()
         layout = QtWidgets.QHBoxLayout(panel)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # Definindo a função comum de abertura dos créditos
         open_credits = lambda: Janela_Creditos(self).exec()
 
-        # Configuração do botão de Logo
         self.btn_logo = QtWidgets.QPushButton()
         self.btn_logo.setFixedSize(24, 24)
         self.btn_logo.setCursor(QtCore.Qt.PointingHandCursor)
@@ -84,16 +68,11 @@ class Home_page(QtWidgets.QWidget):
         self.btn_logo.clicked.connect(open_credits)
         self.btn_logo.setStyleSheet("QPushButton { border: none; }")
 
-        # --- NOVA LABEL DE TEXTO CLICÁVEL ---
         self.lbl_title = ClickableLabel("OpenCFM")
         self.lbl_title.setCursor(QtCore.Qt.PointingHandCursor)
-        self.lbl_title.setStyleSheet(
-            "font-weight: bold; font-size: 16px; color: #FFFFFF;"
-        )
+        self.lbl_title.setStyleSheet("font-weight: bold; font-size: 16px; color: #FFFFFF;")
         self.lbl_title.clicked.connect(open_credits)
-        # ------------------------------------
 
-        # Configuração do botão de Settings
         self.btn_settings = QtWidgets.QPushButton()
         self.btn_settings.setFixedSize(24, 24)
         self.btn_settings.setCursor(QtCore.Qt.PointingHandCursor)
@@ -106,7 +85,6 @@ class Home_page(QtWidgets.QWidget):
         layout.addWidget(self.lbl_title)
         layout.addStretch()
         layout.addWidget(self.btn_settings)
-
         return panel
 
     def _build_projects_section(self):
@@ -116,7 +94,6 @@ class Home_page(QtWidgets.QWidget):
         header.addWidget(QtWidgets.QLabel(f"<h3>{tr('home.recent_projects_title')}</h3>"))
         header.addStretch()
 
-        # --- Campo de busca (oculto por padrão) ---
         self.search_input = QtWidgets.QLineEdit()
         self.search_input.setPlaceholderText(tr("home.search_placeholder") or "Buscar...")
         self.search_input.setFixedWidth(200)
@@ -124,7 +101,6 @@ class Home_page(QtWidgets.QWidget):
         self.search_input.textChanged.connect(self._filter_projects)
         header.addWidget(self.search_input)
 
-        # --- Botão de busca (após o btn_remove_project na lógica de UI) ---
         self.btn_new_project = QtWidgets.QPushButton(tr("home.new_project_button"))
         self.btn_new_project.setFixedSize(150, 35)
         self.btn_new_project.clicked.connect(
@@ -140,7 +116,6 @@ class Home_page(QtWidgets.QWidget):
         self.btn_search.setIcon(IconManager.get_instance().get_icon("search"))
         self.btn_search.clicked.connect(self._toggle_search)
 
-        # Adicionando ao layout
         header.addWidget(self.btn_new_project)
         header.addWidget(self.btn_remove_project)
         header.addWidget(self.btn_search)
@@ -154,24 +129,6 @@ class Home_page(QtWidgets.QWidget):
         layout.addLayout(header)
         layout.addWidget(self.projects_view)
         return panel
-
-    def _toggle_search(self):
-        is_visible = self.search_input.isVisible()
-        self.search_input.setVisible(not is_visible)
-        if not is_visible:
-            self.search_input.setFocus()
-        else:
-            self.search_input.clear()  # Limpa ao fechar
-
-    def _filter_projects(self, text):
-        text = text.lower()
-        for i in range(self.projects_view.count()):
-            item = self.projects_view.item(i)
-            widget = self.projects_view.itemWidget(item)
-
-            nome_paciente = widget.data.get("paciente", {}).get("nome", "").lower()
-
-            item.setHidden(text not in nome_paciente)
 
     def _build_flows_section(self):
         panel = QtWidgets.QFrame()
@@ -197,6 +154,23 @@ class Home_page(QtWidgets.QWidget):
         layout.addWidget(scroll)
         return panel
 
+    def update_icons(self):
+        theme = settings.get("preferencias", "tema", "dark")
+        manager = IconManager.get_instance()
+        cor_default = manager.get_color(theme, "status", "default")
+
+        self.btn_logo.setIcon(manager.get_icon("cmf", color=cor_default, size=40))
+        self.btn_settings.setIcon(manager.get_icon("config", color=cor_default, size=24))
+
+    def _connect_theme_signal(self):
+        if hasattr(self.window(), 'theme_changed'):
+            self.window().theme_changed.connect(self.update_icons)
+            self.update_icons()
+
+    def update_list(self):
+        self.refresh_projects()
+        self.refresh_flows()
+
     def refresh_projects(self):
         self.projects_view.clear()
         for data in self.project_service.list_recent_projects():
@@ -218,9 +192,21 @@ class Home_page(QtWidgets.QWidget):
                 self.cards_layout.addWidget(card)
         self.cards_layout.addStretch()
 
-    def _open_selected_project(self, item):
-        if path := item.data(QtCore.Qt.UserRole):
-            self.projeto_selecionado.emit(path, "open")
+    def _filter_projects(self, text):
+        text = text.lower()
+        for i in range(self.projects_view.count()):
+            item = self.projects_view.item(i)
+            widget = self.projects_view.itemWidget(item)
+            nome_paciente = widget.data.get("paciente", {}).get("nome", "").lower()
+            item.setHidden(text not in nome_paciente)
+
+    def _toggle_search(self):
+        is_visible = self.search_input.isVisible()
+        self.search_input.setVisible(not is_visible)
+        if not is_visible:
+            self.search_input.setFocus()
+        else:
+            self.search_input.clear()
 
     def _show_context_menu(self, position):
         if item := self.projects_view.itemAt(position):
@@ -228,6 +214,10 @@ class Home_page(QtWidgets.QWidget):
             menu.addAction(tr("common.open_project"), lambda: self._open_selected_project(item))
             menu.addAction(tr("common.delete_project"), lambda: self._on_delete_project_requested(item))
             menu.exec(self.projects_view.mapToGlobal(position))
+
+    def _open_selected_project(self, item):
+        if path := item.data(QtCore.Qt.UserRole):
+            self.projeto_selecionado.emit(path, "open")
 
     def _on_remove_clicked(self):
         if item := self.projects_view.currentItem():

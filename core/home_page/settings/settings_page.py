@@ -1,3 +1,5 @@
+import json
+import sys
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 
@@ -14,6 +16,7 @@ class PaginaConfig(QtWidgets.QWidget):
         super().__init__()
         self._bloquear_aviso = True
         self._setup_ui()
+        self._carregar_idiomas_disponiveis()
         self._sincronizar_combos()
         self.retranslate_ui()
         self._bloquear_aviso = False
@@ -36,8 +39,6 @@ class PaginaConfig(QtWidgets.QWidget):
 
         self.combo_idioma = QtWidgets.QComboBox()
         self.combo_idioma.setMinimumHeight(35)
-        for text, code in [("Português", "pt_BR"), ("English", "en_US"), ("Español", "es_ES")]:
-            self.combo_idioma.addItem(text, code)
         self.combo_idioma.currentIndexChanged.connect(self._on_idioma_changed)
 
         self.lbl_tema = QtWidgets.QLabel()
@@ -55,6 +56,24 @@ class PaginaConfig(QtWidgets.QWidget):
         self.btn_fechar.clicked.connect(self.voltar_solicitado.emit)
         self.main_layout.addWidget(self.btn_fechar, alignment=QtCore.Qt.AlignCenter)
 
+    def _carregar_idiomas_disponiveis(self):
+        base_path = Path(__file__).resolve().parents[3]
+        trans_dir = base_path / "core" / "localization" / "translations"
+        self.combo_idioma.blockSignals(True)
+
+        for file in trans_dir.glob("*.json"):
+            lang_code = file.stem
+            try:
+                with open(file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    display_name = data.get("meta", {}).get("language_name", lang_code)
+            except:
+                display_name = lang_code
+
+            self.combo_idioma.addItem(display_name, lang_code)
+
+        self.combo_idioma.blockSignals(False)
+
     def retranslate_ui(self):
         self.lbl_title.setText(f"<h2>{tr('configs.settings_title')}</h2>")
         self.lbl_tema.setText(f"{tr('configs.theme_label')}:")
@@ -69,7 +88,6 @@ class PaginaConfig(QtWidgets.QWidget):
 
     def _carregar_temas(self):
         themes_dir = Path(__file__).resolve().parents[3] / "appearance" / "themes"
-
         if not themes_dir.exists():
             self.combo_temas.addItem(tr("configs.default_theme"), userData=None)
             return
@@ -97,8 +115,6 @@ class PaginaConfig(QtWidgets.QWidget):
         settings.set("preferencias", "idioma", lang_code)
         settings.save()
 
-        self.retranslate_ui()
-
         QtWidgets.QMessageBox.information(
             self,
             tr("configs.language_changed_title"),
@@ -106,31 +122,11 @@ class PaginaConfig(QtWidgets.QWidget):
         )
         self.idioma_alterado.emit(lang_code)
 
-    def get_settings(self) -> dict:
-        return {
-            "tema_caminho": self.combo_temas.currentData(),
-            "idioma": self.combo_idioma.currentData()
-        }
-
 
 if __name__ == "__main__":
-    import sys
-    from PySide6.QtWidgets import QApplication, QMainWindow
-
-    app = QApplication(sys.argv)
-
-    window = QMainWindow()
-    window.setWindowTitle("Teste - Configurações OpenCMF")
-    window.resize(500, 400)
-
+    app = QtWidgets.QApplication(sys.argv)
+    window = QtWidgets.QMainWindow()
     config_page = PaginaConfig()
-
-    # Conectar sinais para teste
-    config_page.voltar_solicitado.connect(lambda: print("Voltar solicitado"))
-    config_page.tema_alterado.connect(lambda path: print(f"Tema alterado: {path}"))
-    config_page.idioma_alterado.connect(lambda lang: print(f"Idioma alterado: {lang}"))
-
     window.setCentralWidget(config_page)
     window.show()
-
     sys.exit(app.exec())

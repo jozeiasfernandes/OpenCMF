@@ -1,64 +1,64 @@
 import json
-import sys
 import logging
+import sys
 from pathlib import Path
+from functools import lru_cache
+from typing import Any, Optional
 from core.home_page.settings_app import settings
 
 
-def get_base_dir():
-    """Retorna a raiz do projeto (OpenCMF)."""
+def get_base_dir() -> Path:
     if getattr(sys, 'frozen', False):
         return Path(sys._MEIPASS)
-    # Como este arquivo está em core/localization, .parent.parent volta para a raiz
     return Path(__file__).resolve().parent.parent.parent
 
 
 class Translator:
-    _instance = None
-    _dictionary = {}
+    _instance: Optional['Translator'] = None
+    _dictionary: dict[str, Any] = {}
 
-    def __new__(cls):
+    def __new__(cls) -> 'Translator':
         if cls._instance is None:
-            cls._instance = super(Translator, cls).__new__(cls)
-            cls.initialize()
+            cls._instance = super().__new__(cls)
+            cls._instance._load_dictionary()
         return cls._instance
 
-    @classmethod
-    def initialize(cls):
-        # Busca o idioma configurado ou assume pt_BR como padrão
-        language = settings.get("preferencias", "idioma", "pt_BR")
+    def _load_dictionary(self, language: str = None) -> None:
+        lang = language or settings.get("preferencias", "idioma", "pt_BR")
+        translation_path = (
+                get_base_dir() / "core" / "localization" / "translations" / f"{lang}.json"
+        )
 
-        # CAMINHO ATUALIZADO: reflete a nova estrutura core/localization/translations
-        translation_file = get_base_dir() / "core" / "localization" / "translations" / f"{language}.json"
+        if not translation_path.exists():
+            logging.error(f"Translation file not found: {translation_path}")
+            self._dictionary = {}
+            return
 
         try:
-            if translation_file.exists():
-                cls._dictionary = json.loads(translation_file.read_text(encoding="utf-8"))
-            else:
-                logging.error(f"Translation error: File not found at {translation_file}")
-                # Fallback vazio para não quebrar o código
-                cls._dictionary = {}
-        except Exception as error:
-            logging.error(f"Translation error during initialization: {error}")
-            cls._dictionary = {}
+            self._dictionary = json.loads(translation_path.read_text(encoding="utf-8"))
+            self.get_text.cache_clear()
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON decode error: {e}")
+            self._dictionary = {}
 
-    def get_text(self, key, default=None):
-        """Busca a tradução pela chave (ex: 'menu.file.open')."""
+    @lru_cache(maxsize=128)
+    def get_text(self, key: str, default: Any = None) -> str:
+        keys = key.split('.')
+        value = self._dictionary
+
         try:
-            keys = key.split('.')
-            result = self._dictionary
             for k in keys:
-                result = result[k]
-            return result
-        except (KeyError, TypeError, AttributeError):
-            # Se não achar a tradução, retorna o default ou a própria chave
-            return default if default is not None else key
+                value = value[k]
+            return str(value)
+        except (KeyError, TypeError):
+            return str(default if default is not None else key)
+
+    def refresh(self, language: str) -> None:
+        self._load_dictionary(language)
 
 
-# Instância Singleton
-_translator_instance = Translator()
+translator = Translator()
 
 
-def tr(key, default=None):
-    """Função global para tradução rápida."""
-    return _translator_instance.get_text(key, default)
+def tr(key: str, default: Any = None) -> str:
+    return translator.get_text(key, default)

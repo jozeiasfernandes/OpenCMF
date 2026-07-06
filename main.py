@@ -5,8 +5,7 @@ import ctypes
 import vtk
 from pathlib import Path
 from typing import Optional
-from PySide6 import QtWidgets, QtCore, QtGui
-
+from PySide6 import QtWidgets, QtCore
 
 from modules.base_module.base_module import FluxoBase
 from core.localization.translator import tr
@@ -14,7 +13,7 @@ from core.workspace.workspace_manager import WorkspaceManager
 from core.home_page.settings_app import settings
 from core.home_page.home_page import Home_page
 from core.home_page.flow.flow_editor import PaginaEditorFluxo
-from core.home_page.extras.settings_page import PaginaConfig
+from core.home_page.settings.settings_page import PaginaConfig
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 from core.icons.icons_manager import IconManager
 
