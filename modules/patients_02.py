@@ -46,7 +46,6 @@ class Modulo(QtWidgets.QWidget):
             self.tab_projeto.set_data(dados or {}, caminho_paciente)
 
     def _atualizar_pasta_abas(self):
-        """Sincroniza a pasta do paciente entre as abas após o primeiro salvamento."""
         if self.tab_dados:
             nova_pasta = self.tab_dados.pasta_paciente
             self._caminho_paciente = nova_pasta
