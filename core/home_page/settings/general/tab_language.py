@@ -33,7 +33,7 @@ class TabLanguage(QtWidgets.QWidget):
 
     def _carregar_idiomas_disponiveis(self):
         # Ajuste o número de .parents conforme a profundidade real deste arquivo
-        base_path = Path(__file__).resolve().parents[3]
+        base_path = Path(__file__).resolve().parents[4]
         trans_dir = base_path / "core" / "localization" / "translations"
 
         self.combo_idioma.blockSignals(True)

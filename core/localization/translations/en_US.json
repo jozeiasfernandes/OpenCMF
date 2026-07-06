@@ -25,13 +25,21 @@
         "delete_folder_error": "Failed to remove project folder."
     },
     "configs": {
-        "settings_title": "Settings",
-        "theme_label": "System Theme",
-        "language_label": "Language",
-        "language_changed_title": "Language Changed",
-        "restart_required_msg": "To apply changes system-wide, please restart the application.",
-        "default_theme": "Default"
-    },
+    "settings_title": "Settings",
+        "configs.general": "Language",
+    "theme_label": "System Theme",
+    "language_label": "Language",
+    "language_changed_title": "Language Changed",
+    "restart_required_msg": "To apply changes system-wide, please restart the application.",
+    "default_theme": "Default",
+    "general": "General",
+    "appearance": "Appearance",
+    "keyboard_shortcuts": "Keyboard Shortcuts",
+    "viewer": "Viewer",
+    "2d_viewer": "2D Viewer",
+    "3d_viewer": "3D Viewer",
+    "back": "Back"
+},
     "import": {
         "secao": {
             "superficies": "Surfaces",

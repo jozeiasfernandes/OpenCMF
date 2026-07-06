@@ -29,7 +29,7 @@ class TabAppearance(QtWidgets.QWidget):
 
     def _carregar_temas(self):
         # Ajuste o número de .parents conforme a profundidade real deste arquivo
-        themes_dir = Path(__file__).resolve().parents[3] / "appearance" / "themes"
+        themes_dir = Path(__file__).resolve().parents[4] / "appearance" / "themes"
 
         self.combo_temas.blockSignals(True)
         if not themes_dir.exists():

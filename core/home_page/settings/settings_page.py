@@ -1,62 +1,70 @@
 from PySide6 import QtWidgets, QtCore
+
 from settings.general.tab_language import TabLanguage
 from settings.general.tab_appearance import TabAppearance
 from settings.general.tab_keyboard import TabKeyboard
-
-
 from core.home_page.settings.viewer.tab_2d import Tab2DViewer
 from core.home_page.settings.viewer.tab_3d import Tab3DViewer
+from core import tr
+
 
 class PaginaConfig(QtWidgets.QWidget):
     voltar_solicitado = QtCore.Signal()
+    tema_alterado = QtCore.Signal(str)
 
     def __init__(self):
         super().__init__()
         self._setup_ui()
+        self._conectar_sinais_internos()
 
     def _setup_ui(self):
-        main_layout = QtWidgets.QHBoxLayout(self)
+        main_layout = QtWidgets.QVBoxLayout(self)
 
-        # Menu Lateral (Tree)
+        content_layout = QtWidgets.QHBoxLayout()
+
         self.tree = QtWidgets.QTreeWidget()
         self.tree.setHeaderHidden(True)
         self.tree.setFixedWidth(200)
 
-        # Conteúdo (Stack)
         self.stack = QtWidgets.QStackedWidget()
+        self._adicionar_abas()
 
-        # Adição de Abas - Grupo General
-        self._add_tab("General", "Language", TabLanguage())
-        self._add_tab("General", "Appearance", TabAppearance())
-        self._add_tab("General", "Keyboard Shortcuts", TabKeyboard())
-
-        # Adição de Abas - Grupo Viewer (Novas)
-        self._add_tab("Viewer", "2D Viewer", Tab2DViewer())
-        self._add_tab("Viewer", "3D Viewer", Tab3DViewer())
+        self.btn_voltar = QtWidgets.QPushButton(tr("Exit"))
+        self.btn_voltar.clicked.connect(self.voltar_solicitado.emit)
 
         self.tree.expandAll()
-        self.tree.currentItemChanged.connect(self._on_item_changed)
+        self.tree.currentItemChanged.connect(self._navegar_entre_abas)
 
-        main_layout.addWidget(self.tree)
-        main_layout.addWidget(self.stack)
+        content_layout.addWidget(self.tree)
+        content_layout.addWidget(self.stack)
+        main_layout.addLayout(content_layout)
+        main_layout.addWidget(self.btn_voltar)
 
-    def _add_tab(self, group_name, tab_name, widget):
-        # Busca ou cria o grupo
-        items = self.tree.findItems(group_name, QtCore.Qt.MatchExactly)
-        if not items:
-            parent = QtWidgets.QTreeWidgetItem(self.tree, [group_name])
-        else:
-            parent = items[0]
+    def _adicionar_abas(self):
+        self._adicionar_aba_ao_tree(tr("configs.general"), tr("configs.language"), TabLanguage())
+        self._adicionar_aba_ao_tree(tr("configs.general"), tr("configs.appearance"), TabAppearance())
+        self._adicionar_aba_ao_tree(tr("configs.general"), tr("configs.keyboard_shortcuts"), TabKeyboard())
 
-        child = QtWidgets.QTreeWidgetItem(parent, [tab_name])
+        self._adicionar_aba_ao_tree(tr("configs.viewer"), tr("configs.2d_viewer"), Tab2DViewer())
+        self._adicionar_aba_ao_tree(tr("configs.viewer"), tr("configs.3d_viewer"), Tab3DViewer())
+
+    def _adicionar_aba_ao_tree(self, grupo, nome, widget):
+        items = self.tree.findItems(grupo, QtCore.Qt.MatchExactly)
+        parent = items[0] if items else QtWidgets.QTreeWidgetItem(self.tree, [grupo])
+
+        child = QtWidgets.QTreeWidgetItem(parent, [nome])
         self.stack.addWidget(widget)
-
-        # Mapeamento do item para o índice do widget
         child.setData(0, QtCore.Qt.UserRole, self.stack.count() - 1)
 
-    def _on_item_changed(self, current, previous):
+    def _navegar_entre_abas(self, current):
         if current and current.data(0, QtCore.Qt.UserRole) is not None:
             self.stack.setCurrentIndex(current.data(0, QtCore.Qt.UserRole))
+
+    def _conectar_sinais_internos(self):
+        for i in range(self.stack.count()):
+            widget = self.stack.widget(i)
+            if isinstance(widget, TabAppearance):
+                widget.tema_alterado.connect(self.tema_alterado.emit)
 
 
 if __name__ == "__main__":
@@ -64,24 +72,9 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
 
-    # Opcional: Aplique uma folha de estilo básica para ver o menu lateral destacado
-    app.setStyleSheet("""
-        QTreeWidget {
-            border: none;
-            background-color: #f0f0f0;
-            padding-top: 10px;
-        }
-        QStackedWidget {
-            border-left: 1px solid #ccc;
-        }
-    """)
-
     window = QtWidgets.QMainWindow()
-    window.setWindowTitle("Configurações do Sistema")
+    window.setCentralWidget(PaginaConfig())
     window.resize(800, 600)
-
-    config_page = PaginaConfig()
-    window.setCentralWidget(config_page)
-
     window.show()
+
     sys.exit(app.exec())
