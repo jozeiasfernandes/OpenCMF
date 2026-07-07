@@ -1,7 +1,10 @@
 import json
 import dataclasses
+import logging
 from typing import Dict, Any, List
 from ..scene_object import SceneObject
+
+logger = logging.getLogger("OpenCMF.Serializer")
 
 
 class Serializer:
@@ -13,8 +16,9 @@ class Serializer:
         try:
             data = json.loads(raw)
             return [self._deserialize(item) for item in data]
-        except (json.JSONDecodeError, TypeError, KeyError):
-            return []
+        except Exception as e:
+            logger.error(f"Falha crítica na deserialização da cena: {e}")
+            raise
 
     def _serialize(self, obj: SceneObject) -> Dict[str, Any]:
         data = dataclasses.asdict(obj)
@@ -23,14 +27,9 @@ class Serializer:
         return data
 
     def _deserialize(self, data: Dict[str, Any]) -> SceneObject:
-        fields = {f.name for f in dataclasses.fields(SceneObject)}
-        clean_data = {
-            key: value
-            for key, value in data.items()
-            if key in fields
-        }
+        valid_fields = {f.name for f in dataclasses.fields(SceneObject)}
 
+        clean_data = {k: v for k, v in data.items() if k in valid_fields}
         if "color" in clean_data and isinstance(clean_data["color"], list):
             clean_data["color"] = tuple(clean_data["color"])
-
         return SceneObject(**clean_data)

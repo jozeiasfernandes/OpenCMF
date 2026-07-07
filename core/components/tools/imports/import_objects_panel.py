@@ -5,7 +5,7 @@ Fluxo:
 * Controller abre um QFileDialog para o usuário escolher o arquivo STL/VTI/JPG.
 * Controller chama o ObjectManager (que refatoramos antes).
 
-O ObjectManager  tem o "poder" de copiar o arquivo para a pasta do paciente e criar a estrutura de pastas.
+O ObjectManager tem o "poder" de copiar o arquivo para a pasta do paciente e criar a estrutura de pastas.
 
 Quando o arquivo for salvo com sucesso na pasta do paciente pelo ObjectManager, o sistema precisa "dar vida" a esse arquivo na tela. É aqui que a pasta scene entra:
 

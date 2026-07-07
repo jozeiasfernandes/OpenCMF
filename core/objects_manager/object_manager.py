@@ -1,91 +1,77 @@
+'''
+Responsabilidades:
+* Gerenciar caminhos de arquivos (criação de diretórios, nomes únicos).
+* Realizar a cópia física de arquivos externos para o diretório do paciente.
+* Remover arquivos físicos da cena quando solicitado.
+* Fornecer caminhos relativos ao SceneManager.
+
+'''
 import shutil
 import logging
-import uuid
 from pathlib import Path
-from typing import Optional, List
-
-from PySide6.QtCore import QObject, Signal
+from typing import Optional
 
 from core.scene.scene_object import SceneObject
-from core.scene.persistence.serializer import Serializer
-from core.scene.utils.scene_utils import SceneUtils
+# Substituímos SceneUtils pela nova Factory
+from core.scene.utils.factory import SceneObjectFactory
 
-logger = logging.getLogger("OpenCMF.ObjectManager")
+logger = logging.getLogger("OpenCMF.ObjectImporter")
+
+import shutil
+import logging
+from pathlib import Path
+from typing import Optional
+from core.scene.utils.factory import SceneObjectFactory
+from core.scene.scene_object import SceneObject
+
+logger = logging.getLogger(__name__)
 
 
-class ObjectManager(QObject):
-    object_added = Signal(SceneObject)
-    object_removed = Signal(str)
-
-    def __init__(self, patient_path: str, serializer: Serializer) -> None:
-        super().__init__()
+class ObjectImporter:
+    def __init__(self, patient_path: str) -> None:
         self.patient_path = Path(patient_path)
-        self.serializer = serializer
-        self.project_file = self.patient_path / "project" / "scene.cmf"
-        self._current_objects: List[SceneObject] = []
 
-        self.project_file.parent.mkdir(parents=True, exist_ok=True)
-
-    def import_external_file(self, file_path: str, category: str, obj_id: Optional[str] = None) -> Optional[
-        SceneObject]:
+    def import_external_file(self, file_path: str, category: str) -> Optional[SceneObject]:
         source = Path(file_path)
         if not source.exists():
+            logger.error(f"Arquivo de origem não encontrado: {file_path}")
             return None
 
         try:
+            # 1. Preparação do destino
             target_dir = self.patient_path / category
             target_dir.mkdir(parents=True, exist_ok=True)
-
             destination = self._get_unique_path(target_dir, source)
+
+            # 2. Cópia física
             shutil.copy2(source, destination)
 
-            scene_obj = SceneUtils.create_from_file(
-                obj_id=obj_id or uuid.uuid4().hex[:12],
-                name=destination.stem,
-                category=category,
-                rel_path=str(destination.relative_to(self.patient_path))
+            # 3. Criação via Factory (Alinhada com a assinatura create_from_file)
+            # Nota: Passamos file_path (absoluto ou relativo ao patient_path)
+            # e a categoria para definir o tipo.
+            scene_obj = SceneObjectFactory.create_from_file(
+                file_path=str(destination),
+                type=category
             )
 
-            self._current_objects.append(scene_obj)
-            self.save_scene(self._current_objects)
-            self.object_added.emit(scene_obj)
+            # Adicional: Podemos injetar metadados extras se necessário
+            scene_obj.metadata["original_name"] = source.name
 
             return scene_obj
+
         except Exception as e:
-            logger.error(f"Falha ao importar arquivo {file_path}: {e}", exc_info=True)
+            if 'destination' in locals() and destination.exists():
+                destination.unlink()
+            logger.error(f"Falha na importação de {file_path}: {e}", exc_info=True)
             return None
 
-    def save_scene(self, objects: List[SceneObject]) -> None:
+    def delete_physical_file(self, rel_path: str) -> None:
+        full_path = self.patient_path / rel_path
         try:
-            self._current_objects = objects
-            data = self.serializer.save(objects)
-            self.project_file.write_text(data, encoding="utf-8")
-        except Exception as e:
-            logger.error(f"Erro ao persistir cena: {e}")
-
-    def load_patient_data(self) -> None:
-        if not self.project_file.exists():
-            return
-
-        try:
-            raw_data = self.project_file.read_text(encoding="utf-8")
-            self._current_objects = self.serializer.load(raw_data)
-
-            for obj in self._current_objects:
-                self.object_added.emit(obj)
-        except Exception as e:
-            logger.error(f"Erro ao carregar dados do paciente: {e}")
-
-    def remove_object(self, object_id: str) -> None:
-        obj = next((o for o in self._current_objects if o.id == object_id), None)
-        if not obj:
-            return
-
-        self._delete_physical_file(obj.file_path)
-        self._current_objects = [o for o in self._current_objects if o.id != object_id]
-
-        self.save_scene(self._current_objects)
-        self.object_removed.emit(object_id)
+            if full_path.exists():
+                full_path.unlink()
+        except OSError as e:
+            logger.warning(f"Não foi possível remover o arquivo {rel_path}: {e}")
 
     def _get_unique_path(self, target_dir: Path, source: Path) -> Path:
         dest = target_dir / source.name
@@ -94,11 +80,3 @@ class ObjectManager(QObject):
             dest = target_dir / f"{source.stem}_{counter}{source.suffix}"
             counter += 1
         return dest
-
-    def _delete_physical_file(self, rel_path: str) -> None:
-        full_path = self.patient_path / rel_path
-        try:
-            if full_path.exists():
-                full_path.unlink()
-        except OSError as e:
-            logger.warning(f"Não foi possível remover o arquivo {rel_path}: {e}")

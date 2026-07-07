@@ -54,27 +54,16 @@ persistência
 class VTKSceneRenderer:
     def __init__(self, renderer):
         self._renderer = renderer
-        self._actors = {}
+        # REMOVIDO: self._actors = {}
 
-    def add_actor(self, obj_id: str, actor):
-        self._actors[obj_id] = actor
+    def add_actor(self, actor):
+        """Apenas executa a adição ao motor gráfico."""
         self._renderer.AddActor(actor)
 
-    def register_actor(self, obj_id: str, actor):
-        """Regista um ator já adicionado ao renderer (evita AddActor duplicado)."""
-        self._actors[obj_id] = actor
-
-    def remove_actor(self, obj_id: str):
-        actor = self._actors.pop(obj_id, None)
-        if actor:
-            self._renderer.RemoveActor(actor)
-
-    def reset_tracked_actors(self):
-        """Limpa o mapa local (p.ex. após remover atores diretamente do renderer)."""
-        self._actors.clear()
+    def remove_actor(self, actor):
+        """Apenas executa a remoção do motor gráfico."""
+        self._renderer.RemoveActor(actor)
 
     def refresh(self):
+        """Força a renderização da cena."""
         self._renderer.Render()
-
-    def get_actors(self) -> dict:
-        return self._actors

@@ -55,7 +55,7 @@ class RegistrationToolbarHandler(QtCore.QObject):
         self.toolbar.addWidget(self.btn_import)
 
         try:
-            from core.components.toolbars.imports.import_objects_panel import ImportObjectsPanel
+            from core.components.tools.imports.import_objects_panel import ImportObjectsPanel
             self.import_panel = ImportObjectsPanel(self.toolbar)
             self.import_panel.importRequested.connect(
                 lambda cat, sub: self._emit(REGISTRATION_IMPORT_REQUESTED, category=cat, subcategory=sub)

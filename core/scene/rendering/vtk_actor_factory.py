@@ -34,6 +34,10 @@ visibility
 from typing import Any
 from ..scene_object import SceneObject
 
+from typing import Any
+from core.scene.scene_object import SceneObject
+
+
 class VTKActorFactory:
     def __init__(self, vtk_module: Any):
         self._vtk = vtk_module
@@ -48,19 +52,28 @@ class VTKActorFactory:
         return actor
 
     def _apply_geometry(self, actor: Any, scene_object: SceneObject):
-        if not scene_object.mesh_data:
+        # Acessa os dados de malha via metadata (conforme definido na Factory)
+        mesh_data = scene_object.metadata.get("mesh_data")
+
+        if not mesh_data:
             return
 
         mapper = self._vtk.vtkPolyDataMapper()
-        mapper.SetInputData(scene_object.mesh_data)
+        mapper.SetInputData(mesh_data)
         actor.SetMapper(mapper)
 
     def _apply_transform(self, actor: Any, scene_object: SceneObject):
-        transform = scene_object.transform
+        # Acessa o dicionário unificado 'transforms' (com 's')
+        transforms = scene_object.transforms
 
-        actor.SetPosition(*transform["position"])
-        actor.SetScale(*transform["scale"])
-        actor.SetOrientation(*transform["rotation"])
+        # Extrai os valores garantindo compatibilidade com o formato da dataclass
+        pos = transforms.get("position", [0.0, 0.0, 0.0])
+        rot = transforms.get("rotation", [0.0, 0.0, 0.0])
+        scale = transforms.get("scale", [1.0, 1.0, 1.0])
+
+        actor.SetPosition(*pos)
+        actor.SetOrientation(*rot)
+        actor.SetScale(*scale)
 
     def _apply_properties(self, actor: Any, scene_object: SceneObject):
         properties = actor.GetProperty()

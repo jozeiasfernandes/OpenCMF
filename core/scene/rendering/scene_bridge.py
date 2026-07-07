@@ -46,13 +46,15 @@ class SceneBridge:
 
         actor = self.factory.create(target_obj)
         self.actors.register(object_id, actor)
-        self.renderer.add_actor(object_id, actor)
+
+        self.renderer.add_actor(actor)
         self.renderer.refresh()
 
     def _on_object_removed(self, object_id: str):
-        if self.actors.has(object_id):
+        actor = self.actors.get(object_id) # Recupera o ator antes de unregister
+        if actor:
             self.actors.unregister(object_id)
-            self.renderer.remove_actor(object_id)
+            self.renderer.remove_actor(actor) # Passa apenas o ator
             self.renderer.refresh()
 
     def _on_object_updated(self, object_id: str, property: str = None, value: Any = None):
