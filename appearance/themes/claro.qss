@@ -96,3 +96,13 @@ QPushButton[styleSheet*="#2ecc71"] {
 QPushButton[styleSheet*="#2ecc71"]:hover {
     background-color: #219150;
 }
+
+ProjectCardWidget {
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #C5C5C5;
+}
+
+ProjectCardWidget:hover {
+    background-color: #8484A5;
+}

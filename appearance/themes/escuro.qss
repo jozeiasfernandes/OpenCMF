@@ -106,3 +106,13 @@ QListWidget::item:focus {
     border: none;
     outline: none;
 }
+
+ProjectCardWidget {
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #282c34;
+}
+
+ProjectCardWidget:hover {
+    background-color: #26262B;
+}

@@ -46,23 +46,13 @@ class ProjectItemWidget(QtWidgets.QWidget):
         return idade
 
 class ProjectCardWidget(QtWidgets.QFrame):
-    """Widget para o modo de exibição em Grade (Card)."""
     clicado = QtCore.Signal(dict)
 
     def __init__(self, data: dict):
         super().__init__()
         self.data = data
         self.setFixedSize(100, 120)
-        self.setStyleSheet("""
-            ProjectCardWidget {
-                border: 1px solid #444;
-                border-radius: 8px;
-                background-color: #2b2b2b;
-            }
-            ProjectCardWidget:hover {
-                background-color: #3d3d3d;
-            }
-        """)
+
         layout = QtWidgets.QVBoxLayout(self)
         nome = data.get("paciente", {}).get("nome", "Sem Nome")
         lbl_nome = QtWidgets.QLabel(nome)
@@ -84,5 +74,4 @@ def format_and_add_to_list(list_widget: QtWidgets.QListWidget, data: dict):
     list_widget.setItemWidget(item, widget)
 
 def create_project_card(data: dict):
-    """Cria uma instância do widget para o grid."""
     return ProjectCardWidget(data)

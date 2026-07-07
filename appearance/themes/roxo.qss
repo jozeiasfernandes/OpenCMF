@@ -87,3 +87,13 @@ QScrollBar::handle:vertical:hover {
     background: #7AA2F7;
 }
 
+ProjectCardWidget {
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #282c34;
+}
+
+ProjectCardWidget:hover {
+    background-color: #26262B;
+}
+

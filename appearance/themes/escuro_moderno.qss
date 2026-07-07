@@ -106,3 +106,13 @@ QFrame[tipo="card"]:hover {
     background-color: #2C3E50;
     border: 1px solid #5F7A9E;
 }
+
+ProjectCardWidget {
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #282c34;
+}
+
+ProjectCardWidget:hover {
+    background-color: #26262B;
+}
