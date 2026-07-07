@@ -1,7 +1,7 @@
 from PySide6 import QtWidgets, QtCore
 
-
 class ProjectItemWidget(QtWidgets.QWidget):
+    """Widget para o modo de exibição em Lista."""
     def __init__(self, data: dict):
         super().__init__()
         self.data = data
@@ -19,7 +19,6 @@ class ProjectItemWidget(QtWidgets.QWidget):
         criacao = self.data.get("created_at", 0)
 
         info_extra = f"Sexo: {sexo}"
-
         idade = self._calcular_idade(nascimento, criacao)
         if idade is not None:
             info_extra += f" | Idade: {idade} anos"
@@ -37,29 +36,53 @@ class ProjectItemWidget(QtWidgets.QWidget):
         layout.addWidget(lbl_data)
 
     def _calcular_idade(self, nascimento_str, criacao_ts):
-        if not nascimento_str:
-            return None
-
+        if not nascimento_str: return None
         dt_nascimento = QtCore.QDate.fromString(nascimento_str, "yyyy-MM-dd")
         dt_criacao = QtCore.QDateTime.fromSecsSinceEpoch(int(criacao_ts)).date()
-
-        if not dt_nascimento.isValid() or dt_nascimento == dt_criacao:
-            return None
-
+        if not dt_nascimento.isValid() or dt_nascimento == dt_criacao: return None
         idade = dt_criacao.year() - dt_nascimento.year()
         if (dt_criacao.month(), dt_criacao.day()) < (dt_nascimento.month(), dt_nascimento.day()):
             idade -= 1
-
         return idade
 
+class ProjectCardWidget(QtWidgets.QFrame):
+    """Widget para o modo de exibição em Grade (Card)."""
+    clicado = QtCore.Signal(dict)
+
+    def __init__(self, data: dict):
+        super().__init__()
+        self.data = data
+        self.setFixedSize(140, 160)
+        self.setStyleSheet("""
+            ProjectCardWidget {
+                border: 1px solid #444;
+                border-radius: 8px;
+                background-color: #2b2b2b;
+            }
+            ProjectCardWidget:hover {
+                background-color: #3d3d3d;
+            }
+        """)
+        layout = QtWidgets.QVBoxLayout(self)
+        nome = data.get("paciente", {}).get("nome", "Sem Nome")
+        lbl_nome = QtWidgets.QLabel(nome)
+        lbl_nome.setWordWrap(True)
+        lbl_nome.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(lbl_nome)
+        layout.addStretch()
+
+    def mousePressEvent(self, event):
+        self.clicado.emit(self.data)
 
 def format_and_add_to_list(list_widget: QtWidgets.QListWidget, data: dict):
     path = data.get("_path")
     item = QtWidgets.QListWidgetItem(list_widget)
     widget = ProjectItemWidget(data)
-
     item.setSizeHint(QtCore.QSize(widget.sizeHint().width(), 28))
     item.setData(QtCore.Qt.UserRole, path)
-
     list_widget.addItem(item)
     list_widget.setItemWidget(item, widget)
+
+def create_project_card(data: dict):
+    """Cria uma instância do widget para o grid."""
+    return ProjectCardWidget(data)

@@ -5,8 +5,8 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from core import settings, IconManager, tr, ProjectServiceHomePage, FlowServiceHomePage
 from core.home_page.extras.tela_creditos import Janela_Creditos
 from core.home_page.flow.fluxo_card import FluxoCard
-from core.home_page.managers.project_list_formatter import format_and_add_to_list
-
+# Importe o criador de card aqui
+from core.home_page.managers.project_list_formatter import format_and_add_to_list, create_project_card
 
 def get_project_root():
     if getattr(sys, 'frozen', False):
@@ -36,6 +36,8 @@ class Home_page(QtWidgets.QWidget):
 
     def __init__(self):
         super().__init__()
+        self.is_grid_view = False
+
         self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
         self.flow_service = FlowServiceHomePage(FLOWS_DIR)
 
@@ -111,6 +113,11 @@ class Home_page(QtWidgets.QWidget):
         self.btn_remove_project.setFixedSize(150, 35)
         self.btn_remove_project.clicked.connect(self._on_remove_clicked)
 
+        self.btn_toggle_view = QtWidgets.QPushButton()
+        self.btn_toggle_view.setFixedSize(35, 35)
+        self.btn_toggle_view.setIcon(IconManager.get_instance().get_icon("grid"))
+        self.btn_toggle_view.clicked.connect(self._toggle_view_mode)
+
         self.btn_search = QtWidgets.QPushButton()
         self.btn_search.setFixedSize(35, 35)
         self.btn_search.setIcon(IconManager.get_instance().get_icon("search"))
@@ -118,17 +125,56 @@ class Home_page(QtWidgets.QWidget):
 
         header.addWidget(self.btn_new_project)
         header.addWidget(self.btn_remove_project)
+        header.addWidget(self.btn_toggle_view)
         header.addWidget(self.btn_search)
+
+        self.view_container = QtWidgets.QStackedWidget()
 
         self.projects_view = QtWidgets.QListWidget()
         self.projects_view.setMinimumHeight(150)
         self.projects_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.projects_view.customContextMenuRequested.connect(self._show_context_menu)
         self.projects_view.itemDoubleClicked.connect(self._open_selected_project)
+        self.view_container.addWidget(self.projects_view)
+
+        self.grid_scroll = QtWidgets.QScrollArea()
+        self.grid_scroll.setWidgetResizable(True)
+        self.grid_scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
+        self.grid_container = QtWidgets.QWidget()
+        self.grid_layout = QtWidgets.QGridLayout(self.grid_container)
+        self.grid_layout.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+        self.grid_scroll.setWidget(self.grid_container)
+        self.view_container.addWidget(self.grid_scroll)
 
         layout.addLayout(header)
-        layout.addWidget(self.projects_view)
+        layout.addWidget(self.view_container)
         return panel
+
+    def _toggle_view_mode(self):
+        self.is_grid_view = not self.is_grid_view
+        icon_name = "menu" if self.is_grid_view else "grid"
+        self.btn_toggle_view.setIcon(IconManager.get_instance().get_icon(icon_name))
+        self.view_container.setCurrentIndex(1 if self.is_grid_view else 0)
+        self.refresh_projects()
+
+    def refresh_projects(self):
+        self.projects_view.clear()
+        while self.grid_layout.count():
+            widget = self.grid_layout.takeAt(0).widget()
+            if widget: widget.deleteLater()
+
+        for data in self.project_service.list_recent_projects():
+            path = data.get("_path")
+            if not path: continue
+
+            if self.is_grid_view:
+                card = create_project_card(data)
+                card.clicado.connect(lambda d=data: self.projeto_selecionado.emit(d.get("_path"), "open"))
+                idx = self.grid_layout.count()
+                self.grid_layout.addWidget(card, idx // 4, idx % 4)
+            else:
+                item = format_and_add_to_list(self.projects_view, data)
+                if item: item.setData(QtCore.Qt.UserRole, path)
 
     def _build_flows_section(self):
         panel = QtWidgets.QFrame()
@@ -171,13 +217,6 @@ class Home_page(QtWidgets.QWidget):
         self.refresh_projects()
         self.refresh_flows()
 
-    def refresh_projects(self):
-        self.projects_view.clear()
-        for data in self.project_service.list_recent_projects():
-            if path := data.get("_path"):
-                item = format_and_add_to_list(self.projects_view, data)
-                if item:
-                    item.setData(QtCore.Qt.UserRole, path)
 
     def refresh_flows(self):
         while self.cards_layout.count():
