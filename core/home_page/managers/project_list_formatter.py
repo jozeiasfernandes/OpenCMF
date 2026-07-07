@@ -52,7 +52,7 @@ class ProjectCardWidget(QtWidgets.QFrame):
     def __init__(self, data: dict):
         super().__init__()
         self.data = data
-        self.setFixedSize(140, 160)
+        self.setFixedSize(100, 120)
         self.setStyleSheet("""
             ProjectCardWidget {
                 border: 1px solid #444;

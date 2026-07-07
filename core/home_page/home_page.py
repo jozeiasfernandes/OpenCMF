@@ -125,8 +125,8 @@ class Home_page(QtWidgets.QWidget):
 
         header.addWidget(self.btn_new_project)
         header.addWidget(self.btn_remove_project)
-        header.addWidget(self.btn_toggle_view)
         header.addWidget(self.btn_search)
+        header.addWidget(self.btn_toggle_view)
 
         self.view_container = QtWidgets.QStackedWidget()
 
@@ -155,6 +155,7 @@ class Home_page(QtWidgets.QWidget):
         icon_name = "menu" if self.is_grid_view else "grid"
         self.btn_toggle_view.setIcon(IconManager.get_instance().get_icon(icon_name))
         self.view_container.setCurrentIndex(1 if self.is_grid_view else 0)
+        self.update_icons()
         self.refresh_projects()
 
     def refresh_projects(self):
@@ -205,8 +206,14 @@ class Home_page(QtWidgets.QWidget):
         manager = IconManager.get_instance()
         cor_default = manager.get_color(theme, "status", "default")
 
+        # Ícones do cabeçalho
         self.btn_logo.setIcon(manager.get_icon("cmf", color=cor_default, size=40))
         self.btn_settings.setIcon(manager.get_icon("config", color=cor_default, size=24))
+
+        # Ícones da seção de projetos
+        icon_view = "menu" if self.is_grid_view else "grid"
+        self.btn_toggle_view.setIcon(manager.get_icon(icon_view, color=cor_default, size=24))
+        self.btn_search.setIcon(manager.get_icon("search", color=cor_default, size=24))
 
     def _connect_theme_signal(self):
         if hasattr(self.window(), 'theme_changed'):
