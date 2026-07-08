@@ -1,8 +1,6 @@
 from __future__ import annotations
-from typing import Optional
 from PySide6 import QtWidgets
 from core.components.tools.base.base_tool import BaseTool
-from core.scene.events.scene_events import OBJECT_ADDED
 
 
 class ImportObjectTool(BaseTool):
@@ -12,8 +10,11 @@ class ImportObjectTool(BaseTool):
     tool_tip = "Importar arquivos STL, VTI ou Imagens para a cena"
 
     def on_activate(self) -> None:
+        super().on_activate()
         self._open_import_dialog()
-        self.deactivate()
+
+        if self.context and hasattr(self.context, 'tool_manager'):
+            self.context.tool_manager.deactivate_current_tool()
 
     def _open_import_dialog(self) -> None:
         file_path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -22,12 +23,18 @@ class ImportObjectTool(BaseTool):
             "",
             "Arquivos Suportados (*.stl *.vti *.jpg *.png *.dcm)"
         )
-        if not file_path or not self.context or not self.context.scene_manager:
+
+        if not file_path or not self.context or not hasattr(self.context, 'event_bus'):
             return
 
-        object_manager = getattr(self.context, 'object_manager', None)
-        if object_manager:
-            object_manager.import_external_file(file_path, "surfaces")
+        # IMPORTAÇÃO LOCAL: Resolve o ciclo de dependência e evita o ImportError
+        from core.scene.events.scene_events import RegistrationEvents
+
+        self.context.event_bus.emit(
+            RegistrationEvents.IMPORT_REQUESTED,
+            file_path=file_path,
+            category="surfaces"
+        )
 
 
 if __name__ == "__main__":
@@ -35,21 +42,30 @@ if __name__ == "__main__":
     import sys
     from types import SimpleNamespace
     from unittest.mock import MagicMock
-    from core.components.tools.base.base_tool import InteractionContext
+
+    # Mova o import para DENTRO do bloco ou use uma importação local
+    # para que o script não tente carregar o pacote core inteiro ao iniciar
 
     app = QApplication(sys.argv)
 
-    mock_context = SimpleNamespace(
-        renderer=MagicMock(),
-        interactor=MagicMock(),
-        scene_manager=MagicMock(),
-        object_manager=MagicMock()  # Agora funcionará sem erro de atributo
-    )
+    mock_event_bus = MagicMock()
+    mock_tool_manager = MagicMock()
 
-    mock_context.scene_manager = MagicMock()
-    mock_context.object_manager = MagicMock()
+    mock_context = SimpleNamespace(
+        event_bus=mock_event_bus,
+        tool_manager=mock_tool_manager
+    )
 
     tool = ImportObjectTool()
     tool.activate(mock_context)
 
-    print("Ferramenta ImportObjectTool instanciada e pronta para teste.")
+    # Verifica o evento usando a string direta ou o import local
+    # para evitar erro de carregamento do sistema
+    from core.scene.events import RegistrationEvents
+
+    if mock_event_bus.emit.called:
+        print(f"\n[SUCESSO] Evento emitido: {mock_event_bus.emit.call_args}")
+    else:
+        print("\n[FALHA] Evento de importação não foi emitido.")
+
+    sys.exit(0)
