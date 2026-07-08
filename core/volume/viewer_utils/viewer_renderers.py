@@ -6,11 +6,16 @@ class ViewerRenderers:
     def configure_3d_renderer(renderer: vtk.vtkRenderer,
                               volume_data: vtk.vtkImageData,
                               color_func: vtk.vtkColorTransferFunction,
-                              opacity_func: vtk.vtkPiecewiseFunction) -> vtk.vtkVolume:
-        renderer.RemoveAllViewProps()
+                              opacity_func: vtk.vtkPiecewiseFunction,
+                              actor_name: str = "volume_principal") -> vtk.vtkVolume:
+
+        for actor in renderer.GetActors():
+            renderer.RemoveActor(actor)
 
         mapper = vtk.vtkSmartVolumeMapper()
         mapper.SetInputData(volume_data)
+
+        mapper.SetRequestedRenderModeToDefault()
 
         prop = vtk.vtkVolumeProperty()
         prop.SetColor(color_func)

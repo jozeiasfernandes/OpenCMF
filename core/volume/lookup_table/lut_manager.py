@@ -21,7 +21,7 @@ class LUTManager:
 
         for i in range(256):
             rgb = color_func.GetColor(i / 255.0)
-            lut.SetTableValue(i, *rgb, 1.0)
+            lut.SetTableValue(i, rgb[0], rgb[1], rgb[2], 1.0)
 
         lut.Build()
         return lut
