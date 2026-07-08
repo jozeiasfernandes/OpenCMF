@@ -8,10 +8,10 @@ from PySide6 import QtWidgets, QtCore
 from core.scene.registry.object_registry import ObjectRegistry
 from core.scene.registry.actor_registry import ActorRegistry
 from core.scene.scene_manager import SceneManager
-from core.scene.events.scene_events import OBJECT_ADDED
+from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 from core.scene.events.event_bus import EventBus
 from core.scene.selection import selection_manager
-from core.scene.utils.scene_utils import SceneUtils
+from core.scene.utils.factory import SceneObjectFactory
 from modules.base_module.base_module import ModuloBase
 from core.volume.segmentation_engine import SegmentacaoEngine
 from core.components.toolboxes.segmentation_toolbox import SegmentacaoWidget
@@ -44,12 +44,12 @@ class Modulo(ModuloBase):
             return
 
         polydata = self.engine_seg.get_polydata()
-        novo_obj = SceneUtils.create_mesh_object("Segmentação", polydata)
+        novo_obj = SceneObjectFactory.create_mesh_object("Segmentação", polydata)
 
         self.scene_manager.add_object(novo_obj)
         # Se você estiver usando o EventBus global, certifique-se de que ele
         # está sendo acessado corretamente pelo sistema de renderização
-        EventBus.emit(OBJECT_ADDED, {"object": novo_obj})
+        EventBus.emit(SceneEvents.OBJECT_ADDED, {"object": novo_obj})
 
     def _executar_exportacao_stl(self):
         pass

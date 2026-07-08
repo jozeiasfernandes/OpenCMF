@@ -1,9 +1,17 @@
 import vtk
 from pathlib import Path
+from typing import Optional, Callable, Any
+from core.scene.events.scene_events import SceneEvents
+
 
 class SegmentacaoEngine:
-    def __init__(self):
-        self.mask_data = None
+    """
+    Serviço de segmentação. Não mantém estado interno para evitar
+    conflitos em processamento assíncrono.
+    """
+
+    def __init__(self, event_bus: Any = None):
+        self.event_bus = event_bus
 
     def gerar_mascara(self, volume_data: vtk.vtkImageData, threshold_value: int) -> vtk.vtkImageData:
         if not volume_data:
@@ -16,53 +24,48 @@ class SegmentacaoEngine:
         thresh.SetOutValue(0)
         thresh.Update()
 
-        self.mask_data = thresh.GetOutput()
-        return self.mask_data
+        # Retorna uma cópia para garantir que o pipeline não seja modificado externamente
+        output = vtk.vtkImageData()
+        output.DeepCopy(thresh.GetOutput())
+        return output
 
-    def exportar_stl(self, mask_data, caminho_saida, qualidade_index, callback_progresso=None):
+    def exportar_stl(self, mask_data: vtk.vtkImageData, caminho_saida: Path,
+                     qualidade_index: int, callback_progresso: Optional[Callable] = None) -> bool:
         try:
-            def update(msg, val):
-                if callback_progresso:
-                    callback_progresso(msg, val)
+            update = lambda msg, val: callback_progresso(msg, val) if callback_progresso else None
 
-            # Mapeamento de qualidade para redução de polígonos:
-            # 0: Alta (10% de redução - malha pesada e detalhada)
-            # 1: Média (85% de redução - equilíbrio ideal)
-            # 2: Baixa (95% de redução - malha muito leve)
-            reducoes = {0: 0.10, 1: 0.85, 2: 0.95}
-            fator_reducao = reducoes.get(qualidade_index, 0.85)
+            fator_reducao = {0: 0.10, 1: 0.85, 2: 0.95}.get(qualidade_index, 0.85)
 
-            # 1. Extração de Superfície
-            update("Extraindo superfície (Flying Edges)...", 1)
-            mesh_filter = vtk.vtkFlyingEdges3D()
-            mesh_filter.SetInputData(mask_data)
-            mesh_filter.SetValue(0, 0.5)
-            mesh_filter.Update()
+            # 1. Extração
+            update("Extraindo superfície...", 1)
+            mesh = vtk.vtkFlyingEdges3D()
+            mesh.SetInputData(mask_data)
+            mesh.SetValue(0, 0.5)
 
-            # 2. Limpeza de Ruído
-            update("Removendo artefatos pequenos...", 2)
-            connectivity = vtk.vtkPolyDataConnectivityFilter()
-            connectivity.SetInputConnection(mesh_filter.GetOutputPort())
-            connectivity.SetExtractionModeToLargestRegion()
-            connectivity.Update()
+            # 2. Conectividade
+            update("Limpando ruídos...", 2)
+            conn = vtk.vtkPolyDataConnectivityFilter()
+            conn.SetInputConnection(mesh.GetOutputPort())
+            conn.SetExtractionModeToLargestRegion()
 
-            # 3. Simplificação (Decimation) baseada na qualidade escolhida
-            update(f"Simplificando malha ({int(fator_reducao*100)}% de redução)...", 3)
+            # 3. Simplificação
+            update("Simplificando malha...", 3)
             decimator = vtk.vtkDecimatePro()
-            decimator.SetInputConnection(connectivity.GetOutputPort())
+            decimator.SetInputConnection(conn.GetOutputPort())
             decimator.SetTargetReduction(fator_reducao)
             decimator.PreserveTopologyOn()
-            decimator.Update()
 
-            # 4. Suavização (Smoothing)
-            update("Suavizando superfícies...", 4)
+            # 4. Suavização
+            update("Suavizando...", 4)
             smoother = vtk.vtkWindowedSincPolyDataFilter()
             smoother.SetInputConnection(decimator.GetOutputPort())
             smoother.SetNumberOfIterations(40)
+            smoother.BoundarySmoothingOn()
+            smoother.FeatureEdgeSmoothingOn()
             smoother.Update()
 
-            # 5. Escrita de Arquivo
-            update("Finalizando arquivo STL...", 5)
+            # 5. Escrita
+            update("Salvando arquivo...", 5)
             writer = vtk.vtkSTLWriter()
             writer.SetFileName(str(caminho_saida))
             writer.SetInputData(smoother.GetOutput())
@@ -70,6 +73,8 @@ class SegmentacaoEngine:
             writer.Write()
 
             return True
+
         except Exception as e:
-            print(f"Erro no processamento do volume: {e}")
+            if self.event_bus:
+                self.event_bus.emit(SceneEvents.ERROR_OCCURRED, message=f"Falha na exportação: {str(e)}")
             return False

@@ -9,6 +9,8 @@ from core.components.central_area.window_3d_dicom import Janela3D
 from core.volume.lookup_table.lut_manager import LUTManager
 from .viewer_utils.viewer_toolbar import VolumeViewerToolbar
 from .viewer_utils.viewer_renderers import ViewerRenderers
+from core.scene.scene_object import SceneObject
+from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 
 
 class VolumeViewerWidget(QtWidgets.QWidget):
@@ -21,17 +23,32 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     VIEW_UP = {"Axial": (0, -1, 0), "Sagital": (0, 0, 1), "Coronal": (0, 0, 1)}
     CORES = {"Axial": "#D32F2F", "Sagital": "#FBC02D", "Coronal": "#388E3C", "3D": "#1976D2"}
 
-    def __init__(self, parent=None):
+    def __init__(self, event_bus, object_registry, parent=None):
         super().__init__(parent)
+
+        self.events = event_bus
+        self.registry = object_registry
+
         self.vistas: Dict[str, QtWidgets.QWidget] = {}
         self.mappers_mpr: Dict[str, vtk.vtkImageResliceMapper] = {}
-        self.volume_data: Optional[vtk.vtkImageData] = None
+        self.events.subscribe(SceneEvents.OBJECT_ADDED, self._on_object_added)
+
+        self.volume_object: Optional[SceneObject] = None
+
         self.opacity_function = vtk.vtkPiecewiseFunction()
         self.color_function = vtk.vtkColorTransferFunction()
-        self.volume_actor: Optional[vtk.vtkVolume] = None
+        self.events.subscribe(SceneEvents.OBJECT_REMOVED, self._on_object_removed)
 
         self._init_paths()
         self._setup_ui()
+
+    def _on_object_added(self, object_id: str, obj: SceneObject):
+        if obj.type == "volume":
+            self.volume_object = obj
+            volume_data = obj.metadata.get("volume_data")
+            if volume_data:
+                self._render_volume(volume_data)
+
 
     def _init_paths(self):
         base = os.path.dirname(os.path.abspath(__file__))
@@ -73,17 +90,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         p3d.maximizeRequested.connect(lambda m: self._handle_maximize("3D", m))
         self.vistas["3D"] = p3d
 
-    def apply_global_lut(self, lut_name: str):
-        new_lut = LUTManager.get_vtk_lut(lut_name)
-        self.toolbar.set_lut_text(lut_name)
-
-        for nome in self.PLANOS:
-            pane = self.vistas.get(nome)
-            if pane and hasattr(pane, 'vtk_property') and pane.vtk_property:
-                pane.vtk_property.SetLookupTable(new_lut)
-                pane.vtkWidget.GetRenderWindow().Render()
-
-    def set_volume(self, volume: vtk.vtkImageData):
+    def _render_volume(self, volume: vtk.vtkImageData):
         self.volume_data = volume
         ext, centro = volume.GetExtent(), volume.GetCenter()
 
@@ -112,6 +119,16 @@ class VolumeViewerWidget(QtWidgets.QWidget):
                 self.update_slice(nome, (min_s + max_s) // 2)
 
             rw.Render()
+
+    def apply_global_lut(self, lut_name: str):
+        new_lut = LUTManager.get_vtk_lut(lut_name)
+        self.toolbar.set_lut_text(lut_name)
+
+        for nome in self.PLANOS:
+            pane = self.vistas.get(nome)
+            if pane and hasattr(pane, 'vtk_property') and pane.vtk_property:
+                pane.vtk_property.SetLookupTable(new_lut)
+                pane.vtkWidget.GetRenderWindow().Render()
 
     def update_slice(self, plano: str, index: int):
         if not self.volume_data or plano not in self.mappers_mpr: return
@@ -208,3 +225,11 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     def refresh_display(self):
         for p in self.vistas.values():
             if p.isVisible(): p.vtkWidget.GetRenderWindow().Render()
+
+    def _on_object_removed(self, object_id: str):
+        if self.volume_object and self.volume_object.id == object_id:
+            self.volume_object = None
+            self.volume_data = None
+            for pane in self.vistas.values():
+                pane.vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer().RemoveAllViewProps()
+                pane.vtkWidget.GetRenderWindow().Render()

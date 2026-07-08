@@ -6,16 +6,22 @@ from typing import Optional, Dict
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from modules.base_module.base_module import ModuloBase
-from core.scene import (
-    SceneObject, SceneState, SceneManager, EventBus,
-    ObjectRegistry, ActorRegistry, SelectionManager, Serializer, scene_events
-)
-from core.objects_manager.object_manager import ObjectManager
+from core.scene.scene_object import SceneObject
+from core.scene.scene_state import SceneState
+from core.scene.scene_manager import SceneManager
+from core.scene.events.event_bus import EventBus
+from core.scene.registry.object_registry import ObjectRegistry
+from core.scene.registry.actor_registry import ActorRegistry
+from core.scene.selection.selection_manager import SelectionManager
+from core.scene.persistence.serializer import Serializer
+from core.scene.events.scene_events import SceneEvents, RegistrationEvents
+from core.objects_manager.object_manager import ObjectImporter as ObjectManager
+
+# Componentes (certifique-se de que os caminhos abaixo existem no seu sistema)
 from core.components.central_area.window_registration import WindowRegistration
-from core.components.toolboxes import (
-    ObjetoManagerWidget, RegistrationToolbox, PropertiesComponent
-)
-from core.components.toolbars import RegistrationToolbarHandler
+from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
+from core.components.toolboxes.objetct_properties_toolbox import AxisSliderRow
+from core.components.toolbars.registration_toolbar import RegistrationToolbarHandler
 
 logger = logging.getLogger("OpenCMF.RegistrationModule")
 
@@ -29,9 +35,9 @@ class Modulo(ModuloBase):
         self.serializer = Serializer()
         self.scene_manager = scene_manager or self._criar_scene_manager_padrao()
         self.view_registration = WindowRegistration(scene_manager=self.scene_manager)
-        self.widget_reg = RegistrationToolbox()
+        self.widget_reg = WindowRegistration()
         self.widget_objetos = ObjetoManagerWidget()
-        self.widget_propriedades = PropertiesComponent(self)
+        self.widget_propriedades = AxisSliderRow(self)
         self._conectar_sinais()
 
     def _criar_scene_manager_padrao(self) -> SceneManager:
@@ -53,7 +59,7 @@ class Modulo(ModuloBase):
         self.widget_objetos.objetoToggled.connect(self._on_visibility_toggled)
         self.widget_objetos.opacityChanged.connect(self._on_opacity_changed_ui)
         self.widget_objetos.colorChanged.connect(self._on_color_changed_ui)
-        self.scene_manager.events.subscribe(scene_events.INTERACTION_MODE_CHANGED, self._on_interaction_mode_changed)
+        self.scene_manager.events.subscribe(SceneEvents.INTERACTION_MODE_CHANGED, self._on_interaction_mode_changed)
 
     def _on_interaction_mode_changed(self, mode: str):
         if hasattr(self.view_registration, "set_interaction_mode"):
@@ -169,7 +175,7 @@ class Modulo(ModuloBase):
                 toolbar=self._toolbar_widget,
                 scene_manager=self.scene_manager
             )
-            self.scene_manager.events.subscribe(scene_events.REGISTRATION_IMPORT_REQUESTED, self._on_import_request)
+            self.scene_manager.events.subscribe(RegistrationEvents.IMPORT_REQUESTED, self._on_import_request)
         return self._toolbar_widget
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:

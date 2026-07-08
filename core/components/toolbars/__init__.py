@@ -1,0 +1,3 @@
+from registration_toolbar import RegistrationToolbarHandler
+from teste02 import Teste02Handler
+from tomography_toolbar import TomographyToolbarHandler
