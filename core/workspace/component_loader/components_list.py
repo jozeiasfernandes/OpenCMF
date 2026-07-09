@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from PySide6 import QtWidgets, QtGui, QtCore
-from core.workspace.components_list_.tools_tab import ToolsTab
+from core.workspace.component_loader.tabs.tools_tab.tools_tab import ToolsTab
 from functools import partial
 
 
@@ -59,7 +59,7 @@ class Components_List(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.root_dir = Path(__file__).resolve().parent.parent.parent
+        self.root_dir = Path(__file__).resolve().parent.parent.parent.parent
         self.components_path = self.root_dir / "core" / "components"
 
         self.setWindowTitle("OpenCMF - Componentes")
@@ -83,7 +83,7 @@ class Components_List(QtWidgets.QDialog):
         self.tabs.addTab(self.tools_tab, "Tools")
 
         self.tabs.addTab(self._create_group("toolbars", mode="card"), "Toolbars")
-        self.tabs.addTab(self._create_group("toolboxes", mode="check"), "Toolboxes")
+        self.tabs.addTab(self._create_group("toolboxes_manager", mode="check"), "Toolboxes")
         self.tabs.addTab(self._create_group("central_area", mode="radio"), "Central")
 
         main_layout.addWidget(self.tabs)

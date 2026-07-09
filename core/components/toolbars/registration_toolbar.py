@@ -4,13 +4,7 @@ from typing import TYPE_CHECKING, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.localization.translator import get_base_dir, tr
-from core.scene.events.scene_events import (
-    REGISTRATION_DELETE_LAST_MARKER,
-    REGISTRATION_IMPORT_REQUESTED,
-    REGISTRATION_POINT_SIZE_CHANGED,
-    REGISTRATION_RESET_LAYOUT,
-    INTERACTION_MODE_CHANGED
-)
+from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 
 if TYPE_CHECKING:
     from core.scene.scene_manager import SceneManager
@@ -58,7 +52,7 @@ class RegistrationToolbarHandler(QtCore.QObject):
             from core.components.tools.imports.import_objects_panel import ImportObjectsPanel
             self.import_panel = ImportObjectsPanel(self.toolbar)
             self.import_panel.importRequested.connect(
-                lambda cat, sub: self._emit(REGISTRATION_IMPORT_REQUESTED, category=cat, subcategory=sub)
+                lambda cat, sub: self._emit(SceneEvents.REGISTRATION_IMPORT_REQUESTED, category=cat, subcategory=sub)
             )
             self.btn_import.clicked.connect(lambda: self.import_panel.show_under(self.btn_import))
         except (ImportError, ModuleNotFoundError):
@@ -92,19 +86,19 @@ class RegistrationToolbarHandler(QtCore.QObject):
         self.group.triggered.connect(self._on_mode_changed)
 
     def _on_mode_changed(self, action: QtGui.QAction):
-        self._emit(INTERACTION_MODE_CHANGED, mode=action.data())
+        self._emit(SceneEvents.INTERACTION_MODE_CHANGED, mode=action.data())
 
     def _add_action_section(self):
         self.toolbar.addAction(
             get_icon("del_point.svg", QtWidgets.QStyle.StandardPixmap.SP_TrashIcon),
             tr("toolbar.del_point", "Remover Último Ponto"),
-            lambda: self._emit(REGISTRATION_DELETE_LAST_MARKER)
+            lambda: self._emit(RegistrationEvents.REGISTRATION_DELETE_LAST_MARKER)
         )
 
         self.toolbar.addAction(
             get_icon("home.svg", QtWidgets.QStyle.StandardPixmap.SP_BrowserReload),
             tr("toolbar.reset_view", "Resetar Vista"),
-            lambda: self._emit(REGISTRATION_RESET_LAYOUT)
+            lambda: self._emit(RegistrationEvents.REGISTRATION_RESET_LAYOUT)
         )
 
     def _add_view_section(self):
@@ -114,7 +108,7 @@ class RegistrationToolbarHandler(QtCore.QObject):
         self.slider.setFixedWidth(80)
         self.slider.setValue(20)
         self.slider.valueChanged.connect(
-            lambda v: self._emit(REGISTRATION_POINT_SIZE_CHANGED, size=v / 10.0)
+            lambda v: self._emit(RegistrationEvents.REGISTRATION_POINT_SIZE_CHANGED, size=v / 10.0)
         )
         self.toolbar.addWidget(self.slider)
 

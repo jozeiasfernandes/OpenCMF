@@ -1,5 +1,5 @@
 """
-core.components.toolboxes.object_properties_toolbox
+core.components.toolboxes_manager.object_properties_toolbox
 =====================================================
 Painel de propriedades de objetos 3-D (transforms + aparência).
 

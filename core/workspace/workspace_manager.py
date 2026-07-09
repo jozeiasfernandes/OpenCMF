@@ -8,10 +8,11 @@ from typing import Optional, Any, Dict
 
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from core.workspace.toolboxes_manager import ToolboxesManager
-from core.workspace.loader_components import ComponentLoader
-from core.workspace.componentes_list import Components_List
-from core import settings, IconManager, tr, ProjectServiceHomePage, FlowServiceHomePage
+from core.workspace.component_loader.toolboxes_manager.toolboxes_manager import ToolboxesManager
+from core.workspace.component_loader.loader_components import ComponentLoader
+from core.workspace.component_loader.components_list import Components_List
+from core import settings, IconManager
+from core.workspace.btn_home import HomeButton
 
 logger = logging.getLogger("WorkspaceManager")
 
@@ -41,28 +42,13 @@ class WorkspaceManager(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
         self.base_dir = get_resource_path()
-        self._lazy_registry: Dict[QtWidgets.QWidget, Dict[str, Any]] = {}
+        self._lazy_registry = {}
         self._config_window = None
         self.current_patient_path = ""
 
         self._init_ui()
 
         QtCore.QTimer.singleShot(0, self.update_icons)
-
-
-    def update_icons(self):
-        theme = settings.get("preferencias", "tema", "dark")
-        manager = IconManager.get_instance()
-        cor = manager.get_color(theme, "status", "default")
-
-        self.btn_home.setIcon(manager.get_icon("home", color=cor, size=18))
-        self.btn_config.setIcon(manager.get_icon("config", color=cor, size=18))
-
-    def minimumSizeHint(self) -> QtCore.QSize:
-        return QtCore.QSize(0, 0)
-
-    def sizeHint(self) -> QtCore.QSize:
-        return QtCore.QSize(800, 600)
 
     def _init_ui(self):
         self.layout_principal = QtWidgets.QVBoxLayout(self)
@@ -115,6 +101,20 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.layout_principal.addWidget(self.header)
         self.layout_principal.addWidget(self.container_paginas, 1)
 
+
+    def update_icons(self):
+        theme = settings.get("preferencias", "tema", "dark")
+        manager = IconManager.get_instance()
+        cor = manager.get_color(theme, "status", "default")
+
+        self.btn_home.setIcon(manager.get_icon("home", color=cor, size=18))
+        self.btn_config.setIcon(manager.get_icon("config", color=cor, size=18))
+
+    def minimumSizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(0, 0)
+
+    def sizeHint(self) -> QtCore.QSize:
+        return QtCore.QSize(800, 600)
 
     def _apply_icon(self, button, name):
         path = self.base_dir / "appearance" / "icons" / name
@@ -374,7 +374,7 @@ class WorkspaceManager(QtWidgets.QWidget):
                     insert_pos = i + 1
                 comp.setProperty("__module_path__", caminho)
                 layout.insertWidget(insert_pos, comp)
-            elif categoria == "toolboxes":
+            elif categoria == "toolboxes_manager":
                 idx = data["sidebar"].adicionar_widget(
                     getattr(comp, 'toolbox_name', caminho.stem.title()), comp
                 )
@@ -411,7 +411,7 @@ class WorkspaceManager(QtWidgets.QWidget):
                     w.setParent(None)
                     w.deleteLater()
                     break
-        elif categoria == "toolboxes":
+        elif categoria == "toolboxes_manager":
             if sb := data.get("sidebar"):
                 sb.remover_widget_por_caminho(caminho)
         elif categoria == "central_area":
@@ -430,6 +430,13 @@ class WorkspaceManager(QtWidgets.QWidget):
 
     def count(self):
         return self.container_paginas.count()
+
+    def debug_imports(self):
+        try:
+            from core.workspace.component_loader.toolboxes_manager.toolboxes_manager import ToolboxesManager
+            print("Imports core verificados com sucesso.")
+        except ImportError as e:
+            print(f"ERRO DE IMPORTAÇÃO: {e}")
 
 
 if __name__ == "__main__":
