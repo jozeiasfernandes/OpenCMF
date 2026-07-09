@@ -4,7 +4,6 @@ import vtk
 from pathlib import Path
 from typing import Optional, Dict
 from PySide6 import QtWidgets, QtCore, QtGui
-
 from modules.base_module.base_module import ModuloBase
 from core.scene.scene_object import SceneObject
 from core.scene.scene_state import SceneState
@@ -16,8 +15,6 @@ from core.scene.selection.selection_manager import SelectionManager
 from core.scene.persistence.serializer import Serializer
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 from core.scene.io.importer import ObjectImporter as ObjectManager
-
-# Componentes (certifique-se de que os caminhos abaixo existem no seu sistema)
 from core.components.central_area.window_registration import WindowRegistration
 from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
 from core.components.toolboxes.objetct_properties_toolbox import AxisSliderRow
