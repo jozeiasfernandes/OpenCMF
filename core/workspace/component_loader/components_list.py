@@ -83,7 +83,7 @@ class Components_List(QtWidgets.QDialog):
         self.tabs.addTab(self.tools_tab, "Tools")
 
         self.tabs.addTab(self._create_group("toolbars", mode="card"), "Toolbars")
-        self.tabs.addTab(self._create_group("toolboxes_manager", mode="check"), "Toolboxes")
+        self.tabs.addTab(self._create_group("toolboxes", mode="check"), "Toolboxes")
         self.tabs.addTab(self._create_group("central_area", mode="radio"), "Central")
 
         main_layout.addWidget(self.tabs)
@@ -148,7 +148,7 @@ class Components_List(QtWidgets.QDialog):
     def _get_files_recursively(self, directory: Path):
         if not directory.exists():
             return []
-        return sorted([f for f in directory.rglob("*.py") if f.name != "__init__.py"])
+        return sorted([f for f in directory.glob("*.py") if f.name != "__init__.py"])
 
     def _obter_nome_componente(self, caminho_arquivo: Path) -> str:
         try:
