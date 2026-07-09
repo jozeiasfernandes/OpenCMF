@@ -1,31 +1,12 @@
-'''
-Responsabilidades:
-* Gerenciar caminhos de arquivos (criação de diretórios, nomes únicos).
-* Realizar a cópia física de arquivos externos para o diretório do paciente.
-* Remover arquivos físicos da cena quando solicitado.
-* Fornecer caminhos relativos ao SceneManager.
-
-'''
 import shutil
 import logging
 from pathlib import Path
 from typing import Optional
 
 from core.scene.scene_object import SceneObject
-# Substituímos SceneUtils pela nova Factory
 from core.scene.utils.factory import SceneObjectFactory
-
-logger = logging.getLogger("OpenCMF.ObjectImporter")
-
-import shutil
-import logging
-from pathlib import Path
-from typing import Optional
-from core.scene.utils.factory import SceneObjectFactory
-from core.scene.scene_object import SceneObject
 
 logger = logging.getLogger(__name__)
-
 
 class ObjectImporter:
     def __init__(self, patient_path: str) -> None:
@@ -38,25 +19,19 @@ class ObjectImporter:
             return None
 
         try:
-            # 1. Preparação do destino
             target_dir = self.patient_path / category
             target_dir.mkdir(parents=True, exist_ok=True)
             destination = self._get_unique_path(target_dir, source)
 
-            # 2. Cópia física
             shutil.copy2(source, destination)
 
-            # 3. Criação via Factory (Alinhada com a assinatura create_from_file)
-            # Nota: Passamos file_path (absoluto ou relativo ao patient_path)
-            # e a categoria para definir o tipo.
+            # Uso consistente da Factory
             scene_obj = SceneObjectFactory.create_from_file(
-                file_path=str(destination),
-                type=category
+                file_path=str(destination.relative_to(self.patient_path)),
+                category=category
             )
 
-            # Adicional: Podemos injetar metadados extras se necessário
             scene_obj.metadata["original_name"] = source.name
-
             return scene_obj
 
         except Exception as e:

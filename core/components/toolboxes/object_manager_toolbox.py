@@ -1,13 +1,10 @@
-import sys
-import json
 import logging
 import uuid
 from pathlib import Path
 from typing import Dict, Optional
 
 from PySide6 import QtWidgets, QtCore, QtGui
-
-from core.objects_manager.models import ObjectProperties
+from core.scene.scene_object import SceneObject
 
 logger = logging.getLogger("ObjectManagerWidget")
 
@@ -32,7 +29,7 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None, patient_path: Optional[str] = None):
         super().__init__(parent)
-        self.object_properties: Dict[str, ObjectProperties] = {}
+        self.object_properties: Dict[str, SceneObject] = {}
         self._nome_para_id: Dict[str, str] = {}
         self.cats: Dict[str, QtWidgets.QTreeWidgetItem] = {}
         self.patient_path = Path(patient_path) if patient_path else None
@@ -45,17 +42,17 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
     def adicionar_objeto_lista(self, nome_ou_props=None, categoria="Superfícies", cor=None, objeto_id=None,
                                props=None) -> None:
         if props is None:
-            props = nome_ou_props if isinstance(nome_ou_props, ObjectProperties) else None
+            props = nome_ou_props if isinstance(nome_ou_props, SceneObject) else None
 
         if props is None:
-            oid = objeto_id or str(uuid.uuid4())
-            props = ObjectProperties(
+            oid = objeto_id or uuid.uuid4().hex[:12]
+            props = SceneObject(
                 id=oid,
                 name=nome_ou_props or "Novo Objeto",
-                type=_CAT_TIPO.get(categoria, "others")
+                type=_CAT_TIPO.get(categoria, "generic")
             )
             if cor:
-                props.render["color"] = [cor.redF(), cor.greenF(), cor.blueF()]
+                props.color = (cor.redF(), cor.greenF(), cor.blueF())
 
         self.object_properties[props.id] = props
         self._adicionar_item_arvore(props, categoria)
@@ -89,7 +86,7 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
             self.cats[name] = it
         return self.cats[name]
 
-    def _adicionar_item_arvore(self, props: ObjectProperties, categoria: str) -> None:
+    def _adicionar_item_arvore(self, props: SceneObject, categoria: str) -> None:
         self._nome_para_id[props.name] = props.id
         cat_name = _TIPO_CAT.get(categoria, categoria)
         item = QtWidgets.QTreeWidgetItem(self._get_or_create_category(cat_name))
@@ -107,7 +104,7 @@ class ObjetoManagerWidget(QtWidgets.QWidget):
 
         btn = QtWidgets.QPushButton()
         btn.setMaximumSize(14, 14)
-        c = props.render.get("color", [1.0, 1.0, 1.0])
+        c = props.color
         btn.setStyleSheet(f"background-color: {QtGui.QColor.fromRgbF(c[0], c[1], c[2]).name()}; border-radius: 7px;")
         btn.clicked.connect(lambda _, oid=props.id, b=btn: self._pick_color(oid, b))
         self.tree_widget.setItemWidget(item, 2, btn)
@@ -183,7 +180,7 @@ if __name__ == "__main__":
     import sys
     from PySide6 import QtWidgets, QtCore, QtGui
     from core.scene.persistence.serializer import Serializer
-    from core.objects_manager.object_manager import ObjectManager
+    from core.scene.io.importer import ObjectManager
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")

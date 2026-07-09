@@ -27,14 +27,16 @@ Camada Gráfica: VTKActorFactory
 import sys
 from pathlib import Path
 from typing import Optional, Callable, List, Tuple
-
+from core.scene.io.importer import ObjectImporter
+from core.scene.registry import ObjectRegistry
 from PySide6.QtWidgets import (
     QWidget, QPushButton, QLabel, QFrame,
-    QVBoxLayout, QGridLayout, QApplication
+    QVBoxLayout, QGridLayout, QApplication, QFileDialog
 )
 from PySide6.QtCore import Qt, Signal, QPoint, QSize, QEvent
 from PySide6.QtGui import QIcon
 from core.localization.translator import get_base_dir, tr
+from core.scene.rendering.vtk_actor_factory import VTKActorFactory
 
 # Centralização de cores e estilos para fácil manutenção
 COLORS = {
@@ -99,6 +101,30 @@ class ImportSection(QFrame):
 
         layout.addLayout(grid)
 
+
+class SceneController:
+    def __init__(self, importer: ObjectImporter, registry: ObjectRegistry, actor_factory: VTKActorFactory):
+        self.importer = importer
+        self.registry = registry
+        self.actor_factory = actor_factory
+
+    def on_import_requested(self, category: str, subcategory: str):
+        # 1. Abrir o seletor de arquivos
+        # O filtro pode ser dinâmico baseado na categoria se desejar
+        file_path, _ = QFileDialog.getOpenFileName(
+            None, "Selecionar Arquivo", "", "Arquivos Suportados (*.stl *.vti *.jpg *.png *.dcm)"
+        )
+
+        if file_path:
+            # 2. Delegar a cópia física (ObjectManager/Importer)
+            scene_obj = self.importer.import_external_file(file_path, category)
+
+            if scene_obj:
+                # 3. Registrar o objeto (SceneRegistry)
+                self.registry.add(scene_obj)
+
+                # 4. Renderizar (VTKActorFactory)
+                self.actor_factory.create_actor(scene_obj)
 
 class ImportObjectsPanel(QFrame):
     # Sinal emite (categoria_interna, subcategoria_traduzida)

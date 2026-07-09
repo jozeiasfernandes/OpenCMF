@@ -15,7 +15,7 @@ from core.scene.registry.actor_registry import ActorRegistry
 from core.scene.selection.selection_manager import SelectionManager
 from core.scene.persistence.serializer import Serializer
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
-from core.objects_manager.object_manager import ObjectImporter as ObjectManager
+from core.scene.io.importer import ObjectImporter as ObjectManager
 
 # Componentes (certifique-se de que os caminhos abaixo existem no seu sistema)
 from core.components.central_area.window_registration import WindowRegistration
