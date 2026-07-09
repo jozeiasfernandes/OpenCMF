@@ -62,7 +62,7 @@ class SceneBridge:
         else:
             obj = self.objects.get(object_id)
             if obj:
-                self.sync.sync_all(obj, actor)
+                self.sync.sync(actor, scene_object=obj)
 
         self.renderer.refresh()
 
