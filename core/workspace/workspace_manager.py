@@ -424,13 +424,6 @@ class WorkspaceManager(QtWidgets.QWidget):
     def count(self):
         return self.container_paginas.count()
 
-    def debug_imports(self):
-        try:
-            from core.loaders import ToolboxesManager
-            print("Imports core verificados com sucesso.")
-        except ImportError as e:
-            print(f"ERRO DE IMPORTAÇÃO: {e}")
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
