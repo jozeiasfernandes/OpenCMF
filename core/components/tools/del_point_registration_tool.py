@@ -1,9 +1,10 @@
-from core.components.tools.base.base_tool import BaseTool
-from core.scene.events import RegistrationEvents
+from core.components.tools.base.base_tool import BaseTool, ToolCategory
+from core.scene.events.scene_events import RegistrationEvents
 
 class DelPointRegistrationTool(BaseTool):
     name = "del_point"
     display_name = "Remover Ponto"
+    category = ToolCategory.REGISTRATION
     icon = "del_point.svg"
     tool_tip = "Remove o último ponto de registro adicionado."
 

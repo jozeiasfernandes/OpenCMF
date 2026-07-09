@@ -1,11 +1,12 @@
 import vtk
 from PySide6 import QtCore
-from core.components.tools.base.base_tool import BaseTool
+from core.components.tools.base.base_tool import BaseTool, ToolCategory
 
 class SelectTool(BaseTool):
     # Metadados para a interface
     name = "select"
     display_name = "Selecionar"
+    category = ToolCategory.SELECTION
     icon = ":/icons/select.png"
     tool_tip = "Selecione objetos na cena. Use CTRL + Clique para seleção múltipla."
 

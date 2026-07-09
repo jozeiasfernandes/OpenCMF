@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from typing import List, Dict
 from core.workspace.components_list_.capture_toolbar_png import capture_toolbar_screenshot
+from core.components.tools.base.base_tool import ToolCategory
 
 logger = logging.getLogger(__name__)
 
@@ -114,3 +115,30 @@ class ToolbarService:
         except Exception:
             pass
         return path.stem.replace("_", " ").title()
+
+    def get_all_tools_with_metadata(self):
+        tools_list = []
+        for path in self.get_all_tools():
+            tool_class = self._instanciar_tool(path)
+            if tool_class:
+                tools_list.append({
+                    "path": path,
+                    "display_name": getattr(tool_class, "display_name", "Desconhecido"),
+                    "category": getattr(tool_class, "category", ToolCategory.OTHER)
+                })
+        return tools_list
+
+    def _instanciar_tool(self, path):
+        try:
+            spec = importlib.util.spec_from_file_location(path.stem, path)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+
+            for attr_name in dir(module):
+                obj = getattr(module, attr_name)
+
+                if isinstance(obj, type) and hasattr(obj, 'category') and obj.__name__ != 'BaseTool':
+                    return obj
+        except Exception as e:
+            logger.error(f"Falha ao instanciar tool {path.name}: {e}")
+        return None

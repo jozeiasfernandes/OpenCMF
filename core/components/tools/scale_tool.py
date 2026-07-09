@@ -1,8 +1,9 @@
-from core.components.tools.base.base_tool import BaseTool
+from core.components.tools.base.base_tool import BaseTool, ToolCategory
 
 class ScaleTool(BaseTool):
     name = "scale"
     display_name = "Escalar Objeto"
+    category = ToolCategory.TRANSFORMATION
     icon = ":/icons/scale.png"
     tool_tip = "Clique e arraste para alterar a escala do objeto."
 

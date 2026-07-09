@@ -1,11 +1,12 @@
 from __future__ import annotations
 from typing import Any
-from core.components.tools.base.base_tool import BaseTool
+from core.components.tools.base.base_tool import BaseTool, ToolCategory
 from core.volume.lookup_table.lut_presets import LUTPresets
 
 class ColorMapTool(BaseTool):
     name: str = "color_map_tool"
     display_name: str = "Color Map"
+    category = ToolCategory.TOMOGRAPHY
     icon: str = "color_map.png"
     tool_tip: str = "Altera o mapa de cores do volume selecionado"
 

@@ -1,8 +1,8 @@
 import sys
 from pathlib import Path
 from PySide6 import QtWidgets, QtGui, QtCore
-
 from core.workspace.components_list_.tools_tab import ToolsTab
+from functools import partial
 
 
 class ComponentCard(QtWidgets.QFrame):
@@ -82,7 +82,6 @@ class Components_List(QtWidgets.QDialog):
         self.tools_tab = ToolsTab(self.components_path, get_name)
         self.tabs.addTab(self.tools_tab, "Tools")
 
-        self.tabs.addTab(self.tools_tab, "Tools")
         self.tabs.addTab(self._create_group("toolbars", mode="card"), "Toolbars")
         self.tabs.addTab(self._create_group("toolboxes", mode="check"), "Toolboxes")
         self.tabs.addTab(self._create_group("central_area", mode="radio"), "Central")
@@ -104,13 +103,15 @@ class Components_List(QtWidgets.QDialog):
         scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
 
         content = QtWidgets.QWidget()
+        # Opcional: definir política de tamanho para melhorar o layout
+        content.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
+
         layout = QtWidgets.QVBoxLayout(content)
         layout.setAlignment(QtCore.Qt.AlignTop)
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(10)
 
         files = self._get_files_recursively(self.components_path / folder_name)
-
         group = QtWidgets.QButtonGroup(content) if mode == "radio" else None
 
         for path in files:
@@ -130,9 +131,9 @@ class Components_List(QtWidgets.QDialog):
             if group:
                 group.addButton(selector)
 
+            # Conectando apenas uma vez via partial
             selector.toggled.connect(
-                lambda checked, f=path, s=folder_name:
-                self.componente_alterado.emit(s, f, checked)
+                partial(self._emitir_alteracao, folder_name, path)
             )
 
             layout.addWidget(widget)
@@ -140,6 +141,9 @@ class Components_List(QtWidgets.QDialog):
         layout.addStretch()
         scroll.setWidget(content)
         return scroll
+
+    def _emitir_alteracao(self, folder, path, checked):
+        self.componente_alterado.emit(folder, path, checked)
 
     def _get_files_recursively(self, directory: Path):
         if not directory.exists():

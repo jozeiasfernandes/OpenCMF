@@ -1,13 +1,13 @@
 import vtk
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.components.tools.base.base_tool import BaseTool
+from core.components.tools.base.base_tool import BaseTool, ToolCategory
 from core.localization.translator import get_base_dir
-# Importação da classe de eventos agrupada
-from core.scene.events import RegistrationEvents
+from core.scene.events.scene_events import RegistrationEvents
 
 class AddPointRegistrationTool(BaseTool):
     name = "add_point"
     display_name = "Adicionar Pontos"
+    category = ToolCategory.REGISTRATION
     icon = "add_point.svg"
     tool_tip = "Clique na superfície do objeto para adicionar um ponto de registro."
 

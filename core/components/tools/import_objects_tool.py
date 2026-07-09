@@ -1,12 +1,13 @@
 from __future__ import annotations
 from pathlib import Path
 from PySide6 import QtWidgets
-from core.components.tools.base.base_tool import BaseTool
+from core.components.tools.base.base_tool import BaseTool, ToolCategory
 
 
 class ImportObjectTool(BaseTool):
     name = "import_object_tool"
     display_name = "Importar"
+    category = ToolCategory.OBJECTS
     icon = "add.svg"
     tool_tip = "Importar arquivos STL, VTI ou Imagens para a cena"
 

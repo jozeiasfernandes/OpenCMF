@@ -1,10 +1,11 @@
-from core.components.tools.base.base_tool import BaseTool
+from core.components.tools.base.base_tool import BaseTool, ToolCategory
 
 
 class MoveTool(BaseTool):
     name = "move"
     display_name = "Mover Objeto"
     cursor = None
+    category = ToolCategory.TRANSFORMATION
     icon = "move.svg"
     tool_tip = "Mover Objeto"
 
