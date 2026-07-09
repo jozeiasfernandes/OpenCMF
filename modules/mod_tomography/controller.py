@@ -17,7 +17,7 @@ from core.volume.viewer import VolumeViewerWidget
 from core.volume.validator import DicomValidator
 
 from modules.mod_tomography.ui import TomografiaUI
-from core.components.toolbars.tomography_toolbar import TomographyToolbarHandler
+from core.components.toolbars.tomography_toolbar import TomographyToolbar
 
 class Modulo(ModuloBase):
     def __init__(self):
@@ -26,7 +26,7 @@ class Modulo(ModuloBase):
         self.id = "modulo.tomografia"
         self.engine = DicomEngine()
         self.ui = TomografiaUI()
-        self.toolbar_handler: Optional[TomographyToolbarHandler] = None
+        self.toolbar_handler: Optional[TomographyToolbar] = None
         self.viewer: Optional[VolumeViewerWidget] = None
         self.caminho_dicom: Optional[str] = None
         self._is_initialized = False
@@ -186,7 +186,7 @@ class Modulo(ModuloBase):
 
     def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
         toolbar = QtWidgets.QToolBar("Tomografia")
-        self.toolbar_handler = TomographyToolbarHandler(toolbar)
+        self.toolbar_handler = TomographyToolbar(toolbar)
 
         self.toolbar_handler.importDicomRequested.connect(self._buscar_pasta)
         self.toolbar_handler.validateRequested.connect(self._validar_dicom)

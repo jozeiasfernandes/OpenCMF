@@ -4,12 +4,12 @@
 # de maximizar/minimizar no futuro.
 #
 # planar.py (O especialista 2D)
-# Herda de JanelaBase. Aqui você isola a lógica de MPR (Multi-Planar Reconstruction).
+# Herda de CentralAreaBase. Aqui você isola a lógica de MPR (Multi-Planar Reconstruction).
 # Quando formos implementar o MIP (Maximum Intensity Projection), o código ficará restrito
 # a este arquivo, sem poluir o resto.
 #
 # volume.py (O especialista 3D)
-# Herda de JanelaBase. Aqui moram as funções de GPUVolumeRayCast, Threshold e,
+# Herda de CentralAreaBase. Aqui moram as funções de GPUVolumeRayCast, Threshold e,
 # futuramente, os botões de Face de Orientação e Sombreamento.
 #
 # viewer.py (O Maestro)

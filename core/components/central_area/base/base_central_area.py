@@ -3,7 +3,7 @@ from PySide6 import QtWidgets, QtCore
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 
-class JanelaBase(QtWidgets.QWidget):
+class CentralAreaBase(QtWidgets.QWidget):
     def __init__(self, titulo, cor_identificacao, parent=None):
         super().__init__(parent)
         self.titulo = titulo

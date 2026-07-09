@@ -1,16 +1,16 @@
 '''
-Usuário move o Slider -> Janela3D emite OBJECT_UPDATED.SceneBridge escuta o evento.  SceneBridge solicita a atualização ao VTKPropertySync ou ActorFactory.  VTKSceneRenderer realiza o refresh() final.
+Usuário move o Slider -> CentralArea3D emite OBJECT_UPDATED.SceneBridge escuta o evento.  SceneBridge solicita a atualização ao VTKPropertySync ou ActorFactory.  VTKSceneRenderer realiza o refresh() final.
 
 '''
 
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from core.components.central_area.base.janelas import JanelaBase
+from core.components.central_area.base.base_central_area import CentralAreaBase
 from core.scene.events.scene_events import SceneEvents
 
 
-class Janela3D(JanelaBase):
+class CentralArea3D(CentralAreaBase):
     def __init__(self, titulo: str, cor: str, event_bus, viewer_registry, parent=None):
         super().__init__(titulo, cor, parent)
         self.event_bus = event_bus

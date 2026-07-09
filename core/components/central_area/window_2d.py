@@ -1,9 +1,9 @@
 import os
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.components.central_area.base.janelas import JanelaBase
+from core.components.central_area.base.base_central_area import CentralAreaBase
 from core.components.central_area.window_2d_.context_menu_2d import ContextMenu2D
 
-class Janela2D(JanelaBase):
+class CentralArea2D(CentralAreaBase):
     sliceChanged = QtCore.Signal(int)
     maximizeRequested = QtCore.Signal(bool)
     lutChanged = QtCore.Signal(str)

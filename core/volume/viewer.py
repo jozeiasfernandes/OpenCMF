@@ -4,8 +4,8 @@ import json
 from PySide6 import QtWidgets, QtCore
 from typing import Dict, Optional
 
-from core.components.central_area.window_2d import Janela2D
-from core.components.central_area.window_3d_dicom import Janela3D
+from core.components.central_area.window_2d import CentralArea2D
+from core.components.central_area.window_3d_dicom import CentralArea3D
 from core.volume.lookup_table.lut_manager import LUTManager
 from core.components.toolbars.viewer_toolbar import VolumeViewerToolbar
 from .viewer_utils.viewer_renderers import ViewerRenderers
@@ -77,13 +77,13 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def _create_viewers(self):
         for nome in self.PLANOS:
-            pane = Janela2D(nome, self.CORES[nome])
+            pane = CentralArea2D(nome, self.CORES[nome])
             pane.sliceChanged.connect(lambda v, n=nome: self.update_slice(n, v))
             pane.maximizeRequested.connect(lambda m, n=nome: self._handle_maximize(n, m))
             pane.lutChanged.connect(self.apply_global_lut)
             self.vistas[nome] = pane
 
-        p3d = Janela3D("3D", self.CORES["3D"])
+        p3d = CentralArea3D("3D", self.CORES["3D"])
         p3d.thresholdChanged.connect(self.update_threshold)
         p3d.viewChanged.connect(self.update_3d_view)
         p3d.presetChanged.connect(self.update_preset)

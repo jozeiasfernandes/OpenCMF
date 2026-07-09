@@ -6,13 +6,12 @@ import gc
 from pathlib import Path
 from typing import Optional, Any, Dict
 
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 
-from core.workspace.component_loader.toolboxes_manager.toolboxes_manager import ToolboxesManager
-from core.workspace.component_loader.loader_components import ComponentLoader
-from core.workspace.component_loader.components_list import Components_List
+from core.loaders.toolboxes_manager.toolboxes_manager import ToolboxesManager
+from core.loaders.loader_components import ComponentLoader
+from core.loaders.components_list import Components_List
 from core import settings, IconManager
-from core.workspace.btn_home import HomeButton
 
 logger = logging.getLogger("WorkspaceManager")
 
@@ -115,12 +114,6 @@ class WorkspaceManager(QtWidgets.QWidget):
 
     def sizeHint(self) -> QtCore.QSize:
         return QtCore.QSize(800, 600)
-
-    def _apply_icon(self, button, name):
-        path = self.base_dir / "appearance" / "icons" / name
-        icon = QtGui.QIcon(str(path))
-        button.setIcon(icon)
-        button.setCursor(QtCore.Qt.PointingHandCursor)
 
     def set_patient_path(self, path: str):
         if self.current_patient_path == path:
@@ -433,7 +426,7 @@ class WorkspaceManager(QtWidgets.QWidget):
 
     def debug_imports(self):
         try:
-            from core.workspace.component_loader.toolboxes_manager.toolboxes_manager import ToolboxesManager
+            from core.loaders import ToolboxesManager
             print("Imports core verificados com sucesso.")
         except ImportError as e:
             print(f"ERRO DE IMPORTAÇÃO: {e}")
