@@ -13,7 +13,8 @@ class ToolbarService:
         self.components_path = components_path
         self.toolbars_path = components_path / "toolbars"
         self.tools_path = components_path / "tools"
-        self.template_path = components_path.parent / "workspace" / "loaders" / "toolbar_template.py"
+        self.template_path = components_path.parent / "components" / "toolbars" / "template" / "toolbar_template.py"
+
 
     def get_all_toolbars(self) -> List[Dict]:
         toolbars = []
