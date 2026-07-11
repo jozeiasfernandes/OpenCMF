@@ -1,96 +1,103 @@
-from typing import Optional, TYPE_CHECKING
+from typing import Optional, Any, TYPE_CHECKING
 import json
 import importlib.util
 import inspect
 import logging
 import traceback
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore
+
+from PySide6 import QtWidgets, QtCore, QtGui
 from core.components.tools.base.base_tool import BaseTool
-from core.components.tools.base.base_toolbar_handler import BaseToolbarHandler
-from core.components.tools.base.tool_manager import ToolManager  # Import necessário
+from core.components.tools.base.tool_manager import ToolManager
 
 if TYPE_CHECKING:
     from core.scene.scene_manager import SceneManager
 
 logger = logging.getLogger("ToolbarLoader")
 
-class Teste02Handler(BaseToolbarHandler):
-    def __init__(self, toolbar: QtWidgets.QToolBar, tool_manager: ToolManager, scene_manager: Optional["SceneManager"] = None):
-        super().__init__(toolbar, tool_manager=tool_manager)
-        self.toolbar = toolbar
-        self._scene_manager = scene_manager
-        self.root_path = Path(__file__).resolve().parent.parent
+
+class BaseToolbar(QtWidgets.QToolBar):
+    """Classe base unificada para toolbars com suporte a injeção de dependência."""
+
+    def __init__(self, title: str, tool_manager: ToolManager, scene_manager: Optional["SceneManager"] = None,
+                 parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(title, parent)
+        self.tool_manager = tool_manager
+        self.scene_manager = scene_manager
+        self.setObjectName(title.lower().replace(" ", "_"))
+        self.setIconSize(QtCore.QSize(24, 24))
+
+    def add_tool_button(self, text: str, callback, icon: Optional[QtGui.QIcon] = None, tooltip: str = ""):
+        btn = QtWidgets.QToolButton()
+        btn.setText(text)
+        btn.setToolTip(tooltip)
+        if icon: btn.setIcon(icon)
+        btn.clicked.connect(callback)
+        self.addWidget(btn)
+        return btn
+
+
+class Teste02Toolbar(BaseToolbar):
+    """Implementação específica que carrega ferramentas via JSON."""
+
+    def __init__(self, tool_manager, scene_manager=None):
+        super().__init__("Teste02", tool_manager, scene_manager)
         self.json_path = Path(__file__).resolve().with_suffix(".json")
-        self._setup_ui()
+        self.refresh()
 
-    def _setup_ui(self):
-        self.toolbar.setIconSize(QtCore.QSize(24, 24))
-        self.load_tools_from_json()
-
-    def load_tools_from_json(self) -> None:
-        self.clear_toolbar()
+    def refresh(self):
+        self.clear()
         if not self.json_path.exists():
             return
 
         try:
             with open(self.json_path, "r", encoding="utf-8") as f:
-                tool_paths: list[str] = json.load(f)
+                tool_paths = json.load(f)
+
+            for path_str in tool_paths:
+                self._load_tool(path_str)
         except Exception as e:
-            logger.error(f"Erro ao ler JSON: {e}")
+            logger.error(f"Erro ao processar JSON: {e}")
+
+    def _load_tool(self, path_str: str):
+        root_path = Path("C:/OpenCMF")
+        path = root_path / "core" / "components" / "tools" / Path(path_str).name
+
+        if not path.exists():
             return
 
-        for path_str in tool_paths:
-            full_path = self._resolve_tool_path(path_str)
-            if full_path and full_path.exists():
-                tool_instance = self._instanciar_tool(full_path)
-                if tool_instance:
-                    self.register_tool(tool_instance)
-
-    def _resolve_tool_path(self, path_str: str) -> Optional[Path]:
-        candidate = Path(path_str)
-        for p in [candidate, self.root_path / candidate, self.root_path / "tools" / candidate.name]:
-            if p.exists(): return p.resolve()
-        return None
-
-    def _instanciar_tool(self, path: Path) -> Optional[BaseTool]:
         try:
             spec = importlib.util.spec_from_file_location(path.stem, path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
+
             for _, obj in inspect.getmembers(module, inspect.isclass):
                 if issubclass(obj, BaseTool) and obj is not BaseTool:
-                    # Injeta o scene_manager se necessário
-                    return obj(scene_manager=self._scene_manager) if self._scene_manager else obj()
+                    # Instancia a ferramenta
+                    instance = obj()
+
+                    # Cria o botão que chama o ToolManager para ativar a instância
+                    def create_callback(tool_instance):
+                        return lambda: self.tool_manager.activate_tool(tool_instance)
+
+                    btn = instance.create_button(create_callback(instance))
+                    self.addWidget(btn)
         except Exception:
-            logger.error(f"Falha ao instanciar tool {path.name}:\n{traceback.format_exc()}")
-        return None
-
-
-class Component(QtWidgets.QToolBar):
-    toolbar_name = "teste02"
-
-    def __init__(self, modulo=None, tool_manager: ToolManager = None, scene_manager: Optional["SceneManager"] = None):
-        super().__init__()
-        self.modulo = modulo
-        self.setWindowTitle(self.toolbar_name)
-        self.setObjectName("teste02")
-        # A injeção de dependência acontece aqui
-        self.handler = Teste02Handler(self, tool_manager=tool_manager, scene_manager=scene_manager)
-
-    def refresh(self):
-        self.handler.load_tools_from_json()
+            logger.error(f"Falha ao carregar {path}:\n{traceback.format_exc()}")
 
 
 if __name__ == "__main__":
     import sys
+    from core.components.tools.base.tool_manager import ToolManager
+
     app = QtWidgets.QApplication(sys.argv)
-
     main_window = QtWidgets.QMainWindow()
-    toolbar = Component()
-    main_window.addToolBar(toolbar)
 
-    main_window.setWindowTitle("Debug Toolbar: teste02")
+    tool_manager = ToolManager(context=main_window)
+    toolbar = Teste02Toolbar(tool_manager=tool_manager)
+
+    main_window.addToolBar(toolbar)
+    main_window.setWindowTitle("Debug Toolbar: Teste02")
     main_window.resize(400, 100)
     main_window.show()
 

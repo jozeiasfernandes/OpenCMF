@@ -1,13 +1,8 @@
-import sys
-from pathlib import Path
-from typing import TYPE_CHECKING, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
-
+from typing import Optional, Any
+from core.components.toolbars.base.base_toolbar import BaseToolbar
 from core.localization.translator import get_base_dir, tr
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
-
-if TYPE_CHECKING:
-    from core.scene.scene_manager import SceneManager
 
 
 def get_icon(icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIcon) -> QtGui.QIcon:
@@ -17,73 +12,92 @@ def get_icon(icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIco
     return QtWidgets.QApplication.style().standardIcon(fallback)
 
 
-class RegistrationToolbarHandler(QtCore.QObject):
-    def __init__(self, toolbar: QtWidgets.QToolBar, scene_manager: Optional["SceneManager"] = None):
-        super().__init__()
-        self.toolbar = toolbar
-        self._scene_manager = scene_manager
-        self._setup_ui()
+class RegistrationToolbar(BaseToolbar):
+    def __init__(self, scene_manager: Any = None, parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(
+            title=tr("toolbar.registration.title", "Alinhamento de Objetos"),
+            scene_manager=scene_manager,
+            parent=parent
+        )
 
     def _emit(self, event: str, **payload) -> None:
-        if self._scene_manager:
-            self._scene_manager.events.emit(event, **payload)
+        if self.has_scene:
+            self.scene_manager.events.emit(event, **payload)
 
-    def _setup_ui(self):
-        self.toolbar.setIconSize(QtCore.QSize(24, 24))
-        self.toolbar.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)
+    def setup_ui(self):
+        # 1. Import Section
+        self._add_import_button()
+        self.addSeparator()
 
-        self._add_import_section()
-        self.toolbar.addSeparator()
+        # 2. Selection Modes
         self._add_selection_modes()
-        self.toolbar.addSeparator()
-        self._add_action_section()
-        self.toolbar.addSeparator()
-        self._add_view_section()
-        self._add_spacer()
+        self.addSeparator()
 
-    def _add_import_section(self):
-        self.btn_import = QtWidgets.QToolButton()
-        self.btn_import.setIcon(get_icon("add.svg", QtWidgets.QStyle.StandardPixmap.SP_FileDialogNewFolder))
-        self.btn_import.setToolTip(tr("toolbar.import", "Importar"))
-        self.btn_import.setPopupMode(QtWidgets.QToolButton.InstantPopup)
-        self.toolbar.addWidget(self.btn_import)
+        # 3. Actions (Direto na toolbar, herdado de QToolBar)
+        self.add_tool_button(
+            text="",
+            callback=lambda: self._emit(RegistrationEvents.REGISTRATION_DELETE_LAST_MARKER),
+            icon=get_icon("del_point.svg", QtWidgets.QStyle.StandardPixmap.SP_TrashIcon),
+            tooltip=tr("toolbar.del_point", "Remover Último Ponto")
+        )
+        self.add_tool_button(
+            text="",
+            callback=lambda: self._emit(RegistrationEvents.REGISTRATION_RESET_LAYOUT),
+            icon=get_icon("home.svg", QtWidgets.QStyle.StandardPixmap.SP_BrowserReload),
+            tooltip=tr("toolbar.reset_view", "Resetar Vista")
+        )
+        self.addSeparator()
+
+        # 4. View Settings
+        self.addWidget(QtWidgets.QLabel(tr("toolbar.point_size", " Tamanho: ")))
+        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider.setRange(5, 50)
+        self.slider.setFixedWidth(80)
+        self.slider.setValue(20)
+        self.slider.valueChanged.connect(
+            lambda v: self._emit(RegistrationEvents.REGISTRATION_POINT_SIZE_CHANGED, size=v / 10.0)
+        )
+        self.addWidget(self.slider)
+
+    def _add_import_button(self):
+        btn = self.add_tool_button(
+            text="",
+            callback=lambda: None,
+            icon=get_icon("add.svg", QtWidgets.QStyle.StandardPixmap.SP_FileDialogNewFolder),
+            tooltip=tr("toolbar.import", "Importar")
+        )
+        btn.setPopupMode(QtWidgets.QToolButton.InstantPopup)
 
         try:
             from core.components.tools.imports.import_objects_panel import ImportObjectsPanel
-            self.import_panel = ImportObjectsPanel(self.toolbar)
+            self.import_panel = ImportObjectsPanel(self)
             self.import_panel.importRequested.connect(
                 lambda cat, sub: self._emit(SceneEvents.REGISTRATION_IMPORT_REQUESTED, category=cat, subcategory=sub)
             )
-            self.btn_import.clicked.connect(lambda: self.import_panel.show_under(self.btn_import))
+            btn.clicked.connect(lambda: self.import_panel.show_under(btn))
         except (ImportError, ModuleNotFoundError):
-            self.btn_import.setEnabled(False)
+            btn.setEnabled(False)
 
     def _add_selection_modes(self):
         self.group = QtGui.QActionGroup(self)
         self.group.setExclusive(True)
 
-        self.action_select = QtGui.QAction(
-            get_icon("cursor.svg", QtWidgets.QStyle.StandardPixmap.SP_ArrowForward),
-            tr("toolbar.select", "Seleção"), self
-        )
-        self.action_select.setCheckable(True)
-        self.action_select.setChecked(True)
-        self.action_select.setData("select")
+        actions = [
+            (get_icon("cursor.svg", QtWidgets.QStyle.StandardPixmap.SP_ArrowForward), tr("toolbar.select", "Seleção"),
+             "select"),
+            (get_icon("add_point.svg", QtWidgets.QStyle.StandardPixmap.SP_CommandLink),
+             tr("toolbar.add_point", "Adicionar Pontos"), "add_point")
+        ]
 
-        self.action_add_point = QtGui.QAction(
-            get_icon("add_point.svg", QtWidgets.QStyle.StandardPixmap.SP_CommandLink),
-            tr("toolbar.add_point", "Adicionar Pontos"), self
-        )
-        self.action_add_point.setCheckable(True)
-        self.action_add_point.setData("add_point")
+        for icon, text, data in actions:
+            action = QtGui.QAction(icon, text, self)
+            action.setCheckable(True)
+            action.setData(data)
+            if data == "select": action.setChecked(True)
+            self.group.addAction(action)
+            self.addAction(action)
 
-        self.group.addAction(self.action_select)
-        self.group.addAction(self.action_add_point)
-
-        self.toolbar.addAction(self.action_select)
-        self.toolbar.addAction(self.action_add_point)
-
-        self.group.triggered.connect(self._on_mode_changed)
+        self.group.triggered.connect(lambda a: self._emit(SceneEvents.INTERACTION_MODE_CHANGED, mode=a.data()))
 
     def _on_mode_changed(self, action: QtGui.QAction):
         self._emit(SceneEvents.INTERACTION_MODE_CHANGED, mode=action.data())
@@ -118,19 +132,18 @@ class RegistrationToolbarHandler(QtCore.QObject):
         self.toolbar.addWidget(spacer)
 
 
-class Component(QtWidgets.QToolBar):
-    def __init__(self, modulo=None, scene_manager: Optional["SceneManager"] = None):
-        super().__init__()
-        self.modulo = modulo
-        self.setWindowTitle(tr("toolbar.registration.title", "Alinhamento de Objetos"))
-        self.setObjectName("registration_toolbar")
-        self.handler = RegistrationToolbarHandler(self, scene_manager=scene_manager)
-
-
 if __name__ == "__main__":
+    import sys
+
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
+
     win = QtWidgets.QMainWindow()
-    win.addToolBar(Component())
+
+    toolbar = RegistrationToolbar(scene_manager=None)
+    win.addToolBar(toolbar)
+
+    win.resize(600, 400)
     win.show()
+
     sys.exit(app.exec())

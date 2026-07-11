@@ -1,36 +1,25 @@
-import os
-import sys
 from pathlib import Path
-from PySide6 import QtWidgets, QtGui, QtCore
+from core.components.menus.base.base_menu import BaseContextMenu
 
-
-class WindowsRegistrationMenu(QtWidgets.QMenu):
+class WindowsRegistrationMenu(BaseContextMenu):
     def __init__(self, parent, view_widget, side: str):
-        super().__init__(parent)
         self.view_widget = view_widget
         self.side = side
-        self._build_menu()
+        # O __init__ da BaseContextMenu já chama o setup_menu() automaticamente
+        super().__init__(parent)
 
-    def _build_menu(self):
-        self.act_frontal = QtGui.QAction("Definir como Frontal", self)
-
+    def setup_menu(self):
+        # Define o caminho do ícone
         base_dir = Path(__file__).parent.parent.parent.parent
-
         icon_path = base_dir / "appearance" / "icons" / "vistas" / "frontal.svg"
 
-        if icon_path.exists():
-            self.act_frontal.setIcon(QtGui.QIcon(str(icon_path)))
-        else:
-            print(f"Ícone não encontrado: {icon_path}")  # útil para debug
-            self.act_frontal.setIcon(QtWidgets.QApplication.style().standardIcon(
-                QtWidgets.QStyle.StandardPixmap.SP_DialogYesButton
-            ))
-
-        self.act_frontal.setShortcut(QtGui.QKeySequence("1"))
-        self.act_frontal.setShortcutVisibleInContextMenu(True)
-        self.act_frontal.triggered.connect(self._handle_set_frontal)
-
-        self.addAction(self.act_frontal)
+        # Utiliza o método utilitário da classe base
+        self.create_action(
+            text="Definir como Frontal",
+            callback=self._handle_set_frontal,
+            icon_path=icon_path,
+            shortcut="1"
+        )
 
     def _handle_set_frontal(self):
         try:
@@ -49,14 +38,13 @@ class WindowsRegistrationMenu(QtWidgets.QMenu):
 
 
 if __name__ == "__main__":
+    import sys
+    from PySide6 import QtWidgets, QtCore
     app = QtWidgets.QApplication(sys.argv)
 
     main_window = QtWidgets.QMainWindow()
     main_window.setWindowTitle("Teste - WindowsRegistrationMenu")
     main_window.resize(800, 600)
-
-    central = QtWidgets.QWidget()
-    main_window.setCentralWidget(central)
 
 
     # Dummy para teste
@@ -64,33 +52,29 @@ if __name__ == "__main__":
         class Renderer:
             def GetActiveCamera(self):
                 class Camera:
-                    def GetPosition(self):
-                        return (0, 0, 1)
+                    def GetPosition(self): return (0, 0, 1)
 
-                    def GetFocalPoint(self):
-                        return (0, 0, 0)
+                    def GetFocalPoint(self): return (0, 0, 0)
 
-                    def GetViewUp(self):
-                        return (0, 1, 0)
+                    def GetViewUp(self): return (0, 1, 0)
 
                 return Camera()
 
         def __init__(self):
-            self.renderer = self.Renderer()  # melhor como instância
+            self.renderer = self.Renderer()
 
 
     dummy_view = DummyViewWidget()
+
+    # Criamos o menu associado à janela principal
     menu = WindowsRegistrationMenu(main_window, dummy_view, side="A")
 
-    main_window.show()
-
-
-    def show_context_menu(pos):
-        menu.exec(main_window.mapToGlobal(pos))
-
-
+    # Definindo a política de menu de contexto da janela
     main_window.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
-    main_window.customContextMenuRequested.connect(show_context_menu)
 
+    # Conectando o evento ao método show_at_cursor da base
+    main_window.customContextMenuRequested.connect(lambda: menu.show_at_cursor())
+
+    main_window.show()
     print("Menu criado com sucesso! Clique com o botão direito na janela para testar.")
     sys.exit(app.exec())

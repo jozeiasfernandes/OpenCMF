@@ -4,6 +4,8 @@ from PySide6 import QtCore
 from core.components.tools.base.base_tool import BaseTool, InteractionContext
 
 class ToolManager(QtCore.QObject):
+    tool_changed = QtCore.Signal(object)
+
     def __init__(self, context: InteractionContext):
         super().__init__()
         self.context = context
@@ -14,10 +16,19 @@ class ToolManager(QtCore.QObject):
             return
 
         if self.active_tool:
-            self.active_tool.deactivate()
+            try:
+                self.active_tool.deactivate()
+            except Exception as e:
+                print(f"Erro ao desativar: {e}")
 
-        self.active_tool = tool
-        self.active_tool.activate(self.context)
+        try:
+            tool.activate(self.context)
+            self.active_tool = tool
+            self.tool_changed.emit(tool)  # Dispara o sinal corretamente
+        except Exception as e:
+            print(f"Erro ao ativar: {e}")
+            self.active_tool = None
+            self.tool_changed.emit(None)
 
     def deactivate_all(self) -> None:
         if self.active_tool:
@@ -36,7 +47,10 @@ class ToolManager(QtCore.QObject):
 
     def mouse_move(self, x: int, y: int, modifiers: Any = None) -> bool:
         if self.active_tool:
-            return self.active_tool.mouse_move(x, y, modifiers)
+            try:
+                return self.active_tool.mouse_move(x, y, modifiers)
+            except Exception as e:
+                logger.error(f"Erro na ferramenta {self.active_tool.name}: {e}")
         return False
 
     def wheel_forward(self, x: int, y: int, modifiers: Any = None) -> bool:

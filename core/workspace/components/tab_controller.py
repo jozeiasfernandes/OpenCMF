@@ -16,13 +16,13 @@ class TabController(QtCore.QObject):
         self.tab_bar_layout.setSpacing(2)
 
     def add_tab(self, title: str, content_widget: QtWidgets.QWidget):
-
         tab = WorkspaceTabWidget(title)
         tab.close_requested.connect(lambda: self._handle_close(tab))
 
+        tab.clicked.connect(lambda: self.set_active(self.tabs.index(tab)))
+
         self.tabs.append(tab)
         self.container.addWidget(content_widget)
-
         self.tab_bar_layout.addWidget(tab)
 
     def _handle_close(self, tab: WorkspaceTabWidget):

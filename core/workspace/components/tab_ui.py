@@ -3,6 +3,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 class WorkspaceTabWidget(QtWidgets.QFrame):
     close_requested = QtCore.Signal()
+    clicked = QtCore.Signal()
     insert_requested = QtCore.Signal(int)
 
     def __init__(self, title: str, parent=None):
@@ -24,6 +25,10 @@ class WorkspaceTabWidget(QtWidgets.QFrame):
         self.close_button.clicked.connect(self.close_requested.emit)
 
         self.setStyleSheet("background-color: #E0E0E0; border-radius: 4px;")
+
+    def mousePressEvent(self, event):
+        self.clicked.emit()
+        super().mousePressEvent(event)
 
     def enterEvent(self, event):
         """Dispara quando o mouse entra na aba."""

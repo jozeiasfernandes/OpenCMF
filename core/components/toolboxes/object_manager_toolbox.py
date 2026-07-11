@@ -173,7 +173,7 @@ class Component(QtWidgets.QWidget):
         if modulo:
             self.manager.requestSave.connect(
                 lambda: modulo.patient_assets.save_scene() if hasattr(modulo, 'patient_assets') else None)
-            # Vincular demais sinais...
+
 
 
 if __name__ == "__main__":

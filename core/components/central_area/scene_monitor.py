@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PySide6 import QtWidgets, QtCore, QtGui
+from core.components.central_area.base.base_central_area import CentralAreaBase
 
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 
@@ -17,6 +18,23 @@ DISPLAY_TYPES = {
     "others": "Outros",
 }
 
+class SceneMonitorArea(CentralAreaBase):
+    itemSelected = QtCore.Signal(object)
+
+    def __init__(self, modulo=None):
+        # Inicializa a base com título e cor de identificação
+        super().__init__(titulo="Monitor de Cena", cor_identificacao="#90CAF9")
+        self._modulo = modulo
+        self._bound_bus = None
+        self._callbacks = []
+        self._group_items = {}
+        self._object_items = {}
+
+        self.vtkWidget.hide()
+
+
+        self._setup_monitor_ui()
+        self._bind_to_scene()
 
 @dataclass
 class RuntimeState:
@@ -57,59 +75,57 @@ def _get_storage_path(obj: Any) -> str:
     return str(metadata.get("storage", "RAM")).upper()
 
 
-class SceneMonitorCenter(QtWidgets.QWidget):
+class SceneMonitorArea(CentralAreaBase):
     itemSelected = QtCore.Signal(object)
 
     def __init__(self, modulo=None):
-        super().__init__()
+        # Inicializa a base com título e cor de identificação
+        super().__init__(titulo="Monitor de Cena", cor_identificacao="#90CAF9")
         self._modulo = modulo
         self._bound_bus = None
-        self._callbacks: List[Tuple[str, Callable]] = []
-        self._group_items: Dict[str, QtWidgets.QTreeWidgetItem] = {}
-        self._object_items: Dict[str, QtWidgets.QTreeWidgetItem] = {}
+        self._callbacks = []
+        self._group_items = {}
+        self._object_items = {}
 
-        self.setup_ui()
+        # Substitui o espaço do VTK (ou o posiciona) pelo nosso monitor
+        # Como o SceneMonitor não usa o renderizador VTK, removemos/escondemos o vtkWidget
+        self.vtkWidget.hide()
+
+        # Cria o layout de conteúdo principal dentro da área central
+        self._setup_monitor_ui()
         self._bind_to_scene()
-        self.destroyed.connect(self._teardown_scene)
 
-    def setup_ui(self):
-        self.main_layout = QtWidgets.QVBoxLayout(self)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setSpacing(0)
+    def _setup_monitor_ui(self):
+        # Container principal dentro do layout_principal da base
+        self.container = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
-        self.header = QtWidgets.QFrame()
-        self.header.setFixedHeight(38)
-        self.header.setStyleSheet("background: #1f1f1f; border-bottom: 1px solid #3d3d3d;")
-
-        header_layout = QtWidgets.QHBoxLayout(self.header)
-        title = QtWidgets.QLabel("Scene Monitor")
-        title.setStyleSheet("color: white; font-size: 12px; font-weight: bold;")
-        header_layout.addWidget(title)
-        self.main_layout.addWidget(self.header)
-
-        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        self.main_layout.addWidget(self.splitter)
-
+        # Árvore de Objetos
         self.tree = QtWidgets.QTreeWidget()
-        self.tree.setColumnCount(6)
         self.tree.setHeaderLabels(["Nome", "Tipo", "Status", "Actors", "Memória", "Local"])
-        self.tree.setAlternatingRowColors(True)
-        self.tree.setStyleSheet("background: #2b2b2b; color: #eee; font-size: 11px;")
-        self.tree.itemClicked.connect(self._handle_item_click)
+        self.tree.setStyleSheet("background: #2b2b2b; color: #eee; border: none;")
 
-        header = self.tree.header()
-        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
-        for i in range(1, 6):
-            header.setSectionResizeMode(i, QtWidgets.QHeaderView.ResizeToContents)
-
+        # Inspector
         self.inspector = QtWidgets.QTreeWidget()
-        self.inspector.setColumnCount(2)
         self.inspector.setHeaderLabels(["Propriedade", "Valor"])
-        self.inspector.setStyleSheet("background: #252526; color: #eee; font-size: 11px;")
+        self.inspector.setStyleSheet("background: #252526; color: #eee; border: none;")
 
-        self.splitter.addWidget(self.tree)
-        self.splitter.addWidget(self.inspector)
-        self.splitter.setStretchFactor(0, 2)
+        self.container.addWidget(self.tree)
+        self.container.addWidget(self.inspector)
+
+        # Adiciona ao layout original da classe base
+        # Inserimos antes da barra inferior (índice 0)
+        self.layout_principal.insertWidget(0, self.container)
+
+        # Configurações de UI reaproveitadas do seu código original
+        self.tree.itemClicked.connect(self._handle_item_click)
+        self._setup_toolbar_controls()
+
+    def _setup_toolbar_controls(self):
+        """Adiciona controles específicos na barra inferior da CentralAreaBase"""
+        btn_refresh = QtWidgets.QToolButton()
+        btn_refresh.setText("↻")
+        btn_refresh.clicked.connect(self._refresh_tree)
+        self.adicionar_controle(btn_refresh)
 
     def _scene_manager(self):
         return getattr(self._modulo, "scene_manager", None)

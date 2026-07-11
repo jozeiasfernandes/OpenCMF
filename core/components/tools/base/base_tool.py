@@ -5,6 +5,7 @@ from enum import Enum, auto
 import vtk
 from PySide6 import QtGui, QtWidgets
 from core.localization.translator import get_base_dir
+from core.scene.scene_manager import SceneManager
 
 #   category = ToolCategory.SELECTION
 #   category = ToolCategory.TRANSFORMATION
@@ -33,9 +34,8 @@ class ToolCategory(Enum):
 class InteractionContext:
     renderer: vtk.vtkRenderer
     interactor: vtk.vtkRenderWindowInteractor
-    scene_manager: Any = None
+    scene_manager: Optional[SceneManager] = None
     window: Any = None
-    event_bus: Any = None
 
 
 class BaseTool:
@@ -49,6 +49,33 @@ class BaseTool:
     def __init__(self):
         self.context: Optional[InteractionContext] = None
         self.active: bool = False
+
+    @property
+    def scene(self) -> Optional[SceneManager]:
+        """Acesso facilitado ao SceneManager."""
+        return self.context.scene_manager if self.context else None
+
+    @property
+    def events(self):
+        """Acesso facilitado ao EventBus via SceneManager."""
+        return self.scene.events if self.scene else None
+
+    def create_button(self, callback) -> QtWidgets.QToolButton:
+        """Cria o botão para ser adicionado à toolbar."""
+        btn = QtWidgets.QToolButton()
+        btn.setText(self.display_name)
+        btn.setToolTip(self.tool_tip)
+        btn.setIcon(self.get_qicon())
+        btn.setCheckable(True)  # Útil para ferramentas
+        btn.clicked.connect(callback)
+        return btn
+
+    def get_selected_object(self) -> Optional[Any]:
+        """Helper para recuperar o objeto atualmente selecionado na cena."""
+        if not self.scene:
+            return None
+        obj_id = self.scene.selection.get_first_selected()
+        return self.scene.objects.get(obj_id) if obj_id else None
 
     def get_qicon(self) -> QtGui.QIcon:
         if self.icon:
