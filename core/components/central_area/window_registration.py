@@ -74,6 +74,13 @@ class WindowRegistration(QtWidgets.QWidget):
 
     def _on_combo_changed(self, vista_id: str, nome_objeto: str):
         if nome_objeto and self._scene_manager:
+            event_key = RegistrationEvents.TARGET_CHANGED if vista_id == "A" else RegistrationEvents.SOURCE_CHANGED
+
+            self._scene_manager.events.emit(
+                event_key,
+                object_id=nome_objeto
+            )
+
             self.requisitarCarregamentoObjeto.emit(vista_id, nome_objeto)
 
     def set_interaction_mode(self, mode: str, **kwargs):

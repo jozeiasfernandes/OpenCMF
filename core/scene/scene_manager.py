@@ -40,11 +40,17 @@ class SceneManager:
         self.events.emit(SceneEvents.OBJECT_ADDED, object_id=obj.id, obj=obj)
 
     def remove_object(self, obj_id: str):
-        if not self.objects.has(obj_id):
+        obj = self.objects.get(obj_id)
+        if not obj:
             return
+
         self.objects.unregister(obj_id)
         self.actors.unregister(obj_id)
         self.selection.deselect(obj_id)
+
+        if hasattr(obj, 'file_path') and obj.file_path:
+            self.importer.delete_physical_file(obj.file_path)
+
         self.events.emit(SceneEvents.OBJECT_REMOVED, object_id=obj_id)
 
     def select_object(self, obj_id: Optional[str], multi: bool = False):

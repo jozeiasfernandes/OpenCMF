@@ -2,14 +2,20 @@ import shutil
 import logging
 from pathlib import Path
 from typing import Optional
+from PySide6 import QtCore
 
 from core.scene.scene_object import SceneObject
 from core.scene.utils.factory import SceneObjectFactory
 
 logger = logging.getLogger(__name__)
 
-class ObjectImporter:
+
+class ObjectImporter(QtCore.QObject):
+
+    object_added = QtCore.Signal(object)
+
     def __init__(self, patient_path: str) -> None:
+        super().__init__()  # CRÍTICO: Inicializa o QObject corretamente
         self.patient_path = Path(patient_path)
 
     def import_external_file(self, file_path: str, category: str) -> Optional[SceneObject]:
@@ -32,6 +38,10 @@ class ObjectImporter:
             )
 
             scene_obj.metadata["original_name"] = source.name
+
+            # Emite o sinal para que os observadores (Modulo/Registry) recebam o objeto
+            self.object_added.emit(scene_obj)
+
             return scene_obj
 
         except Exception as e:

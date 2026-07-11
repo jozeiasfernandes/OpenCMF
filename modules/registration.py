@@ -3,7 +3,9 @@ import uuid
 import vtk
 from pathlib import Path
 from typing import Optional, Dict
+
 from PySide6 import QtWidgets, QtCore, QtGui
+
 from modules.base_module.base_module import ModuloBase
 from core.scene.scene_object import SceneObject
 from core.scene.scene_state import SceneState
@@ -14,7 +16,8 @@ from core.scene.registry.actor_registry import ActorRegistry
 from core.scene.selection.selection_manager import SelectionManager
 from core.scene.persistence.serializer import Serializer
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
-from core.scene.io.importer import ObjectImporter as ObjectManager
+from core.scene.io.importer import ObjectImporter
+
 from core.components.central_area.window_registration import WindowRegistration
 from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
 from core.components.toolboxes.objetct_properties_toolbox import AxisSliderRow
@@ -24,43 +27,63 @@ logger = logging.getLogger("OpenCMF.RegistrationModule")
 
 
 class Modulo(ModuloBase):
+
     def __init__(self, scene_manager: Optional[SceneManager] = None):
-        super().__init__()
+        super().__init__(scene_manager=scene_manager)
+
         self.nome = "Alinhar objetos"
         self.id = "modulo.registration"
+
         self._toolbar_widget: Optional[QtWidgets.QToolBar] = None
         self.serializer = Serializer()
+
         self.scene_manager = scene_manager or self._criar_scene_manager_padrao()
-        self.view_registration = WindowRegistration(scene_manager=self.scene_manager)
-        self.widget_reg = WindowRegistration()
+
+        self.widget_reg = WindowRegistration(scene_manager=self.scene_manager)
         self.widget_objetos = ObjetoManagerWidget()
-        self.widget_propriedades = AxisSliderRow(self)
+        self.widget_propriedades = AxisSliderRow(
+            label="Z",
+            min_val=0.0,
+            max_val=100.0,
+            default=50.0,
+            color="#4b4bff"
+        )
+
         self._conectar_sinais()
+
+    # ==================== Configuração inicial ====================
 
     def _criar_scene_manager_padrao(self) -> SceneManager:
         bus = EventBus()
+        state = SceneState()
+        base_patient_path = "C:/OpenCMF/data/default_patient"
+        importer = ObjectImporter(patient_path=base_patient_path)
+
         return SceneManager(
-            SceneState(),
-            bus,
-            ObjectRegistry(),
-            ActorRegistry(),
-            SelectionManager(event_bus=bus),
+            state=state,
+            event_bus=bus,
+            object_registry=ObjectRegistry(),
+            actor_registry=ActorRegistry(),
+            selection_manager=SelectionManager(event_bus=bus, state=state),
+            importer=importer
         )
 
     def _conectar_sinais(self):
-        self.widget_reg.solicitarAlinhamento.connect(self._executar_registro)
-        self.widget_reg.limparPontos.connect(self._resetar_pontos)
-        self.widget_reg.targetChanged.connect(lambda oid: self._carregar_na_vista_por_id(oid, "A"))
-        self.widget_reg.sourceChanged.connect(lambda oid: self._carregar_na_vista_por_id(oid, "B"))
-        self.view_registration.pontoAdicionado.connect(self.widget_reg.adicionar_ponto_tabela)
-        self.widget_objetos.objetoToggled.connect(self._on_visibility_toggled)
-        self.widget_objetos.opacityChanged.connect(self._on_opacity_changed_ui)
-        self.widget_objetos.colorChanged.connect(self._on_color_changed_ui)
-        self.scene_manager.events.subscribe(SceneEvents.INTERACTION_MODE_CHANGED, self._on_interaction_mode_changed)
+        """Conecta os sinais do gerenciador de cena."""
+        self.scene_manager.events.subscribe(RegistrationEvents.ALIGNMENT_REQUESTED, self._executar_registro)
+        self.scene_manager.events.subscribe(RegistrationEvents.CLEAR_POINTS, self._resetar_pontos)
+        self.scene_manager.events.subscribe(RegistrationEvents.TARGET_CHANGED,
+                                            lambda object_id: self._carregar_na_vista_por_id(object_id, "A"))
+        self.scene_manager.events.subscribe(RegistrationEvents.SOURCE_CHANGED,
+                                            lambda object_id: self._carregar_na_vista_por_id(object_id, "B"))
+        self.scene_manager.events.subscribe(SceneEvents.INTERACTION_MODE_CHANGED,
+                                            self._on_interaction_mode_changed)
+
+    # ==================== Handlers de eventos ====================
 
     def _on_interaction_mode_changed(self, mode: str):
-        if hasattr(self.view_registration, "set_interaction_mode"):
-            self.view_registration.set_interaction_mode(mode)
+        if hasattr(self.widget_reg, "set_interaction_mode"):
+            self.widget_reg.set_interaction_mode(mode)
 
     def _carregar_na_vista_por_id(self, oid: str, vista: str):
         obj = self.scene_manager.get_object(oid)
@@ -69,7 +92,6 @@ class Modulo(ModuloBase):
 
     def _carregar_na_vista(self, obj: SceneObject, vista: str):
         full_path = Path(self.pasta_paciente) / obj.file_path
-
         if not full_path.exists():
             logger.error(f"Arquivo não encontrado: {full_path}")
             return
@@ -87,7 +109,6 @@ class Modulo(ModuloBase):
 
         reader.SetFileName(str(full_path))
         reader.Update()
-
         poly_data = reader.GetOutput()
 
         if not poly_data or poly_data.GetNumberOfPoints() == 0:
@@ -115,7 +136,6 @@ class Modulo(ModuloBase):
             QtGui.QColor.fromRgbF(*obj.color),
             objeto_id=obj.id
         )
-
         self._atualizar_ui_combos()
 
     def _atualizar_ui_combos(self):
@@ -136,7 +156,9 @@ class Modulo(ModuloBase):
         self.object_manager.save_scene(self.scene_manager.objects.all())
 
     def _on_import_request(self, **kwargs):
-        path, _ = QtWidgets.QFileDialog.getOpenFileName(None, "Importar Malha", "", "Malhas (*.stl *.obj)")
+        path, _ = QtWidgets.QFileDialog.getOpenFileName(
+            None, "Importar Malha", "", "Malhas (*.stl *.obj)"
+        )
         if path:
             self.object_manager.import_external_file(
                 path,
@@ -151,19 +173,29 @@ class Modulo(ModuloBase):
         self.view_registration.limpar_marcadores()
         self.widget_reg.limpar_tabela()
 
+    # ==================== Métodos públicos ====================
+
     def inicializar(self, caminho_paciente: str) -> None:
         super().inicializar(caminho_paciente)
         self.pasta_paciente = caminho_paciente
-        self.object_manager = ObjectManager(caminho_paciente, self.serializer)
+
+        self.object_manager = ObjectImporter(patient_path=caminho_paciente)
+
         self.object_manager.object_added.connect(self._on_scene_object_added)
-        self.object_manager.object_removed.connect(self.scene_manager.remove_object)
-        self.scene_manager.state.set_patient(caminho_paciente)
+
+        self.scene_manager.state.current_patient = caminho_paciente
         self.widget_objetos.set_patient_path(caminho_paciente)
-        self.view_registration.connect_properties_panel(self.widget_propriedades)
-        self.object_manager.load_patient_data()
+
+        if hasattr(self.widget_reg, "view_registration"):
+            self.widget_reg.view_registration.connect_properties_panel(self.widget_propriedades)
+        else:
+            logger.error("View de registro não encontrada no widget_reg!")
+
+        if hasattr(self.object_manager, "load_patient_data"):
+            self.object_manager.load_patient_data()
 
     def get_workspace(self) -> QtWidgets.QWidget:
-        return self.view_registration
+        return self.get_main_widget()
 
     def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
         if not self._toolbar_widget:
@@ -172,19 +204,34 @@ class Modulo(ModuloBase):
                 toolbar=self._toolbar_widget,
                 scene_manager=self.scene_manager
             )
-            self.scene_manager.events.subscribe(RegistrationEvents.IMPORT_REQUESTED, self._on_import_request)
+            self.scene_manager.events.subscribe(
+                RegistrationEvents.IMPORT_REQUESTED,
+                self._on_import_request
+            )
         return self._toolbar_widget
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         return {
-            "Alinhar Objetos": self.widget_reg,
             "Objetos": self.widget_objetos,
             "Propriedades": self.widget_propriedades
         }
 
+    def get_main_widget(self) -> QtWidgets.QWidget:
+        return self.widget_reg
+
+
+    def cleanup(self) -> None:
+        logger.info("Limpando recursos do módulo de Registro...")
+        super().cleanup()
+
+    def _on_scene_object_removed(self, object_id: str):
+        self.widget_objetos.remover_objeto_lista(object_id)
+        self.widget_reg.view_registration.limpar_objeto(object_id)
+
 
 if __name__ == "__main__":
-    import sys, os
+    import sys
+    import os
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
@@ -205,7 +252,8 @@ if __name__ == "__main__":
     for titulo, widget in modulo.get_toolboxes().items():
         tabs.addTab(widget, titulo)
     dock.setWidget(tabs)
-    window.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
 
+    window.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
     window.show()
+
     sys.exit(app.exec())

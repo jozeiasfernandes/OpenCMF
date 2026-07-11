@@ -9,13 +9,14 @@ from PySide6 import QtWidgets, QtCore
 
 from modules.base_module.base_module import FluxoBase
 from core.localization.translator import tr
-from core.workspace.workspace_manager import WorkspaceManager
+from core.workspace.manager import Manager
 from core.home_page.settings_app import settings
 from core.home_page.home_page import Home_page
 from core.home_page.flow.flow_editor import PaginaEditorFluxo
 from core.home_page.settings.settings_page import PaginaConfig
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 from core.icons.icons_manager import IconManager
+from core.workspace.module_factory import ModuleFactory
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - [%(name)s] %(message)s')
 logger = logging.getLogger("OpenCMF.Main")
@@ -42,10 +43,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stack = QtWidgets.QStackedWidget()
         self.home = Home_page()
         self.flow_editor = PaginaEditorFluxo()
-        self.workspace = WorkspaceManager()
+
+        self.workspace = Manager()
+
         self.settings_page = PaginaConfig()
 
         self.setCentralWidget(self.stack)
+
         for widget in [self.home, self.flow_editor, self.workspace, self.settings_page]:
             self.stack.addWidget(widget)
 
@@ -58,7 +62,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.settings_page.tema_alterado.connect(self.apply_theme)
 
         self.workspace.home_solicitada.connect(self.back_to_home)
-        self.workspace.currentChanged.connect(self.sync_active_module)
+        self.workspace.current_module_changed.connect(self.sync_active_module)
         self.settings_page.voltar_solicitado.connect(self.back_to_home)
 
     def _setup_appearance(self):
@@ -135,19 +139,16 @@ class MainWindow(QtWidgets.QMainWindow):
     def _load_workflow_modules(self):
         if not self.workflow: return
 
-        with QtCore.QSignalBlocker(self.workspace):
-            for module_id in self.workflow.sequencia:
-                module_class = self.project_service.get_module_class(module_id)
-                if module_class:
-                    self.workspace.adicionar_modulo(
-                        module_id,
-                        module_class,
-                        on_concluido=self.on_step_complete
-                    )
+        for module_id in self.workflow.sequencia:
+            module_class = self.project_service.get_module_class(module_id)
+            if module_class:
 
-        if self.workspace.count() > 0:
-            self.stack.setCurrentWidget(self.workspace)
-            QtCore.QTimer.singleShot(0, self.sync_active_module)
+                ModuleFactory.register(module_id, module_class)
+
+                self.workspace.open_module(module_id, title=module_id)
+
+        # O StackedWidget mudará automaticamente conforme o novo Manager
+        self.stack.setCurrentWidget(self.workspace)
 
     def sync_active_module(self):
         module = self.workspace.get_modulo_ativo()

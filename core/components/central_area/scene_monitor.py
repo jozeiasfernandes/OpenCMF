@@ -5,10 +5,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from core.scene.events.scene_events import (
-    OBJECT_ADDED, OBJECT_REMOVED, OBJECT_UPDATED,
-    VISIBILITY_CHANGED, SELECTION_CHANGED,
-)
+from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 
 os.environ["QT_API"] = "pyside6"
 

@@ -10,6 +10,29 @@ class ModuloBase(QtWidgets.QWidget):
         self.scene_manager = scene_manager
         self.pasta_paciente: Optional[str] = None
 
+    # --- Implementação do Contrato IModule ---
+
+    def get_main_widget(self) -> QtWidgets.QWidget:
+        """
+        O contrato IModule exige get_main_widget.
+        Aqui redirecionamos para o método legado get_workspace.
+        """
+        return self.get_workspace()
+
+    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
+        """
+        Mantém compatibilidade com o contrato. Se o módulo legado tiver
+        uma barra de ferramentas, podemos incluí-la aqui como um dicionário.
+        """
+        toolboxes = {}
+        # Caso exista um método legado de toolbar, transformamos em toolbox
+        toolbar = self.get_workspace_toolbar()
+        if toolbar:
+            toolboxes["Ferramentas"] = toolbar
+        return toolboxes
+
+    # --- Estrutura Base e Métodos Legados ---
+
     def inicializar(self, caminho_paciente: str) -> None:
         self.pasta_paciente = caminho_paciente
         self.configurar_recursos()
@@ -34,11 +57,9 @@ class ModuloBase(QtWidgets.QWidget):
             return self.viewer
         return QtWidgets.QLabel(f"Workspace de {self.__class__.__name__} não carregado.")
 
-    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        return {}
-
 
 class FluxoBase:
+    # (Mantido como você definiu, pois está bem estruturado)
     def __init__(self, dados: Dict[str, Any]):
         self.nome: str = dados.get("nome", "Fluxo Padrão")
         self.sequencia: List[str] = dados.get("sequencia", [])

@@ -5,7 +5,6 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from core import settings, IconManager, tr, ProjectServiceHomePage, FlowServiceHomePage
 from core.home_page.extras.tela_creditos import Janela_Creditos
 from core.home_page.flow.fluxo_card import FluxoCard
-# Importe o criador de card aqui
 from core.home_page.managers.project_list_formatter import format_and_add_to_list, create_project_card
 
 def get_project_root():
@@ -159,23 +158,31 @@ class Home_page(QtWidgets.QWidget):
         self.refresh_projects()
 
     def refresh_projects(self):
+        # 1. Limpa a visualização em lista
         self.projects_view.clear()
-        while self.grid_layout.count():
-            widget = self.grid_layout.takeAt(0).widget()
-            if widget: widget.deleteLater()
 
-        for data in self.project_service.list_recent_projects():
+        # 2. Limpeza robusta do Grid Layout
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        # 3. Preenche com novos dados
+        projects = self.project_service.list_recent_projects()
+        for idx, data in enumerate(projects):
             path = data.get("_path")
-            if not path: continue
+            if not path:
+                continue
 
             if self.is_grid_view:
                 card = create_project_card(data)
                 card.clicado.connect(lambda d=data: self.projeto_selecionado.emit(d.get("_path"), "open"))
-                idx = self.grid_layout.count()
                 self.grid_layout.addWidget(card, idx // 4, idx % 4)
             else:
                 item = format_and_add_to_list(self.projects_view, data)
-                if item: item.setData(QtCore.Qt.UserRole, path)
+                if item:
+                    item.setData(QtCore.Qt.UserRole, path)
 
     def _build_flows_section(self):
         panel = QtWidgets.QFrame()
@@ -216,9 +223,11 @@ class Home_page(QtWidgets.QWidget):
         self.btn_search.setIcon(manager.get_icon("search", color=cor_default, size=24))
 
     def _connect_theme_signal(self):
-        if hasattr(self.window(), 'theme_changed'):
+        if self.window() and hasattr(self.window(), 'theme_changed'):
             self.window().theme_changed.connect(self.update_icons)
             self.update_icons()
+        else:
+            QtCore.QTimer.singleShot(500, self._connect_theme_signal)
 
     def update_list(self):
         self.refresh_projects()
@@ -243,8 +252,12 @@ class Home_page(QtWidgets.QWidget):
         for i in range(self.projects_view.count()):
             item = self.projects_view.item(i)
             widget = self.projects_view.itemWidget(item)
-            nome_paciente = widget.data.get("paciente", {}).get("nome", "").lower()
-            item.setHidden(text not in nome_paciente)
+
+            if widget and hasattr(widget, 'data'):
+                nome_paciente = widget.data.get("paciente", {}).get("nome", "").lower()
+                item.setHidden(text not in nome_paciente)
+            else:
+                 item.setHidden(text not in item.text().lower())
 
     def _toggle_search(self):
         is_visible = self.search_input.isVisible()

@@ -50,3 +50,7 @@ class Modulo(ModuloBase):
         lay_ferramentas.addStretch()
 
         return {"Operações": aba_ferramentas}
+
+    def cleanup(self) -> None:
+        logging.info(f"Limpando recursos do módulo {self.id}")
+        super().cleanup()
