@@ -13,7 +13,7 @@ from core.scene.utils.factory import SceneObjectFactory
 from core.scene.events.scene_events import SceneEvents
 from core.scene.events.event_bus import EventBus
 from core.volume.segmentation_engine import SegmentacaoEngine
-from core.components.side_panel.segmentation_sidepanel import SegmentacaoWidget
+from core.components.side_panel.segmentation_sidepanel import SegmentacaoSidePanel
 
 from core.scene.registry.object_registry import ObjectRegistry
 from core.scene.registry.actor_registry import ActorRegistry
@@ -32,7 +32,7 @@ class Modulo(ModuloBase):
         self.nome = "Segmentação"
         self.id = "modulo.segmentacao"
         self.engine_seg = SegmentacaoEngine()
-        self.widget_seg = SegmentacaoWidget()
+        self.widget_seg = SegmentacaoSidePanel()
         self.selection_manager = getattr(self.scene_manager, 'selection_manager', None)
         self._conectar_sinais()
 

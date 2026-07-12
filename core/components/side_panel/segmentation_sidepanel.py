@@ -1,140 +1,98 @@
 from PySide6 import QtWidgets, QtCore
+from typing import Optional
 from modules.mod_patients.ui_components import criar_linha_arquivo
+from core.components.bases.base_sidepanel import BaseSidePanel
+from core.scene.scene_manager import SceneManager
+from core.scene.events.scene_events import SceneEvents
 
-class SegmentacaoWidget(QtWidgets.QWidget):
+
+class SegmentacaoSidePanel(BaseSidePanel):
     pathChanged = QtCore.Signal(str)
     thresholdChanged = QtCore.Signal(int)
-    solicitarMascara = QtCore.Signal()
-    solicitarExportarSTL = QtCore.Signal()
 
-    toolbox_name = "Segmentação de Volumes"
+    side_panel_name = "Segmentação de Volumes"
 
-    def __init__(self, modulo=None):
-        super().__init__()
-        self.modulo = modulo
-        self._setup_ui()
-
-    def _setup_ui(self):
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setSpacing(10)
-        layout.setContentsMargins(5, 5, 5, 5)
+    def setup_ui(self) -> None:
+        self.layout.setContentsMargins(5, 5, 5, 5)
+        self.layout.setSpacing(10)
 
         group_arq = QtWidgets.QGroupBox("Fonte de Dados")
         lay_arq = QtWidgets.QVBoxLayout(group_arq)
         self.edit_tomografia = QtWidgets.QLineEdit()
         self.edit_tomografia.setPlaceholderText("Caminho da pasta DICOM...")
-        self.edit_tomografia.textChanged.connect(self.pathChanged.emit)
 
         def abrir_seletor():
-            p = QtWidgets.QFileDialog.getExistingDirectory(None, "Selecionar Pasta DICOM")
-            if p: self.edit_tomografia.setText(p)
+            caminho = QtWidgets.QFileDialog.getExistingDirectory(None, "Selecionar Pasta DICOM")
+            if caminho:
+                self.edit_tomografia.setText(caminho)
+                self.pathChanged.emit(caminho)
+                if self.has_scene:
+                    self.scene_manager.import_and_add(caminho, category="dicom")
 
         lay_arq.addWidget(criar_linha_arquivo(self.edit_tomografia, abrir_seletor, True))
-        layout.addWidget(group_arq)
+        self.layout.addWidget(group_arq)
 
         group_config = QtWidgets.QGroupBox("Configurações da malha")
         grid_layout = QtWidgets.QGridLayout(group_config)
-        grid_layout.setSpacing(10)
-
-        lbl_densidade = QtWidgets.QLabel("Filtro de Densidade:")
         self.slider_hu = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider_hu.setRange(-1000, 3000)
         self.slider_hu.setValue(226)
         self.slider_hu.valueChanged.connect(self._on_slider_moved)
 
         self.lbl_hu_value = QtWidgets.QLabel("226 HU")
-        self.lbl_hu_value.setStyleSheet("font-weight: bold;")
-        self.lbl_hu_value.setFixedWidth(60)
-
-        grid_layout.addWidget(lbl_densidade, 0, 0)
+        grid_layout.addWidget(QtWidgets.QLabel("Densidade:"), 0, 0)
         grid_layout.addWidget(self.slider_hu, 0, 1)
         grid_layout.addWidget(self.lbl_hu_value, 0, 2)
-
-        lbl_resolucao = QtWidgets.QLabel("Resolução:")
-        self.combo_qualidade = QtWidgets.QComboBox()
-        self.combo_qualidade.addItems(["Alta", "Média", "Baixa"])
-        self.combo_qualidade.setCurrentIndex(1)
-
-        grid_layout.addWidget(lbl_resolucao, 1, 0)
-        grid_layout.addWidget(self.combo_qualidade, 1, 1, 1, 2)
-
-        layout.addWidget(group_config)
+        self.layout.addWidget(group_config)
 
         self.btn_preview = QtWidgets.QPushButton(" Gerar Máscara")
-        self.btn_preview.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogApplyButton))
-        self.btn_preview.setMinimumHeight(35)
-        self.btn_preview.clicked.connect(self.solicitarMascara.emit)
-        layout.addWidget(self.btn_preview)
+        self.btn_preview.clicked.connect(self._solicitar_mascara)
+        self.layout.addWidget(self.btn_preview)
 
-        layout.addStretch()
+        self.layout.addStretch()
 
         self.btn_stl = QtWidgets.QPushButton(" Exportar STL")
-        self.btn_stl.setMinimumHeight(45)
-        self.btn_stl.setStyleSheet("""
-            QPushButton {
-                background-color: #2d5a27; 
-                color: white; 
-                font-weight: bold; 
-                font-size: 13px;
-                border-radius: 4px;
-            }
-            QPushButton:hover {
-                background-color: #3a7532;
-            }
-            QPushButton:pressed {
-                background-color: #1e3d1a;
-            }
-        """)
-        self.btn_stl.clicked.connect(self.solicitarExportarSTL.emit)
-        layout.addWidget(self.btn_stl)
+        self.btn_stl.clicked.connect(self._solicitar_exportar)
+        self.layout.addWidget(self.btn_stl)
 
-    def _on_slider_moved(self, val):
-        self.lbl_hu_value.setText(f"{val} HU")
-        self.thresholdChanged.emit(val)
+    def _solicitar_mascara(self):
+        target_id = self.scene_manager.selection.get_first_selected() if self.has_scene else None
+        if self.event_bus:
+            self.event_bus.emit(SceneEvents.INTERACTION_MODE_CHANGED, mode="SEGMENTATION", target=target_id)
+        print(f"Modo de segmentação solicitado para o objeto: {target_id}")
 
-    def set_path(self, caminho: str):
-        self.edit_tomografia.blockSignals(True)
-        self.edit_tomografia.setText(caminho)
-        self.edit_tomografia.blockSignals(False)
+    def _solicitar_exportar(self):
+        if self.has_scene:
+            selected = self.scene_manager.selection.selected_ids
+            print(f"Exportando IDs selecionados da cena: {selected}")
 
-    def get_value(self) -> int:
-        return self.slider_hu.value()
-
-    def get_qualidade_index(self) -> int:
-        return self.combo_qualidade.currentIndex()
-
-
-Component = SegmentacaoWidget
+    def _on_slider_moved(self, valor):
+        self.lbl_hu_value.setText(f"{valor} HU")
+        self.thresholdChanged.emit(valor)
+        if self.event_bus and self.has_scene:
+            target_id = self.scene_manager.selection.get_first_selected()
+            self.event_bus.emit(SceneEvents.OBJECT_UPDATED, object_id=target_id, property="threshold", value=valor)
 
 
 if __name__ == "__main__":
     import sys
-
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
     window = QtWidgets.QMainWindow()
-    window.setWindowTitle("OpenCMF - Teste Segmentation Toolbox")
+    window.setWindowTitle(f"OpenCMF - Teste {SegmentacaoSidePanel.side_panel_name}")
     window.resize(400, 500)
 
-    widget = SegmentacaoWidget()
+    widget = SegmentacaoSidePanel(scene_manager=None)
 
-    def on_path_changed(path):
-        print(f"Caminho alterado: {path}")
+    def on_path_changed(caminho):
+        print(f"Caminho alterado: {caminho}")
 
-    def on_threshold_changed(value):
-        print(f"Threshold alterado: {value}")
-
-    def on_solicitar_mascara():
-        print("Solicitando geração de máscara")
-
-    def on_solicitar_exportar_stl():
-        print("Solicitando exportação STL")
+    def on_threshold_changed(valor):
+        print(f"Threshold alterado: {valor}")
 
     widget.pathChanged.connect(on_path_changed)
     widget.thresholdChanged.connect(on_threshold_changed)
-    widget.solicitarMascara.connect(on_solicitar_mascara)
-    widget.solicitarExportarSTL.connect(on_solicitar_exportar_stl)
 
     window.setCentralWidget(widget)
     window.show()
