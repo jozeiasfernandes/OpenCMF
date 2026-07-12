@@ -1,31 +1,33 @@
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
+from typing import Optional
+from core.scene.scene_manager import SceneManager
+from core.scene.events.scene_events import SceneEvents, RegistrationEvents
+from core.components.bases.base_sidepanel import BaseSidePanel
 
 
-class Component(QtWidgets.QWidget):
-    toolbox_name = "Alinhar Objetos"
+class RegistrationSidePanel(BaseSidePanel):
+    side_panel_name = "Alinhar Objetos"
+
     solicitarAlinhamento = QtCore.Signal()
     limparPontos = QtCore.Signal()
     targetChanged = QtCore.Signal(str)
     sourceChanged = QtCore.Signal(str)
 
-    def __init__(self, modulo=None):
-        super().__init__()
-        self.modulo = modulo
-        self._is_initializing = True
-        self.setup_ui()
-        self._is_initializing = False
+    def __init__(self, scene_manager: Optional[SceneManager] = None, parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(scene_manager, parent)
 
-    def setup_ui(self):
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        layout.setSpacing(10)
+        if self.event_bus:
+            self.event_bus.subscribe(SceneEvents.OBJECT_ADDED, self._refresh_scene_data)
+            self.event_bus.subscribe(SceneEvents.OBJECT_REMOVED, self._refresh_scene_data)
 
-        # Deixa o ToolboxesManager controlar largura — sem mínimos fixos
+    def setup_ui(self) -> None:
+        # A base já fornece self.layout (QVBoxLayout)
+        self.layout.setContentsMargins(5, 5, 5, 5)
+        self.layout.setSpacing(10)
+
+        # Configurações de layout
         self.setMinimumSize(0, 0)
-        self.setSizePolicy(
-            QtWidgets.QSizePolicy.Ignored,
-            QtWidgets.QSizePolicy.Preferred   # Preferred: não força expansão vertical
-        )
+        self.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Preferred)
 
         group_sel = QtWidgets.QGroupBox("Seleção de Malhas")
         layout_sel = QtWidgets.QFormLayout(group_sel)
@@ -33,16 +35,15 @@ class Component(QtWidgets.QWidget):
         layout_sel.setSpacing(6)
 
         self.combo_target = QtWidgets.QComboBox()
-        self.combo_target.setMinimumWidth(0)
         self.combo_source = QtWidgets.QComboBox()
-        self.combo_source.setMinimumWidth(0)
         self.combo_target.currentTextChanged.connect(self._on_target_changed)
         self.combo_source.currentTextChanged.connect(self._on_source_changed)
+
         layout_sel.addRow("Referência (Fix):", self.combo_target)
         layout_sel.addRow("Móvel (Source):", self.combo_source)
-        layout.addWidget(group_sel)
+        self.layout.addWidget(group_sel)
 
-        layout.addWidget(QtWidgets.QLabel("Correspondência de Pontos:"))
+        self.layout.addWidget(QtWidgets.QLabel("Correspondência de Pontos:"))
 
         self.table = QtWidgets.QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["Ponto", "Vista A", "Vista B"])
@@ -50,15 +51,9 @@ class Component(QtWidgets.QWidget):
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
         self.table.setAlternatingRowColors(True)
-        self.table.setMinimumSize(0, 0)
-        self.table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.table.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
-        self.table.setSizePolicy(
-            QtWidgets.QSizePolicy.Ignored,
-            QtWidgets.QSizePolicy.Ignored     # Ignored: não contribui com nenhum mínimo
-        )
+        self.table.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
 
-        layout.addWidget(self.table, stretch=1)
+        self.layout.addWidget(self.table, stretch=1)
 
         btn_layout = QtWidgets.QHBoxLayout()
         self.btn_clear = QtWidgets.QPushButton("Limpar Pontos")
@@ -67,9 +62,7 @@ class Component(QtWidgets.QWidget):
         self.btn_align.clicked.connect(self.solicitarAlinhamento.emit)
         btn_layout.addWidget(self.btn_clear)
         btn_layout.addWidget(self.btn_align)
-        layout.addLayout(btn_layout)
-
-        self._validar_selecao()
+        self.layout.addLayout(btn_layout)
 
     def _on_target_changed(self, texto):
         if not self._is_initializing:
@@ -142,3 +135,20 @@ class Component(QtWidgets.QWidget):
 
     def limpar_tabela(self):
         self.table.setRowCount(0)
+
+    def _refresh_scene_data(self, **kwargs):
+        if self.scene_manager:
+            nomes = [obj.name for obj in self.scene_manager.objects]
+            self.atualizar_combos(nomes)
+
+
+if __name__ == "__main__":
+    import sys
+
+    app = QtWidgets.QApplication(sys.argv)
+
+    panel = RegistrationSidePanel(scene_manager=None)
+    panel.resize(300, 400)
+    panel.show()
+
+    sys.exit(app.exec())

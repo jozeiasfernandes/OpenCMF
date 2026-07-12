@@ -1,11 +1,11 @@
 from __future__ import annotations
-from typing import List, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 
 if TYPE_CHECKING:
-    from core.components.tools.base.base_tool import BaseTool
-    from core.components.tools.base.tool_manager import ToolManager
+    from core.components.bases.base_tool.base_tool import BaseTool
+    from core.components.bases.base_tool.tool_manager import ToolManager
 
 class BaseToolbarHandler(QtCore.QObject):
     def __init__(self, toolbar: QtWidgets.QToolBar, tool_manager: ToolManager):

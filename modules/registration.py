@@ -19,8 +19,8 @@ from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 from core.scene.io.importer import ObjectImporter
 
 from core.components.central_area.window_registration import WindowRegistration
-from core.components.toolboxes.object_manager_toolbox import ObjetoManagerWidget
-from core.components.toolboxes.objetct_properties_toolbox import AxisSliderRow
+from core.components.side_panel.object_manager_sidepanel import ObjetoManagerWidget
+from core.components.side_panel.objetct_properties_sidepanel import ObjectPropertiesSidePanel
 from core.components.toolbars.registration_toolbar import RegistrationToolbarHandler
 
 logger = logging.getLogger("OpenCMF.RegistrationModule")
@@ -41,7 +41,7 @@ class Modulo(ModuloBase):
 
         self.widget_reg = WindowRegistration(scene_manager=self.scene_manager)
         self.widget_objetos = ObjetoManagerWidget()
-        self.widget_propriedades = AxisSliderRow(
+        self.widget_propriedades = ObjectPropertiesSidePanel(
             label="Z",
             min_val=0.0,
             max_val=100.0,

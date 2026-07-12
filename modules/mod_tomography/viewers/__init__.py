@@ -1,6 +1,6 @@
 # base_module.py (A casca)
 # Contém apenas o comportamento visual comum: o QVTKRenderWindowInteractor,
-# o indicator no canto (0,0) e o slider base. É aqui que você colocará a lógica
+# o indicator no canto (0,0) e o slider base_tool. É aqui que você colocará a lógica
 # de maximizar/minimizar no futuro.
 #
 # planar.py (O especialista 2D)

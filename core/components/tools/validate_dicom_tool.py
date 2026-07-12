@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import Optional
-from core.components.tools.base.base_tool import BaseTool, ToolCategory, InteractionContext
+from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
 
 
 class ValidateDicomTool(BaseTool):

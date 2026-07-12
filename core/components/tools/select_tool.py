@@ -1,6 +1,6 @@
 import vtk
 from PySide6 import QtCore
-from core.components.tools.base.base_tool import BaseTool, ToolCategory
+from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
 
 class SelectTool(BaseTool):
     # Metadados para a interface

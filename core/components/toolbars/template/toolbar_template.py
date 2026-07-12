@@ -6,21 +6,18 @@ import logging
 import traceback
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
-from core.components.tools.base.base_tool import BaseTool
-from core.components.tools.base.base_toolbar_handler import BaseToolbarHandler
-from core.components.tools.base.tool_manager import ToolManager  # Import necessário
+from core.components.bases.base_tool.base_tool import BaseTool
+from core.components.bases.base_tool.base_toolbar_handler import ToolManager
 
 if TYPE_CHECKING:
     from core.scene.scene_manager import SceneManager
 
 logger = logging.getLogger("ToolbarLoader")
 
-class {class_name}Handler(BaseToolbarHandler):
-    def __init__(self, toolbar: QtWidgets.QToolBar, tool_manager: ToolManager, scene_manager: Optional["SceneManager"] = None):
+class {class_name}Handler(BaseToolbarHandler): # Certifique-se que BaseToolbarHandler esteja correto
+    def __init__(self, toolbar: BaseToolbar, tool_manager: ToolManager, scene_manager: Optional["SceneManager"] = None):
         super().__init__(toolbar, tool_manager=tool_manager)
-        self.toolbar = toolbar
         self._scene_manager = scene_manager
-        self.root_path = Path(__file__).resolve().parent.parent
         self.json_path = Path(__file__).resolve().with_suffix(".json")
         self._setup_ui()
 
@@ -67,16 +64,23 @@ class {class_name}Handler(BaseToolbarHandler):
         return None
 
 
-class Component(QtWidgets.QToolBar):
-    toolbar_name = "{name}"
+class {class_name}(BaseToolbar):
+    # Usamos o atributo de classe para o loader identificar o componente
+    toolbox_name = "{name}"
 
-    def __init__(self, modulo=None, tool_manager: ToolManager = None, scene_manager: Optional["SceneManager"] = None):
-        super().__init__()
-        self.modulo = modulo
-        self.setWindowTitle(self.toolbar_name)
+    def __init__(self, modulo: Any = None, tool_manager: ToolManager = None, scene_manager: Optional["SceneManager"] = None):
+        # Passamos tudo para a BaseToolbar (que agora injeta modulo e scene_manager)
+        super().__init__(
+            title=self.toolbox_name,
+            modulo=modulo,
+            scene_manager=scene_manager
+        )
         self.setObjectName("{object_name}")
-        # A injeção de dependência acontece aqui
         self.handler = {class_name}Handler(self, tool_manager=tool_manager, scene_manager=scene_manager)
+
+    def setup_ui(self):
+        # A lógica de UI específica vai aqui, conforme exigido pela BaseToolbar
+        pass
 
     def refresh(self):
         self.handler.load_tools_from_json()

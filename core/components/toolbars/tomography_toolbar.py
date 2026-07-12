@@ -1,7 +1,6 @@
 from __future__ import annotations
-from PySide6 import QtWidgets, QtCore, QtGui
 
-from core.components.toolbars.base.base_toolbar import BaseToolbar
+from core.components.bases.base_toolbar import BaseToolbar
 
 # Ferramentas
 from core.components.tools.open_dicom_tool import OpenDicomTool

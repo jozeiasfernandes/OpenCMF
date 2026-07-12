@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Optional, Any
 from PySide6 import QtCore
-from core.components.tools.base.base_tool import BaseTool, InteractionContext
+from core.components.bases.base_tool.base_tool import BaseTool, InteractionContext
 
 class ToolManager(QtCore.QObject):
     tool_changed = QtCore.Signal(object)

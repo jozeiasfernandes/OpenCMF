@@ -1,4 +1,4 @@
-from typing import Optional, Any, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 import json
 import importlib.util
 import inspect
@@ -7,8 +7,8 @@ import traceback
 from pathlib import Path
 
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.components.tools.base.base_tool import BaseTool
-from core.components.tools.base.tool_manager import ToolManager
+from core.components.bases.base_tool import BaseTool
+from core.components.bases.base_tool import ToolManager
 
 if TYPE_CHECKING:
     from core.scene.scene_manager import SceneManager
@@ -17,7 +17,7 @@ logger = logging.getLogger("ToolbarLoader")
 
 
 class BaseToolbar(QtWidgets.QToolBar):
-    """Classe base unificada para toolbars com suporte a injeção de dependência."""
+    """Classe base_tool unificada para toolbars com suporte a injeção de dependência."""
 
     def __init__(self, title: str, tool_manager: ToolManager, scene_manager: Optional["SceneManager"] = None,
                  parent: Optional[QtWidgets.QWidget] = None):
@@ -88,7 +88,7 @@ class Teste02Toolbar(BaseToolbar):
 
 if __name__ == "__main__":
     import sys
-    from core.components.tools.base.tool_manager import ToolManager
+    from core.components.bases.base_tool import ToolManager
 
     app = QtWidgets.QApplication(sys.argv)
     main_window = QtWidgets.QMainWindow()

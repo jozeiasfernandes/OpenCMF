@@ -1,0 +1,270 @@
+import logging
+import uuid
+from pathlib import Path
+from typing import Dict, Optional
+from PySide6 import QtWidgets, QtCore, QtGui
+from core.scene.scene_object import SceneObject
+from core.scene.scene_manager import SceneManager
+from core.components.bases.base_sidepanel import BaseSidePanel
+
+logger = logging.getLogger("ObjectManagerWidget")
+
+_TIPO_CAT = {
+    "surfaces": "Superfícies",
+    "photos": "Fotografias",
+    "volume": "Volume",
+    "others": "Outros",
+}
+
+_CAT_TIPO = {v: k for k, v in _TIPO_CAT.items()}
+
+
+class ObjetoManagerWidget(BaseSidePanel):
+    # Sinais (mantidos)
+    objetoToggled = QtCore.Signal(str, bool)
+    opacityChanged = QtCore.Signal(str, float)
+    colorChanged = QtCore.Signal(str, tuple)
+    deleteRequested = QtCore.Signal(str)
+    nomeAlterado = QtCore.Signal(str, str)
+    objetoSelecionado = QtCore.Signal(str)
+    requestSave = QtCore.Signal()
+
+    def __init__(self, scene_manager: SceneManager, parent: QtWidgets.QWidget = None):
+        super().__init__(scene_manager=scene_manager, parent=parent)
+        self.cats: Dict[str, QtWidgets.QTreeWidgetItem] = {}
+
+    def set_patient_path(self, path: str) -> None:
+        self.patient_path = Path(path)
+
+    def adicionar_objeto_lista(self, nome: str = "Novo Objeto", categoria: str = "others",
+                               cor: Optional[tuple] = None, objeto_id: Optional[str] = None) -> None:
+        novo_obj = SceneObject(
+            id=objeto_id or uuid.uuid4().hex[:12],
+            name=nome,
+            type=categoria
+        )
+
+        if cor:
+            novo_obj.color = cor
+
+        self.scene_manager.add_object(novo_obj)
+        self._adicionar_item_arvore(novo_obj, categoria)
+
+    def setup_ui(self) -> None:
+        """
+        Sobrescrita do método da BaseSidePanel.
+        Utilizamos self.layout (já definido na classe base).
+        """
+        # 1. Configuração do TreeWidget
+        self.tree_widget = QtWidgets.QTreeWidget()
+        self.tree_widget.setHeaderLabels(["Objeto", "Opacidade", "Cor"])
+        self.tree_widget.setIndentation(12)
+
+        # Ajuste de colunas
+        self.tree_widget.setColumnWidth(0, 150)
+        self.tree_widget.setColumnWidth(1, 90)
+        self.tree_widget.setColumnWidth(2, 32)
+
+        # 2. Conexões de sinais
+        self.tree_widget.itemClicked.connect(self._on_item_clicked)
+        self.tree_widget.itemChanged.connect(self._handle_item_changed)
+        self.tree_widget.doubleClicked.connect(self._on_double_clicked)
+
+        # Context Menu
+        self.tree_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
+
+        # 3. Adiciona ao layout herdado da BaseSidePanel
+        self.layout.addWidget(self.tree_widget)
+
+    def _get_or_create_category(self, name: str) -> QtWidgets.QTreeWidgetItem:
+        if name not in self.cats:
+            it = QtWidgets.QTreeWidgetItem(self.tree_widget)
+            it.setText(0, name)
+            it.setExpanded(True)
+            f = it.font(0)
+            f.setBold(True)
+            it.setFont(0, f)
+            self.cats[name] = it
+        return self.cats[name]
+
+    def _adicionar_item_arvore(self, obj: SceneObject, categoria: str) -> None:
+        cat_name = _TIPO_CAT.get(obj.type, obj.type)
+        item = QtWidgets.QTreeWidgetItem(self._get_or_create_category(cat_name))
+
+        item.setText(0, obj.name)
+        item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+        item.setCheckState(0, QtCore.Qt.Checked if obj.visible else QtCore.Qt.Unchecked)
+        item.setData(0, QtCore.Qt.UserRole, obj.id)
+
+        slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        slider.setRange(0, 100)
+        slider.setValue(int(obj.opacity * 100))
+        slider.setMaximumHeight(14)
+        slider.valueChanged.connect(lambda v, oid=obj.id: self._on_opacity_changed(oid, v))
+        self.tree_widget.setItemWidget(item, 1, slider)
+
+        btn = QtWidgets.QPushButton()
+        btn.setMaximumSize(14, 14)
+        c = obj.color
+        btn.setStyleSheet(f"background-color: {QtGui.QColor.fromRgbF(c[0], c[1], c[2]).name()}; border-radius: 7px;")
+        btn.clicked.connect(lambda _, oid=obj.id, b=btn: self._pick_color(oid, b))
+        self.tree_widget.setItemWidget(item, 2, btn)
+
+    def _handle_item_changed(self, item, column):
+        if column != 0 or item.parent() is None:
+            return
+
+        oid = item.data(0, QtCore.Qt.UserRole)
+        obj = self.scene_manager.objects.get(oid)
+
+        if obj:
+            visivel = item.checkState(0) == QtCore.Qt.Checked
+            obj.visible = visivel
+
+            from core.scene.events.scene_events import SceneEvents
+            self.scene_manager.events.emit(
+                SceneEvents.VISIBILITY_CHANGED,
+                object_id=oid,
+                visible=visivel
+            )
+
+    def _on_opacity_changed(self, oid, value):
+        obj = self.scene_manager.objects.get(oid)
+        if obj:
+            obj.opacity = value / 100.0
+
+    def _pick_color(self, oid, btn):
+        color = QtWidgets.QColorDialog.getColor()
+        if color.isValid():
+            btn.setStyleSheet(f"background-color: {color.name()}; border-radius: 7px;")
+            obj = self.scene_manager.objects.get(oid)
+            if obj:
+                obj.color = (color.redF(), color.greenF(), color.blueF())
+
+    def _on_item_clicked(self, item, _col):
+        if item.parent() is not None:
+            oid = item.data(0, QtCore.Qt.UserRole)
+            if oid: self.objetoSelecionado.emit(oid)
+
+    def _on_double_clicked(self, index):
+        item = self.tree_widget.itemFromIndex(index)
+        if not item or item.parent() is None: return
+        oid = item.data(0, QtCore.Qt.UserRole)
+        obj = self.scene_manager.objects.get(oid)
+        if obj:
+            novo, ok = QtWidgets.QInputDialog.getText(self, "Renomear", "Novo nome:", text=obj.name)
+            if ok and novo:
+                item.setText(0, novo)
+                obj.name = novo
+
+    def _show_context_menu(self, pos):
+        item = self.tree_widget.itemAt(pos)
+        if not item or item.parent() is None: return
+        menu = QtWidgets.QMenu()
+        if menu.addAction("Excluir") == menu.exec(self.tree_widget.viewport().mapToGlobal(pos)):
+            oid = item.data(0, QtCore.Qt.UserRole)
+            self.deleteRequested.emit(oid)
+            item.parent().removeChild(item)
+            self.requestSave.emit()
+
+
+class Component(QtWidgets.QWidget):
+    toolbox_name = "Lista de Objetos"
+
+    def __init__(self, modulo=None):
+        super().__init__()
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.manager = ObjetoManagerWidget()
+        layout.addWidget(self.manager)
+        self._modulo = modulo # Armazenar modulo para acesso posterior
+
+        if modulo:
+            # Conecta o sinal requestSave a um novo slot que gerencia o salvamento
+            self.manager.requestSave.connect(self._handle_save_request)
+            # Vincular demais sinais...
+
+    def _handle_save_request(self):
+        """
+        Solicita a persistência da cena atual.
+        Como o SceneManager já mantém o estado atualizado dos objetos,
+        apenas delegamos a persistência para o módulo de assets.
+        """
+        if not hasattr(self._modulo, 'patient_assets') or not self._modulo.patient_assets:
+            logger.warning("Não foi possível salvar: patient_assets indisponível.")
+            return
+
+        try:
+            # O SceneManager já contém a lista atualizada de SceneObjects.
+            # Não é mais necessário converter manualmente via loops.
+            current_objects = self.manager.scene_manager.objects.all()
+
+            self._modulo.patient_assets.save_scene(current_objects)
+            logger.info("Cena salva com sucesso.")
+
+        except Exception as e:
+            logger.error(f"Erro ao persistir a cena: {e}")
+
+
+if __name__ == "__main__":
+    import sys
+    from pathlib import Path
+    from PySide6 import QtWidgets
+    from core.scene.scene_manager import SceneManager
+    from core.scene.scene_state import SceneState
+    from core.scene.events.event_bus import EventBus
+    from core.scene.registry.object_registry import ObjectRegistry
+    from core.scene.registry.actor_registry import ActorRegistry
+    from core.scene.selection.selection_manager import SelectionManager
+    from core.scene.io.importer import ObjectImporter
+    from core.scene.utils.factory import SceneObjectFactory # Necessário para o carregamento manual
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")
+
+    # 1. Definições iniciais de dependências
+    caminho_projeto = r"C:\OpenCMF\patients\PRJ_1778357271_CELINE_DION"
+    shared_state = SceneState()
+    event_bus = EventBus()
+    object_registry = ObjectRegistry()
+    actor_registry = ActorRegistry()
+
+    # 2. Instancia o SelectionManager e Importer
+    selection_manager = SelectionManager(state=shared_state)
+    importer = ObjectImporter(patient_path=caminho_projeto)
+
+    # 3. Instancia o SceneManager
+    scene_manager = SceneManager(
+        state=shared_state,
+        event_bus=event_bus,
+        object_registry=object_registry,
+        actor_registry=actor_registry,
+        selection_manager=selection_manager,
+        importer=importer
+    )
+
+    # 4. Carrega os dados (Substituindo o import_patient_data inexistente)
+    # Escaneia as pastas esperadas e registra no SceneManager
+    base_path = Path(caminho_projeto)
+    for cat in ["surfaces", "photos", "volume"]:
+        cat_path = base_path / cat
+        if cat_path.exists():
+            for f in cat_path.glob("*"):
+                if f.is_file():
+                    # Cria o objeto via Factory e registra no manager
+                    obj = SceneObjectFactory.create_from_file(str(f), cat)
+                    scene_manager.add_object(obj)
+
+    # 5. Configura a UI
+    window = QtWidgets.QMainWindow()
+    window.setWindowTitle("OpenCMF - Teste de Gerenciador")
+    lista_widget = ObjetoManagerWidget(scene_manager=scene_manager)
+
+    # Popula a lista a partir do Registro do SceneManager
+    for obj in scene_manager.objects.all():
+        lista_widget._adicionar_item_arvore(obj, obj.type)
+
+    window.setCentralWidget(lista_widget)
+    window.show()
+    sys.exit(app.exec())

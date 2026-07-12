@@ -1,12 +1,10 @@
 import os
 import sys
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
 
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.components.central_area.base.base_central_area import CentralAreaBase
-
-from core.scene.events.scene_events import SceneEvents, RegistrationEvents
+from core.components.bases.base_central_area import CentralAreaBase
 
 os.environ["QT_API"] = "pyside6"
 
@@ -22,7 +20,7 @@ class SceneMonitorArea(CentralAreaBase):
     itemSelected = QtCore.Signal(object)
 
     def __init__(self, modulo=None):
-        # Inicializa a base com título e cor de identificação
+        # Inicializa a base_tool com título e cor de identificação
         super().__init__(titulo="Monitor de Cena", cor_identificacao="#90CAF9")
         self._modulo = modulo
         self._bound_bus = None
@@ -79,7 +77,7 @@ class SceneMonitorArea(CentralAreaBase):
     itemSelected = QtCore.Signal(object)
 
     def __init__(self, modulo=None):
-        # Inicializa a base com título e cor de identificação
+        # Inicializa a base_tool com título e cor de identificação
         super().__init__(titulo="Monitor de Cena", cor_identificacao="#90CAF9")
         self._modulo = modulo
         self._bound_bus = None
@@ -96,7 +94,7 @@ class SceneMonitorArea(CentralAreaBase):
         self._bind_to_scene()
 
     def _setup_monitor_ui(self):
-        # Container principal dentro do layout_principal da base
+        # Container principal dentro do layout_principal da base_tool
         self.container = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
         # Árvore de Objetos
@@ -112,7 +110,7 @@ class SceneMonitorArea(CentralAreaBase):
         self.container.addWidget(self.tree)
         self.container.addWidget(self.inspector)
 
-        # Adiciona ao layout original da classe base
+        # Adiciona ao layout original da classe base_tool
         # Inserimos antes da barra inferior (índice 0)
         self.layout_principal.insertWidget(0, self.container)
 

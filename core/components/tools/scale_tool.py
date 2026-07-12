@@ -1,4 +1,4 @@
-from core.components.tools.base.base_tool import BaseTool, ToolCategory
+from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
 
 class ScaleTool(BaseTool):
     name = "scale"

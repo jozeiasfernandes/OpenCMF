@@ -1,5 +1,5 @@
 from pathlib import Path
-from core.components.menus.base.base_menu import BaseContextMenu
+from core.components.bases.base_menu import BaseContextMenu
 
 class WindowsRegistrationMenu(BaseContextMenu):
     def __init__(self, parent, view_widget, side: str):
@@ -13,7 +13,7 @@ class WindowsRegistrationMenu(BaseContextMenu):
         base_dir = Path(__file__).parent.parent.parent.parent
         icon_path = base_dir / "appearance" / "icons" / "vistas" / "frontal.svg"
 
-        # Utiliza o método utilitário da classe base
+        # Utiliza o método utilitário da classe base_tool
         self.create_action(
             text="Definir como Frontal",
             callback=self._handle_set_frontal,
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # Definindo a política de menu de contexto da janela
     main_window.setContextMenuPolicy(QtCore.Qt.ContextMenuPolicy.CustomContextMenu)
 
-    # Conectando o evento ao método show_at_cursor da base
+    # Conectando o evento ao método show_at_cursor da base_tool
     main_window.customContextMenuRequested.connect(lambda: menu.show_at_cursor())
 
     main_window.show()

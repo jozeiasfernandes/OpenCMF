@@ -1,7 +1,7 @@
 from __future__ import annotations
 import vtk
 from PySide6 import QtWidgets
-from core.components.tools.base.base_tool import BaseTool, ToolCategory
+from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
 
 
 class SaveVtiTool(BaseTool):

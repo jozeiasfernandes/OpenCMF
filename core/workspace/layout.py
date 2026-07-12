@@ -12,13 +12,13 @@ class ModuleLayoutBuilder:
         # Obtém o widget principal do módulo (garantido pela interface)
         viewport = module.get_main_widget()
 
-        # Obtém os toolboxes
+        # Obtém os side_panel
         toolboxes = module.get_toolboxes()
 
-        # Cria o splitter que divide a área entre toolboxes e viewport
+        # Cria o splitter que divide a área entre side_panel e viewport
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
-        # Se houver toolboxes, constrói o painel lateral
+        # Se houver side_panel, constrói o painel lateral
         if toolboxes:
             toolbox_widget = QtWidgets.QWidget()
             toolbox_layout = QtWidgets.QVBoxLayout(toolbox_widget)

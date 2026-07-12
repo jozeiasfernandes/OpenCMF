@@ -83,7 +83,7 @@ class Components_List(QtWidgets.QDialog):
         self.tabs.addTab(self.tools_tab, "Tools")
 
         self.tabs.addTab(self._create_group("toolbars", mode="card"), "Toolbars")
-        self.tabs.addTab(self._create_group("toolboxes", mode="check"), "Toolboxes")
+        self.tabs.addTab(self._create_group("side_panel", mode="check"), "Toolboxes")
         self.tabs.addTab(self._create_group("central_area", mode="radio"), "Central")
 
         main_layout.addWidget(self.tabs)
@@ -153,21 +153,21 @@ class Components_List(QtWidgets.QDialog):
     def _obter_nome_componente(self, caminho_arquivo: Path) -> str:
         try:
             import importlib.util
-            spec = importlib.util.spec_from_file_location(
-                caminho_arquivo.stem, caminho_arquivo
-            )
+            import inspect
+            from core.components.bases.base_central_area import CentralAreaBase
+
+            spec = importlib.util.spec_from_file_location(caminho_arquivo.stem, caminho_arquivo)
             if spec and spec.loader:
                 modulo = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(modulo)
-                if hasattr(modulo, 'Component'):
-                    comp_class = getattr(modulo, 'Component')
-                    return getattr(
-                        comp_class,
-                        'toolbox_name',
-                        caminho_arquivo.stem.replace("_", " ").title()
-                    )
-        except Exception:
-            pass
+
+                for name, obj in inspect.getmembers(modulo, inspect.isclass):
+                    if issubclass(obj, CentralAreaBase) and obj is not CentralAreaBase:
+                        return getattr(obj, 'side_panel_name', caminho_arquivo.stem.replace("_", " ").title())
+
+        except Exception as e:
+            print(f"Erro ao ler metadados de {caminho_arquivo.name}: {e}")
+
         return caminho_arquivo.stem.replace("_", " ").title()
 
 

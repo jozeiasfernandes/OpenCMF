@@ -4,8 +4,9 @@ from typing import Optional, Any
 
 
 class BaseToolbar(QtWidgets.QToolBar):
-    def __init__(self, title: str, scene_manager: Any = None, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, title: str, modulo: Any = None, scene_manager: Any = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(title, parent)
+        self.modulo = modulo
         self.scene_manager = scene_manager
         self.setWindowTitle(title)
         self.setObjectName(title.lower().replace(" ", "_"))

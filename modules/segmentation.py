@@ -13,7 +13,7 @@ from core.scene.utils.factory import SceneObjectFactory
 from core.scene.events.scene_events import SceneEvents
 from core.scene.events.event_bus import EventBus
 from core.volume.segmentation_engine import SegmentacaoEngine
-from core.components.toolboxes.segmentation_toolbox import SegmentacaoWidget
+from core.components.side_panel.segmentation_sidepanel import SegmentacaoWidget
 
 from core.scene.registry.object_registry import ObjectRegistry
 from core.scene.registry.actor_registry import ActorRegistry

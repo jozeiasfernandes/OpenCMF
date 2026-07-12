@@ -4,7 +4,7 @@ import logging
 from pathlib import Path
 from typing import List, Dict
 from core.components.toolbars.utils.capture_toolbar_png import capture_toolbar_screenshot
-from core.components.tools.base.base_tool import ToolCategory
+from core.components.bases.base_tool import ToolCategory
 
 logger = logging.getLogger(__name__)
 
@@ -111,7 +111,7 @@ class ToolbarService:
             spec = importlib.util.spec_from_file_location(path.stem, path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            if hasattr(module, 'Component'):
+            if hasattr(module, 'RegistrationSidePanel'):
                 return getattr(module.Component, 'toolbar_name', module.Component().windowTitle())
         except Exception:
             pass

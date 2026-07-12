@@ -1,6 +1,6 @@
 from PySide6 import QtWidgets, QtCore, QtGui
 from typing import Optional, Any
-from core.components.toolbars.base.base_toolbar import BaseToolbar
+from core.components.bases.base_toolbar import BaseToolbar
 from core.localization.translator import get_base_dir, tr
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 

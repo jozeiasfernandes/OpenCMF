@@ -3,10 +3,9 @@ Usuário move o Slider -> CentralArea3D emite OBJECT_UPDATED.SceneBridge escuta 
 
 '''
 
-import os
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 
-from core.components.central_area.base.base_central_area import CentralAreaBase
+from core.components.bases.base_central_area import CentralAreaBase
 from core.scene.events.scene_events import SceneEvents
 
 
