@@ -1,31 +1,30 @@
+# core/components/bases/base_side_panel.py
+
 from PySide6 import QtWidgets, QtCore
-from typing import Optional
-from core.scene.scene_manager import SceneManager
-from core.scene.events.event_bus import EventBus
+from typing import Optional, Any
+from core.components.bases.base_component import BaseComponent
 
 
-class BaseSidePanel(QtWidgets.QWidget):
+class BaseSidePanel(BaseComponent):
+    # Usamos o nome da classe ou um atributo para identificar o painel
     side_panel_name: str = "Painel Lateral Genérico"
 
-    def __init__(
-            self,
-            scene_manager: Optional[SceneManager] = None,
-            parent: Optional[QtWidgets.QWidget] = None
-    ):
-        super().__init__(parent)
-        self.scene_manager = scene_manager
+    def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None):
+        # A BaseComponent já injeta o scene_manager automaticamente via context
+        super().__init__(context=context, parent=parent)
 
-        # Acesso direto ao barramento de eventos através do manager
-        self.event_bus: Optional[EventBus] = (
-            self.scene_manager.events if self.scene_manager else None
-        )
-
-        # Configuração básica de layout que todos os painéis devem ter
+        # Configuração do Layout que todos herdarão
         self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        self.layout.setContentsMargins(5, 5, 5, 5)  # Margem um pouco mais confortável para painéis
+        self.layout.setSpacing(5)
 
+    def setup_component(self):
+        """
+        O contrato obriga a implementação do setup da UI.
+        O Loader chamará este método após instanciar.
+        """
         self.setup_ui()
+        self._is_loaded = True
 
     def setup_ui(self) -> None:
         """
@@ -34,6 +33,6 @@ class BaseSidePanel(QtWidgets.QWidget):
         pass
 
     @property
-    def has_scene(self) -> bool:
-        """Verifica se o painel possui uma cena conectada."""
-        return self.scene_manager is not None
+    def event_bus(self):
+        """Acesso dinâmico ao barramento de eventos."""
+        return self.scene_manager.events if self.scene_manager else None

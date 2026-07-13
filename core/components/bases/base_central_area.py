@@ -2,20 +2,30 @@ import vtk
 from PySide6 import QtWidgets, QtCore
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 from core.scene.events.scene_events import SceneEvents
+from core.components.bases.base_component import BaseComponent
 
-class CentralAreaBase(QtWidgets.QWidget):
+
+class CentralAreaBase(BaseComponent):
     cena_atualizada = QtCore.Signal()
 
-    def __init__(self, titulo, cor_identificacao, scene_manager=None, parent=None, usar_vtk=True):
-        super().__init__(parent)
+    def __init__(self, context, titulo="Central", cor_identificacao="#FFFFFF", usar_vtk=True, parent=None):
+
+        super().__init__(context=context, parent=parent)
         self.titulo = titulo
         self.cor_id = cor_identificacao
-        self.scene_manager = scene_manager
         self.usar_vtk = usar_vtk
-        self.vtkWidget = None  # Inicializa como None para segurança
+        self.vtkWidget = None
+        self.renderer = vtk.vtkRenderer()  # Inicializado aqui
 
+
+    def setup_component(self):
+        """Implementação do contrato da BaseComponent"""
         self._setup_base_ui()
         self._conectar_sinais_scene()
+        self._is_loaded = True
+
+    def get_ui(self):
+        return self
 
     def _setup_base_ui(self):
         self.layout_principal = QtWidgets.QVBoxLayout(self)
@@ -26,51 +36,25 @@ class CentralAreaBase(QtWidgets.QWidget):
             self.vtkWidget = QVTKRenderWindowInteractor(self)
             style = vtk.vtkInteractorStyleImage() if "3D" not in self.titulo else vtk.vtkInteractorStyleTrackballCamera()
             self.vtkWidget.SetInteractorStyle(style)
+            self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
 
             self.indicator = QtWidgets.QLabel(self.titulo, self.vtkWidget)
             self.indicator.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
             self.layout_principal.addWidget(self.vtkWidget, stretch=1)
 
-        self.barra_inferior = QtWidgets.QFrame()
-        self.barra_inferior.setFixedHeight(30)
-        self.layout_barra = QtWidgets.QHBoxLayout(self.barra_inferior)
-        self.layout_principal.addWidget(self.barra_inferior)
 
     def _conectar_sinais_scene(self):
-        if self.scene_manager and self.scene_manager.events:
+
+        if self.scene_manager and hasattr(self.scene_manager, 'events'):
             bus = self.scene_manager.events
             bus.subscribe(SceneEvents.OBJECT_ADDED, self._on_scene_changed)
-            bus.subscribe(SceneEvents.OBJECT_REMOVED, self._on_scene_changed)
-            bus.subscribe(SceneEvents.OBJECT_UPDATED, self._on_scene_changed)
-            bus.subscribe(SceneEvents.SELECTION_CHANGED, self._on_selection_changed)
 
-    def _on_scene_changed(self, **kwargs):
-        # Proteção: só renderiza se o VTK existir
-        if self.usar_vtk and self.vtkWidget:
-            self.vtkWidget.GetRenderWindow().Render()
-            self.cena_atualizada.emit()
 
-    def _on_selection_changed(self, selected_ids):
-        pass
-
-    def showEvent(self, event):
-        super().showEvent(event)
-        # Proteção: só inicializa se o VTK existir
-        if self.usar_vtk and self.vtkWidget:
-            self.vtkWidget.Initialize()
-            if hasattr(self, 'renderer'):
-                self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if hasattr(self, 'indicator'):
-            self.indicator.move(5, 5)
-
-    def cleanup(self):
+    def dispose(self):
+        """Limpeza necessária para evitar leaks e crashes do VTK"""
         if self.scene_manager and self.scene_manager.events:
-            bus = self.scene_manager.events
-            bus.unsubscribe(SceneEvents.OBJECT_ADDED, self._on_scene_changed)
+            self.scene_manager.events.unsubscribe(SceneEvents.OBJECT_ADDED, self._on_scene_changed)
 
-    @property
-    def has_scene(self) -> bool:
-        return self.scene_manager is not None
+        if self.vtkWidget:
+            self.vtkWidget.Finalize()
+        super().dispose()

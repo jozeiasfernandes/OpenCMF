@@ -4,7 +4,8 @@ import traceback
 import inspect
 from pathlib import Path
 from typing import Any, Optional
-from core.components.bases.base_central_area import CentralAreaBase
+from core.components.bases.base_component import BaseComponent
+from core.components.registry import ComponentRegistry
 
 logger = logging.getLogger("ComponentLoader")
 
@@ -15,17 +16,24 @@ class ComponentLoader:
         if not caminho.exists():
             logger.error(f"Arquivo não encontrado: {caminho}")
             return None
+
         try:
+            # 1. Carregar módulo
             spec = importlib.util.spec_from_file_location(caminho.stem, caminho)
             if not spec or not spec.loader:
                 return None
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
+
+            # 2. Tentar instanciar
             instancia = ComponentLoader._instanciar_dinamico(module, context)
+
             if instancia:
-                instancia.__module_path__ = caminho
+                # 3. Ciclo de vida: Chamar o contrato obrigatório
+                if hasattr(instancia, "setup_component"):
+                    instancia.setup_component()
                 return instancia
-            logger.warning(f"Nenhuma classe de componente válida encontrada em: {caminho.name}")
+
             return None
         except Exception:
             logger.error(f"Falha ao carregar {caminho.name}:\n{traceback.format_exc()}")
@@ -37,22 +45,16 @@ class ComponentLoader:
         if callable(factory):
             return factory(context)
 
-        for name, obj in inspect.getmembers(module, inspect.isclass):
-            if issubclass(obj, CentralAreaBase) and obj is not CentralAreaBase:
+        for _, obj in inspect.getmembers(module, inspect.isclass):
+            if issubclass(obj, BaseComponent) and obj is not BaseComponent:
                 return ComponentLoader._injetar_dependencias(obj, context)
 
         return None
 
     @staticmethod
     def _injetar_dependencias(cls: Any, context: Any) -> Any:
-        deps = {
-            "modulo": context,
-            "scene_manager": getattr(context, "scene_manager", None),
-            "usar_vtk": "toolbox" not in str(cls.__module__).lower()
-        }
         sig = inspect.signature(cls.__init__)
-        params = {k: v for k, v in deps.items() if k in sig.parameters}
-        try:
-            return cls(**params)
-        except Exception:
-            return cls()
+
+        if "context" in sig.parameters:
+            return cls(context=context)
+        return cls()
