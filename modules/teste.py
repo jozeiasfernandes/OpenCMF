@@ -58,7 +58,7 @@ if __name__ == "__main__":
     # Splitter para simular a divisão entre Toolboxes e Main Widget
     splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
-    # Adiciona as side_panel (o dicionário retornado por get_toolboxes)
+    # Adiciona as side_panel_container (o dicionário retornado por get_toolboxes)
     toolboxes = modulo.get_toolboxes()
     if toolboxes:
         toolbox_widget = QtWidgets.QWidget()

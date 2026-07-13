@@ -61,7 +61,7 @@ class BaseTool:
         return self.scene.events if self.scene else None
 
     def create_button(self, callback) -> QtWidgets.QToolButton:
-        """Cria o botão para ser adicionado à toolbar."""
+        """Cria o botão para ser adicionado à toolbar_container."""
         btn = QtWidgets.QToolButton()
         btn.setText(self.display_name)
         btn.setToolTip(self.tool_tip)

@@ -9,7 +9,7 @@ from enum import Enum, auto
 class ComponentType(Enum):
     TOOL = "tools"
     TOOLBAR = "toolbars"
-    SIDE_PANEL = "side_panel"
+    SIDE_PANEL = "side_panel_container"
     CENTRAL_AREA = "central_area"
 
 

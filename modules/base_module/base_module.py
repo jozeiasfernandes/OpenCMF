@@ -25,7 +25,7 @@ class ModuloBase(QtWidgets.QWidget):
         uma barra de ferramentas, podemos incluí-la aqui como um dicionário.
         """
         toolboxes = {}
-        # Caso exista um método legado de toolbar, transformamos em toolbox
+        # Caso exista um método legado de toolbar_container, transformamos em toolbox
         toolbar = self.get_workspace_toolbar()
         if toolbar:
             toolboxes["Ferramentas"] = toolbar

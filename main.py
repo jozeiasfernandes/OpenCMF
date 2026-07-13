@@ -9,7 +9,7 @@ from PySide6 import QtWidgets, QtCore
 
 from modules.base_module.base_module import FluxoBase
 from core.localization.translator import tr
-from core.workspace.manager import Manager
+from core.workspace.workspace_manager import WorkspaceManager
 from core.home_page.settings_app import settings
 from core.home_page.home_page import Home_page
 from core.home_page.flow.flow_editor import PaginaEditorFluxo
@@ -44,7 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.home = Home_page()
         self.flow_editor = PaginaEditorFluxo()
 
-        self.workspace = Manager()
+        self.workspace = WorkspaceManager()
 
         self.settings_page = PaginaConfig()
 
@@ -54,16 +54,23 @@ class MainWindow(QtWidgets.QMainWindow):
             self.stack.addWidget(widget)
 
     def _setup_signals(self):
+        # Sinais da Home Page
         self.home.projeto_selecionado.connect(self.on_patient_selected)
         self.home.fluxo_escolhido.connect(self.start_workflow)
-        self.home.editor_solicitado.connect(lambda: self.stack.setCurrentWidget(self.flow_editor))
-        self.home.config_solicitada.connect(lambda: self.stack.setCurrentWidget(self.settings_page))
+        self.home.editor_solicitado.connect(
+            lambda: self.stack.setCurrentWidget(self.flow_editor)
+        )
+        self.home.config_solicitada.connect(
+            lambda: self.stack.setCurrentWidget(self.settings_page)
+        )
 
+        # Sinais da Settings Page
         self.settings_page.tema_alterado.connect(self.apply_theme)
-
-        self.workspace.home_solicitada.connect(self.back_to_home)
-        self.workspace.current_module_changed.connect(self.sync_active_module)
         self.settings_page.voltar_solicitado.connect(self.back_to_home)
+
+        # Sinais do Header (Workspace)
+        self.workspace.header.home_requested.connect(self.back_to_home)
+        self.workspace.header.module_changed.connect(self.sync_active_module)
 
     def _setup_appearance(self):
         self.setGeometry(150, 50, 1024, 650)
@@ -129,26 +136,64 @@ class MainWindow(QtWidgets.QMainWindow):
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
 
-            self.workspace.clear()
+            # Limpeza de estado anterior
+            self.workspace.registry.clear_all()
+            self.workspace.header.clear_tabs()
+
+            if hasattr(self.workspace, 'toolbar_manager'):
+                self.workspace.toolbar_manager.clear_all()
+
+            # Inicialização do novo workflow
             self.workflow = FluxoBase(config)
-            self.workspace.set_patient_path(self.current_patient_path)
+
+            # Define o contexto do paciente
+            if hasattr(self.workspace, 'set_patient_path'):
+                self.workspace.set_patient_path(self.current_patient_path)
+
+            # Carrega os módulos após o evento atual
             QtCore.QTimer.singleShot(0, self._load_workflow_modules)
+
         except (json.JSONDecodeError, OSError) as e:
-            logger.error(f"Erro no workflow: {e}")
+            logger.error(f"Erro ao carregar o workflow '{config_path}': {e}")
+            self.workspace.status_bar_manager.show_message(
+                f"Erro ao carregar fluxo: {e}"
+            )
 
     def _load_workflow_modules(self):
-        if not self.workflow: return
+        if not self.workflow:
+            return
+
+        # Limpeza de módulos anteriores
+        self.workspace.registry.clear_all()
+        self.workspace.header.clear_tabs()
 
         for module_id in self.workflow.sequencia:
-            module_class = self.project_service.get_module_class(module_id)
-            if module_class:
+            try:
+                module_class = self.project_service.get_module_class(module_id)
+                if not module_class:
+                    logger.warning(f"Módulo '{module_id}' não encontrado.")
+                    continue
 
+                # Registro e criação do módulo
                 ModuleFactory.register(module_id, module_class)
+                module = self.workspace.registry.get_or_create_module(module_id)
 
-                self.workspace.open_module(module_id, title=module_id)
+                # Adiciona aba no header
+                title = getattr(module, 'module_title', module_id)
+                self.workspace.header.add_module_tab(module_id, title)
 
-        # O StackedWidget mudará automaticamente conforme o novo Manager
+            except Exception as e:
+                logger.error(f"Erro ao carregar o módulo '{module_id}': {e}")
+                self.workspace.status_bar_manager.show_message(
+                    f"Erro ao carregar {module_id}", 3000
+                )
+
+        # Ativa o workspace
         self.stack.setCurrentWidget(self.workspace)
+
+        # Seleciona o primeiro módulo por padrão
+        if self.workspace.header.tab_bar.count() > 0:
+            self.workspace.header.tab_bar.setCurrentIndex(0)
 
     def sync_active_module(self):
         module = self.workspace.get_modulo_ativo()

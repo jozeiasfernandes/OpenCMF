@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from PySide6 import QtWidgets, QtCore, QtGui
 
 
@@ -24,7 +25,16 @@ class HomeButton(QtWidgets.QToolButton):
         icon_path = self.base_dir / "appearance" / "icons" / "home.svg"
 
         if icon_path.exists():
-            self.setIcon(QtGui.QIcon(str(icon_path)))
-            self.setIconSize(self.icon_size_setting)
-        else:
-            self.setText("Home")
+            icon = QtGui.QIcon(str(icon_path))
+            if not icon.isNull():
+                self.setIcon(icon)
+                self.setIconSize(self.icon_size_setting)
+                return
+
+        # Fallback caso o ícone não seja encontrado ou seja inválido
+        self._apply_fallback("Home")
+
+    def _apply_fallback(self, text: str):
+        """Aplica texto de fallback quando o ícone não está disponível."""
+        self.setText(text)
+        self.setStyleSheet("color: gray; font-size: 10px;")

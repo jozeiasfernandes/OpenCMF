@@ -1,6 +1,5 @@
+from typing import Dict, Any, Optional
 from PySide6 import QtCore
-from typing import Dict, Any
-
 
 class WorkspaceState(QtCore.QObject):
     """
@@ -9,7 +8,10 @@ class WorkspaceState(QtCore.QObject):
     """
 
     patient_changed = QtCore.Signal(str)
+    # Notificação genérica para configurações gerais
     config_changed = QtCore.Signal(dict)
+    # Notificação granular (ex: "tema_changed", "idioma_changed")
+    setting_changed = QtCore.Signal(str, object)
 
     def __init__(self):
         super().__init__()
@@ -22,15 +24,17 @@ class WorkspaceState(QtCore.QObject):
 
     @current_patient.setter
     def current_patient(self, path: str):
-        """Atualiza o paciente e notifica todos os ouvintes."""
         if self._current_patient_path != path:
             self._current_patient_path = path
             self.patient_changed.emit(path)
 
-    def update_settings(self, new_settings: Dict[str, Any]):
-        """Atualiza configurações globais e notifica o sistema."""
-        self._settings.update(new_settings)
-        self.config_changed.emit(self._settings)
+    def update_setting(self, key: str, value: Any):
+        """Atualiza uma única configuração e notifica especificamente."""
+        if self._settings.get(key) != value:
+            self._settings[key] = value
+            # Notifica ouvintes específicos da chave e ouvintes globais
+            self.setting_changed.emit(key, value)
+            self.config_changed.emit(self._settings)
 
     def get_setting(self, key: str, default: Any = None) -> Any:
         return self._settings.get(key, default)

@@ -5,10 +5,10 @@ from core.localization.translator import tr
 
 class ResetViewTool(BaseTool):
     name: str = "reset_view"
-    display_name: str = tr("toolbar.reset_view", "Resetar Vista")
+    display_name: str = tr("toolbar_container.reset_view", "Resetar Vista")
     category = ToolCategory.TOMOGRAPHY
     icon: str = "home.svg"
-    tool_tip: str = tr("toolbar.reset_view_tooltip", "Resetar a câmera para a posição inicial")
+    tool_tip: str = tr("toolbar_container.reset_view_tooltip", "Resetar a câmera para a posição inicial")
 
     def on_activate(self) -> None:
         if self.context and self.context.renderer:

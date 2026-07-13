@@ -83,7 +83,7 @@ class Components_List(QtWidgets.QDialog):
         self.tabs.addTab(self.tools_tab, "Tools")
 
         self.tabs.addTab(self._create_group("toolbars", mode="card"), "Toolbars")
-        self.tabs.addTab(self._create_group("side_panel", mode="check"), "Toolboxes")
+        self.tabs.addTab(self._create_group("side_panel_container", mode="check"), "Toolboxes")
         self.tabs.addTab(self._create_group("central_area", mode="radio"), "Central")
 
         main_layout.addWidget(self.tabs)

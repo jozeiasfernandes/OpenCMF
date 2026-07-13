@@ -46,7 +46,7 @@ class Modulo:
         return self._main_widget
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        """Contrato IModule: Retorna side_panel ou painéis extras."""
+        """Contrato IModule: Retorna side_panel_container ou painéis extras."""
         # Se desejar manter o botão 'Salvar' visível, pode colocá-lo em um painel aqui
         return {}
 
@@ -130,7 +130,7 @@ class Modulo:
         return self._main_widget
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        """Contrato IModule: Retorna side_panel ou painéis extras."""
+        """Contrato IModule: Retorna side_panel_container ou painéis extras."""
         # Se desejar manter o botão 'Salvar' visível, pode colocá-lo em um painel aqui
         return {}
 

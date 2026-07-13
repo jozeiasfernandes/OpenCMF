@@ -10,7 +10,7 @@ class ComponentScanner:
     # Mapeamento para saber onde procurar cada tipo de componente
     COMPONENT_MAPPING = {
         "tools": ComponentType.TOOL,
-        "side_panel": ComponentType.SIDE_PANEL,
+        "side_panel_container": ComponentType.SIDE_PANEL,
         "central_area": ComponentType.CENTRAL_AREA,
         "toolbars": ComponentType.TOOLBAR
     }

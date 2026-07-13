@@ -15,7 +15,7 @@ def get_icon(icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIco
 class RegistrationToolbar(BaseToolbar):
     def __init__(self, scene_manager: Any = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(
-            title=tr("toolbar.registration.title", "Alinhamento de Objetos"),
+            title=tr("toolbar_container.registration.title", "Alinhamento de Objetos"),
             scene_manager=scene_manager,
             parent=parent
         )
@@ -33,23 +33,23 @@ class RegistrationToolbar(BaseToolbar):
         self._add_selection_modes()
         self.addSeparator()
 
-        # 3. Actions (Direto na toolbar, herdado de QToolBar)
+        # 3. Actions (Direto na toolbar_container, herdado de QToolBar)
         self.add_tool_button(
             text="",
             callback=lambda: self._emit(RegistrationEvents.REGISTRATION_DELETE_LAST_MARKER),
             icon=get_icon("del_point.svg", QtWidgets.QStyle.StandardPixmap.SP_TrashIcon),
-            tooltip=tr("toolbar.del_point", "Remover Último Ponto")
+            tooltip=tr("toolbar_container.del_point", "Remover Último Ponto")
         )
         self.add_tool_button(
             text="",
             callback=lambda: self._emit(RegistrationEvents.REGISTRATION_RESET_LAYOUT),
             icon=get_icon("home.svg", QtWidgets.QStyle.StandardPixmap.SP_BrowserReload),
-            tooltip=tr("toolbar.reset_view", "Resetar Vista")
+            tooltip=tr("toolbar_container.reset_view", "Resetar Vista")
         )
         self.addSeparator()
 
         # 4. View Settings
-        self.addWidget(QtWidgets.QLabel(tr("toolbar.point_size", " Tamanho: ")))
+        self.addWidget(QtWidgets.QLabel(tr("toolbar_container.point_size", " Tamanho: ")))
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(5, 50)
         self.slider.setFixedWidth(80)
@@ -64,7 +64,7 @@ class RegistrationToolbar(BaseToolbar):
             text="",
             callback=lambda: None,
             icon=get_icon("add.svg", QtWidgets.QStyle.StandardPixmap.SP_FileDialogNewFolder),
-            tooltip=tr("toolbar.import", "Importar")
+            tooltip=tr("toolbar_container.import", "Importar")
         )
         btn.setPopupMode(QtWidgets.QToolButton.InstantPopup)
 
@@ -83,10 +83,10 @@ class RegistrationToolbar(BaseToolbar):
         self.group.setExclusive(True)
 
         actions = [
-            (get_icon("cursor.svg", QtWidgets.QStyle.StandardPixmap.SP_ArrowForward), tr("toolbar.select", "Seleção"),
+            (get_icon("cursor.svg", QtWidgets.QStyle.StandardPixmap.SP_ArrowForward), tr("toolbar_container.select", "Seleção"),
              "select"),
             (get_icon("add_point.svg", QtWidgets.QStyle.StandardPixmap.SP_CommandLink),
-             tr("toolbar.add_point", "Adicionar Pontos"), "add_point")
+             tr("toolbar_container.add_point", "Adicionar Pontos"), "add_point")
         ]
 
         for icon, text, data in actions:
@@ -105,18 +105,18 @@ class RegistrationToolbar(BaseToolbar):
     def _add_action_section(self):
         self.toolbar.addAction(
             get_icon("del_point.svg", QtWidgets.QStyle.StandardPixmap.SP_TrashIcon),
-            tr("toolbar.del_point", "Remover Último Ponto"),
+            tr("toolbar_container.del_point", "Remover Último Ponto"),
             lambda: self._emit(RegistrationEvents.REGISTRATION_DELETE_LAST_MARKER)
         )
 
         self.toolbar.addAction(
             get_icon("home.svg", QtWidgets.QStyle.StandardPixmap.SP_BrowserReload),
-            tr("toolbar.reset_view", "Resetar Vista"),
+            tr("toolbar_container.reset_view", "Resetar Vista"),
             lambda: self._emit(RegistrationEvents.REGISTRATION_RESET_LAYOUT)
         )
 
     def _add_view_section(self):
-        self.toolbar.addWidget(QtWidgets.QLabel(tr("toolbar.point_size", " Tamanho: ")))
+        self.toolbar.addWidget(QtWidgets.QLabel(tr("toolbar_container.point_size", " Tamanho: ")))
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(5, 50)
         self.slider.setFixedWidth(80)
