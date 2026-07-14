@@ -1,3 +1,4 @@
+import logging
 from typing import Any
 
 from core.scene.events.event_bus import EventBus
@@ -7,6 +8,8 @@ from core.scene.registry.object_registry import ObjectRegistry
 from core.scene.rendering.vtk_actor_factory import VTKActorFactory
 from core.scene.rendering.vtk_property_sync import VTKPropertySync
 from core.scene.rendering.vtk_scene_renderer import VTKSceneRenderer
+
+logger = logging.getLogger("OpenCMF.SceneBridge")
 
 
 class SceneBridge:
@@ -53,17 +56,28 @@ class SceneBridge:
             self.renderer.refresh()
 
     def _on_object_updated(self, object_id: str, property: str = None, value: Any = None):
+        """
+        Atualiza um ator na cena baseado em um evento de atualização.
+        """
         actor = self.actors.get(object_id)
+
         if not actor:
+            logger.debug(f"SceneBridge: Objeto '{object_id}' não encontrado nos atores ativos. Ignorando atualização.")
             return
+        try:
+            if property:
+                self.sync.apply_property(actor, property, value)
+            else:
+                obj = self.objects.get(object_id)
+                if obj:
+                    self.sync.sync(actor, scene_object=obj)
+                else:
+                    logger.warning(
+                        f"SceneBridge: Objeto '{object_id}' encontrado nos atores, mas ausente no registro de dados.")
 
-        if property:
-            self.sync.apply_property(actor, property, value)
-        else:
-            obj = self.objects.get(object_id)
-            if obj:
-                self.sync.sync(actor, scene_object=obj)
-
+        except Exception as e:
+            logger.error(f"Erro ao sincronizar propriedades do objeto '{object_id}': {e}", exc_info=True)
+            return
         self.renderer.refresh()
 
     def _on_visibility_changed(self, object_id: str, visible: bool):

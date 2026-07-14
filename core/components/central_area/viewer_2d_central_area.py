@@ -8,13 +8,17 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
     maximizeRequested = QtCore.Signal(bool)
     lutChanged = QtCore.Signal(str)
 
-    def __init__(self, titulo: str, cor: str, parent=None):
-        super().__init__(titulo, cor, parent)
+    def __init__(self, context, titulo: str, cor: str, parent=None):
+        super().__init__(context=context, titulo=titulo, cor_identificacao=cor, parent=parent)
+
         self.is_maximized = False
         self.vtk_property = None
+
         self._setup_specific_ui()
         self._setup_interactions()
-        self.vtkWidget.installEventFilter(self)
+
+        if self.vtkWidget:
+            self.vtkWidget.installEventFilter(self)
 
     def eventFilter(self, source, event):
         if source is self.vtkWidget and event.type() == QtCore.QEvent.MouseButtonDblClick:
@@ -100,3 +104,26 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
         if event.button() == QtCore.Qt.LeftButton:
             self._toggle_maximize()
         super().mouseDoubleClickEvent(event)
+
+
+if __name__ == "__main__":
+    import sys
+
+    app = QtWidgets.QApplication(sys.argv)
+
+
+    class MockContext:
+        def __init__(self):
+            self.scene_manager = None
+
+
+    contexto_teste = MockContext()
+
+    viewer = Viewer2D_Widget_CentralArea(
+        context=contexto_teste,
+        titulo="Axial",
+        cor="#2b2b2b"
+    )
+    viewer.resize(800, 600)
+    viewer.show()
+    sys.exit(app.exec())

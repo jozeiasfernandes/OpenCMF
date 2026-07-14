@@ -57,6 +57,9 @@ class CentralAreaBase(QtWidgets.QWidget):
             self.layout_principal = QtWidgets.QVBoxLayout(self)
             self.layout_principal.setContentsMargins(0, 0, 0, 0)
             self.layout_principal.setSpacing(0)
+            self.area_controles = QtWidgets.QHBoxLayout()
+            self.area_controles.setContentsMargins(5, 5, 5, 5)
+            self.layout_principal.addLayout(self.area_controles)
 
         if self.usar_vtk and self.vtkWidget is None:
             self.vtkWidget = QVTKRenderWindowInteractor(self)
@@ -67,6 +70,7 @@ class CentralAreaBase(QtWidgets.QWidget):
             self.indicator = QtWidgets.QLabel(self.titulo, self.vtkWidget)
             self.indicator.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
             self.indicator.setStyleSheet("color: white; background-color: rgba(0,0,0,0.5); padding: 5px;")
+
             self.layout_principal.addWidget(self.vtkWidget, stretch=1)
 
     def _conectar_sinais_scene(self):
@@ -101,3 +105,6 @@ class CentralAreaBase(QtWidgets.QWidget):
             self._logic.dispose()
 
         self._is_loaded = False
+
+    def adicionar_controle(self, widget: QtWidgets.QWidget):
+        self.area_controles.addWidget(widget)
