@@ -86,6 +86,7 @@ if __name__ == "__main__":
     from core.scene.selection.selection_manager import SelectionManager
     from core.scene.rendering.vtk_actor_factory import VTKActorFactory
     from core.scene.rendering.scene_bridge import SceneBridge
+    from core.scene.io.importer import ObjectImporter  # Importe o ObjectImporter
 
     app = QtWidgets.QApplication(sys.argv)
 
@@ -96,13 +97,22 @@ if __name__ == "__main__":
     actor_registry = ActorRegistry()
     selection_manager = SelectionManager(state, event_bus)
 
-    # Instanciação do SceneManager
+    # Crie o importer com um caminho válido
+    # Você pode usar um caminho temporário ou um caminho de paciente padrão
+    import tempfile
+
+    temp_patient_path = tempfile.mkdtemp()  # Cria um diretório temporário
+    importer = ObjectImporter(patient_path=temp_patient_path)
+
+    # Instanciação do SceneManager com todos os argumentos
     scene_manager = SceneManager(
         state=state,
         event_bus=event_bus,
         object_registry=object_registry,
         actor_registry=actor_registry,
         selection_manager=selection_manager,
+        importer=importer,
+        transform_manager=None,
     )
 
     # Criação da janela

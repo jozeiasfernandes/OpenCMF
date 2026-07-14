@@ -11,14 +11,9 @@ class CentralAreaBase(QtWidgets.QWidget):
     Herda de QWidget e usa BaseComponent por composição.
     """
     cena_atualizada = QtCore.Signal()
-
     def __init__(self, context, titulo="Central", cor_identificacao="#FFFFFF", usar_vtk=True, parent=None):
-        # Inicializar QWidget primeiro
         super().__init__(parent)
-
-        # Inicializar BaseComponent por composição
         self._logic = BaseComponent(context=context, parent=self)
-
         self.titulo = titulo
         self.cor_id = cor_identificacao
         self.usar_vtk = usar_vtk
@@ -27,8 +22,7 @@ class CentralAreaBase(QtWidgets.QWidget):
         self.layout_principal = None
         self.indicator = None
         self._is_loaded = False
-
-        # Configurar UI base imediatamente
+        self.is_maximized = False
         self._setup_base_ui()
 
     @property
