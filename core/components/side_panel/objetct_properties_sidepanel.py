@@ -1,3 +1,4 @@
+from typing import Optional, Any
 import sys
 import json
 from pathlib import Path
@@ -11,14 +12,19 @@ from core.components.bases.base_sidepanel import BaseSidePanel
 # ---------------------------------------------------------------------------
 
 class ObjectPropertiesSidePanel(BaseSidePanel):
+    side_panel_name = "Propriedades do Objeto"
     toolbox_name = "Propriedades"
 
-    def __init__(self, scene_manager=None, parent=None):
-        super().__init__(scene_manager=scene_manager, parent=parent)
+    def __init__(self, context: Any, titulo: str = "Propriedades", parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(context=context, titulo=titulo, parent=parent)
+        self.current_object_id = None
         self.current_object_name = None
         self.patient_path = None
         self.object_properties = None
         self._is_loading_props = False
+
+        # Configurar UI
+        self.setup_ui()
 
     def setup_ui(self) -> None:
         """Configura a interface usando o layout herdado de BaseSidePanel."""
@@ -205,7 +211,7 @@ if __name__ == "__main__":
     @dataclass
     class FakeProps:
         id: str = "123"
-        file_path: str = "object_123.json"  # Necessário para o método _save_to_json
+        file_path: str = "object_123.json"
         opacity: float = 0.8
         transform: dict = field(default_factory=lambda: {
             "position": [10, 20, 30],
@@ -245,9 +251,18 @@ if __name__ == "__main__":
     win.setWindowTitle("OpenCMF — Properties Editor")
     win.resize(400, 860)
 
-    # CORREÇÃO: Usando a nova classe renomeada
-    comp = ObjectPropertiesSidePanel()
-    comp.load_from_props(FakeProps())
+    # CORRIGIDO: Passar context e titulo
+    comp = ObjectPropertiesSidePanel(
+        context=None,  # Ou passe um SceneManager se disponível
+        titulo="Propriedades",
+        parent=None
+    )
+
+    # Criar um objeto FakeProps para teste
+    fake_props = FakeProps()
+    comp.object_properties = fake_props
+    comp.patient_path = Path("./teste")
+    comp.load_from_props(fake_props)
 
     scroll = QtWidgets.QScrollArea()
     scroll.setWidget(comp)

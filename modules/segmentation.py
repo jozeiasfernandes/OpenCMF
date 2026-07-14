@@ -1,60 +1,56 @@
-import sys
-import os
-from pathlib import Path
 from typing import Dict, Optional, Any
+from PySide6 import QtWidgets
 
-from PySide6 import QtWidgets, QtCore
-from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-import vtkmodules.all as vtk
 
-from modules.base_module.base_module import ModuloBase
 from core.workspace.contracts import IModule
-from core.scene.utils.factory import SceneObjectFactory
+
 from core.scene.events.scene_events import SceneEvents
 from core.scene.events.event_bus import EventBus
+from core.scene.utils.factory import SceneObjectFactory
 from core.volume.segmentation_engine import SegmentacaoEngine
 from core.components.side_panel.segmentation_sidepanel import SegmentacaoSidePanel
 
-from core.scene.registry.object_registry import ObjectRegistry
-from core.scene.registry.actor_registry import ActorRegistry
-from core.scene.scene_manager import SceneManager
-from core.scene.io.importer import ObjectImporter
-from core.scene.rendering.scene_bridge import SceneBridge
-from core.scene.rendering.vtk_scene_renderer import VTKSceneRenderer
-from core.scene.rendering.vtk_actor_factory import VTKActorFactory
-from core.scene.scene_state import SceneState
-from core.scene.selection.selection_manager import SelectionManager as SelectionManagerClass
 
-
-class Modulo(ModuloBase):
+class Modulo(IModule):
     def __init__(self, scene_manager: Optional[Any] = None):
-        super().__init__(scene_manager=scene_manager)
         self.nome = "Segmentação"
         self.id = "modulo.segmentacao"
-        self.engine_seg = SegmentacaoEngine()
-        self.widget_seg = SegmentacaoSidePanel()
-        self.selection_manager = getattr(self.scene_manager, 'selection_manager', None)
-        self._conectar_sinais()
+        self.scene_manager = scene_manager
 
-    def _criar_main_widget(self) -> QtWidgets.QWidget:
-        if self.scene_manager is not None and hasattr(self.scene_manager, 'view'):
-            return self.scene_manager.view
-        return QtWidgets.QWidget()
+        self.engine_seg = SegmentacaoEngine()
+
+        self.widget_seg = SegmentacaoSidePanel(context=self.scene_manager, title="Segmentação")
+
+        self._conectar_sinais()
 
     def _conectar_sinais(self):
         self.widget_seg.solicitarMascara.connect(self._executar_threshold)
         self.widget_seg.solicitarExportarSTL.connect(self._executar_exportacao_stl)
 
+    # --- Implementação do IModule ---
     def get_main_widget(self) -> QtWidgets.QWidget:
+        # O workspace espera que o módulo forneça o widget central (Viewport)
         if self.scene_manager is not None and hasattr(self.scene_manager, 'view'):
             return self.scene_manager.view
         return QtWidgets.QWidget()
 
+    def get_workspace_toolbar(self) -> Optional[QtWidgets.QToolBar]:
+        # Retorne uma QToolBar aqui se o módulo tiver ferramentas de ação rápida
+        return None
+
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
+        # O workspace injetará este widget no SidePanelContainer [cite: 6]
         return {
             "Ferramentas": self.widget_seg
         }
 
+    def cleanup(self) -> None:
+        """Limpeza necessária para evitar vazamentos de memória no WorkspaceManager[cite: 11]."""
+        self.widget_seg.deleteLater()
+        self.scene_manager = None
+        self.engine_seg = None
+
+    # --- Lógica Interna ---
     def _executar_threshold(self):
         if not self.scene_manager:
             return
@@ -66,77 +62,26 @@ class Modulo(ModuloBase):
     def _executar_exportacao_stl(self):
         pass
 
-    def cleanup(self) -> None:
-        super().cleanup()
-
-
-IModule.register(Modulo)
-
 if __name__ == "__main__":
+    import sys
+    from PySide6 import QtWidgets
+    from core.workspace.workspace_manager import WorkspaceManager
+    from core.workspace.module_factory import ModuleFactory
+
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    # 1. Preparar caminho (necessário para o Importer)
-    path_teste = Path(os.path.expanduser("~")) / "OpenCMF_Debug"
-    path_teste.mkdir(parents=True, exist_ok=True)
+    # 1. Registra o módulo na Factory
+    ModuleFactory.register("modulo.segmentacao", Modulo)
 
-    # 2. Dependências Core
-    event_bus = EventBus()
-    state = SceneState()
-    object_registry = ObjectRegistry()
-    actor_registry = ActorRegistry()
-    selection_manager = SelectionManagerClass(state=state, event_bus=event_bus)
+    # 2. Inicializa o WorkspaceManager principal
+    window = WorkspaceManager()
+    window.setWindowTitle("OpenCMF - Teste do Módulo de Segmentação")
+    window.resize(1200, 800)
+    window.show()
 
-    # CORREÇÃO: Inicialize o Importer aqui
-    importer = ObjectImporter(patient_path=str(path_teste))
+    # 3. Adiciona a aba e força o carregamento inicial do módulo para debug
+    window.header.add_module_tab("modulo.segmentacao", "Segmentação")
+    window.on_module_changed("modulo.segmentacao")
 
-    # 3. Inicialização do Manager (Agora com o argumento 'importer')
-    scene_manager = SceneManager(
-        state=state,
-        event_bus=event_bus,
-        object_registry=object_registry,
-        actor_registry=actor_registry,
-        selection_manager=selection_manager,
-        importer=importer  # O argumento que estava faltando
-    )
-
-    # Configuração da Ponte de Renderização
-    vtk_widget = QVTKRenderWindowInteractor()
-    renderer = vtk.vtkRenderer()
-    vtk_widget.GetRenderWindow().AddRenderer(renderer)
-    vtk_widget.Initialize()
-
-    vtk_renderer = VTKSceneRenderer(renderer)
-    factory = VTKActorFactory(vtk_module=vtk)
-    bridge = SceneBridge(
-        event_bus=event_bus,
-        object_registry=object_registry,
-        actor_registry=actor_registry,
-        renderer=vtk_renderer,
-        factory=factory
-    )
-
-    # Inicialização do Módulo
-    modulo = Modulo(scene_manager=scene_manager)
-
-    path_teste = Path(os.path.expanduser("~")) / "OpenCMF_Debug"
-    path_teste.mkdir(parents=True, exist_ok=True)
-    modulo.inicializar(str(path_teste))
-
-    # UI
-    win = QtWidgets.QMainWindow()
-    win.setWindowTitle("OpenCMF - Teste de Módulo de Segmentação")
-    win.setCentralWidget(modulo.get_main_widget())
-
-    dock = QtWidgets.QDockWidget("Ferramentas")
-    tabs = QtWidgets.QTabWidget()
-    for n, w in modulo.get_toolboxes().items():
-        tabs.addTab(w, n)
-    dock.setWidget(tabs)
-    win.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
-
-    win.resize(1200, 800)
-    win.show()
-
-    renderer.ResetCamera()
     sys.exit(app.exec())

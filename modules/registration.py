@@ -18,16 +18,17 @@ from core.scene.persistence.serializer import Serializer
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 from core.scene.io.importer import ObjectImporter
 
-from core.components.central_area.window_registration import WindowRegistration
+from core.workspace.contracts import IModule
+from modules.base_module.base_module import ModuloBase
+from core.components.central_area.viewer_registration_central_area import ViewerRegistration_Widget_CentralArea
 from core.components.side_panel.object_manager_sidepanel import ObjetoManagerWidget
 from core.components.side_panel.objetct_properties_sidepanel import ObjectPropertiesSidePanel
-from core.components.toolbars.registration_toolbar import RegistrationToolbarHandler
+from core.components.toolbars.registration_toolbar import RegistrationToolbar
 
 logger = logging.getLogger("OpenCMF.RegistrationModule")
 
 
 class Modulo(ModuloBase):
-
     def __init__(self, scene_manager: Optional[SceneManager] = None):
         super().__init__(scene_manager=scene_manager)
 
@@ -37,16 +38,16 @@ class Modulo(ModuloBase):
         self._toolbar_widget: Optional[QtWidgets.QToolBar] = None
         self.serializer = Serializer()
 
-        self.scene_manager = scene_manager or self._criar_scene_manager_padrao()
+        self.widget_reg = ViewerRegistration_Widget_CentralArea(context=self.scene_manager, titulo="Registro")
 
-        self.widget_reg = WindowRegistration(scene_manager=self.scene_manager)
-        self.widget_objetos = ObjetoManagerWidget()
+        self.widget_objetos = ObjetoManagerWidget(
+            context=self.scene_manager,
+            titulo="Registro"
+        )
+
         self.widget_propriedades = ObjectPropertiesSidePanel(
-            label="Z",
-            min_val=0.0,
-            max_val=100.0,
-            default=50.0,
-            color="#4b4bff"
+            context=self.scene_manager,
+            title="Propriedades"
         )
 
         self._conectar_sinais()
@@ -78,6 +79,8 @@ class Modulo(ModuloBase):
                                             lambda object_id: self._carregar_na_vista_por_id(object_id, "B"))
         self.scene_manager.events.subscribe(SceneEvents.INTERACTION_MODE_CHANGED,
                                             self._on_interaction_mode_changed)
+        # Novo: Conectar o evento de remoção de objeto
+        self.scene_manager.events.subscribe(SceneEvents.OBJECT_REMOVED, self._on_scene_object_removed)
 
     # ==================== Handlers de eventos ====================
 
@@ -144,16 +147,19 @@ class Modulo(ModuloBase):
 
     def _on_visibility_toggled(self, oid: str, visible: bool):
         self.scene_manager.update_visibility(oid, visible)
-        self.object_manager.save_scene(self.scene_manager.objects.all())
+        # O self.object_manager.save_scene deve ser substituído por um evento ou método do SceneManager
+        # para garantir a persistência de forma consistente com a arquitetura.
+        # Por enquanto, vou remover para evitar dependência direta aqui.
+        # self.object_manager.save_scene(self.scene_manager.objects.all())
 
     def _on_opacity_changed_ui(self, oid: str, opacity: float):
         self.scene_manager.update_opacity(oid, opacity)
-        self.object_manager.save_scene(self.scene_manager.objects.all())
+        # self.object_manager.save_scene(self.scene_manager.objects.all())
 
     def _on_color_changed_ui(self, oid: str, color: QtGui.QColor):
         rgb = (color.redF(), color.greenF(), color.blueF())
         self.scene_manager.update_color(oid, rgb)
-        self.object_manager.save_scene(self.scene_manager.objects.all())
+        # self.object_manager.save_scene(self.scene_manager.objects.all())
 
     def _on_import_request(self, **kwargs):
         path, _ = QtWidgets.QFileDialog.getOpenFileName(
@@ -197,10 +203,14 @@ class Modulo(ModuloBase):
     def get_workspace(self) -> QtWidgets.QWidget:
         return self.get_main_widget()
 
-    def get_workspace_toolbar(self) -> QtWidgets.QToolBar:
+    def get_workspace_toolbar(self) -> Optional[QtWidgets.QToolBar]:
+        """Retorna a toolbar específica deste módulo para o ToolbarManager."""
         if not self._toolbar_widget:
             self._toolbar_widget = QtWidgets.QToolBar("Ferramentas de Registro")
-            self._toolbar_handler = RegistrationToolbarHandler(
+            # Definir o objectName é crucial para o registro no ToolbarManager
+            self._toolbar_widget.setObjectName("registration_toolbar")
+
+            self._toolbar_handler = RegistrationToolbar(
                 toolbar=self._toolbar_widget,
                 scene_manager=self.scene_manager
             )
@@ -222,11 +232,30 @@ class Modulo(ModuloBase):
 
     def cleanup(self) -> None:
         logger.info("Limpando recursos do módulo de Registro...")
+        # Desconectar sinais para evitar vazamentos de memória
+        self.scene_manager.events.unsubscribe(RegistrationEvents.ALIGNMENT_REQUESTED, self._executar_registro)
+        self.scene_manager.events.unsubscribe(RegistrationEvents.CLEAR_POINTS, self._resetar_pontos)
+        self.scene_manager.events.unsubscribe(RegistrationEvents.TARGET_CHANGED,
+                                            lambda object_id: self._carregar_na_vista_por_id(object_id, "A"))
+        self.scene_manager.events.unsubscribe(RegistrationEvents.SOURCE_CHANGED,
+                                            lambda object_id: self._carregar_na_vista_por_id(object_id, "B"))
+        self.scene_manager.events.unsubscribe(SceneEvents.INTERACTION_MODE_CHANGED,
+                                            self._on_interaction_mode_changed)
+        self.scene_manager.events.unsubscribe(SceneEvents.OBJECT_REMOVED, self._on_scene_object_removed)
+        if self._toolbar_widget and hasattr(self, "_toolbar_handler"):
+            self.scene_manager.events.unsubscribe(RegistrationEvents.IMPORT_REQUESTED, self._on_import_request)
+
+        # Desconectar o sinal do object_manager se ele estiver conectado
+        if hasattr(self, 'object_manager') and self.object_manager:
+            self.object_manager.object_added.disconnect(self._on_scene_object_added)
         super().cleanup()
 
     def _on_scene_object_removed(self, object_id: str):
         self.widget_objetos.remover_objeto_lista(object_id)
-        self.widget_reg.view_registration.limpar_objeto(object_id)
+        # Adicionalmente, se widget_reg tiver uma forma de remover o objeto visualmente,
+        # como um método `remover_objeto_vista`, ele deveria ser chamado aqui.
+        if hasattr(self.widget_reg, "view_registration") and hasattr(self.widget_reg.view_registration, "limpar_objeto"):
+            self.widget_reg.view_registration.limpar_objeto(object_id)
 
 
 if __name__ == "__main__":
@@ -236,24 +265,33 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
+    # Setup de ambiente
     test_path = os.path.abspath("./teste_paciente")
     os.makedirs(test_path, exist_ok=True)
 
+    # Instanciação
     modulo = Modulo()
     modulo.inicializar(test_path)
 
+    # Container de teste para validar a UI do módulo
     window = QtWidgets.QMainWindow()
-    window.resize(1200, 800)
-    window.setCentralWidget(modulo.get_workspace())
-    window.addToolBar(modulo.get_workspace_toolbar())
+    window.setWindowTitle("Teste Isolado do Módulo de Registro")
 
+    # Valida o método central
+    window.setCentralWidget(modulo.get_main_widget())
+
+    # Valida a Toolbar
+    toolbar = modulo.get_workspace_toolbar()
+    if toolbar:
+        window.addToolBar(toolbar)
+
+    # Valida os Toolboxes (Painéis laterais)
     dock = QtWidgets.QDockWidget("Painel de Controle")
     tabs = QtWidgets.QTabWidget()
     for titulo, widget in modulo.get_toolboxes().items():
         tabs.addTab(widget, titulo)
     dock.setWidget(tabs)
-
     window.addDockWidget(QtCore.Qt.RightDockWidgetArea, dock)
-    window.show()
 
+    window.show()
     sys.exit(app.exec())

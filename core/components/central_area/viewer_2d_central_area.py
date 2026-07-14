@@ -3,7 +3,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from core.components.bases.base_central_area import CentralAreaBase
 from core.components.central_area.window_2d_.context_menu_2d import ContextMenu2D
 
-class CentralArea2D(CentralAreaBase):
+class Viewer2D_Widget_CentralArea(CentralAreaBase):
     sliceChanged = QtCore.Signal(int)
     maximizeRequested = QtCore.Signal(bool)
     lutChanged = QtCore.Signal(str)

@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets, QtCore
-from typing import Optional
+from typing import Optional, Any
 from core.scene.scene_manager import SceneManager
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 from core.components.bases.base_sidepanel import BaseSidePanel
@@ -13,14 +13,23 @@ class RegistrationSidePanel(BaseSidePanel):
     targetChanged = QtCore.Signal(str)
     sourceChanged = QtCore.Signal(str)
 
-    def __init__(self, scene_manager: Optional[SceneManager] = None, parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(scene_manager, parent)
+    # CORRIGIDO: Usar a assinatura correta da BaseSidePanel
+    def __init__(self, context: Any, title: str = "Alinhar Objetos", parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(context=context, title=title, parent=parent)
+        self._is_initializing = False
 
+        # Conectar eventos após a inicialização
         if self.event_bus:
             self.event_bus.subscribe(SceneEvents.OBJECT_ADDED, self._refresh_scene_data)
             self.event_bus.subscribe(SceneEvents.OBJECT_REMOVED, self._refresh_scene_data)
 
+    @property
+    def scene_manager(self) -> Optional[SceneManager]:
+        """Retorna o scene_manager do contexto."""
+        return self._logic.scene_manager if hasattr(self, '_logic') else None
+
     def setup_ui(self) -> None:
+        """Configura a interface do usuário."""
         # A base já fornece self.layout (QVBoxLayout)
         self.layout.setContentsMargins(5, 5, 5, 5)
         self.layout.setSpacing(10)
@@ -64,6 +73,11 @@ class RegistrationSidePanel(BaseSidePanel):
         btn_layout.addWidget(self.btn_align)
         self.layout.addLayout(btn_layout)
 
+        # Inicializar combos
+        self._is_initializing = True
+        self._refresh_scene_data()
+        self._is_initializing = False
+
     def _on_target_changed(self, texto):
         if not self._is_initializing:
             self._validar_selecao()
@@ -83,6 +97,9 @@ class RegistrationSidePanel(BaseSidePanel):
         self.btn_align.setToolTip(tip)
 
     def atualizar_combos(self, lista_objetos):
+        if not hasattr(self, 'combo_target'):
+            return
+
         current_t = self.combo_target.currentText()
         current_s = self.combo_source.currentText()
         self.combo_target.blockSignals(True)
@@ -128,17 +145,18 @@ class RegistrationSidePanel(BaseSidePanel):
         self.table.setItem(row, col, item)
 
     def get_target_name(self):
-        return self.combo_target.currentText()
+        return self.combo_target.currentText() if hasattr(self, 'combo_target') else ""
 
     def get_source_name(self):
-        return self.combo_source.currentText()
+        return self.combo_source.currentText() if hasattr(self, 'combo_source') else ""
 
     def limpar_tabela(self):
-        self.table.setRowCount(0)
+        if hasattr(self, 'table'):
+            self.table.setRowCount(0)
 
     def _refresh_scene_data(self, **kwargs):
         if self.scene_manager:
-            nomes = [obj.name for obj in self.scene_manager.objects]
+            nomes = [obj.name for obj in self.scene_manager.objects.all()]
             self.atualizar_combos(nomes)
 
 
@@ -147,7 +165,9 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
 
-    panel = RegistrationSidePanel(scene_manager=None)
+    # CORRIGIDO: Usar a nova assinatura
+    panel = RegistrationSidePanel(context=None, title="Alinhar Objetos")
+    panel.setup_component()
     panel.resize(300, 400)
     panel.show()
 

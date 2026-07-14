@@ -1,5 +1,5 @@
 '''
-Usuário move o Slider -> CentralArea3D emite OBJECT_UPDATED.SceneBridge escuta o evento.  SceneBridge solicita a atualização ao VTKPropertySync ou ActorFactory.  VTKSceneRenderer realiza o refresh() final.
+Usuário move o Slider -> Viewer3D_Dicom_Widget_CentralArea emite OBJECT_UPDATED.SceneBridge escuta o evento.  SceneBridge solicita a atualização ao VTKPropertySync ou ActorFactory.  VTKSceneRenderer realiza o refresh() final.
 
 '''
 
@@ -9,7 +9,7 @@ from core.components.bases.base_central_area import CentralAreaBase
 from core.scene.events.scene_events import SceneEvents
 
 
-class CentralArea3D(CentralAreaBase):
+class Viewer3D_Dicom_Widget_CentralArea(CentralAreaBase):
     def __init__(self, titulo: str, cor: str, event_bus, viewer_registry, parent=None):
         super().__init__(titulo, cor, parent)
         self.event_bus = event_bus

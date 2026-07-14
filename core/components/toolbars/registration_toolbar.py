@@ -15,7 +15,7 @@ def get_icon(icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIco
 class RegistrationToolbar(BaseToolbar):
     def __init__(self, scene_manager: Any = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(
-            title=tr("toolbar_container.registration.title", "Alinhamento de Objetos"),
+            title=tr("toolbar_container.registration.titulo", "Alinhamento de Objetos"),
             scene_manager=scene_manager,
             parent=parent
         )

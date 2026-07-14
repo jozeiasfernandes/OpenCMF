@@ -6,7 +6,7 @@ from .toolbar_container.toolbar_manager import ToolbarManager
 from .side_panel_container.side_panel_manager import SidePanelManager
 from .layout import ModuleDistributor
 from .registry import WorkspaceRegistry
-from .components.status_bar import StatusBarManager
+from status_bar.status_bar import StatusBarManager
 
 
 class WorkspaceManager(QtWidgets.QMainWindow):
@@ -44,20 +44,32 @@ class WorkspaceManager(QtWidgets.QMainWindow):
 
     def on_module_changed(self, module_id: str):
         try:
-            # 1. Limpeza do estado anterior
-            ModuleDistributor.cleanup(self.toolbar_manager, self.side_manager, self.central_host)
+            # Limpeza do estado anterior
+            ModuleDistributor.cleanup(
+                self.toolbar_manager,
+                self.side_manager,
+                self.central_host
+            )
 
-            # 2. Instanciação ou recuperação do novo módulo
+            # Carrega ou cria o módulo
             module = self.registry.get_or_create_module(module_id)
 
-            # 3. Injeção visual
-            ModuleDistributor.distribute(module, self.toolbar_manager, self.side_manager, self.central_host)
+            # Distribui os componentes do módulo
+            ModuleDistributor.distribute(
+                module,
+                self.toolbar_manager,
+                self.side_manager,
+                self.central_host
+            )
 
-            # 4. Feedback ao usuário
-            self.status_bar_manager.show_message(f"Módulo '{module_id}' carregado com sucesso.", 3000)
+            # Feedback ao usuário
+            self.status_bar_manager.showMessage(
+                f"Módulo '{module_id}' carregado com sucesso.",
+                3000
+            )
 
         except Exception as e:
-            self.status_bar_manager.show_message(f"Erro ao carregar módulo: {str(e)}")
+            self.status_bar_manager.showMessage(f"Erro ao carregar módulo: {str(e)}")
             print(f"Erro crítico no WorkspaceManager: {e}")
 
     def get_modulo_ativo(self) -> Optional[IModule]:

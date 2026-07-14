@@ -12,7 +12,7 @@ from core.shortcut.shortcuts import get_shortcuts_by_scope
 os.environ["QT_API"] = "pyside6"
 
 
-class Janela3DSurface(QtWidgets.QWidget):
+class Viewer3D_Widget_CentralArea(QtWidgets.QWidget):
     maximizeRequested = QtCore.Signal(bool)
     objectSelected = QtCore.Signal(str)
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
     )
 
     # Criação da janela
-    janela = Janela3DSurface(
+    janela = Viewer3D_Widget_CentralArea(
         "Vista 3D", "#00AAFF", scene_manager=scene_manager
     )
 

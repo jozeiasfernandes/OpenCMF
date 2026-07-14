@@ -77,7 +77,7 @@ class Components_List(QtWidgets.QDialog):
 
 
         def get_name(path):
-            return path.stem.replace("_", " ").title()
+            return path.stem.replace("_", " ").titulo()
 
         self.tools_tab = ToolsTab(self.components_path, get_name)
         self.tabs.addTab(self.tools_tab, "Tools")

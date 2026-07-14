@@ -69,7 +69,7 @@ class JanelaBase(QtWidgets.QWidget):
         self.is_wl_active = False
 
     def _vtk_wheel_event(self, interactor, event):
-        pass # Sobrescrito em CentralArea2D
+        pass # Sobrescrito em Viewer2D_Widget_CentralArea
 
     # --- Lógica de Movimentação (Window/Level) ---
 

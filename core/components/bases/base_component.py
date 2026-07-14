@@ -1,46 +1,55 @@
 from PySide6 import QtCore
 from typing import Any, Optional
 
-
 class BaseComponent(QtCore.QObject):
     """
     Classe base para todos os componentes do sistema.
-    Define o contrato de ciclo de vida para o ComponentLoader.
+    Refatorada para permitir injeção de contexto flexível e evitar
+    conflitos em hierarquias de herança múltipla.
     """
 
-    def __init__(self, context: Any, parent: Optional[QtCore.QObject] = None):
+    def __init__(self, context: Optional[Any] = None, parent: Optional[QtCore.QObject] = None):
         super().__init__(parent)
-        self.context = context
-        # Usar o contexto para buscar serviços de forma segura
-        self.scene_manager = getattr(context, "scene_manager", None)
+        self._context = context
+        # Usar atributo privado para evitar conflitos com propriedades
+        self._scene_manager = getattr(context, "scene_manager", None) if context else None
         self._is_loaded = False
 
+    @property
+    def scene_manager(self):
+        """Retorna o scene_manager do contexto."""
+        return self._scene_manager
+
+    @scene_manager.setter
+    def scene_manager(self, value):
+        """Permite definir o scene_manager."""
+        self._scene_manager = value
+
+    def set_context(self, context: Any):
+        """
+        Permite injetar o contexto após a inicialização do widget.
+        Útil para evitar erros de herança múltipla no __init__.
+        """
+        self._context = context
+        self._scene_manager = getattr(context, "scene_manager", None)
+
+    @property
+    def context(self):
+        return self._context
+
     def setup_component(self):
-        """
-        Método de ciclo de vida para inicialização.
-        Subclasses devem implementar a lógica de UI aqui.
-        """
+        """Ciclo de vida para inicialização."""
         if self._is_loaded:
             return
-
         self.setup_ui()
         self._is_loaded = True
 
     def setup_ui(self):
-        """
-        Método interno para ser sobrescrito pelas subclasses.
-        Evita a necessidade de sobrescrever o setup_component original.
-        """
         raise NotImplementedError(f"{self.__class__.__name__} deve implementar setup_ui")
 
     def get_ui(self) -> Any:
-        """
-        Retorna o widget principal do componente.
-        Nota: Em classes que herdam de QWidget, retorne 'self'.
-        """
         raise NotImplementedError(f"{self.__class__.__name__} deve implementar get_ui")
 
     def dispose(self):
-        """Limpeza de recursos."""
         self._is_loaded = False
         self.deleteLater()
