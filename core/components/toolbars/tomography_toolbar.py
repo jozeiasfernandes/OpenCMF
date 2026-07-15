@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from core.components.bases.base_toolbar import BaseToolbar
+from core.scene.scene_manager import SceneManager
 
 # Ferramentas
 from core.components.tools.open_dicom_tool import OpenDicomTool
@@ -14,7 +15,8 @@ from core.volume.lookup_table.lut_presets import LUTPresets
 
 class TomographyToolbar(BaseToolbar):
     def __init__(self, context, parent=None):
-        self.context = context
+        # Call parent constructor with context as first argument
+        super().__init__(context, "Tomografia", parent)
 
         # Instanciação das ferramentas
         self.tools = {
@@ -28,11 +30,11 @@ class TomographyToolbar(BaseToolbar):
 
         # Injeta o contexto em todas as ferramentas
         for tool in self.tools.values():
-            tool.context = self.context
-
-        super().__init__("Tomografia", parent)
+            tool.context = context
 
     def setup_ui(self):
+        from PySide6 import QtWidgets
+
         self.add_tool_button("📁 Open", self.tools["open"].on_activate)
         self.add_tool_button("🔍 Validate", self.tools["validate"].on_activate)
 
@@ -69,10 +71,11 @@ if __name__ == "__main__":
     window.setWindowTitle("Debug Toolbar: Tomografia")
     window.resize(600, 100)
 
+
     class ContextMock:
         def __init__(self):
-            self.scene_manager = None
-            self.event_bus = None
+            self.scene_manager = SceneManager(None, None, None, None, None, None)  # Simplificado para teste
+
 
     my_context = ContextMock()
 

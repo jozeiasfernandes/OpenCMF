@@ -18,7 +18,6 @@ class BaseToolbar(QtWidgets.QToolBar):
     """Classe base para toolbars sem herança múltipla."""
 
     def __init__(self, context: Any, title: str, parent: Optional[QtWidgets.QWidget] = None, is_movable: bool = True):
-        # ✅ CHAMADA DIRETA ao QToolBar (apenas uma vez)
         QtWidgets.QToolBar.__init__(self, title, parent)
 
         # Guardar contexto
