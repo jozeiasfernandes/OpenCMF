@@ -1,3 +1,6 @@
+import logging
+logger = logging.getLogger(__name__)
+
 from typing import Optional, Any, List
 from .scene_object import SceneObject
 from .scene_state import SceneState
@@ -110,13 +113,16 @@ class SceneManager:
         self.events.emit(SceneEvents.OBJECT_UPDATED, object_id=obj_id, property="color", value=obj.color)
 
     def update_position(self, obj_id: str, position: tuple) -> None:
-        """Atualiza a posição de um objeto."""
         obj = self.objects.get(obj_id)
         if not obj:
+            logger.warning(f"Tentativa de atualizar posição de objeto inexistente: {obj_id}")
             return
-        if len(position) == 3:
-            obj.position = (float(position[0]), float(position[1]), float(position[2]))
-            self.events.emit(SceneEvents.OBJECT_UPDATED, object_id=obj_id, property="position", value=obj.position)
+
+        if not isinstance(position, (tuple, list)) or len(position) != 3:
+            raise ValueError(f"Posição inválida para objeto {obj_id}: {position}. Esperado (x, y, z).")
+
+        obj.position = tuple(map(float, position))
+        self.events.emit(SceneEvents.OBJECT_UPDATED, object_id=obj_id, property="position", value=obj.position)
 
     def update_rotation(self, obj_id: str, rotation: tuple) -> None:
         """Atualiza a rotação de um objeto."""

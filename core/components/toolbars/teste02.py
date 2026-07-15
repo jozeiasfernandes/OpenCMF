@@ -7,8 +7,8 @@ import traceback
 from pathlib import Path
 
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.components.bases.base_tool import BaseTool
-from core.components.bases.base_tool import ToolManager
+from core.components.bases.base_tool.base_tool import BaseTool
+from core.components.bases.base_tool.tool_manager import ToolManager
 
 if TYPE_CHECKING:
     from core.scene.scene_manager import SceneManager
@@ -88,7 +88,6 @@ class Teste02Toolbar(BaseToolbar):
 
 if __name__ == "__main__":
     import sys
-    from core.components.bases.base_tool import ToolManager
 
     app = QtWidgets.QApplication(sys.argv)
     main_window = QtWidgets.QMainWindow()

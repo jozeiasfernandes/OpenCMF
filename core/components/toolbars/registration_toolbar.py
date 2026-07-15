@@ -1,8 +1,12 @@
+from typing import Optional, Any, TYPE_CHECKING
 from PySide6 import QtWidgets, QtCore, QtGui
-from typing import Optional, Any
-from core.components.bases.base_toolbar import BaseToolbar
+from core.components.bases.base_toolbar import BaseToolbar, ToolData
+from core.components.bases.base_tool.tool_manager import ToolManager
 from core.localization.translator import get_base_dir, tr
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
+
+if TYPE_CHECKING:
+    from core.scene.scene_manager import SceneManager
 
 
 def get_icon(icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIcon) -> QtGui.QIcon:
@@ -13,123 +17,94 @@ def get_icon(icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIco
 
 
 class RegistrationToolbar(BaseToolbar):
-    def __init__(self, scene_manager: Any = None, parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(
-            title=tr("toolbar_container.registration.titulo", "Alinhamento de Objetos"),
-            scene_manager=scene_manager,
-            parent=parent
-        )
+    """Toolbar para ferramentas de registro/calibração."""
 
-    def _emit(self, event: str, **payload) -> None:
-        if self.has_scene:
-            self.scene_manager.events.emit(event, **payload)
+    def __init__(self, tool_manager: ToolManager,
+                 scene_manager: Optional["SceneManager"] = None,
+                 parent: Optional[QtWidgets.QWidget] = None):
+
+        # ✅ CHAMADA CORRETA: (context, title, parent)
+        super().__init__(context=scene_manager, title="Registration", parent=parent)
+
+        # Guardar referências
+        self._tool_manager = tool_manager
+        self._scene_manager = scene_manager
+
+        self.setObjectName("registration_toolbar")
+        self.setIconSize(QtCore.QSize(24, 24))
+
+        # Setup da UI
+        self.setup_ui()
+
+    @property
+    def scene_manager(self):
+        return self._scene_manager
+
+    @property
+    def tool_manager(self):
+        return self._tool_manager
 
     def setup_ui(self):
-        # 1. Import Section
-        self._add_import_button()
-        self.addSeparator()
+        """Configura os botões da toolbar."""
 
-        # 2. Selection Modes
-        self._add_selection_modes()
-        self.addSeparator()
-
-        # 3. Actions (Direto na toolbar_container, herdado de QToolBar)
-        self.add_tool_button(
-            text="",
-            callback=lambda: self._emit(RegistrationEvents.REGISTRATION_DELETE_LAST_MARKER),
-            icon=get_icon("del_point.svg", QtWidgets.QStyle.StandardPixmap.SP_TrashIcon),
-            tooltip=tr("toolbar_container.del_point", "Remover Último Ponto")
+        # Botão de remover ponto
+        tool_data_delete = ToolData(
+            name="delete_point",
+            display_name="",
+            icon_path=None,
+            tool_tip=tr("toolbar_container.del_point", "Remover Último Ponto"),
+            callback=self._on_delete_point,
+            is_checkable=False
         )
         self.add_tool_button(
-            text="",
-            callback=lambda: self._emit(RegistrationEvents.REGISTRATION_RESET_LAYOUT),
-            icon=get_icon("home.svg", QtWidgets.QStyle.StandardPixmap.SP_BrowserReload),
-            tooltip=tr("toolbar_container.reset_view", "Resetar Vista")
+            tool_data_delete,
+            icon=get_icon("del_point.svg", QtWidgets.QStyle.StandardPixmap.SP_TrashIcon)
         )
+
+        # Botão de resetar vista
+        tool_data_reset = ToolData(
+            name="reset_view",
+            display_name="",
+            icon_path=None,
+            tool_tip=tr("toolbar_container.reset_view", "Resetar Vista"),
+            callback=self._on_reset_view,
+            is_checkable=False
+        )
+        self.add_tool_button(
+            tool_data_reset,
+            icon=get_icon("home.svg", QtWidgets.QStyle.StandardPixmap.SP_BrowserReload)
+        )
+
         self.addSeparator()
 
-        # 4. View Settings
+        # Label de tamanho
         self.addWidget(QtWidgets.QLabel(tr("toolbar_container.point_size", " Tamanho: ")))
+
+        # Slider de tamanho
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(5, 50)
         self.slider.setFixedWidth(80)
         self.slider.setValue(20)
-        self.slider.valueChanged.connect(
-            lambda v: self._emit(RegistrationEvents.REGISTRATION_POINT_SIZE_CHANGED, size=v / 10.0)
-        )
+        self.slider.valueChanged.connect(self._on_point_size_changed)
         self.addWidget(self.slider)
 
-    def _add_import_button(self):
-        btn = self.add_tool_button(
-            text="",
-            callback=lambda: None,
-            icon=get_icon("add.svg", QtWidgets.QStyle.StandardPixmap.SP_FileDialogNewFolder),
-            tooltip=tr("toolbar_container.import", "Importar")
-        )
-        btn.setPopupMode(QtWidgets.QToolButton.InstantPopup)
+    def _on_delete_point(self):
+        """Remove o último marcador."""
+        if self.scene_manager and hasattr(self.scene_manager, 'events'):
+            self.scene_manager.events.emit(RegistrationEvents.REGISTRATION_DELETE_LAST_MARKER)
 
-        try:
-            from core.components.tools.imports.import_objects_panel import ImportObjectsPanel
-            self.import_panel = ImportObjectsPanel(self)
-            self.import_panel.importRequested.connect(
-                lambda cat, sub: self._emit(SceneEvents.REGISTRATION_IMPORT_REQUESTED, category=cat, subcategory=sub)
+    def _on_reset_view(self):
+        """Reseta a visualização."""
+        if self.scene_manager and hasattr(self.scene_manager, 'events'):
+            self.scene_manager.events.emit(RegistrationEvents.REGISTRATION_RESET_LAYOUT)
+
+    def _on_point_size_changed(self, value: int):
+        """Altera o tamanho dos pontos."""
+        if self.scene_manager and hasattr(self.scene_manager, 'events'):
+            self.scene_manager.events.emit(
+                RegistrationEvents.REGISTRATION_POINT_SIZE_CHANGED,
+                size=value / 10.0
             )
-            btn.clicked.connect(lambda: self.import_panel.show_under(btn))
-        except (ImportError, ModuleNotFoundError):
-            btn.setEnabled(False)
-
-    def _add_selection_modes(self):
-        self.group = QtGui.QActionGroup(self)
-        self.group.setExclusive(True)
-
-        actions = [
-            (get_icon("cursor.svg", QtWidgets.QStyle.StandardPixmap.SP_ArrowForward), tr("toolbar_container.select", "Seleção"),
-             "select"),
-            (get_icon("add_point.svg", QtWidgets.QStyle.StandardPixmap.SP_CommandLink),
-             tr("toolbar_container.add_point", "Adicionar Pontos"), "add_point")
-        ]
-
-        for icon, text, data in actions:
-            action = QtGui.QAction(icon, text, self)
-            action.setCheckable(True)
-            action.setData(data)
-            if data == "select": action.setChecked(True)
-            self.group.addAction(action)
-            self.addAction(action)
-
-        self.group.triggered.connect(lambda a: self._emit(SceneEvents.INTERACTION_MODE_CHANGED, mode=a.data()))
-
-    def _on_mode_changed(self, action: QtGui.QAction):
-        self._emit(SceneEvents.INTERACTION_MODE_CHANGED, mode=action.data())
-
-    def _add_action_section(self):
-        self.toolbar.addAction(
-            get_icon("del_point.svg", QtWidgets.QStyle.StandardPixmap.SP_TrashIcon),
-            tr("toolbar_container.del_point", "Remover Último Ponto"),
-            lambda: self._emit(RegistrationEvents.REGISTRATION_DELETE_LAST_MARKER)
-        )
-
-        self.toolbar.addAction(
-            get_icon("home.svg", QtWidgets.QStyle.StandardPixmap.SP_BrowserReload),
-            tr("toolbar_container.reset_view", "Resetar Vista"),
-            lambda: self._emit(RegistrationEvents.REGISTRATION_RESET_LAYOUT)
-        )
-
-    def _add_view_section(self):
-        self.toolbar.addWidget(QtWidgets.QLabel(tr("toolbar_container.point_size", " Tamanho: ")))
-        self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slider.setRange(5, 50)
-        self.slider.setFixedWidth(80)
-        self.slider.setValue(20)
-        self.slider.valueChanged.connect(
-            lambda v: self._emit(RegistrationEvents.REGISTRATION_POINT_SIZE_CHANGED, size=v / 10.0)
-        )
-        self.toolbar.addWidget(self.slider)
-
-    def _add_spacer(self):
-        spacer = QtWidgets.QWidget()
-        spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Preferred)
-        self.toolbar.addWidget(spacer)
 
 
 if __name__ == "__main__":
@@ -138,12 +113,19 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    win = QtWidgets.QMainWindow()
+    main_window = QtWidgets.QMainWindow()
 
-    toolbar = RegistrationToolbar(scene_manager=None)
-    win.addToolBar(toolbar)
+    # Criar tool_manager e toolbar
+    tool_manager = ToolManager(context=main_window)
+    toolbar = RegistrationToolbar(
+        tool_manager=tool_manager,
+        scene_manager=None,
+        parent=main_window
+    )
 
-    win.resize(600, 400)
-    win.show()
+    main_window.addToolBar(toolbar)
+    main_window.setWindowTitle("Registration Toolbar")
+    main_window.resize(600, 400)
+    main_window.show()
 
     sys.exit(app.exec())

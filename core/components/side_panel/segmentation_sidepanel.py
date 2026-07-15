@@ -33,7 +33,7 @@ class ObjetoManagerWidget(BaseSidePanel):
 
     def __init__(self, context: Any, title: str = "Gerenciador de Objetos", parent: Optional[QtWidgets.QWidget] = None):
         # CORRIGIDO: Usar a assinatura correta da BaseSidePanel
-        super().__init__(context=context, title=title, parent=parent)
+        super().__init__(context=context, titulo=title, parent=parent)
         self.cats: Dict[str, QtWidgets.QTreeWidgetItem] = {}
         self.setup_ui()
 

@@ -283,7 +283,7 @@ if __name__ == "__main__":
     # CORRIGIDO: Usar a nova assinatura (context, titulo, parent)
     lista_widget = ObjetoManagerWidget(
         context=scene_manager,
-        title="Gerenciador de Objetos",
+        titulo="Gerenciador de Objetos",
         parent=None
     )
 

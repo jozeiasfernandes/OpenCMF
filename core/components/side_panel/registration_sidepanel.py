@@ -15,7 +15,7 @@ class RegistrationSidePanel(BaseSidePanel):
 
     # CORRIGIDO: Usar a assinatura correta da BaseSidePanel
     def __init__(self, context: Any, title: str = "Alinhar Objetos", parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(context=context, title=title, parent=parent)
+        super().__init__(context=context, titulo=title, parent=parent)
         self._is_initializing = False
 
         # Conectar eventos após a inicialização

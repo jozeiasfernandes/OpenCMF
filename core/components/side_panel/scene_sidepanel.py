@@ -1,10 +1,8 @@
 import sys
 import os
 from typing import Any, List, Optional, Tuple
-
 from PySide6 import QtWidgets, QtCore, QtGui
 
-# Importações corrigidas conforme a arquitetura
 from core.scene.events.scene_events import SceneEvents
 from core.components.bases.base_sidepanel import BaseSidePanel
 
@@ -17,34 +15,13 @@ _TIPO_EXIBICAO = {
 }
 
 
-def _fase_para_objeto(obj: Any) -> str:
-    md = getattr(obj, "metadata", None) or {}
-    g = md.get("group") or md.get("phase")
-    return str(g) if g else _TIPO_EXIBICAO.get(getattr(obj, "type", "generic"), str(obj.type))
-
-
-def _obter_tamanho_formatado(obj: Any) -> str:
-    md = getattr(obj, "metadata", None) or {}
-    size = md.get("size_bytes", sys.getsizeof(obj))
-    for unit in ['B', 'KB', 'MB', 'GB']:
-        if size < 1024: return f"{size:.1f} {unit}"
-        size /= 1024
-    return f"{size:.1f} TB"
-
-
-def _obter_local_exato(obj: Any) -> str:
-    md = getattr(obj, "metadata", None) or {}
-    path = md.get("file_path") or md.get("origin")
-    return path if (path and os.path.exists(path)) else str(md.get("storage", "RAM")).upper()
-
-
 class SceneMonitorSidePanel(BaseSidePanel):
     side_panel_name = "Monitor de Cena"
     itemSelected = QtCore.Signal(str)
     visibilityChanged = QtCore.Signal(str, bool)
 
-    def __init__(self, scene_manager=None, parent=None):
-        super().__init__(scene_manager=scene_manager, parent=parent)
+    def __init__(self, context=None, titulo="Monitor de Cena", parent=None):
+        super().__init__(context=context, titulo=titulo, parent=parent)
         self._bind_to_scene_manager()
 
     def setup_ui(self) -> None:
@@ -72,15 +49,18 @@ class SceneMonitorSidePanel(BaseSidePanel):
     def _bind_to_scene_manager(self):
         if not self.has_scene:
             self._lbl_status.setText("Inativo: Nenhuma cena conectada.")
+            self._lbl_status.show()
             return
 
         self._lbl_status.hide()
-        # Uso dos eventos conforme SceneEvents
-        self.event_bus.subscribe(SceneEvents.OBJECT_ADDED, self._refresh_from_scene)
-        self.event_bus.subscribe(SceneEvents.OBJECT_REMOVED, self._refresh_from_scene)
-        self.event_bus.subscribe(SceneEvents.OBJECT_UPDATED, self._on_object_updated)
-        self.event_bus.subscribe(SceneEvents.VISIBILITY_CHANGED, self._on_visibility_changed)
-        self.event_bus.subscribe(SceneEvents.SELECTION_CHANGED, self._on_selection_changed)
+
+        if self.event_bus:
+            self.event_bus.subscribe(SceneEvents.OBJECT_ADDED, self._refresh_from_scene)
+            self.event_bus.subscribe(SceneEvents.OBJECT_REMOVED, self._refresh_from_scene)
+            self.event_bus.subscribe(SceneEvents.OBJECT_UPDATED, self._on_object_updated)
+            self.event_bus.subscribe(SceneEvents.VISIBILITY_CHANGED, self._on_visibility_changed)
+            self.event_bus.subscribe(SceneEvents.SELECTION_CHANGED, self._on_selection_changed)
+
         self._refresh_from_scene()
 
     def _on_object_updated(self, object_id: str = None, **kwargs):
@@ -130,6 +110,25 @@ class SceneMonitorSidePanel(BaseSidePanel):
         if item := self.tree.currentItem():
             self.scene_manager.remove_object(item.data(0, QtCore.Qt.UserRole))  # Uso correto [cite: 60]
 
+def _fase_para_objeto(obj: Any) -> str:
+    md = getattr(obj, "metadata", None) or {}
+    g = md.get("group") or md.get("phase")
+    return str(g) if g else _TIPO_EXIBICAO.get(getattr(obj, "type", "generic"), str(obj.type))
+
+
+def _obter_tamanho_formatado(obj: Any) -> str:
+    md = getattr(obj, "metadata", None) or {}
+    size = md.get("size_bytes", sys.getsizeof(obj))
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size < 1024: return f"{size:.1f} {unit}"
+        size /= 1024
+    return f"{size:.1f} TB"
+
+
+def _obter_local_exato(obj: Any) -> str:
+    md = getattr(obj, "metadata", None) or {}
+    path = md.get("file_path") or md.get("origin")
+    return path if (path and os.path.exists(path)) else str(md.get("storage", "RAM")).upper()
 
 if __name__ == "__main__":
     from core.scene.scene_object import SceneObject
@@ -143,12 +142,16 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
     bus = EventBus()
+
     # Instanciação necessária para o SceneManager
     sm = SceneManager(
         SceneState(), bus, ObjectRegistry(), ActorRegistry(),
         SelectionManager(SceneState(), bus), ObjectImporter(patient_path=".")
     )
 
-    win = SceneMonitorSidePanel(scene_manager=sm)
+    # CORREÇÃO: Passar os argumentos exigidos pela classe base (context e titulo)
+    # A classe SceneMonitorSidePanel deve ter sido ajustada no seu __init__
+    # para aceitar esses parâmetros ou repassá-los ao super().
+    win = SceneMonitorSidePanel(context=sm, titulo="Monitor de Cena")
     win.show()
     sys.exit(app.exec())

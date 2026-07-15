@@ -76,3 +76,10 @@ class BaseSidePanel(QtWidgets.QDockWidget):
         if hasattr(self, '_logic'):
             self._logic.dispose()
         self._is_loaded = False
+
+    @property
+    def has_scene(self) -> bool:
+        """
+        Retorna True se o gerenciador de cena estiver instanciado e disponível.
+        """
+        return self.scene_manager is not None
