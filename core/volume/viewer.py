@@ -2,7 +2,7 @@ import vtk
 import os
 import json
 from PySide6 import QtWidgets, QtCore
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 from core.components.central_area.viewer_2d_central_area import Viewer2D_Widget_CentralArea
 from core.components.central_area.viewer_3d_dicom_central_area import Viewer3D_Dicom_Widget_CentralArea
@@ -11,6 +11,7 @@ from core.components.toolbars.viewer_toolbar import VolumeViewerToolbar
 from .viewer_utils.viewer_renderers import ViewerRenderers
 from core.scene.scene_object import SceneObject
 from core.scene.events.scene_events import SceneEvents
+
 
 
 class VolumeViewerWidget(QtWidgets.QWidget):
@@ -23,20 +24,26 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     VIEW_UP = {"Axial": (0, -1, 0), "Sagital": (0, 0, 1), "Coronal": (0, 0, 1)}
     CORES = {"Axial": "#D32F2F", "Sagital": "#FBC02D", "Coronal": "#388E3C", "3D": "#1976D2"}
 
-    def __init__(self, event_bus, object_registry, parent=None):
+    def __init__(self, event_bus: Any, object_registry: Any, parent=None):
         super().__init__(parent)
+
+        if event_bus is None:
+            raise ValueError("VolumeViewerWidget: event_bus não pode ser None")
+        if object_registry is None:
+            raise ValueError("VolumeViewerWidget: object_registry não pode ser None")
 
         self.events = event_bus
         self.registry = object_registry
 
         self.vistas: Dict[str, QtWidgets.QWidget] = {}
         self.mappers_mpr: Dict[str, vtk.vtkImageResliceMapper] = {}
-        self.events.subscribe(SceneEvents.OBJECT_ADDED, self._on_object_added)
 
         self.volume_object: Optional[SceneObject] = None
-
         self.opacity_function = vtk.vtkPiecewiseFunction()
         self.color_function = vtk.vtkColorTransferFunction()
+
+        # Inscrições no EventBus
+        self.events.subscribe(SceneEvents.OBJECT_ADDED, self._on_object_added)
         self.events.subscribe(SceneEvents.OBJECT_REMOVED, self._on_object_removed)
 
         self._init_paths()
@@ -61,8 +68,17 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         layout.setSpacing(0)
 
         self.toolbar = VolumeViewerToolbar(self.path_icones)
-        self.toolbar.layoutChanged.connect(self.configurar_layout)
-        self.toolbar.lutChanged.connect(self.apply_global_lut)
+
+        # Verificação de segurança: conecta apenas se o sinal existir
+        if hasattr(self.toolbar, 'layoutChanged'):
+            self.toolbar.layoutChanged.connect(self.configurar_layout)
+        else:
+            print("Aviso: 'layoutChanged' não encontrado na toolbar.")
+
+        if hasattr(self.toolbar, 'lutChanged'):
+            self.toolbar.lutChanged.connect(self.apply_global_lut)
+        else:
+            print("Aviso: 'lutChanged' não encontrado na toolbar.")
 
         self.grid_container = QtWidgets.QWidget()
         self.grid_layout = QtWidgets.QGridLayout(self.grid_container)
@@ -76,18 +92,45 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.configurar_layout("4 Quadrantes")
 
     def _create_viewers(self):
+        # 1. Viewers 2D
         for nome in self.PLANOS:
-            pane = Viewer2D_Widget_CentralArea(nome, self.CORES[nome])
+            pane = Viewer2D_Widget_CentralArea(
+                context=self,
+                titulo=nome,
+                cor=self.CORES[nome]
+            )
             pane.sliceChanged.connect(lambda v, n=nome: self.update_slice(n, v))
             pane.maximizeRequested.connect(lambda m, n=nome: self._handle_maximize(n, m))
-            pane.lutChanged.connect(self.apply_global_lut)
+
+            # Verificação de segurança para o sinal lutChanged
+            if hasattr(pane, 'lutChanged'):
+                pane.lutChanged.connect(self.apply_global_lut)
+
             self.vistas[nome] = pane
 
-        p3d = Viewer3D_Dicom_Widget_CentralArea("3D", self.CORES["3D"])
-        p3d.thresholdChanged.connect(self.update_threshold)
-        p3d.viewChanged.connect(self.update_3d_view)
-        p3d.presetChanged.connect(self.update_preset)
+        # 2. Viewer 3D
+        p3d = Viewer3D_Dicom_Widget_CentralArea(
+            context=self,
+            titulo="3D",
+            cor=self.CORES["3D"],
+            event_bus=self.events,
+            viewer_registry=self.registry
+        )
+
+        # Conexões seguras para o Viewer 3D
+        if hasattr(p3d, 'thresholdChanged'):
+            p3d.thresholdChanged.connect(self.update_threshold)
+        else:
+            print("Aviso: 'thresholdChanged' não encontrado em Viewer3D.")
+
+        if hasattr(p3d, 'viewChanged'):
+            p3d.viewChanged.connect(self.update_3d_view)
+
+        if hasattr(p3d, 'presetChanged'):
+            p3d.presetChanged.connect(self.update_preset)
+
         p3d.maximizeRequested.connect(lambda m: self._handle_maximize("3D", m))
+
         self.vistas["3D"] = p3d
 
     def _render_volume(self, volume: vtk.vtkImageData):

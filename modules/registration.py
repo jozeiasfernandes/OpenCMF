@@ -19,8 +19,8 @@ from core.scene.io.importer import ObjectImporter
 
 from core.workspace.contracts import IModule
 from core.components.central_area.viewer_registration_central_area import ViewerRegistration_Widget_CentralArea
-from core.components.side_panel.object_manager_sidepanel import ObjetoManagerWidget
-from core.components.side_panel.objetct_properties_sidepanel import ObjectPropertiesSidePanel
+from core.components.side_panel.object_manager_sidepanel import ObjectManager_SidePanel
+from core.components.side_panel.objetct_properties_sidepanel import ObjectProperties_SidePanel
 from core.components.toolbars.registration_toolbar import RegistrationToolbar
 
 logger = logging.getLogger("OpenCMF.RegistrationModule")
@@ -52,12 +52,12 @@ class Modulo(IModule):
             titulo="Registro"
         )
 
-        self.widget_objetos = ObjetoManagerWidget(
+        self.widget_objetos = ObjectManager_SidePanel(
             context=self.scene_manager,
             titulo="Registro"
         )
 
-        self.widget_propriedades = ObjectPropertiesSidePanel(
+        self.widget_propriedades = ObjectProperties_SidePanel(
             context=self.scene_manager,
             titulo="Propriedades"
         )

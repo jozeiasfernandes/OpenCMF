@@ -111,7 +111,7 @@ class ToolbarService:
             spec = importlib.util.spec_from_file_location(path.stem, path)
             module = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(module)
-            if hasattr(module, 'RegistrationSidePanel'):
+            if hasattr(module, 'Registration_SidePanel'):
                 return getattr(module.Component, 'toolbar_name', module.Component().windowTitle())
         except Exception:
             pass

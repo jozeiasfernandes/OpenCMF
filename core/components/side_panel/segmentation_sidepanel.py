@@ -4,7 +4,7 @@ from modules.mod_patients.ui_components import criar_linha_arquivo
 from core.components.bases.base_sidepanel import BaseSidePanel
 
 
-class SegmentacaoWidget(BaseSidePanel):
+class Segmentation_SidePanel(BaseSidePanel):
     pathChanged = QtCore.Signal(str)
     thresholdChanged = QtCore.Signal(int)
     solicitarMascara = QtCore.Signal()
@@ -136,7 +136,7 @@ class SegmentacaoWidget(BaseSidePanel):
 
 
 # Mantém o Component para compatibilidade com o sistema de plugins
-Component = SegmentacaoWidget
+Component = Segmentation_SidePanel
 
 if __name__ == "__main__":
     import sys
@@ -158,7 +158,7 @@ if __name__ == "__main__":
     window.resize(400, 500)
 
     # Criar o widget como um dockable panel
-    widget = SegmentacaoWidget(context)
+    widget = Segmentation_SidePanel(context)
 
     # Adicionar como dock widget na janela principal
     window.addDockWidget(QtCore.Qt.LeftDockWidgetArea, widget)

@@ -8,6 +8,7 @@ from vtkmodules.util import numpy_support
 
 class DicomEngine:
     def __init__(self):
+        self._vtk_volume = None
         self.last_spacing = (1.0, 1.0, 1.0)
         self.last_origin = (0.0, 0.0, 0.0)
 
@@ -107,3 +108,7 @@ class DicomEngine:
 
         chave_principal = max(grupos, key=lambda k: len(grupos[k]))
         return grupos[chave_principal]
+
+    @property
+    def vtk_volume(self):
+        return self._vtk_volume

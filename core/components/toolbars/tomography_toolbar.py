@@ -1,6 +1,6 @@
-from __future__ import annotations
+from PySide6 import QtCore, QtWidgets
 
-from core.components.bases.base_toolbar import BaseToolbar
+from core.components.bases.base_toolbar import BaseToolbar, ToolData
 from core.scene.scene_manager import SceneManager
 
 # Ferramentas
@@ -14,11 +14,14 @@ from core.volume.lookup_table.lut_presets import LUTPresets
 
 
 class TomographyToolbar(BaseToolbar):
+    lutChanged = QtCore.Signal(str)
+    layoutChanged = QtCore.Signal(str)
+
     def __init__(self, context, parent=None):
-        # Call parent constructor with context as first argument
         super().__init__(context, "Tomografia", parent)
 
-        # Instanciação das ferramentas
+        self._validation_state = False
+
         self.tools = {
             "open": OpenDicomTool(),
             "validate": ValidateDicomTool(),
@@ -28,37 +31,64 @@ class TomographyToolbar(BaseToolbar):
             "color": ColorMapTool(),
         }
 
-        # Injeta o contexto em todas as ferramentas
         for tool in self.tools.values():
             tool.context = context
 
+        self.setup_ui()
+
     def setup_ui(self):
-        from PySide6 import QtWidgets
+        # 1. Ajuste dos botões de ferramenta
+        tools_config = [
+            ("open", "📁 Open", "Abrir arquivo DICOM"),
+            ("validate", "🔍 Validate", "Validar arquivos DICOM"),
+            ("save", "💾 Save", "Salvar volume .vti"),
+            ("reset", "🔄 Reset", "Resetar visualização")
+        ]
 
-        self.add_tool_button("📁 Open", self.tools["open"].on_activate)
-        self.add_tool_button("🔍 Validate", self.tools["validate"].on_activate)
-
-        self.btn_load = QtWidgets.QPushButton("⌛ Load Volume")
-        self.addWidget(self.btn_load)
-
-        self.add_tool_button("💾 Save", self.tools["save"].on_activate)
-        self.add_tool_button("🔄 Reset", self.tools["reset"].on_activate)
+        for key, display, tooltip in tools_config:
+            self.add_tool_button(ToolData(
+                name=key,
+                display_name=display,
+                icon_path=None,
+                tool_tip=tooltip,
+                callback=self.tools[key].on_activate
+            ))
 
         self.addSeparator()
 
-        # Layout
+        # 2. Botão de carga
+        self.btn_load = QtWidgets.QPushButton("⌛ Load Volume")
+        self.addWidget(self.btn_load)
+
+        self.addSeparator()
+
+        # 3. Layout (Widget de controle com sinal)
         self.addWidget(QtWidgets.QLabel("Layout:"))
         self.combo_layout = QtWidgets.QComboBox()
         self.combo_layout.addItems(["4 Quadrantes", "3D", "Axial", "Sagital", "Coronal"])
-        self.combo_layout.currentTextChanged.connect(self.tools["layout"].apply_layout)
+        # Conectado ao método ponte
+        self.combo_layout.currentTextChanged.connect(self._on_layout_changed)
         self.addWidget(self.combo_layout)
 
-        # Color Map (LUT)
+        # 4. Color Map (Widget de controle com sinal)
         self.addWidget(QtWidgets.QLabel("LUT:"))
         self.combo_color = QtWidgets.QComboBox()
         self.combo_color.addItems(list(LUTPresets.PRESETS.keys()))
-        self.combo_color.currentTextChanged.connect(self.tools["color"].apply_lut)
+        # Conectado ao método ponte
+        self.combo_color.currentTextChanged.connect(self._on_lut_changed)
         self.addWidget(self.combo_color)
+
+    def set_validation_state(self, state: bool):
+        """Método chamado pelo módulo para indicar que o DICOM foi validado."""
+        self._validation_state = state
+
+    def _on_layout_changed(self, text):
+        self.tools["layout"].apply_layout(text)
+        self.layoutChanged.emit(text)
+
+    def _on_lut_changed(self, text):
+        self.tools["color"].apply_lut(text)
+        self.lutChanged.emit(text)
 
 
 if __name__ == "__main__":

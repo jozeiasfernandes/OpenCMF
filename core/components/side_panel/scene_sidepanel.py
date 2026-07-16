@@ -15,7 +15,7 @@ _TIPO_EXIBICAO = {
 }
 
 
-class SceneMonitorSidePanel(BaseSidePanel):
+class SceneMonitor_SidePanel(BaseSidePanel):
     side_panel_name = "Monitor de Cena"
     itemSelected = QtCore.Signal(str)
     visibilityChanged = QtCore.Signal(str, bool)
@@ -150,8 +150,8 @@ if __name__ == "__main__":
     )
 
     # CORREÇÃO: Passar os argumentos exigidos pela classe base (context e titulo)
-    # A classe SceneMonitorSidePanel deve ter sido ajustada no seu __init__
+    # A classe SceneMonitor_SidePanel deve ter sido ajustada no seu __init__
     # para aceitar esses parâmetros ou repassá-los ao super().
-    win = SceneMonitorSidePanel(context=sm, titulo="Monitor de Cena")
+    win = SceneMonitor_SidePanel(context=sm, titulo="Monitor de Cena")
     win.show()
     sys.exit(app.exec())

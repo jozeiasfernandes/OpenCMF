@@ -20,7 +20,7 @@ _TIPO_CAT = {
 _CAT_TIPO = {v: k for k, v in _TIPO_CAT.items()}
 
 
-class ObjetoManagerWidget(BaseSidePanel):
+class ObjectManager_SidePanel(BaseSidePanel):
     side_panel_name = "Gerenciador de Objetos"
 
     # Sinais
@@ -281,7 +281,7 @@ if __name__ == "__main__":
     window.setWindowTitle("OpenCMF - Teste de Gerenciador")
 
     # CORRIGIDO: Usar a nova assinatura (context, titulo, parent)
-    lista_widget = ObjetoManagerWidget(
+    lista_widget = ObjectManager_SidePanel(
         context=scene_manager,
         titulo="Gerenciador de Objetos",
         parent=None

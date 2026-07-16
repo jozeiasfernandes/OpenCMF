@@ -5,7 +5,7 @@ from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 from core.components.bases.base_sidepanel import BaseSidePanel
 
 
-class RegistrationSidePanel(BaseSidePanel):
+class Registration_SidePanel(BaseSidePanel):
     side_panel_name = "Alinhar Objetos"
 
     solicitarAlinhamento = QtCore.Signal()
@@ -166,7 +166,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
 
     # CORRIGIDO: Usar a nova assinatura
-    panel = RegistrationSidePanel(context=None, title="Alinhar Objetos")
+    panel = Registration_SidePanel(context=None, title="Alinhar Objetos")
     panel.setup_component()
     panel.resize(300, 400)
     panel.show()

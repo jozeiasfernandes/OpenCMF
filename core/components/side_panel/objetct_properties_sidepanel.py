@@ -8,10 +8,10 @@ from core.components.bases.base_sidepanel import BaseSidePanel
 
 
 # ---------------------------------------------------------------------------
-# ObjectPropertiesSidePanel (Painel Principal — Mantido no topo)
+# ObjectProperties_SidePanel (Painel Principal — Mantido no topo)
 # ---------------------------------------------------------------------------
 
-class ObjectPropertiesSidePanel(BaseSidePanel):
+class ObjectProperties_SidePanel(BaseSidePanel):
     side_panel_name = "Propriedades do Objeto"
     toolbox_name = "Propriedades"
 
@@ -252,7 +252,7 @@ if __name__ == "__main__":
     win.resize(400, 860)
 
     # CORRIGIDO: Passar context e titulo
-    comp = ObjectPropertiesSidePanel(
+    comp = ObjectProperties_SidePanel(
         context=None,  # Ou passe um SceneManager se disponível
         titulo="Propriedades",
         parent=None

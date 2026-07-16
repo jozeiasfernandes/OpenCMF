@@ -1,14 +1,13 @@
 from typing import Dict, Optional, Any
 from PySide6 import QtWidgets
 
-
 from core.workspace.contracts import IModule
 
 from core.scene.events.scene_events import SceneEvents
 from core.scene.events.event_bus import EventBus
 from core.scene.utils.factory import SceneObjectFactory
 from core.volume.segmentation_engine import SegmentacaoEngine
-from core.components.side_panel.segmentation_sidepanel import SegmentacaoSidePanel
+from core.components.side_panel.segmentation_sidepanel import Segmentation_SidePanel
 
 
 class Modulo(IModule):
@@ -19,7 +18,7 @@ class Modulo(IModule):
 
         self.engine_seg = SegmentacaoEngine()
 
-        self.widget_seg = SegmentacaoSidePanel(context=self.scene_manager, title="Segmentação")
+        self.widget_seg = Segmentation_SidePanel(context=self.scene_manager, title="Segmentação")
 
         self._conectar_sinais()
 
