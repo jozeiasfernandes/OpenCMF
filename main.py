@@ -72,7 +72,8 @@ class MainWindow(QtWidgets.QMainWindow):
         ModuleFactory.set_shared_dependencies(
             project_service=self.project_service,
             scene_manager=self.scene_manager,
-            event_bus=self.event_bus
+            event_bus=self.event_bus,
+            object_registry=self.object_registry
         )
 
         self.current_patient_path: Optional[str] = None
@@ -241,8 +242,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def sync_active_module(self):
         module = self.workspace.get_modulo_ativo()
-        if module and self.current_patient_path and hasattr(module, 'inicializar'):
+        if not module:
+            return
+
+        widget_visual = module.get_main_widget()
+
+        if self.current_patient_path and hasattr(module, 'inicializar'):
             module.inicializar(self.current_patient_path)
+
+        if isinstance(widget_visual, QtWidgets.QWidget):
+            widget_visual.update()
+            if not widget_visual.isVisible():
+                widget_visual.show()
 
     def on_step_complete(self, module: QtWidgets.QWidget):
         path = getattr(module, 'pasta_paciente', None)

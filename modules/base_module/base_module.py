@@ -5,19 +5,22 @@ from PySide6 import QtWidgets, QtCore
 class ModuloBase(QtWidgets.QWidget):
     concluido = QtCore.Signal()
 
-    def __init__(self, scene_manager: Optional[Any] = None, **kwargs):
-        super().__init__()
+    def __init__(self, scene_manager: Optional[Any] = None, parent: Optional[QtWidgets.QWidget] = None, **kwargs):
+        super().__init__(parent=parent)
+
         self.scene_manager = scene_manager
         self.project_service = kwargs.get("project_service")
-        self.pasta_paciente: Optional[str] = None
+        self.pasta_paciente = kwargs.get("pasta_paciente")
+
+        self.setLayout(QtWidgets.QVBoxLayout())
+        self.layout().setContentsMargins(0, 0, 0, 0)
+
+        self.viewer: Optional[QtWidgets.QWidget] = None
 
 
     def get_main_widget(self) -> QtWidgets.QWidget:
-        """
-        O contrato IModule exige get_main_widget.
-        Aqui redirecionamos para o método legado get_workspace.
-        """
-        return self.get_workspace()
+        """Retorna o widget principal. Se não existir, retorna o próprio módulo."""
+        return self.viewer if self.viewer is not None else self
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         """

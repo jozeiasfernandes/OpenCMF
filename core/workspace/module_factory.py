@@ -37,7 +37,6 @@ class ModuleFactory:
         try:
             instance = module_class(**init_args)
         except Exception as e:
-            # O log de erro agora captura o traceback completo e os argumentos tentados
             logger.error(f"Falha ao instanciar o módulo '{module_id}' com args {list(init_args.keys())}: {e}",
                          exc_info=True)
             raise RuntimeError(f"Erro ao instanciar o módulo '{module_id}': {e}") from e

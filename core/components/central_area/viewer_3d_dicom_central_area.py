@@ -18,34 +18,27 @@ class Viewer3D_Dicom_Widget_CentralArea(CentralAreaBase):
 
 
     def __init__(self, context, title: str, cor: str, event_bus, viewer_registry, parent=None):
-        # 1. Certifique-se de que a base inicializa tudo corretamente
         super().__init__(context=context, title=title, cor_identificacao=cor, parent=parent)
+
+        self.id = title.replace(" ", "_").lower()
 
         self._event_bus = None
         self.event_bus = event_bus
         self.viewer_registry = viewer_registry
 
-        # 2. Registra o objeto
-        self.viewer_registry.register(title, self)
+        self.viewer_registry.register(self)
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
         self.path_icons = os.path.abspath(os.path.join(base_dir, "..", "..", "..", "icons"))
 
-        # 3. Garante a criação do widget
         self.setup_component()
 
-        # 4. Verificação robusta
         if hasattr(self, 'vtkWidget') and self.vtkWidget is not None:
             self.vtkWidget.installEventFilter(self)
         else:
-            # Se cair aqui, a CentralAreaBase não está criando o vtkWidget
             raise RuntimeError("Viewer3D: O vtkWidget não foi criado. Verifique a CentralAreaBase!")
 
     def setup_component(self):
-        """
-        Verifique se este método na base está criando o self.vtkWidget.
-        Se não estiver, adicione a lógica de criação aqui.
-        """
         super().setup_component()
 
     def eventFilter(self, source, event):

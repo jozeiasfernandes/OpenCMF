@@ -16,54 +16,51 @@ from core.workspace.contracts import IModule
 
 from core.scene.events.event_bus import EventBus
 from core.scene.registry.actor_registry import ActorRegistry
+from modules.base_module.base_module import ModuloBase
 
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
-class Modulo(IModule):
-    def __init__(self, pasta_paciente: Optional[str] = None,
-                 event_bus: Optional[Any] = None,
-                 actor_registry: Optional[Any] = None,
-                 tool_manager: Optional[Any] = None,  # Adicionado
-                 settings: Optional[Any] = None,  # Adicionado
-                 **kwargs):
-        super().__init__()
+class Modulo(ModuloBase):
+    def __init__(self, **kwargs):
+        # 1. Extrai o scene_manager para passar como argumento nomeado para o ModuloBase
+        scene_manager = kwargs.pop("scene_manager", None)
+
+        # 2. Chama o construtor da base (ModuloBase é um QWidget, logo 'self' agora é um QWidget válido)
+        super().__init__(scene_manager=scene_manager, **kwargs)
 
         self.nome = "Tomografia"
         self.id = "modulo.tomografia"
 
-        self.pasta_paciente = pasta_paciente or kwargs.get("pasta_paciente")
-        self.event_bus = event_bus or kwargs.get("event_bus")
-        self.actor_registry = actor_registry or kwargs.get("actor_registry")
         self.project_service = kwargs.get("project_service")
+        self.scene_manager = scene_manager
+        self.event_bus = kwargs.get("event_bus")
+        self.object_registry = kwargs.get("object_registry")
 
-        # Inicializa o AppContext que a Toolbar agora exige
         self.app_context = AppContext(
-            tool_manager=tool_manager or kwargs.get("tool_manager"),
-            scene_manager=self.actor_registry,  # Mapeando o registro atual para o contexto
-            settings=settings or kwargs.get("settings")
+            tool_manager=kwargs.get("tool_manager"),
+            scene_manager=self.scene_manager,
+            settings=kwargs.get("settings")
         )
 
         self.engine = DicomEngine()
-        self.toolbar_handler: Optional[TomographyToolbar] = None
-        self.viewer: Optional[VolumeViewerWidget] = None
-        self.caminho_dicom: Optional[str] = None
+        self.toolbar_handler = None
+        self.viewer = None
         self._is_initialized = False
 
-        if self.pasta_paciente:
-            self._carregar_configs_projeto()
-
     def get_main_widget(self) -> QtWidgets.QWidget:
-        """Contrato IModule: Retorna o widget central (Viewer)."""
         if self.viewer is None:
-            # Use os atributos definidos no __init__, não o getattr
             self.viewer = VolumeViewerWidget(
                 event_bus=self.event_bus,
-                object_registry=self.actor_registry # Aqui estava o erro
+                object_registry=self.object_registry,
+                parent=self
             )
 
-            if self.engine.vtk_volume:
-                self.viewer.set_volume(self.engine.vtk_volume)
+            if self.layout() is None:
+                self.setLayout(QtWidgets.QVBoxLayout())
+                self.layout().setContentsMargins(0, 0, 0, 0)
+
+            self.layout().addWidget(self.viewer)
 
         return self.viewer
 
@@ -157,30 +154,35 @@ if __name__ == "__main__":
     path_teste = os.path.abspath("./debug_paciente")
     os.makedirs(os.path.join(path_teste, "projeto"), exist_ok=True)
 
+    # Instanciando dependências mockadas corretamente
     bus = EventBus()
     registry = ActorRegistry()
 
+    # Adicionado project_service=None para manter o contrato da classe Modulo
     modulo = Modulo(
         pasta_paciente=path_teste,
         event_bus=bus,
         actor_registry=registry,
         tool_manager=MockToolManager(),
-        settings=MockSettings()
+        settings=MockSettings(),
+        project_service=None
     )
 
     janela_teste = QtWidgets.QMainWindow()
     janela_teste.setWindowTitle(f"Debug Mode: {modulo.nome}")
     janela_teste.resize(1200, 800)
 
-    # --- CORREÇÃO AQUI ---
-    # Captura a instância da toolbar para garantir a inicialização
+    # --- CORREÇÃO: Inicialização única ---
     toolbar = modulo.get_workspace_toolbar()
     if toolbar:
-        # Chama explicitamente a inicialização da BaseToolbar
-        toolbar.initialize()
+        # A inicialização já ocorre dentro de get_workspace_toolbar()
+        # Não é necessário chamar toolbar.initialize() novamente aqui
         janela_teste.addToolBar(toolbar)
 
-    janela_teste.setCentralWidget(modulo.get_main_widget())
+    # Define o widget central e força o redimensionamento do layout
+    widget_central = modulo.get_main_widget()
+    janela_teste.setCentralWidget(widget_central)
+
     janela_teste.show()
 
     try:
