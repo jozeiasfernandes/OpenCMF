@@ -1,22 +1,20 @@
 from PySide6 import QtWidgets, QtCore
 from modules.base_module.base_module import ModuloBase
-# Importe o protocolo para garantir a tipagem (opcional, mas recomendado)
 from core.workspace.contracts import IModule
 
 class Modulo(ModuloBase):
     def __init__(self):
         super().__init__()
 
-
+    # Implementação de IModule
     def get_main_widget(self) -> QtWidgets.QWidget:
-        # Substitui o get_workspace
+        """Substitui o antigo get_workspace."""
         label = QtWidgets.QLabel("ÁREA DE TRAÇADO CEFALOMÉTRICO 2D/3D")
         label.setAlignment(QtCore.Qt.AlignCenter)
         return label
 
     def get_toolboxes(self) -> dict[str, QtWidgets.QWidget]:
-        # Substitui o get_toolbox. O layout builder espera um dicionário.
-        # Isso permite que o sistema organize múltiplos painéis se necessário.
+        """Substitui o antigo get_toolbox retornando um dicionário de painéis."""
         widget = QtWidgets.QWidget()
         layout = QtWidgets.QVBoxLayout(widget)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -28,32 +26,41 @@ class Modulo(ModuloBase):
 
         return {"Ferramentas": widget}
 
+    def get_workspace_toolbar(self) -> None:
+        """Opcional: Retorna uma QToolBar se necessário."""
+        return None
+
     def cleanup(self) -> None:
-        # Necessário para liberar recursos ao fechar o módulo
+        """Limpeza de recursos."""
         print("Limpeza do módulo de Cefalometria realizada.")
 
 
 if __name__ == "__main__":
     import sys
 
-    # Criação da aplicação necessária para qualquer interface PySide6
+    # Criação da aplicação
     app = QtWidgets.QApplication(sys.argv)
 
     # Instancia o seu módulo
     modulo = Modulo()
 
     # Cria uma janela principal para envolver o módulo
-    # Isso simula o comportamento da aplicação host
     janela = QtWidgets.QMainWindow()
     janela.setWindowTitle("Teste do Módulo: Cefalometria")
     janela.resize(800, 600)
 
-    # Configura o layout da janela com o workspace e a toolbox
+    # Configura o layout da janela
     central_widget = QtWidgets.QWidget()
     layout_principal = QtWidgets.QHBoxLayout(central_widget)
 
-    layout_principal.addWidget(modulo.get_toolbox(), stretch=1)
-    layout_principal.addWidget(modulo.get_workspace(), stretch=3)
+    # Acessa os novos métodos do protocolo IModule
+    toolboxes = modulo.get_toolboxes()
+    main_widget = modulo.get_main_widget()
+
+    # Adiciona a toolbox ("Ferramentas") e o widget principal
+    # Usamos o dicionário retornado pelo get_toolboxes
+    layout_principal.addWidget(toolboxes["Ferramentas"], stretch=1)
+    layout_principal.addWidget(main_widget, stretch=3)
 
     janela.setCentralWidget(central_widget)
 

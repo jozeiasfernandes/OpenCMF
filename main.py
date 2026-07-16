@@ -155,9 +155,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         except (json.JSONDecodeError, OSError) as e:
             logger.error(f"Erro ao carregar o workflow '{config_path}': {e}")
-            self.workspace.status_bar_manager.show_message(
-                f"Erro ao carregar fluxo: {e}"
-            )
+            self.workspace.status_bar_manager.showMessage(f"Erro ao carregar fluxo: {e}")
 
     def _load_workflow_modules(self):
         if not self.workflow:
@@ -184,9 +182,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
             except Exception as e:
                 logger.error(f"Erro ao carregar o módulo '{module_id}': {e}")
-                self.workspace.status_bar_manager.show_message(
-                    f"Erro ao carregar {module_id}", 3000
-                )
+                self.workspace.status_bar_manager.showMessage(f"Erro ao carregar {module_id}", 3000)
 
         # Ativa o workspace
         self.stack.setCurrentWidget(self.workspace)

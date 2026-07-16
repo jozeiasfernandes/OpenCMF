@@ -23,7 +23,7 @@ class RegistrationToolbar(BaseToolbar):
                  scene_manager: Optional["SceneManager"] = None,
                  parent: Optional[QtWidgets.QWidget] = None):
 
-        # ✅ CHAMADA CORRETA: (context, title, parent)
+        # ✅ CHAMADA CORRETA: (context, titulo, parent)
         super().__init__(context=scene_manager, title="Registration", parent=parent)
 
         # Guardar referências

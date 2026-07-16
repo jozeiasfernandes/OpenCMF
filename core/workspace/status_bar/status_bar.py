@@ -28,12 +28,10 @@ class StatusBarManager(QtWidgets.QStatusBar):
 
     def showMessage(self, message: str, timeout: int = 0):
         """
-        Sobrescreve/complementa o método nativo showMessage para
-        atualizar o seu label personalizado.
+        Atualiza o label personalizado e ignora o mecanismo interno do QStatusBar
+        para manter o controle total sobre a exibição da mensagem.
         """
         self.message_label.setText(message)
-        # Chama o método da classe pai para manter a compatibilidade
-        super().showMessage(message, timeout)
 
     def update_message(self, message: str, timeout: int = 0):
         """Método de conveniência que chama o showMessage."""
