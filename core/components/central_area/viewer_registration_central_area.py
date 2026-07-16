@@ -25,9 +25,9 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
     pontoAdicionado = QtCore.Signal(str, list)
     requisitarCarregamentoObjeto = QtCore.Signal(str, str)
 
-    def __init__(self, context: Any, titulo: str = "Registro", parent: Optional[QtWidgets.QWidget] = None):
-        # Inicializar CentralAreaBase com context e titulo
-        super().__init__(context=context, titulo=titulo, cor_identificacao="#202020", usar_vtk=False, parent=parent)
+    def __init__(self, context: Any, title: str = "Registro", parent: Optional[QtWidgets.QWidget] = None):
+        # Inicializar CentralAreaBase com context e title
+        super().__init__(context=context, title=title, cor_identificacao="#202020", usar_vtk=False, parent=parent)
 
         self.shortcuts = get_shortcuts_by_scope("view3d")
         self.current_mode = "select"
@@ -293,7 +293,7 @@ if __name__ == "__main__":
     window.resize(1024, 768)
 
     # Usar a nova assinatura com context
-    registration_widget = ViewerRegistration_Widget_CentralArea(context=None, titulo="Registro")
+    registration_widget = ViewerRegistration_Widget_CentralArea(context=None, title="Registro")
     window.setCentralWidget(registration_widget)
 
     window.show()

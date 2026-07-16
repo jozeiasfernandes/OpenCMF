@@ -17,16 +17,16 @@ class Viewer3D_Dicom_Widget_CentralArea(CentralAreaBase):
     presetChanged = QtCore.Signal(str)
 
 
-    def __init__(self, context, titulo: str, cor: str, event_bus, viewer_registry, parent=None):
+    def __init__(self, context, title: str, cor: str, event_bus, viewer_registry, parent=None):
         # 1. Certifique-se de que a base inicializa tudo corretamente
-        super().__init__(context=context, titulo=titulo, cor_identificacao=cor, parent=parent)
+        super().__init__(context=context, title=title, cor_identificacao=cor, parent=parent)
 
         self._event_bus = None
         self.event_bus = event_bus
         self.viewer_registry = viewer_registry
 
         # 2. Registra o objeto
-        self.viewer_registry.register(titulo, self)
+        self.viewer_registry.register(title, self)
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
         self.path_icons = os.path.abspath(os.path.join(base_dir, "..", "..", "..", "icons"))
@@ -134,7 +134,7 @@ if __name__ == "__main__":
 
     window = Viewer3D_Dicom_Widget_CentralArea(
         context=mock_context, # Adicionado aqui
-        titulo="Teste DICOM Viewer",
+        title="Teste DICOM Viewer",
         cor="#2c3e50",
         event_bus=mock_event_bus,
         viewer_registry=mock_viewer_registry

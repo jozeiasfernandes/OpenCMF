@@ -118,7 +118,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _setup_appearance(self):
         self.setGeometry(150, 50, 1024, 650)
-        self.setWindowTitle(tr("main.window_title", settings.get("app_info", "titulo", "OpenCMF")))
+        self.setWindowTitle(tr("main.window_title", settings.get("app_info", "title", "OpenCMF")))
 
         theme = settings.get("preferencias", "tema", "dark")
 

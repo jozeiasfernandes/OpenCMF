@@ -12,10 +12,8 @@ class Segmentation_SidePanel(BaseSidePanel):
 
     side_panel_name = "Segmentação de Volumes"
 
-    def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None):
-        # Passa o título para o BaseSidePanel
+    def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None, **kwargs):
         super().__init__(context, self.side_panel_name, parent)
-        # Os sinais e configurações já estão definidos como atributos de classe
 
     def setup_ui(self) -> None:
         """Configura a interface do usuário."""

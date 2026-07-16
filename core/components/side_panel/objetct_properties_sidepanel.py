@@ -15,8 +15,8 @@ class ObjectProperties_SidePanel(BaseSidePanel):
     side_panel_name = "Propriedades do Objeto"
     toolbox_name = "Propriedades"
 
-    def __init__(self, context: Any, titulo: str = "Propriedades", parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(context=context, titulo=titulo, parent=parent)
+    def __init__(self, context: Any, title: str = "Propriedades", parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(context=context, title=title, parent=parent)
         self.current_object_id = None
         self.current_object_name = None
         self.patient_path = None
@@ -251,10 +251,10 @@ if __name__ == "__main__":
     win.setWindowTitle("OpenCMF — Properties Editor")
     win.resize(400, 860)
 
-    # CORRIGIDO: Passar context e titulo
+    # CORRIGIDO: Passar context e title
     comp = ObjectProperties_SidePanel(
         context=None,  # Ou passe um SceneManager se disponível
-        titulo="Propriedades",
+        title="Propriedades",
         parent=None
     )
 

@@ -6,10 +6,10 @@ from core.workspace.contracts import IModule
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 class Modulo(ModuloBase):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.id = "modulo.cefalometria"
 
-    # Implementação de IModule
     def get_main_widget(self) -> QtWidgets.QWidget:
         """Substitui o antigo get_workspace."""
         label = QtWidgets.QLabel("ÁREA DE TRAÇADO CEFALOMÉTRICO 2D/3D")
@@ -35,7 +35,7 @@ class Modulo(ModuloBase):
 
     def cleanup(self) -> None:
         """Limpeza de recursos."""
-        print("Limpeza do módulo de Cefalometria realizada.")
+        logger.info("Limpeza do módulo de Cefalometria realizada.")
 
 
 if __name__ == "__main__":

@@ -20,8 +20,8 @@ class SceneMonitor_SidePanel(BaseSidePanel):
     itemSelected = QtCore.Signal(str)
     visibilityChanged = QtCore.Signal(str, bool)
 
-    def __init__(self, context=None, titulo="Monitor de Cena", parent=None):
-        super().__init__(context=context, titulo=titulo, parent=parent)
+    def __init__(self, context=None, title="Monitor de Cena", parent=None):
+        super().__init__(context=context, title=title, parent=parent)
         self._bind_to_scene_manager()
 
     def setup_ui(self) -> None:
@@ -149,9 +149,9 @@ if __name__ == "__main__":
         SelectionManager(SceneState(), bus), ObjectImporter(patient_path=".")
     )
 
-    # CORREÇÃO: Passar os argumentos exigidos pela classe base (context e titulo)
+    # CORREÇÃO: Passar os argumentos exigidos pela classe base (context e title)
     # A classe SceneMonitor_SidePanel deve ter sido ajustada no seu __init__
     # para aceitar esses parâmetros ou repassá-los ao super().
-    win = SceneMonitor_SidePanel(context=sm, titulo="Monitor de Cena")
+    win = SceneMonitor_SidePanel(context=sm, title="Monitor de Cena")
     win.show()
     sys.exit(app.exec())

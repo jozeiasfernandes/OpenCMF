@@ -8,8 +8,8 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
     maximizeRequested = QtCore.Signal(bool)
     lutChanged = QtCore.Signal(str)
 
-    def __init__(self, context, titulo: str, cor: str, parent=None):
-        super().__init__(context=context, titulo=titulo, cor_identificacao=cor, parent=parent)
+    def __init__(self, context, title: str, cor: str, parent=None):
+        super().__init__(context=context, title=title, cor_identificacao=cor, parent=parent)
 
         self.is_maximized = False
         self.vtk_property = None
@@ -34,7 +34,7 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
         self.combo_proj = QtWidgets.QComboBox()
         self.combo_proj.addItems(["Axial", "Coronal", "Sagittal"])
         self.combo_proj.setFixedWidth(85)
-        self.combo_proj.setCurrentText(self.titulo)
+        self.combo_proj.setCurrentText(self.title)
 
         self.slider_corte = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider_corte.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
@@ -121,7 +121,7 @@ if __name__ == "__main__":
 
     viewer = Viewer2D_Widget_CentralArea(
         context=contexto_teste,
-        titulo="Axial",
+        title="Axial",
         cor="#2b2b2b"
     )
     viewer.resize(800, 600)

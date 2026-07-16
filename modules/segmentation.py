@@ -14,15 +14,15 @@ logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
 class Modulo(IModule):
-    def __init__(self, scene_manager: Optional[Any] = None, project_service: Any = None, event_bus: Any = None,
-                 **kwargs):
+    def __init__(self, scene_manager: Optional[Any] = None, project_service: Any = None,
+                 event_bus: Any = None, **kwargs):
         super().__init__()
         self.nome = "Segmentação"
         self.id = "modulo.segmentacao"
 
         self.scene_manager = scene_manager
-
         self.engine_seg = SegmentacaoEngine()
+
         self.widget_seg = Segmentation_SidePanel(context=self.scene_manager, title="Segmentação")
 
         self._conectar_sinais()

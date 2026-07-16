@@ -19,16 +19,13 @@ logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
 class Modulo(IModule):
-    def __init__(self, pasta_paciente: str, event_bus: Any, actor_registry: Any):
-        """
-        Adicionamos event_bus e actor_registry para satisfazer as dependências
-        do VolumeViewerWidget e do sistema de eventos do OpenCMF.
-        """
+    def __init__(self, pasta_paciente: str, event_bus: Any, actor_registry: Any, **kwargs):
         self.nome = "Tomografia"
         self.id = "modulo.tomografia"
         self.pasta_paciente = pasta_paciente
 
-        # Injeção de dependências essenciais
+        self.project_service = kwargs.get("project_service")
+
         self.event_bus = event_bus
         self.actor_registry = actor_registry
 

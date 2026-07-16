@@ -4,11 +4,16 @@ from core.workspace.contracts import IModule
 
 
 class ModuloTemplate:
-    def __init__(self):
-        """Inicialização leve: apenas estados internos."""
+    def __init__(self, **kwargs):
         self.id = "template.modulo"
         self._is_initialized = False
-        self.context: Dict[str, Any] = {}
+
+        # Armazena injeções úteis enviadas pelo factory
+        self.context = kwargs
+
+        # Extração opcional de dependências comuns
+        self.scene_manager = kwargs.get("scene_manager")
+        self.project_service = kwargs.get("project_service")
 
         # UI components placeholders
         self._main_widget: Optional[QtWidgets.QWidget] = None
@@ -28,9 +33,9 @@ class ModuloTemplate:
         print(f"Módulo {self.id} inicializado com sucesso.")
 
     def get_main_widget(self) -> QtWidgets.QWidget:
-        """Contrato IModule: Retorna o widget central."""
+        """Retorna o widget principal do módulo."""
         if not self._main_widget:
-            self._main_widget = self._construir_ui()
+            self._main_widget = QtWidgets.QLabel("Módulo Template Carregado")
         return self._main_widget
 
     def _construir_ui(self) -> QtWidgets.QWidget:
@@ -62,3 +67,30 @@ class ModuloTemplate:
         """Limpeza de recursos."""
         self._main_widget = None
         self._is_initialized = False
+
+
+if __name__ == "__main__":
+    import sys
+
+    app = QtWidgets.QApplication(sys.argv)
+    modulo = ModuloTemplate()
+
+    contexto_teste = {
+        "caminho_paciente": "C:/Dados/Paciente_Teste_01",
+        "project_service": None
+    }
+    modulo.initialize(contexto_teste)
+    janela = QtWidgets.QMainWindow()
+    janela.setWindowTitle(f"Teste de Interface: {modulo.id}")
+    janela.resize(1024, 768)
+    central = QtWidgets.QWidget()
+    layout = QtWidgets.QHBoxLayout(central)
+
+    toolboxes = modulo.get_toolboxes()
+    if toolboxes:
+        primeira_chave = list(toolboxes.keys())[0]
+        layout.addWidget(toolboxes[primeira_chave], stretch=1)
+    layout.addWidget(modulo.get_main_widget(), stretch=3)
+    janela.setCentralWidget(central)
+    janela.show()
+    sys.exit(app.exec())

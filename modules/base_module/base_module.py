@@ -5,12 +5,12 @@ from PySide6 import QtWidgets, QtCore
 class ModuloBase(QtWidgets.QWidget):
     concluido = QtCore.Signal()
 
-    def __init__(self, scene_manager: Optional[Any] = None):
+    def __init__(self, scene_manager: Optional[Any] = None, **kwargs):
         super().__init__()
         self.scene_manager = scene_manager
+        self.project_service = kwargs.get("project_service")
         self.pasta_paciente: Optional[str] = None
 
-    # --- Implementação do Contrato IModule ---
 
     def get_main_widget(self) -> QtWidgets.QWidget:
         """

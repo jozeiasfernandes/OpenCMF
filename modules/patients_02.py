@@ -16,19 +16,19 @@ logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 class Modulo:
     def __init__(self, project_service=None, caminho_paciente=None, **kwargs):
         """
-        O __init__ agora aceita explicitamente os argumentos injetados pelo Factory.
-        O **kwargs garante que, se o Factory passar algo novo no futuro, não quebrará.
+        Injeção robusta de dependências com fallback para o serviço de projeto.
         """
         self.id = "modulo.paciente"
         self._caminho_paciente = caminho_paciente
 
-        # Prioriza o serviço injetado, mas garante um fallback caso venha None
+        # Garante que project_service exista, evitando erros de atributo no futuro
         self.project_service = project_service or ProjectServiceHomePage(Path("patients"))
 
         # UI Principal
         self._main_widget = QtWidgets.QTabWidget()
         self._main_widget.setDocumentMode(True)
 
+        # Instanciação das abas (Passando o serviço injetado)
         self.tab_dados = PersonalDataTab(self.project_service)
         self.tab_arquivos = FileListTab(self.project_service)
         self.tab_fotos = PhotoTab(self.project_service)
@@ -39,15 +39,16 @@ class Modulo:
         self._main_widget.addTab(self.tab_fotos, "Fotografias")
         self._main_widget.addTab(self.tab_projeto, "Projeto")
 
-        # Conexões
-        self.tab_dados.concluido.connect(self._atualizar_pasta_abas)
+        # Conexões: Verifica se existe o atributo 'concluido' antes de conectar
+        if hasattr(self.tab_dados, 'concluido'):
+            self.tab_dados.concluido.connect(self._atualizar_pasta_abas)
 
         # Carregamento inicial
         if self._caminho_paciente:
             self._carregar_dados(self._caminho_paciente)
 
-    def get_main_widget(self) -> QtWidgets.QWidget:
-        """Retorna o widget central para o QStackedWidget do Workspace[cite: 67, 73]."""
+    def get_main_widget(self):
+        """Método necessário para conformidade com a interface de módulos."""
         return self._main_widget
 
     def get_workspace_toolbar(self) -> Optional[QtWidgets.QToolBar]:

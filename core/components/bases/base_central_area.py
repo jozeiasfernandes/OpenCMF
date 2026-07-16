@@ -11,10 +11,10 @@ class CentralAreaBase(QtWidgets.QWidget):
     Herda de QWidget e usa BaseComponent por composição.
     """
     cena_atualizada = QtCore.Signal()
-    def __init__(self, context, titulo="Central", cor_identificacao="#FFFFFF", usar_vtk=True, parent=None):
+    def __init__(self, context, title="Central", cor_identificacao="#FFFFFF", usar_vtk=True, parent=None):
         super().__init__(parent)
         self._logic = BaseComponent(context=context, parent=self)
-        self.titulo = titulo
+        self.title = title
         self.cor_id = cor_identificacao
         self.usar_vtk = usar_vtk
         self.vtkWidget = None
@@ -63,11 +63,11 @@ class CentralAreaBase(QtWidgets.QWidget):
 
         if self.usar_vtk and self.vtkWidget is None:
             self.vtkWidget = QVTKRenderWindowInteractor(self)
-            style = vtk.vtkInteractorStyleImage() if "3D" not in self.titulo else vtk.vtkInteractorStyleTrackballCamera()
+            style = vtk.vtkInteractorStyleImage() if "3D" not in self.title else vtk.vtkInteractorStyleTrackballCamera()
             self.vtkWidget.SetInteractorStyle(style)
             self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
 
-            self.indicator = QtWidgets.QLabel(self.titulo, self.vtkWidget)
+            self.indicator = QtWidgets.QLabel(self.title, self.vtkWidget)
             self.indicator.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
             self.indicator.setStyleSheet("color: white; background-color: rgba(0,0,0,0.5); padding: 5px;")
 

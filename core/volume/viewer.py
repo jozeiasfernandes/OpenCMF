@@ -96,7 +96,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         for nome in self.PLANOS:
             pane = Viewer2D_Widget_CentralArea(
                 context=self,
-                titulo=nome,
+                title=nome,
                 cor=self.CORES[nome]
             )
             pane.sliceChanged.connect(lambda v, n=nome: self.update_slice(n, v))
@@ -111,7 +111,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         # 2. Viewer 3D
         p3d = Viewer3D_Dicom_Widget_CentralArea(
             context=self,
-            titulo="3D",
+            title="3D",
             cor=self.CORES["3D"],
             event_bus=self.events,
             viewer_registry=self.registry

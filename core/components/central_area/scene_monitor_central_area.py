@@ -21,7 +21,7 @@ class SceneMonitorArea(CentralAreaBase):
 
     def __init__(self, modulo=None):
         # Inicializa a base_tool com título e cor de identificação
-        super().__init__(titulo="Monitor de Cena", cor_identificacao="#90CAF9")
+        super().__init__(title="Monitor de Cena", cor_identificacao="#90CAF9")
         self._modulo = modulo
         self._bound_bus = None
         self._callbacks = []
@@ -78,7 +78,7 @@ class SceneMonitorArea(CentralAreaBase):
 
     def __init__(self, modulo=None):
         # Inicializa a base_tool com título e cor de identificação
-        super().__init__(titulo="Monitor de Cena", cor_identificacao="#90CAF9")
+        super().__init__(title="Monitor de Cena", cor_identificacao="#90CAF9")
         self._modulo = modulo
         self._bound_bus = None
         self._callbacks = []

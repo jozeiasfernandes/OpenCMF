@@ -11,9 +11,9 @@ class BaseSidePanel(QtWidgets.QDockWidget):
     """
     side_panel_name: str = "Painel Lateral Genérico"
 
-    def __init__(self, context: Any, titulo: str, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, context: Any, title: str, parent: Optional[QtWidgets.QWidget] = None):
         # 1. Inicializa o QDockWidget (UI) através do super()
-        super().__init__(titulo, parent)
+        super().__init__(title, parent)
 
         # 2. Inicializa o BaseComponent como uma instância auxiliar (Composição)
         self._logic = BaseComponent(context=context, parent=self)

@@ -25,7 +25,7 @@ class SettingsManager:
         self.data = {
             "app_info": {
                 "id": "opencmf.surgicalplanning.1.0",
-                "titulo": "OpenCMF - Modular Surgical Planning",
+                "title": "OpenCMF - Modular Surgical Planning",
                 "version": "1.0.0"
             },
             "preferencias": {

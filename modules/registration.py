@@ -34,13 +34,15 @@ class Modulo(IModule):
         self._is_initialized = False
         self._subscribers = []
 
-        # O SceneManager é injetado ou criado aqui
         self.scene_manager = kwargs.get("scene_manager") or self._criar_scene_manager_padrao()
 
-        # Instancia widgets sem se preocupar com onde serão ancorados
-        self.widget_reg = ViewerRegistration_Widget_CentralArea(context=self.scene_manager, titulo="Registro")
-        self.widget_objetos = ObjectManager_SidePanel(context=self.scene_manager, titulo="Objetos")
-        self.widget_propriedades = ObjectProperties_SidePanel(context=self.scene_manager, titulo="Propriedades")
+        self.widget_reg = ViewerRegistration_Widget_CentralArea(context=self.scene_manager)
+        self.widget_objetos = ObjectManager_SidePanel(context=self.scene_manager)
+        self.widget_propriedades = ObjectProperties_SidePanel(context=self.scene_manager)
+
+        self.widget_reg.setWindowTitle("Registro")
+        self.widget_objetos.setWindowTitle("Objetos")
+        self.widget_propriedades.setWindowTitle("Propriedades")
 
     def _criar_scene_manager_padrao(self) -> SceneManager:
         bus = EventBus()

@@ -32,10 +32,10 @@ class ObjectManager_SidePanel(BaseSidePanel):
     objetoSelecionado = QtCore.Signal(str)
     requestSave = QtCore.Signal()
 
-    def __init__(self, context: Any, titulo: str = "Gerenciador de Objetos", parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, context: Any, title: str = "Gerenciador de Objetos", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(
             context=context,
-            titulo=titulo,
+            title=title,
             parent=parent
         )
         # O scene_manager já está disponível via self.scene_manager (propriedade da BaseSidePanel)
@@ -280,10 +280,10 @@ if __name__ == "__main__":
     window = QtWidgets.QMainWindow()
     window.setWindowTitle("OpenCMF - Teste de Gerenciador")
 
-    # CORRIGIDO: Usar a nova assinatura (context, titulo, parent)
+    # CORRIGIDO: Usar a nova assinatura (context, title, parent)
     lista_widget = ObjectManager_SidePanel(
         context=scene_manager,
-        titulo="Gerenciador de Objetos",
+        title="Gerenciador de Objetos",
         parent=None
     )
 
