@@ -48,3 +48,35 @@ class AddPointRegistrationTool(BaseTool):
     def on_deactivate(self) -> None:
         if self.context and hasattr(self.context, 'window') and self.context.window:
             self.context.window.unsetCursor()
+
+
+if __name__ == "__main__":
+    import sys
+    from unittest.mock import MagicMock
+
+    app = QtWidgets.QApplication(sys.argv)
+
+    mock_context = MagicMock()
+    mock_context.renderer = vtk.vtkRenderer()
+    mock_context.event_bus = MagicMock()
+    mock_context.window = None
+
+    tool = AddPointRegistrationTool()
+    tool.context = mock_context
+
+    window = QtWidgets.QMainWindow()
+    window.setWindowTitle(f"Teste Isolado: {tool.display_name}")
+
+    widget_central = QtWidgets.QWidget()
+    layout = QtWidgets.QVBoxLayout(widget_central)
+    btn_info = QtWidgets.QLabel("A ferramenta está ativa. Clique na cena (simulado).")
+    layout.addWidget(btn_info)
+
+    window.setCentralWidget(widget_central)
+    window.resize(400, 200)
+    window.show()
+
+    print(f"Testando a ferramenta: {tool.display_name}")
+
+    tool.mouse_press(100, 100, "left")
+    sys.exit(app.exec())

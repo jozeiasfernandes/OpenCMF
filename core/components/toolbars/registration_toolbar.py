@@ -1,7 +1,12 @@
 from typing import Optional, Any, TYPE_CHECKING
 from PySide6 import QtWidgets, QtCore, QtGui
+
 from core.components.bases.base_toolbar import BaseToolbar, ToolData
 from core.components.bases.base_tool.tool_manager import ToolManager
+from core.components.bases.base_tool.base_toolbar_handler import BaseToolbarHandler
+from core.components.tools.add_point_registration_tool import AddPointRegistrationTool
+from core.components.tools.select_tool import SelectTool
+
 from core.localization.translator import get_base_dir, tr
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 
@@ -19,35 +24,25 @@ def get_icon(icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIco
 class RegistrationToolbar(BaseToolbar):
     """Toolbar para ferramentas de registro/calibração."""
 
-    def __init__(self, tool_manager: ToolManager,
+    def __init__(self, tool_manager: "ToolManager",
                  scene_manager: Optional["SceneManager"] = None,
                  parent: Optional[QtWidgets.QWidget] = None):
-
-        # ✅ CHAMADA CORRETA: (context, titulo, parent)
         super().__init__(context=scene_manager, title="Registration", parent=parent)
-
-        # Guardar referências
         self._tool_manager = tool_manager
         self._scene_manager = scene_manager
 
+        self.handler = BaseToolbarHandler(self, self._tool_manager)
         self.setObjectName("registration_toolbar")
         self.setIconSize(QtCore.QSize(24, 24))
-
-        # Setup da UI
         self.setup_ui()
 
-    @property
-    def scene_manager(self):
-        return self._scene_manager
-
-    @property
-    def tool_manager(self):
-        return self._tool_manager
-
     def setup_ui(self):
-        """Configura os botões da toolbar."""
+        self.handler.register_tool(SelectTool())
+        self.handler.register_tool(AddPointRegistrationTool())
 
-        # Botão de remover ponto
+        self.addSeparator()
+
+        # 2. Botão de remover ponto (Manual)
         tool_data_delete = ToolData(
             name="delete_point",
             display_name="",
@@ -61,7 +56,7 @@ class RegistrationToolbar(BaseToolbar):
             icon=get_icon("del_point.svg", QtWidgets.QStyle.StandardPixmap.SP_TrashIcon)
         )
 
-        # Botão de resetar vista
+        # 3. Botão de resetar vista (Manual)
         tool_data_reset = ToolData(
             name="reset_view",
             display_name="",
@@ -77,16 +72,24 @@ class RegistrationToolbar(BaseToolbar):
 
         self.addSeparator()
 
-        # Label de tamanho
+        # 4. Slider de tamanho
         self.addWidget(QtWidgets.QLabel(tr("toolbar_container.point_size", " Tamanho: ")))
-
-        # Slider de tamanho
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(5, 50)
         self.slider.setFixedWidth(80)
         self.slider.setValue(20)
         self.slider.valueChanged.connect(self._on_point_size_changed)
         self.addWidget(self.slider)
+
+    @property
+    def scene_manager(self):
+        return self._scene_manager
+
+    @property
+    def tool_manager(self):
+        return self._tool_manager
+
+
 
     def _on_delete_point(self):
         """Remove o último marcador."""

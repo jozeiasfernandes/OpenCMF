@@ -7,7 +7,7 @@ class SelectTool(BaseTool):
     name = "select"
     display_name = "Selecionar"
     category = ToolCategory.SELECTION
-    icon = ":/icons/select.png"
+    icon = "cursor.svg"
     tool_tip = "Selecione objetos na cena. Use CTRL + Clique para seleção múltipla."
 
     def __init__(self):
