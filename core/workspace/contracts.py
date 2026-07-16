@@ -1,26 +1,18 @@
-from typing import Protocol, runtime_checkable, Dict, Optional
+from typing import Protocol, runtime_checkable, Dict, Optional, Any
 from PySide6 import QtWidgets
-
 
 @runtime_checkable
 class IModule(Protocol):
-    """
-    Interface estendida para suportar a nova arquitetura de containers.
-    """
+    # Atributo esperado em todas as instâncias concretas
+    id: str
 
     def get_main_widget(self) -> QtWidgets.QWidget: ...
-
-    # Suporte explícito a Toolbars
-    def get_workspace_toolbar(self) -> Optional[QtWidgets.QToolBar]: ...
-
-    # Painéis laterais (Inspector)
+    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]: ...
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]: ...
-
+    def inicializar(self, caminho_paciente: str) -> None: ...
     def cleanup(self) -> None: ...
-
 
 @runtime_checkable
 class IWorkspaceTab(Protocol):
     def get_widget(self) -> QtWidgets.QWidget: ...
-
     def get_title(self) -> str: ...

@@ -26,3 +26,17 @@ class SidePanelManager(QtCore.QObject):
     def toggle_floating(self):
         """Alterna o estado de floating do dock."""
         self.container.setFloating(not self.container.isFloating())
+
+    def clear_all(self):
+        """Limpa o conteúdo do painel lateral."""
+        # Acessa o widget interno do container e remove seus filhos
+        content_widget = self.container.widget()
+        if content_widget:
+            # Se você usa um layout dentro do widget do container:
+            layout = content_widget.layout()
+            if layout:
+                while layout.count():
+                    item = layout.takeAt(0)
+                    widget = item.widget()
+                    if widget:
+                        widget.deleteLater()

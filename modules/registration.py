@@ -22,7 +22,7 @@ from core.components.side_panel.object_manager_sidepanel import ObjectManager_Si
 from core.components.side_panel.objetct_properties_sidepanel import ObjectProperties_SidePanel
 from core.components.toolbars.registration_toolbar import RegistrationToolbar
 
-logger = logging.getLogger("OpenCMF.RegistrationModule")
+logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
 class Modulo(IModule):

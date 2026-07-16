@@ -1,6 +1,9 @@
+import logging
 from PySide6 import QtWidgets, QtCore
 from modules.base_module.base_module import ModuloBase
 from core.workspace.contracts import IModule
+
+logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 class Modulo(ModuloBase):
     def __init__(self):

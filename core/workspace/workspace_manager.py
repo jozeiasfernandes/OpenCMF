@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 from core.workspace.contracts import IModule
 from PySide6 import QtWidgets, QtCore
@@ -7,11 +8,14 @@ from .side_panel_container.side_panel_manager import SidePanelManager
 from .layout import ModuleDistributor
 from .registry import WorkspaceRegistry
 from status_bar.status_bar import StatusBarManager
+from .state import WorkspaceState
 
+logger = logging.getLogger("OpenCMF.Workspace")
 
 class WorkspaceManager(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.state = WorkspaceState()
         self.registry = WorkspaceRegistry()
 
         # 1. Setup da UI Base
@@ -44,17 +48,14 @@ class WorkspaceManager(QtWidgets.QMainWindow):
 
     def on_module_changed(self, module_id: str):
         try:
-            # Limpeza do estado anterior
             ModuleDistributor.cleanup(
                 self.toolbar_manager,
                 self.side_manager,
                 self.central_host
             )
 
-            # Carrega ou cria o módulo
             module = self.registry.get_or_create_module(module_id)
 
-            # Distribui os componentes do módulo
             ModuleDistributor.distribute(
                 module,
                 self.toolbar_manager,
@@ -62,15 +63,15 @@ class WorkspaceManager(QtWidgets.QMainWindow):
                 self.central_host
             )
 
-            # Feedback ao usuário
+            logger.info(f"Módulo '{module_id}' carregado com sucesso.")
             self.status_bar_manager.showMessage(
                 f"Módulo '{module_id}' carregado com sucesso.",
                 3000
             )
-
         except Exception as e:
-            self.status_bar_manager.showMessage(f"Erro ao carregar módulo: {str(e)}")
-            print(f"Erro crítico no WorkspaceManager: {e}")
+            logger.error(f"Erro crítico ao carregar módulo '{module_id}': {e}", exc_info=True)
+
+            self.status_bar_manager.showMessage(f"Erro ao carregar módulo: {type(e).__name__}", 5000)
 
     def get_modulo_ativo(self) -> Optional[IModule]:
         """Retorna o módulo correspondente à aba atualmente selecionada."""
@@ -80,3 +81,26 @@ class WorkspaceManager(QtWidgets.QMainWindow):
             if module_id:
                 return self.registry.get_or_create_module(module_id)
         return None
+
+    def set_patient_path(self, path: str):
+        """Atualiza o caminho do paciente no estado do workspace."""
+        self.state.current_patient = path
+
+    def reset_workspace(self):
+        """Limpa o estado do workspace para um novo fluxo."""
+        # Limpa o registro de módulos
+        self.registry.clear_all()
+
+        # Limpa o header (abas)
+        self.header.clear_tabs()
+
+        # Limpa toolbars através do gerenciador
+        if hasattr(self, 'toolbar_manager'):
+            self.toolbar_manager.clear_all()
+
+        # Limpa os painéis laterais (opcional, mas recomendado)
+        if hasattr(self, 'side_manager'):
+            self.side_manager.clear_all()
+
+        # Limpa o central_host
+        self.central_host.setCurrentIndex(0)

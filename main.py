@@ -16,7 +16,18 @@ from core.home_page.flow.flow_editor import PaginaEditorFluxo
 from core.home_page.settings.settings_page import PaginaConfig
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 from core.icons.icons_manager import IconManager
+
 from core.workspace.module_factory import ModuleFactory
+
+from core.scene.scene_manager import SceneManager
+from core.scene.events.event_bus import EventBus
+from core.scene.scene_state import SceneState
+from core.scene.registry.actor_registry import ActorRegistry
+from core.scene.registry.object_registry import ObjectRegistry
+from core.scene.selection.selection_manager import SelectionManager
+from core.scene.io.importer import ObjectImporter
+from core.workspace.state import WorkspaceState
+
 
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - [%(name)s] %(message)s')
 logger = logging.getLogger("OpenCMF.Main")
@@ -27,17 +38,50 @@ def get_resource_path() -> Path:
 
 class MainWindow(QtWidgets.QMainWindow):
     theme_changed = QtCore.Signal()
+
     def __init__(self):
         super().__init__()
         self.base_dir = get_resource_path()
+
+        # 1. Componentes base da Cena (mantendo o SceneState aqui)
+        self.event_bus = EventBus()
+        self.scene_state = SceneState() # Renomeado para evitar conflito
+
+        # 2. Registries e Managers
+        self.object_registry = ObjectRegistry()
+        self.actor_registry = ActorRegistry()
+
+        # Usando scene_state para o selection_manager
+        self.selection_manager = SelectionManager(state=self.scene_state, event_bus=self.event_bus)
+        self.importer = ObjectImporter(patient_path=".")
+
+        # 3. Orquestrador de cena
+        self.scene_manager = SceneManager(
+            state=self.scene_state,
+            event_bus=self.event_bus,
+            object_registry=self.object_registry,
+            actor_registry=self.actor_registry,
+            selection_manager=self.selection_manager,
+            importer=self.importer
+        )
+
+        # 4. Infraestrutura e Factory
         IconManager.set_base_path(self.base_dir / "appearance" / "icons")
         self.project_service = ProjectServiceHomePage(self.base_dir / "patients")
+
+        ModuleFactory.set_shared_dependencies(
+            project_service=self.project_service,
+            scene_manager=self.scene_manager,
+            event_bus=self.event_bus
+        )
+
         self.current_patient_path: Optional[str] = None
         self.workflow: Optional[FluxoBase] = None
 
         self._setup_core()
         self._setup_signals()
         self._setup_appearance()
+
 
     def _setup_core(self):
         self.stack = QtWidgets.QStackedWidget()
@@ -127,35 +171,39 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def on_patient_selected(self, path: str, _mode: str):
         self.current_patient_path = str(Path(path).resolve())
+
+        if hasattr(self, 'importer'):
+            self.importer.patient_path = Path(self.current_patient_path)
+
+        if hasattr(self, 'scene_manager'):
+            pass
+
         default_flow = self.base_dir / "flows" / "default_flow.json"
         if default_flow.exists():
             self.start_workflow(str(default_flow))
+        else:
+            logger.warning(f"Fluxo padrão não encontrado em: {default_flow}")
 
     def start_workflow(self, config_path: str):
         try:
             with open(config_path, 'r', encoding='utf-8') as f:
                 config = json.load(f)
 
-            # Limpeza de estado anterior
-            self.workspace.registry.clear_all()
-            self.workspace.header.clear_tabs()
+            self.workspace.reset_workspace()
 
-            if hasattr(self.workspace, 'toolbar_manager'):
-                self.workspace.toolbar_manager.clear_all()
-
-            # Inicialização do novo workflow
             self.workflow = FluxoBase(config)
 
-            # Define o contexto do paciente
-            if hasattr(self.workspace, 'set_patient_path'):
-                self.workspace.set_patient_path(self.current_patient_path)
+            self.workspace.set_patient_path(self.current_patient_path)
 
-            # Carrega os módulos após o evento atual
             QtCore.QTimer.singleShot(0, self._load_workflow_modules)
 
         except (json.JSONDecodeError, OSError) as e:
             logger.error(f"Erro ao carregar o workflow '{config_path}': {e}")
             self.workspace.status_bar_manager.showMessage(f"Erro ao carregar fluxo: {e}")
+
+    def set_patient_path(self, path: str):
+        """Atualiza o caminho do paciente no estado global do workspace."""
+        self.state.current_patient = path
 
     def _load_workflow_modules(self):
         if not self.workflow:
@@ -201,11 +249,29 @@ class MainWindow(QtWidgets.QMainWindow):
         if path:
             self.current_patient_path = str(Path(path).resolve())
 
+
 if __name__ == "__main__":
     if sys.platform == "win32":
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("opencmf.1.0")
+        try:
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("opencmf.1.0")
+        except Exception as e:
+            logger.warning(f"Não foi possível definir o AppUserModelID: {e}")
+
 
     app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec())
+    app.setApplicationName("OpenCMF")
+    app.setOrganizationName("OpenCMF")
+
+    try:
+        window = MainWindow()
+        window.show()
+
+        exit_code = app.exec()
+
+        ModuleFactory.clear_cache()
+
+        sys.exit(exit_code)
+
+    except Exception as e:
+        logger.critical(f"Erro fatal na inicialização da aplicação: {e}", exc_info=True)
+        sys.exit(1)

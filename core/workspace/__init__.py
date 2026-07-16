@@ -5,3 +5,4 @@ from .state import WorkspaceState
 from .contracts import IModule, IWorkspaceTab
 
 __all__ = ["WorkspaceManager", "WorkspaceRegistry", "WorkspaceState", "IModule", "IWorkspaceTab"]
+

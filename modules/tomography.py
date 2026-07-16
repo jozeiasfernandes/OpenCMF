@@ -1,6 +1,6 @@
+import logging
 import json
 import vtk
-
 from pathlib import Path
 from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
@@ -14,6 +14,8 @@ from core.workspace.contracts import IModule
 
 from core.scene.events.event_bus import EventBus
 from core.scene.registry.actor_registry import ActorRegistry
+
+logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
 class Modulo(IModule):

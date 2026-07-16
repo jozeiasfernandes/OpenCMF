@@ -1,3 +1,4 @@
+import logging
 from typing import Dict, Optional, Any
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
@@ -9,12 +10,20 @@ from modules.mod_patients_02.tabs.photo_tab import PhotoTab
 from modules.mod_patients_02.tabs.project_tab import ProjectTab
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 
+logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
+
+
 class Modulo:
-    def __init__(self, **kwargs):
-        # O ModuleFactory injeta dependências via kwargs [cite: 78]
+    def __init__(self, project_service=None, caminho_paciente=None, **kwargs):
+        """
+        O __init__ agora aceita explicitamente os argumentos injetados pelo Factory.
+        O **kwargs garante que, se o Factory passar algo novo no futuro, não quebrará.
+        """
         self.id = "modulo.paciente"
-        self._caminho_paciente = kwargs.get("caminho_paciente")
-        self.project_service = ProjectServiceHomePage(Path("patients"))
+        self._caminho_paciente = caminho_paciente
+
+        # Prioriza o serviço injetado, mas garante um fallback caso venha None
+        self.project_service = project_service or ProjectServiceHomePage(Path("patients"))
 
         # UI Principal
         self._main_widget = QtWidgets.QTabWidget()
@@ -33,7 +42,7 @@ class Modulo:
         # Conexões
         self.tab_dados.concluido.connect(self._atualizar_pasta_abas)
 
-        # Se houver caminho inicial, carrega
+        # Carregamento inicial
         if self._caminho_paciente:
             self._carregar_dados(self._caminho_paciente)
 
