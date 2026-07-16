@@ -18,10 +18,16 @@ class ToolbarContainer(QtWidgets.QWidget):
         self.layout.setAlignment(QtCore.Qt.AlignLeft)
 
         self.toolbars: Dict[str, QtWidgets.QToolBar] = {}
+        self.setMinimumHeight(35)
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
 
     def add_toolbar(self, tb_id: str, toolbar: QtWidgets.QToolBar):
+        toolbar.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
         self.layout.addWidget(toolbar)
         self.toolbars[tb_id] = toolbar
+
+        toolbar.setVisible(True)
+        toolbar.show()
 
     def remove_toolbar(self, tb_id: str):
         if tb := self.toolbars.pop(tb_id, None):

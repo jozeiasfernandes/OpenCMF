@@ -1,4 +1,4 @@
-import logging 
+import logging
 from typing import Dict, Type, Optional, Any
 from .contracts import IModule
 
@@ -18,6 +18,7 @@ class ModuleFactory:
     @classmethod
     def set_shared_dependencies(cls, **dependencies):
         cls._shared_dependencies.update(dependencies)
+        logger.debug(f"Dependências compartilhadas atualizadas: {list(dependencies.keys())}")
 
     @classmethod
     def create(cls, module_id: str, force_new: bool = False, **extra_args) -> IModule:
@@ -30,12 +31,15 @@ class ModuleFactory:
             raise ValueError(msg)
 
         module_class = cls._modules[module_id]
+
+        init_args = {**cls._shared_dependencies, **extra_args}
+
         try:
-            init_args = {**cls._shared_dependencies, **extra_args}
             instance = module_class(**init_args)
         except Exception as e:
-            # Agora 'logger' é reconhecido aqui!
-            logger.error(f"Falha ao instanciar o módulo '{module_id}': {e}", exc_info=True)
+            # O log de erro agora captura o traceback completo e os argumentos tentados
+            logger.error(f"Falha ao instanciar o módulo '{module_id}' com args {list(init_args.keys())}: {e}",
+                         exc_info=True)
             raise RuntimeError(f"Erro ao instanciar o módulo '{module_id}': {e}") from e
 
         if not isinstance(instance, IModule):
@@ -48,8 +52,12 @@ class ModuleFactory:
 
     @classmethod
     def clear_cache(cls):
-        for module_id, instance in list(cls._instances.items()):
+        # Limpeza reversa ou via lista para evitar erros durante a iteração
+        for module_id in list(cls._instances.keys()):
+            instance = cls._instances.pop(module_id)
             if hasattr(instance, "cleanup"):
-                instance.cleanup()
-            del cls._instances[module_id]
+                try:
+                    instance.cleanup()
+                except Exception as e:
+                    logger.warning(f"Erro no cleanup do módulo '{module_id}': {e}")
         logger.info("Cache da Factory limpo.")

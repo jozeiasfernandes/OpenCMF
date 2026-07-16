@@ -2,10 +2,7 @@
 
 from PySide6 import QtWidgets, QtCore
 from .toolbar_container import ToolbarContainer
-
-
 from PySide6 import QtCore
-# Certifique-se de importar ToolbarContainer se ele estiver em outro arquivo
 
 class ToolbarManager(QtCore.QObject):
     def __init__(self):
@@ -51,11 +48,8 @@ class ToolbarManager(QtCore.QObject):
             tb.setVisible(not tb.isVisible())
 
     def clear_all(self):
-        """Remove todas as toolbars de ambos os containers."""
-        # Limpa o topo
-        for tb_id in list(self.top_container.toolbars.keys()):
-            self.top_container.remove_toolbar(tb_id)
-
-        # Limpa a base
-        for tb_id in list(self.bottom_container.toolbars.keys()):
-            self.bottom_container.remove_toolbar(tb_id)
+        """Remove todas as toolbars de todos os containers gerenciados."""
+        containers = [self.top_container, self.bottom_container]
+        for container in containers:
+            for tb_id in list(container.toolbars.keys()):
+                container.remove_toolbar(tb_id)

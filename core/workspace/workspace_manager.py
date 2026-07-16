@@ -10,45 +10,59 @@ from .registry import WorkspaceRegistry
 from status_bar.status_bar import StatusBarManager
 from .state import WorkspaceState
 
+
 logger = logging.getLogger("OpenCMF.Workspace")
 
-class WorkspaceManager(QtWidgets.QMainWindow):
+
+class WorkspaceManager(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.state = WorkspaceState()
         self.registry = WorkspaceRegistry()
 
-        # 1. Setup da UI Base
-        self.central_widget = QtWidgets.QWidget()
-        self.main_layout = QtWidgets.QVBoxLayout(self.central_widget)
+        # Layout Principal
+        self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
-        self.setCentralWidget(self.central_widget)
 
-        # 2. Header (Topo absoluto)
+        # Header e Toolbar
         self.header = HeaderPanel()
         self.main_layout.addWidget(self.header)
 
-        # 3. Gerenciadores de Layout (Toolbar)
-        # Em vez de passar o layout para o manager, peça ao manager os containers e adicione-os aqui
-        self.toolbar_manager = ToolbarManager()  # Ajuste o __init__ para não precisar do layout
+        self.toolbar_manager = ToolbarManager()
         self.main_layout.addWidget(self.toolbar_manager.top_container)
 
-        # 4. Área Central (Splitter)
+        # Splitter - Configuração crucial de política
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.splitter.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+        # Central Host
         self.central_host = QtWidgets.QStackedWidget()
+        # Garante que o central_host aceite expandir
+        self.central_host.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.splitter.addWidget(self.central_host)
+
+        # Side Manager
+        self.side_manager = SidePanelManager(self)
+        self.side_manager.container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        self.splitter.addWidget(self.side_manager.container)
+
+        # Configurações de comportamento do Splitter
+        self.splitter.setCollapsible(1, False)
+        self.splitter.setStretchFactor(0, 4)
+        self.splitter.setStretchFactor(1, 1)
+
+        # Adiciona o splitter ao layout com stretch=1 para consumir o espaço central
         self.main_layout.addWidget(self.splitter, stretch=1)
 
-        # 5. Toolbar Inferior (Adicione após a área central)
+        # Toolbar Inferior e StatusBar
         self.main_layout.addWidget(self.toolbar_manager.bottom_container)
 
-        # 6. SidePanel (Gerenciado pela QMainWindow, não pelo layout central)
-        self.side_manager = SidePanelManager(self)
-
-        # 7. StatusBar
         self.status_bar_manager = StatusBarManager()
-        self.setStatusBar(self.status_bar_manager)
+        self.main_layout.addWidget(self.status_bar_manager)
+
+        # Ajuste de tamanho inicial
+        QtCore.QTimer.singleShot(100, lambda: self.splitter.setSizes([900, 300]))
 
     def on_module_changed(self, module_id: str):
         try:
@@ -91,20 +105,16 @@ class WorkspaceManager(QtWidgets.QMainWindow):
         self.state.current_patient = path
 
     def reset_workspace(self):
-        """Limpa o estado do workspace para um novo fluxo."""
-        # Limpa o registro de módulos
         self.registry.clear_all()
-
-        # Limpa o header (abas)
         self.header.clear_tabs()
 
-        # Limpa toolbars através do gerenciador
         if hasattr(self, 'toolbar_manager'):
             self.toolbar_manager.clear_all()
 
-        # Limpa os painéis laterais (opcional, mas recomendado)
         if hasattr(self, 'side_manager'):
             self.side_manager.clear_all()
 
-        # Limpa o central_host
-        self.central_host.setCurrentIndex(0)
+        while self.central_host.count() > 0:
+            widget = self.central_host.widget(0)
+            self.central_host.removeWidget(widget)
+            widget.deleteLater()

@@ -20,29 +20,45 @@ class ModuleDistributor:
             side_manager: 'SidePanelManager',
             central_host: QtWidgets.QStackedWidget
     ):
-        """
-        Extrai os componentes do módulo e registra nos Managers globais.
-        """
-        # 1. Distribuir Toolbars (se existirem)
+        # 1. Distribuir Toolbars
         if hasattr(module, "get_workspace_toolbar"):
             tb = module.get_workspace_toolbar()
             if tb:
-                # O ID pode vir de uma propriedade do widget ou ser gerado
                 tb_id = tb.objectName() or "default_toolbar"
                 toolbar_manager.register_toolbar(tb_id, tb)
+                tb.setVisible(True)
+                tb.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
 
-        # 2. Distribuir Toolboxes (Painéis Laterais)
+        # 2. Distribuir Toolboxes
         if hasattr(module, "get_toolboxes"):
             toolboxes = module.get_toolboxes()
             for name, widget in toolboxes.items():
                 side_manager.container.add_panel(name, widget)
+                widget.setVisible(True)
+                # Garante que o painel lateral seja forçado a mostrar
+                side_manager.container.setVisible(True)
 
         # 3. Configurar Viewport Central
         if hasattr(module, "get_workspace"):
             viewport = module.get_workspace()
-            # Remove o widget atual do host se necessário, ou apenas adiciona
-            central_host.addWidget(viewport)
-            central_host.setCurrentWidget(viewport)
+            if viewport:
+                # Politica essencial para que o widget central não colapse
+                viewport.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+                central_host.addWidget(viewport)
+                central_host.setCurrentWidget(viewport)
+
+                # FORÇA VISIBILIDADE E ATUALIZAÇÃO
+                viewport.setVisible(True)
+                viewport.show()
+
+                # NOTIFICA O LAYOUT PAI QUE A ESTRUTURA MUDOU
+                if central_host.parent() and central_host.parent().layout():
+                    central_host.parent().layout().activate()
+
+                # Força o update do Splitter (quem contém o central_host)
+                if hasattr(central_host.parent(), 'splitter'):
+                    central_host.parent().splitter.update()
 
     @staticmethod
     def cleanup(

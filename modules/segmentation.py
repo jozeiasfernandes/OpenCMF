@@ -3,27 +3,48 @@ from typing import Dict, Optional, Any
 from PySide6 import QtWidgets
 
 from core.workspace.contracts import IModule
-
 from core.scene.events.scene_events import SceneEvents
 from core.scene.events.event_bus import EventBus
 from core.scene.utils.factory import SceneObjectFactory
 from core.volume.segmentation_engine import SegmentacaoEngine
 from core.components.side_panel.segmentation_sidepanel import Segmentation_SidePanel
+from core.components.central_area.viewer_3d_dicom_central_area import Viewer3D_Dicom_Widget_CentralArea
 
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
 class Modulo(IModule):
-    def __init__(self, scene_manager: Optional[Any] = None, project_service: Any = None,
-                 event_bus: Any = None, **kwargs):
+    def __init__(self, scene_manager: Optional[Any] = None, event_bus: Any = None,
+                 viewer_registry: Any = None, **kwargs):
         super().__init__()
         self.nome = "Segmentação"
         self.id = "modulo.segmentacao"
 
         self.scene_manager = scene_manager
+        self.event_bus = event_bus
+
+        if viewer_registry is None:
+            class DummyRegistry:
+                def register(self, *args, **kwargs): pass
+
+            self.viewer_registry = DummyRegistry()
+        else:
+            self.viewer_registry = viewer_registry
+
         self.engine_seg = SegmentacaoEngine()
 
-        self.widget_seg = Segmentation_SidePanel(context=self.scene_manager, title="Segmentação")
+        self.widget_seg = Segmentation_SidePanel(context=self.scene_manager)
+
+        self.widget_central = Viewer3D_Dicom_Widget_CentralArea(
+            context=self.scene_manager,
+            title="Visualizador 3D",
+            cor="#2c3e50",
+            event_bus=self.event_bus,
+            viewer_registry=self.viewer_registry
+        )
+
+        self.widget_central.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.widget_central.setMinimumSize(400, 300)  # Evita o colapso na inicialização
 
         self._conectar_sinais()
 
@@ -32,27 +53,31 @@ class Modulo(IModule):
         self.widget_seg.solicitarExportarSTL.connect(self._executar_exportacao_stl)
 
     # --- Implementação do IModule ---
-    def get_main_widget(self) -> QtWidgets.QWidget:
-        # O workspace espera que o módulo forneça o widget central (Viewport)
-        if self.scene_manager is not None and hasattr(self.scene_manager, 'view'):
-            return self.scene_manager.view
-        return QtWidgets.QWidget()
+    def get_workspace(self) -> QtWidgets.QWidget:
+        """O workspace agora busca pelo método get_workspace."""
+        return self.widget_central if self.widget_central else QtWidgets.QWidget()
 
     def get_workspace_toolbar(self) -> Optional[QtWidgets.QToolBar]:
-        # Retorne uma QToolBar aqui se o módulo tiver ferramentas de ação rápida
         return None
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        # O workspace injetará este widget no SidePanelContainer [cite: 6]
+        # O workspace injetará este widget no SidePanelContainer
         return {
             "Ferramentas": self.widget_seg
         }
 
-    def cleanup(self) -> None:
-        """Limpeza necessária para evitar vazamentos de memória no WorkspaceManager[cite: 11]."""
-        self.widget_seg.deleteLater()
-        self.scene_manager = None
-        self.engine_seg = None
+    def cleanup(self):
+        # Limpeza segura de widgets
+        for w in [self.widget_seg, self.widget_central]:
+            if w:
+                try:
+                    import shiboken6
+                    if shiboken6.isValid(w):
+                        w.deleteLater()
+                except (RuntimeError, ImportError):
+                    pass
+        self.widget_seg = None
+        self.widget_central = None
 
     # --- Lógica Interna ---
     def _executar_threshold(self):
@@ -66,25 +91,22 @@ class Modulo(IModule):
     def _executar_exportacao_stl(self):
         pass
 
+
 if __name__ == "__main__":
     import sys
-    from PySide6 import QtWidgets
     from core.workspace.workspace_manager import WorkspaceManager
     from core.workspace.module_factory import ModuleFactory
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    # 1. Registra o módulo na Factory
     ModuleFactory.register("modulo.segmentacao", Modulo)
 
-    # 2. Inicializa o WorkspaceManager principal
     window = WorkspaceManager()
     window.setWindowTitle("OpenCMF - Teste do Módulo de Segmentação")
     window.resize(1200, 800)
     window.show()
 
-    # 3. Adiciona a aba e força o carregamento inicial do módulo para debug
     window.header.add_module_tab("modulo.segmentacao", "Segmentação")
     window.on_module_changed("modulo.segmentacao")
 
