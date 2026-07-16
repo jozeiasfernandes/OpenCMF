@@ -7,7 +7,7 @@ from typing import Dict, Optional, Any
 from core.components.central_area.viewer_2d_central_area import Viewer2D_Widget_CentralArea
 from core.components.central_area.viewer_3d_dicom_central_area import Viewer3D_Dicom_Widget_CentralArea
 from core.volume.lookup_table.lut_manager import LUTManager
-from core.components.toolbars.viewer_toolbar import VolumeViewerToolbar
+from core.components.toolbars.volume_viewer_toolbar import VolumeViewerToolbar
 from .viewer_utils.viewer_renderers import ViewerRenderers
 from core.scene.scene_object import SceneObject
 from core.scene.events.scene_events import SceneEvents

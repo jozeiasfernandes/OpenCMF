@@ -70,6 +70,8 @@ class Modulo(IModule):
     def get_workspace_toolbar(self) -> Optional[QtWidgets.QToolBar]:
         self.toolbar_handler = TomographyToolbar(app_context=self.app_context)
 
+        self.toolbar_handler.initialize()
+
         if hasattr(self.toolbar_handler, 'btn_load'):
             self.toolbar_handler.btn_load.clicked.connect(self._carregar_dicom)
 
@@ -113,10 +115,15 @@ class Modulo(IModule):
                 self.toolbar_handler.set_validation_state(True)
 
     def _carregar_dicom(self):
-        if not self.caminho_dicom: return
+        if not self.caminho_dicom:
+            self._buscar_pasta()
+            if not self.caminho_dicom: return
+
         sucesso, msg = self.engine.carregar_pasta(self.caminho_dicom)
         if sucesso and self.viewer:
             self.viewer.set_volume(self.engine.vtk_volume)
+        else:
+            logger.error(f"Falha ao carregar DICOM: {msg}")
 
     def _gerar_vti(self):
         if not self.engine.vtk_volume: return
@@ -134,7 +141,6 @@ class Modulo(IModule):
 
 
 if __name__ == "__main__":
-    # Mocks para o teste funcionar
     class MockToolManager:
         def get_tool(self, key): return None
 
@@ -154,23 +160,26 @@ if __name__ == "__main__":
     bus = EventBus()
     registry = ActorRegistry()
 
-    # Instanciando as novas dependências exigidas pelo AppContext
-    tool_manager = MockToolManager()
-    settings = MockSettings()
-
     modulo = Modulo(
         pasta_paciente=path_teste,
         event_bus=bus,
         actor_registry=registry,
-        tool_manager=tool_manager,  # Passando os novos argumentos
-        settings=settings
+        tool_manager=MockToolManager(),
+        settings=MockSettings()
     )
 
     janela_teste = QtWidgets.QMainWindow()
     janela_teste.setWindowTitle(f"Debug Mode: {modulo.nome}")
     janela_teste.resize(1200, 800)
 
-    janela_teste.addToolBar(modulo.get_workspace_toolbar())
+    # --- CORREÇÃO AQUI ---
+    # Captura a instância da toolbar para garantir a inicialização
+    toolbar = modulo.get_workspace_toolbar()
+    if toolbar:
+        # Chama explicitamente a inicialização da BaseToolbar
+        toolbar.initialize()
+        janela_teste.addToolBar(toolbar)
+
     janela_teste.setCentralWidget(modulo.get_main_widget())
     janela_teste.show()
 
