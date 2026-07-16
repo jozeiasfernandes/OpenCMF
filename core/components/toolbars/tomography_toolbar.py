@@ -1,6 +1,7 @@
-from PySide6 import QtCore, QtWidgets
+import sys
+from PySide6 import QtWidgets, QtCore
 
-from core.components.bases.base_toolbar import BaseToolbar, ToolData
+from core.components.bases.base_toolbar import BaseToolbar, ToolData, AppContext
 from core.scene.scene_manager import SceneManager
 
 # Ferramentas
@@ -17,64 +18,40 @@ class TomographyToolbar(BaseToolbar):
     lutChanged = QtCore.Signal(str)
     layoutChanged = QtCore.Signal(str)
 
-    def __init__(self, context, parent=None):
-        super().__init__(context, "Tomografia", parent)
+    def __init__(self, app_context: AppContext, parent=None):
+        super().__init__("Tomografia", app_context, parent)
 
         self._validation_state = False
 
-        self.tools = {
-            "open": OpenDicomTool(),
-            "validate": ValidateDicomTool(),
-            "save": SaveVtiTool(),
-            "reset": ResetDicomTool(),
-            "layout": LayoutDicomTool(),
-            "color": ColorMapTool(),
-        }
-
-        for tool in self.tools.values():
-            tool.context = context
-
-        self.setup_ui()
+        self.initialize()
 
     def setup_ui(self):
-        # 1. Ajuste dos botões de ferramenta
-        tools_config = [
-            ("open", "📁 Open", "Abrir arquivo DICOM"),
-            ("validate", "🔍 Validate", "Validar arquivos DICOM"),
-            ("save", "💾 Save", "Salvar volume .vti"),
-            ("reset", "🔄 Reset", "Resetar visualização")
-        ]
+        tool_keys = ["open", "validate", "save", "reset"]
 
-        for key, display, tooltip in tools_config:
-            self.add_tool_button(ToolData(
-                name=key,
-                display_name=display,
-                icon_path=None,
-                tool_tip=tooltip,
-                callback=self.tools[key].on_activate
-            ))
+        for key in tool_keys:
+            tool = self.tool_manager.get_tool(key)
+            if tool:
+                self.register_tool(tool)
 
-        self.addSeparator()
+        self.add_separator()
 
-        # 2. Botão de carga
         self.btn_load = QtWidgets.QPushButton("⌛ Load Volume")
         self.addWidget(self.btn_load)
 
-        self.addSeparator()
+        self.add_separator()
 
-        # 3. Layout (Widget de controle com sinal)
+
         self.addWidget(QtWidgets.QLabel("Layout:"))
         self.combo_layout = QtWidgets.QComboBox()
         self.combo_layout.addItems(["4 Quadrantes", "3D", "Axial", "Sagital", "Coronal"])
-        # Conectado ao método ponte
         self.combo_layout.currentTextChanged.connect(self._on_layout_changed)
         self.addWidget(self.combo_layout)
 
-        # 4. Color Map (Widget de controle com sinal)
+
         self.addWidget(QtWidgets.QLabel("LUT:"))
         self.combo_color = QtWidgets.QComboBox()
+
         self.combo_color.addItems(list(LUTPresets.PRESETS.keys()))
-        # Conectado ao método ponte
         self.combo_color.currentTextChanged.connect(self._on_lut_changed)
         self.addWidget(self.combo_color)
 
@@ -83,17 +60,34 @@ class TomographyToolbar(BaseToolbar):
         self._validation_state = state
 
     def _on_layout_changed(self, text):
-        self.tools["layout"].apply_layout(text)
+        tool = self.tool_manager.get_tool("layout")
+        if tool:
+            tool.apply_layout(text)
         self.layoutChanged.emit(text)
 
     def _on_lut_changed(self, text):
-        self.tools["color"].apply_lut(text)
+        tool = self.tool_manager.get_tool("color")
+        if tool:
+            tool.apply_lut(text)
         self.lutChanged.emit(text)
 
 
 if __name__ == "__main__":
-    import sys
-    from PySide6 import QtWidgets
+    class MockToolManager:
+        def get_tool(self, key): return None # Retorne um objeto mockado se necessário
+
+    class MockSceneManager:
+        pass
+
+    class MockSettings:
+        def get(self, key, default=None): return None
+        def set(self, key, value): pass
+
+    my_context = AppContext(
+        tool_manager=MockToolManager(),
+        scene_manager=MockSceneManager(),
+        settings=MockSettings()
+    )
 
     app = QtWidgets.QApplication(sys.argv)
 
@@ -102,14 +96,7 @@ if __name__ == "__main__":
     window.resize(600, 100)
 
 
-    class ContextMock:
-        def __init__(self):
-            self.scene_manager = SceneManager(None, None, None, None, None, None)  # Simplificado para teste
-
-
-    my_context = ContextMock()
-
-    toolbar = TomographyToolbar(context=my_context)
+    toolbar = TomographyToolbar(app_context=my_context)
     window.addToolBar(toolbar)
 
     window.show()

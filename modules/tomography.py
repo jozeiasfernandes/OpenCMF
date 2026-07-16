@@ -1,3 +1,5 @@
+import sys
+import os
 import logging
 import json
 import vtk
@@ -8,7 +10,7 @@ from PySide6 import QtWidgets, QtCore
 from core.volume.dicom_engine import DicomEngine
 from core.volume.viewer import VolumeViewerWidget
 from core.volume.validator import DicomValidator
-from core.components.bases.base_toolbar import BaseToolbar
+from core.components.bases.base_toolbar import BaseToolbar, AppContext
 from core.components.toolbars.tomography_toolbar import TomographyToolbar
 from core.workspace.contracts import IModule
 
@@ -22,6 +24,8 @@ class Modulo(IModule):
     def __init__(self, pasta_paciente: Optional[str] = None,
                  event_bus: Optional[Any] = None,
                  actor_registry: Optional[Any] = None,
+                 tool_manager: Optional[Any] = None,  # Adicionado
+                 settings: Optional[Any] = None,  # Adicionado
                  **kwargs):
         super().__init__()
 
@@ -32,6 +36,13 @@ class Modulo(IModule):
         self.event_bus = event_bus or kwargs.get("event_bus")
         self.actor_registry = actor_registry or kwargs.get("actor_registry")
         self.project_service = kwargs.get("project_service")
+
+        # Inicializa o AppContext que a Toolbar agora exige
+        self.app_context = AppContext(
+            tool_manager=tool_manager or kwargs.get("tool_manager"),
+            scene_manager=self.actor_registry,  # Mapeando o registro atual para o contexto
+            settings=settings or kwargs.get("settings")
+        )
 
         self.engine = DicomEngine()
         self.toolbar_handler: Optional[TomographyToolbar] = None
@@ -57,15 +68,12 @@ class Modulo(IModule):
         return self.viewer
 
     def get_workspace_toolbar(self) -> Optional[QtWidgets.QToolBar]:
-        # Criamos o objeto toolbar (QToolBar) e instanciamos nossa TomographyToolbar nele
-        toolbar = QtWidgets.QToolBar("Tomografia")
-        self.toolbar_handler = TomographyToolbar(parent=toolbar, context=self)
+        self.toolbar_handler = TomographyToolbar(app_context=self.app_context)
 
-        # Conexões diretas caso necessário
         if hasattr(self.toolbar_handler, 'btn_load'):
             self.toolbar_handler.btn_load.clicked.connect(self._carregar_dicom)
 
-        return toolbar
+        return self.toolbar_handler
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         # Como a UI foi removida, retornamos um dicionário vazio
@@ -126,22 +134,38 @@ class Modulo(IModule):
 
 
 if __name__ == "__main__":
-    import sys
-    import os
-    from core.scene.events.event_bus import EventBus
-    from core.scene.registry.actor_registry import ActorRegistry
+    # Mocks para o teste funcionar
+    class MockToolManager:
+        def get_tool(self, key): return None
+
+
+    class MockSettings:
+        def get(self, key, default=None): return default
+
+        def set(self, key, value): pass
+
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
+
     path_teste = os.path.abspath("./debug_paciente")
     os.makedirs(os.path.join(path_teste, "projeto"), exist_ok=True)
+
     bus = EventBus()
     registry = ActorRegistry()
+
+    # Instanciando as novas dependências exigidas pelo AppContext
+    tool_manager = MockToolManager()
+    settings = MockSettings()
+
     modulo = Modulo(
         pasta_paciente=path_teste,
         event_bus=bus,
-        actor_registry=registry
+        actor_registry=registry,
+        tool_manager=tool_manager,  # Passando os novos argumentos
+        settings=settings
     )
+
     janela_teste = QtWidgets.QMainWindow()
     janela_teste.setWindowTitle(f"Debug Mode: {modulo.nome}")
     janela_teste.resize(1200, 800)
@@ -149,6 +173,7 @@ if __name__ == "__main__":
     janela_teste.addToolBar(modulo.get_workspace_toolbar())
     janela_teste.setCentralWidget(modulo.get_main_widget())
     janela_teste.show()
+
     try:
         sys.exit(app.exec())
     finally:
