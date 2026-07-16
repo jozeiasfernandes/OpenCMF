@@ -4,20 +4,16 @@ from PySide6 import QtWidgets, QtCore
 from .toolbar_container import ToolbarContainer
 
 
-class ToolbarManager(QtCore.QObject):
-    """
-    Gerencia a distribuição de Toolbars entre os containers (Topo/Base).
-    """
+from PySide6 import QtCore
+# Certifique-se de importar ToolbarContainer se ele estiver em outro arquivo
 
-    def __init__(self, main_layout: QtWidgets.QVBoxLayout):
+class ToolbarManager(QtCore.QObject):
+    def __init__(self):
         super().__init__()
 
         self.top_container = ToolbarContainer()
         self.bottom_container = ToolbarContainer()
 
-        # Insere os containers no layout principal da sua Workspace
-        main_layout.insertWidget(0, self.top_container)  # Topo
-        main_layout.addWidget(self.bottom_container)  # Base
 
     def register_toolbar(self, tb_id: str, toolbar: QtWidgets.QToolBar, to_top: bool = True):
         """Adiciona uma toolbar_container a um dos containers."""

@@ -25,26 +25,30 @@ class WorkspaceManager(QtWidgets.QMainWindow):
         self.main_layout.setSpacing(0)
         self.setCentralWidget(self.central_widget)
 
-        # 2. Header
+        # 2. Header (Topo absoluto)
         self.header = HeaderPanel()
         self.main_layout.addWidget(self.header)
 
-        # 3. Gerenciadores de Layout
-        self.toolbar_manager = ToolbarManager(self.main_layout)
+        # 3. Gerenciadores de Layout (Toolbar)
+        # Em vez de passar o layout para o manager, peça ao manager os containers e adicione-os aqui
+        self.toolbar_manager = ToolbarManager()  # Ajuste o __init__ para não precisar do layout
+        self.main_layout.addWidget(self.toolbar_manager.top_container)
 
+        # 4. Área Central (Splitter)
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.central_host = QtWidgets.QStackedWidget()
         self.splitter.addWidget(self.central_host)
         self.main_layout.addWidget(self.splitter, stretch=1)
 
+        # 5. Toolbar Inferior (Adicione após a área central)
+        self.main_layout.addWidget(self.toolbar_manager.bottom_container)
+
+        # 6. SidePanel (Gerenciado pela QMainWindow, não pelo layout central)
         self.side_manager = SidePanelManager(self)
 
-        # 4. StatusBar
+        # 7. StatusBar
         self.status_bar_manager = StatusBarManager()
         self.setStatusBar(self.status_bar_manager)
-
-        # 5. Conexões únicas
-        self.header.module_changed.connect(self.on_module_changed)
 
     def on_module_changed(self, module_id: str):
         try:
