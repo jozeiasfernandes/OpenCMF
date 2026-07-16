@@ -17,6 +17,7 @@ from core.scene.scene_object import SceneObject
 from core.scene.events.scene_events import RegistrationEvents
 
 # Components
+from core.components.bases.base_toolbar import AppContext
 from core.components.central_area.viewer_registration_central_area import ViewerRegistration_Widget_CentralArea
 from core.components.side_panel.object_manager_sidepanel import ObjectManager_SidePanel
 from core.components.side_panel.objetct_properties_sidepanel import ObjectProperties_SidePanel
@@ -78,11 +79,20 @@ class Modulo(IModule):
         return self.widget_reg
 
     def get_workspace_toolbar(self, tool_manager=None) -> Optional[QtWidgets.QToolBar]:
-        return RegistrationToolbar(
-            parent=None,
+        context = AppContext(
+            tool_manager=tool_manager,
             scene_manager=self.scene_manager,
-            tool_manager=tool_manager
+            settings=None
         )
+
+        toolbar = RegistrationToolbar(
+            app_context=context,
+            parent=None
+        )
+
+        toolbar.initialize()
+
+        return toolbar
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
         return {

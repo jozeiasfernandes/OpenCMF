@@ -19,15 +19,19 @@ logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
 class Modulo(IModule):
-    def __init__(self, pasta_paciente: str, event_bus: Any, actor_registry: Any, **kwargs):
+    def __init__(self, pasta_paciente: Optional[str] = None,
+                 event_bus: Optional[Any] = None,
+                 actor_registry: Optional[Any] = None,
+                 **kwargs):
+        super().__init__()
+
         self.nome = "Tomografia"
         self.id = "modulo.tomografia"
-        self.pasta_paciente = pasta_paciente
 
+        self.pasta_paciente = pasta_paciente or kwargs.get("pasta_paciente")
+        self.event_bus = event_bus or kwargs.get("event_bus")
+        self.actor_registry = actor_registry or kwargs.get("actor_registry")
         self.project_service = kwargs.get("project_service")
-
-        self.event_bus = event_bus
-        self.actor_registry = actor_registry
 
         self.engine = DicomEngine()
         self.toolbar_handler: Optional[TomographyToolbar] = None
@@ -35,7 +39,8 @@ class Modulo(IModule):
         self.caminho_dicom: Optional[str] = None
         self._is_initialized = False
 
-        self._carregar_configs_projeto()
+        if self.pasta_paciente:
+            self._carregar_configs_projeto()
 
     def get_main_widget(self) -> QtWidgets.QWidget:
         """Contrato IModule: Retorna o widget central (Viewer)."""
