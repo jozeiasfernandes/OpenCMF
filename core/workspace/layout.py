@@ -1,7 +1,7 @@
 # core/workspace/layout.py
 
 from typing import TYPE_CHECKING
-from PySide6 import QtWidgets
+from PySide6 import QtWidgets, QtCore
 from .contracts import IModule
 
 if TYPE_CHECKING:
@@ -10,10 +10,6 @@ if TYPE_CHECKING:
 
 
 class ModuleDistributor:
-    """
-    Responsável por extrair as partes de um módulo e distribuí-las
-    para os seus respectivos gerenciadores de interface.
-    """
 
     @staticmethod
     def distribute(
@@ -27,7 +23,6 @@ class ModuleDistributor:
             tb = module.get_workspace_toolbar()
             if tb:
                 tb_id = tb.objectName() or f"toolbar_{id(tb)}"
-                # Garantir que a toolbar seja adicionada ao container correto
                 toolbar_manager.top_container.add_toolbar(tb_id, tb)
                 tb.setVisible(True)
 
@@ -36,11 +31,11 @@ class ModuleDistributor:
             toolboxes = module.get_toolboxes()
             for name, widget in toolboxes.items():
                 if widget:
-                    # IMPORTANTE: Remover o widget de qualquer parent anterior
+                    # Garantir que o widget não seja tratado como janela
+                    widget.setWindowFlags(QtCore.Qt.Widget)
                     if widget.parent():
                         widget.setParent(None)
 
-                    # Adicionar ao container lateral
                     side_manager.container.add_panel(name, widget)
                     widget.setVisible(True)
 
@@ -48,7 +43,8 @@ class ModuleDistributor:
         if hasattr(module, "get_main_widget"):
             viewport = module.get_main_widget()
             if viewport:
-                # Remover de qualquer parent anterior
+                # CORREÇÃO: Resetar flags e parent antes da inserção
+                viewport.setWindowFlags(QtCore.Qt.Widget)
                 if viewport.parent():
                     viewport.setParent(None)
 
@@ -61,6 +57,8 @@ class ModuleDistributor:
                 # Adicionar ao central_host
                 central_host.addWidget(viewport)
                 central_host.setCurrentWidget(viewport)
+
+                # Garantir visibilidade dentro do container
                 viewport.setVisible(True)
 
     @staticmethod

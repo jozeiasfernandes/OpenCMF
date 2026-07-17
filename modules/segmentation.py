@@ -33,10 +33,10 @@ class Modulo(IModule):
 
         self.engine_seg = SegmentacaoEngine()
 
-        self.widget_seg = Segmentation_SidePanel(context=self.scene_manager)
+        self.widget_seg = Segmentation_SidePanel(context=self)
 
         self.widget_central = Viewer3D_Dicom_Widget_CentralArea(
-            context=self.scene_manager,
+            context=self,
             title="Visualizador 3D",
             cor="#2c3e50",
             event_bus=self.event_bus,
@@ -44,7 +44,7 @@ class Modulo(IModule):
         )
 
         self.widget_central.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.widget_central.setMinimumSize(400, 300)  # Evita o colapso na inicialização
+        self.widget_central.setMinimumSize(400, 300)
 
         self._conectar_sinais()
 

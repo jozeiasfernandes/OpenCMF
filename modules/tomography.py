@@ -23,10 +23,7 @@ logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 class Modulo(ModuloBase):
     def __init__(self, **kwargs):
-        # 1. Extrai o scene_manager para passar como argumento nomeado para o ModuloBase
         scene_manager = kwargs.pop("scene_manager", None)
-
-        # 2. Chama o construtor da base (ModuloBase é um QWidget, logo 'self' agora é um QWidget válido)
         super().__init__(scene_manager=scene_manager, **kwargs)
 
         self.nome = "Tomografia"
@@ -51,16 +48,13 @@ class Modulo(ModuloBase):
     def get_main_widget(self) -> QtWidgets.QWidget:
         if self.viewer is None:
             self.viewer = VolumeViewerWidget(
+                context=self,
                 event_bus=self.event_bus,
-                object_registry=self.object_registry,
-                parent=self
+                object_registry=self.object_registry
             )
 
-            if self.layout() is None:
-                self.setLayout(QtWidgets.QVBoxLayout())
-                self.layout().setContentsMargins(0, 0, 0, 0)
-
-            self.layout().addWidget(self.viewer)
+            if self.viewer.layout() is None:
+                self.viewer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
         return self.viewer
 

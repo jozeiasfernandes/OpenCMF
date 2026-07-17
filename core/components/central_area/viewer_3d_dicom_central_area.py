@@ -16,8 +16,13 @@ class Viewer3D_Dicom_Widget_CentralArea(CentralAreaBase):
     viewChanged = QtCore.Signal(str)
     presetChanged = QtCore.Signal(str)
 
-
     def __init__(self, context, title: str, cor: str, event_bus, viewer_registry, parent=None):
+        if not hasattr(context, 'scene_manager'):
+            raise AttributeError(
+                f"O objeto context passado para {title} deve possuir o atributo 'scene_manager'. "
+                f"Context recebido: {type(context)}"
+            )
+
         super().__init__(context=context, title=title, cor_identificacao=cor, parent=parent)
 
         self.id = title.replace(" ", "_").lower()
@@ -28,8 +33,9 @@ class Viewer3D_Dicom_Widget_CentralArea(CentralAreaBase):
 
         self.viewer_registry.register(self)
 
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.path_icons = os.path.abspath(os.path.join(base_dir, "..", "..", "..", "icons"))
+        from pathlib import Path
+        base_dir = Path(__file__).resolve().parent
+        self.path_icons = base_dir.parent.parent.parent / "icons"
 
         self.setup_component()
 
