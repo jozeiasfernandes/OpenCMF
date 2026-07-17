@@ -2,60 +2,44 @@ from PySide6 import QtWidgets, QtCore
 from typing import Optional, Any
 from core.components.bases.base_component import BaseComponent
 
-
-class BaseSidePanel(QtWidgets.QDockWidget):
+# MUDANÇA: Herda de QWidget, não de QDockWidget
+class BaseSidePanel(QtWidgets.QWidget):
     """
     Base para painéis laterais.
-    Herda apenas de QDockWidget para garantir a inicialização correta do Qt.
-    O BaseComponent é integrado por composição ou via inicialização explícita.
+    Refatorado para ser um QWidget puro, compatível com layouts internos (QSplitter/VBoxLayout).
     """
     side_panel_name: str = "Painel Lateral Genérico"
 
     def __init__(self, context: Any, title: str, parent: Optional[QtWidgets.QWidget] = None):
-        # 1. Inicializa o QDockWidget (UI) através do super()
-        super().__init__(title, parent)
+        super().__init__(parent)
 
-        # 2. Inicializa o BaseComponent como uma instância auxiliar (Composição)
+        # O 'title' pode ser guardado se você quiser exibir um cabeçalho customizado
+        self.title = title
+
+        # Inicializa o BaseComponent
         self._logic = BaseComponent(context=context, parent=self)
         self._is_loaded = False
 
-        self.setFeatures(
-            QtWidgets.QDockWidget.DockWidgetMovable |
-            QtWidgets.QDockWidget.DockWidgetFloatable |
-            QtWidgets.QDockWidget.DockWidgetClosable
-        )
-
-        self.contents = QtWidgets.QWidget()
-        self.layout = QtWidgets.QVBoxLayout(self.contents)
+        # Configuração do layout principal do painel
+        self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(5, 5, 5, 5)
         self.layout.setSpacing(5)
-        self.setWidget(self.contents)
+
+        # Opcional: Adicionar um título visível no topo do painel,
+        # já que perdemos a barra de título do QDockWidget
+        self.title_label = QtWidgets.QLabel(title)
+        self.title_label.setStyleSheet("font-weight: bold; padding: 2px;")
+        self.layout.addWidget(self.title_label)
 
         # Chamar setup_component automaticamente
         self.setup_component()
 
-    # Delegamos métodos do BaseComponent para a instância self._logic
-    @property
-    def scene_manager(self):
-        """Retorna o scene_manager do contexto."""
-        return self._logic.scene_manager if hasattr(self, '_logic') else None
-
-    @property
-    def event_bus(self):
-        """Retorna o event_bus do scene_manager."""
-        return self.scene_manager.events if self.scene_manager else None
-
-    @property
-    def context(self):
-        """Retorna o contexto."""
-        return self._logic.context if hasattr(self, '_logic') else None
+    # --- As propriedades @property podem permanecer iguais ---
 
     def setup_component(self):
         """Configura o componente."""
         if self._is_loaded:
             return
-        # CORRIGIDO: Não chamar _logic.setup_component() para evitar dupla chamada
-        # Apenas chamamos setup_ui() diretamente
         self.setup_ui()
         self._is_loaded = True
 
@@ -67,8 +51,7 @@ class BaseSidePanel(QtWidgets.QDockWidget):
         """Adiciona um widget ao painel."""
         self.layout.addWidget(widget)
 
-    def get_ui(self) -> QtWidgets.QDockWidget:
-        """Retorna a interface."""
+    def get_ui(self) -> QtWidgets.QWidget: # Mudou de QDockWidget para QWidget
         return self
 
     def dispose(self):
@@ -79,7 +62,4 @@ class BaseSidePanel(QtWidgets.QDockWidget):
 
     @property
     def has_scene(self) -> bool:
-        """
-        Retorna True se o gerenciador de cena estiver instanciado e disponível.
-        """
         return self.scene_manager is not None

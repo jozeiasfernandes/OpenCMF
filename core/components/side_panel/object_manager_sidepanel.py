@@ -23,7 +23,7 @@ _CAT_TIPO = {v: k for k, v in _TIPO_CAT.items()}
 class ObjectManager_SidePanel(BaseSidePanel):
     side_panel_name = "Gerenciador de Objetos"
 
-    # Sinais
+    # Sinais (mantidos)
     objetoToggled = QtCore.Signal(str, bool)
     opacityChanged = QtCore.Signal(str, float)
     colorChanged = QtCore.Signal(str, tuple)
@@ -33,31 +33,22 @@ class ObjectManager_SidePanel(BaseSidePanel):
     requestSave = QtCore.Signal()
 
     def __init__(self, context: Any, title: str = "Gerenciador de Objetos", parent: Optional[QtWidgets.QWidget] = None):
-        super().__init__(
-            context=context,
-            title=title,
-            parent=parent
-        )
-        # O scene_manager já está disponível via self.scene_manager (propriedade da BaseSidePanel)
+        # O 'context' aqui deve ser um objeto que contenha o 'scene_manager'
+        # Se você passa o próprio SceneManager como context, ajuste o BaseComponent
+        super().__init__(context=context, title=title, parent=parent)
+
         self.cats: Dict[str, QtWidgets.QTreeWidgetItem] = {}
         self.setup_ui()
 
-    @property
-    def scene_manager(self):
-        """Retorna o scene_manager do contexto."""
-        return self._logic.scene_manager if hasattr(self, '_logic') else None
-
     def setup_ui(self) -> None:
         """Configura a interface do usuário."""
-        # Limpar layout existente
-        self.clear_layout(self.layout)
-
         # 1. Configuração do TreeWidget
         self.tree_widget = QtWidgets.QTreeWidget()
         self.tree_widget.setHeaderLabels(["Objeto", "Opacidade", "Cor"])
         self.tree_widget.setIndentation(12)
 
-        # Ajuste de colunas
+        # Ajuste para garantir que preencha o painel
+        self.tree_widget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.tree_widget.setColumnWidth(0, 150)
         self.tree_widget.setColumnWidth(1, 90)
         self.tree_widget.setColumnWidth(2, 32)
@@ -66,13 +57,16 @@ class ObjectManager_SidePanel(BaseSidePanel):
         self.tree_widget.itemClicked.connect(self._on_item_clicked)
         self.tree_widget.itemChanged.connect(self._handle_item_changed)
         self.tree_widget.doubleClicked.connect(self._on_double_clicked)
-
-        # Context Menu
         self.tree_widget.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.tree_widget.customContextMenuRequested.connect(self._show_context_menu)
 
-        # 3. Adiciona ao layout
+        # 3. Adiciona ao layout herdado da BaseSidePanel
         self.layout.addWidget(self.tree_widget)
+
+    @property
+    def scene_manager(self):
+        """Retorna o scene_manager do contexto."""
+        return self._logic.scene_manager if hasattr(self, '_logic') else None
 
     def clear_layout(self, layout):
         """Remove todos os widgets de um layout."""

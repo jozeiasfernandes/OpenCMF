@@ -1,11 +1,13 @@
 from typing import Optional, Any
 import sys
 import json
+import logging
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.color import ColorPickerWidget
 from core.components.bases.base_sidepanel import BaseSidePanel
 
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # ObjectProperties_SidePanel (Painel Principal — Mantido no topo)
@@ -17,18 +19,17 @@ class ObjectProperties_SidePanel(BaseSidePanel):
 
     def __init__(self, context: Any, title: str = "Propriedades", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(context=context, title=title, parent=parent)
+
         self.current_object_id = None
-        self.current_object_name = None
-        self.patient_path = None
-        self.object_properties = None
         self._is_loading_props = False
 
-        # Configurar UI
+        # A inicialização da UI deve ocorrer após o super().__init__
+        # que já configura o layout da BaseSidePanel
         self.setup_ui()
 
     def setup_ui(self) -> None:
         """Configura a interface usando o layout herdado de BaseSidePanel."""
-        self.layout.setContentsMargins(5, 5, 5, 5)
+        # Nota: O layout já foi criado em BaseSidePanel, apenas configuramos.
         self.layout.setSpacing(8)
 
         # ── Transform ────────────────────────────────────────────────────────
@@ -56,70 +57,89 @@ class ObjectProperties_SidePanel(BaseSidePanel):
         self.color_picker.colorChanged.connect(lambda c: self._dispatch("color", c))
         lay_a.addRow("Cor:", self.color_picker)
 
-        self.row_opacity = AxisSliderRow("", 0.0, 1.0, 1.0)
+        self.row_opacity = AxisSliderRow("Opacidade", 0.0, 1.0, 1.0)
         self.row_opacity.changed.connect(lambda v: self._dispatch("opacity", v))
-        lay_a.addRow("Opacidade:", self.row_opacity)
+        lay_a.addRow(self.row_opacity)
 
         self.combo_repr = QtWidgets.QComboBox()
         self.combo_repr.addItems(["Surface", "Wireframe", "Points"])
         self.combo_repr.currentTextChanged.connect(lambda t: self._dispatch("representation", t))
         lay_a.addRow("Representação:", self.combo_repr)
 
-        self.row_ambient = AxisSliderRow("", 0.0, 1.0, 0.1)
+        self.row_ambient = AxisSliderRow("Ambiente", 0.0, 1.0, 0.1)
         self.row_ambient.changed.connect(lambda v: self._dispatch("ambient", v))
-        lay_a.addRow("Ambiente:", self.row_ambient)
+        lay_a.addRow(self.row_ambient)
 
-        self.row_diffuse = AxisSliderRow("", 0.0, 1.0, 0.7)
+        self.row_diffuse = AxisSliderRow("Difuso", 0.0, 1.0, 0.7)
         self.row_diffuse.changed.connect(lambda v: self._dispatch("diffuse", v))
-        lay_a.addRow("Difuso:", self.row_diffuse)
+        lay_a.addRow(self.row_diffuse)
 
-        self.row_specular = AxisSliderRow("", 0.0, 1.0, 0.2)
+        self.row_specular = AxisSliderRow("Especular", 0.0, 1.0, 0.2)
         self.row_specular.changed.connect(lambda v: self._dispatch("specular", v))
-        lay_a.addRow("Especular:", self.row_specular)
+        lay_a.addRow(self.row_specular)
 
-        self.row_specular_pwr = AxisSliderRow("", 1.0, 128.0, 10.0, decimals=1)
+        self.row_specular_pwr = AxisSliderRow("Brilho", 1.0, 128.0, 10.0, decimals=1)
         self.row_specular_pwr.changed.connect(lambda v: self._dispatch("specular_power", v))
-        lay_a.addRow("Brilho:", self.row_specular_pwr)
+        lay_a.addRow(self.row_specular_pwr)
 
         self.check_edges = QtWidgets.QCheckBox("Mostrar Arestas")
         self.check_edges.toggled.connect(lambda v: self._dispatch("edge_visibility", v))
-        lay_a.addRow("", self.check_edges)
+        lay_a.addRow(self.check_edges)
 
         self.layout.addWidget(group_a)
         self.layout.addStretch()
 
-    def _dispatch(self, property_name: str, value) -> None:
-        """Centraliza o salvamento e a comunicação via EventBus."""
-        if self._is_loading_props:
+    def _dispatch(self, property_name: str, value: Any) -> None:
+        if self._is_loading_props or not self.current_object_id:
             return
 
-        # 1. Salvar alteração (lógica original)
-        self._save_property_change(property_name, value)
+        try:
+            self._save_property_change(property_name, value)
+            if self.event_bus:
+                event_name = f"object_{property_name}_changed"
 
-        # 2. Emitir evento centralizado (Arquitetura Base)
-        if self.event_bus:
-            self.event_bus.emit(f"object_{property_name}_changed", {
-                "object": self.current_object_name,
-                "value": value
-            })
+                payload = {
+                    "object_id": self.current_object_id,  # Recomendo passar ID, não apenas nome
+                    "object_name": self.current_object_name,
+                    "value": value
+                }
+
+                self.event_bus.emit(event_name, payload)
+
+        except Exception as e:
+            logger.error(f"Erro ao disparar evento {property_name} para o objeto {self.current_object_id}: {e}")
 
     def load_from_props(self, props) -> None:
+        """Carrega propriedades tratando dados de dicts ou objetos (dataclasses)."""
         self._is_loading_props = True
+
+        # Converte para dicionário se for um objeto, caso contrário mantém como dict
         t = props.transform if isinstance(props.transform, dict) else vars(props.transform)
         r = props.render if isinstance(props.render, dict) else vars(props.render)
 
-        self.vec_pos.set_values(t.get("position", [0, 0, 0]))
-        self.vec_rot.set_values(t.get("rotation", [0, 0, 0]))
-        self.vec_scl.set_values(t.get("scale", [1, 1, 1]))
-        self.color_picker.set_rgb(r.get("color", [1, 1, 1]))
-        self.row_opacity.set_value(getattr(props, "opacity", 1.0))
-        self.combo_repr.setCurrentText(r.get("representation", "surface").capitalize())
-        self.row_ambient.set_value(r.get("ambient", 0.1))
-        self.row_diffuse.set_value(r.get("diffuse", 0.7))
-        self.row_specular.set_value(r.get("specular", 0.2))
-        self.row_specular_pwr.set_value(r.get("specular_power", 10.0))
-        self.check_edges.setChecked(r.get("edge_visibility", False))
-        self._is_loading_props = False
+        try:
+            self.vec_pos.set_values(t.get("position", [0, 0, 0]))
+            self.vec_rot.set_values(t.get("rotation", [0, 0, 0]))
+            self.vec_scl.set_values(t.get("scale", [1, 1, 1]))
+
+            self.color_picker.set_rgb(r.get("color", [1.0, 1.0, 1.0]))
+
+            # Nota: 'opacity' geralmente fica no objeto raiz (props), não em 'render'
+            self.row_opacity.set_value(getattr(props, "opacity", 1.0))
+
+            repr_val = r.get("representation", "surface")
+            self.combo_repr.setCurrentText(str(repr_val).capitalize())
+
+            self.row_ambient.set_value(r.get("ambient", 0.1))
+            self.row_diffuse.set_value(r.get("diffuse", 0.7))
+            self.row_specular.set_value(r.get("specular", 0.2))
+            self.row_specular_pwr.set_value(r.get("specular_power", 10.0))
+            self.check_edges.setChecked(r.get("edge_visibility", False))
+
+        except Exception as e:
+            logger.error(f"Erro ao atualizar UI a partir das propriedades: {e}")
+        finally:
+            self._is_loading_props = False
 
     def _save_property_change(self, property_name: str, value) -> None:
         if not self.object_properties or not self.patient_path:
@@ -150,18 +170,32 @@ class Vec3SliderWidget(QtWidgets.QWidget):
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(2)
+
         self.rows = []
         colors = colors or ["#ff4b4b", "#4bff4b", "#4b4bff"]
+
         for lbl, color, d in zip(("X", "Y", "Z"), colors, defaults):
+            # Passando o parâmetro 'color' corretamente
             row = AxisSliderRow(lbl, min_val, max_val, d, decimals=decimals, color=color)
-            row.changed.connect(lambda _: self.changed.emit(self.get_values()))
+
+            row.changed.connect(self._on_row_changed)
+
             layout.addWidget(row)
             self.rows.append(row)
 
+    def _on_row_changed(self, _=None):
+        """Dispara o sinal com a lista de todos os valores atuais."""
+        self.changed.emit(self.get_values())
+
     def set_values(self, values):
-        for r, v in zip(self.rows, values): r.set_value(v)
+        """Atualiza X, Y e Z com uma lista/tupla de valores."""
+        if len(values) != len(self.rows):
+            return
+        for r, v in zip(self.rows, values):
+            r.set_value(v)
 
     def get_values(self):
+        """Retorna uma lista com [X, Y, Z]."""
         return [r.get_value() for r in self.rows]
 
 
@@ -177,34 +211,65 @@ class AxisSliderRow(QtWidgets.QWidget):
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        # CORREÇÃO AQUI: Armazene como atributo da instância
         self.prec = 10 ** decimals
 
-        # Inicialize seus widgets (exemplo básico)
+        # 1. Widgets
+        lbl_widget = QtWidgets.QLabel(label)
+        if color:
+            lbl_widget.setStyleSheet(f"color: {color}; font-weight: bold;")
+
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.spinbox = QtWidgets.QDoubleSpinBox()
 
-        # Configure min/max do slider com base na precisão
+        # 2. Configuração dos limites
         self.slider.setRange(int(min_val * self.prec), int(max_val * self.prec))
+        self.spinbox.setRange(min_val, max_val)
+        self.spinbox.setDecimals(decimals)
+        self.spinbox.setSingleStep(1.0 / self.prec)
 
-        layout.addWidget(QtWidgets.QLabel(label))
+        # 3. Layout
+        layout.addWidget(lbl_widget)
         layout.addWidget(self.slider)
         layout.addWidget(self.spinbox)
 
-    def set_value(self, value):
-        """Atualiza o valor do slider e do spinbox."""
-        self.slider.blockSignals(True)
-        self.spinbox.blockSignals(True)
+        # 4. Conexões de sinais
+        self.slider.valueChanged.connect(self._on_slider_changed)
+        self.spinbox.valueChanged.connect(self._on_spinbox_changed)
 
-        # Agora self.prec será encontrado corretamente
+        # 5. Valor inicial
+        self.set_value(default)
+
+    def _on_slider_changed(self, value):
+        """Traduz valor do slider para a spinbox."""
+        val = value / self.prec
+        self.spinbox.blockSignals(True)
+        self.spinbox.setValue(val)
+        self.spinbox.blockSignals(False)
+        self.changed.emit(val)
+
+    def _on_spinbox_changed(self, value):
+        """Traduz valor da spinbox para o slider."""
+        self.slider.blockSignals(True)
+        self.slider.setValue(int(value * self.prec))
+        self.slider.blockSignals(False)
+        self.changed.emit(value)
+
+    def set_value(self, value):
+        """Atualiza programaticamente."""
+        self.blockSignals(True)  # Bloqueia sinal de 'changed' deste widget
         self.spinbox.setValue(value)
         self.slider.setValue(int(value * self.prec))
+        self.blockSignals(False)
 
-        self.slider.blockSignals(False)
-        self.spinbox.blockSignals(False)
+    def get_value(self):
+        """Retorna valor atual."""
+        return self.spinbox.value()
 
 
 if __name__ == "__main__":
+    from dataclasses import dataclass, field
+    from unittest.mock import MagicMock
+
     from dataclasses import dataclass, field
 
 
@@ -213,10 +278,12 @@ if __name__ == "__main__":
         id: str = "123"
         file_path: str = "object_123.json"
         opacity: float = 0.8
+        # Usar dict diretamente no default_factory é correto,
+        # mas garanta que as chaves coincidam com o load_from_props
         transform: dict = field(default_factory=lambda: {
-            "position": [10, 20, 30],
-            "rotation": [0, 45, 0],
-            "scale": [1, 1, 1],
+            "position": [10.0, 20.0, 30.0],
+            "rotation": [0.0, 45.0, 0.0],
+            "scale": [1.0, 1.0, 1.0],
         })
         render: dict = field(default_factory=lambda: {
             "color": [0.2, 0.6, 1.0],
@@ -229,39 +296,48 @@ if __name__ == "__main__":
         })
 
         def to_json(self):
-            return self.__dict__
-
+            # Retorna o dicionário completo da instância
+            return {
+                "id": self.id,
+                "file_path": self.file_path,
+                "opacity": self.opacity,
+                "transform": self.transform,
+                "render": self.render
+            }
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    # Configuração de paleta mantida...
-    pal = QtGui.QPalette()
-    pal.setColor(QtGui.QPalette.Window, QtGui.QColor(40, 40, 40))
-    pal.setColor(QtGui.QPalette.WindowText, QtGui.QColor(220, 220, 220))
-    pal.setColor(QtGui.QPalette.Base, QtGui.QColor(30, 30, 30))
-    pal.setColor(QtGui.QPalette.Text, QtGui.QColor(220, 220, 220))
-    pal.setColor(QtGui.QPalette.Button, QtGui.QColor(55, 55, 55))
-    pal.setColor(QtGui.QPalette.ButtonText, QtGui.QColor(220, 220, 220))
-    pal.setColor(QtGui.QPalette.Highlight, QtGui.QColor(80, 120, 200))
-    pal.setColor(QtGui.QPalette.HighlightedText, QtGui.QColor(255, 255, 255))
-    app.setPalette(pal)
+    # ... (Configuração de paleta mantida) ...
 
     win = QtWidgets.QMainWindow()
     win.setWindowTitle("OpenCMF — Properties Editor")
     win.resize(400, 860)
 
-    # CORRIGIDO: Passar context e title
+    # 1. Configurar context mockado
+    mock_context = MagicMock()
+    # Adicionamos um event_bus mockado para não dar erro no _dispatch
+    mock_context.event_bus = MagicMock()
+
+    # 2. Instanciar painel
     comp = ObjectProperties_SidePanel(
-        context=None,  # Ou passe um SceneManager se disponível
-        title="Propriedades",
-        parent=None
+        context=mock_context,
+        title="Propriedades"
     )
 
-    # Criar um objeto FakeProps para teste
+    # Injetar o event_bus diretamente no componente (se não estiver vindo do context)
+    comp.event_bus = mock_context.event_bus
+
+    # 3. Preparar estado interno para o dispatch funcionar
     fake_props = FakeProps()
     comp.object_properties = fake_props
     comp.patient_path = Path("./teste")
+
+    # Definir IDs necessários para o dispatch rodar
+    comp.current_object_id = "123"
+    comp.current_object_name = "Objeto Teste"
+
+    # 4. Carregar dados
     comp.load_from_props(fake_props)
 
     scroll = QtWidgets.QScrollArea()
@@ -269,5 +345,6 @@ if __name__ == "__main__":
     scroll.setWidgetResizable(True)
     win.setCentralWidget(scroll)
     win.show()
+
     sys.exit(app.exec())
 

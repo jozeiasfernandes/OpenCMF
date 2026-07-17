@@ -13,35 +13,21 @@ class Registration_SidePanel(BaseSidePanel):
     targetChanged = QtCore.Signal(str)
     sourceChanged = QtCore.Signal(str)
 
-    # CORRIGIDO: Usar a assinatura correta da BaseSidePanel
     def __init__(self, context: Any, title: str = "Alinhar Objetos", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(context=context, title=title, parent=parent)
         self._is_initializing = False
 
-        # Conectar eventos após a inicialização
-        if self.event_bus:
-            self.event_bus.subscribe(SceneEvents.OBJECT_ADDED, self._refresh_scene_data)
-            self.event_bus.subscribe(SceneEvents.OBJECT_REMOVED, self._refresh_scene_data)
-
-    @property
-    def scene_manager(self) -> Optional[SceneManager]:
-        """Retorna o scene_manager do contexto."""
-        return self._logic.scene_manager if hasattr(self, '_logic') else None
+        # Verifica se event_bus existe no _logic (que é o BaseComponent)
+        if hasattr(self._logic, 'event_bus') and self._logic.event_bus:
+            self._logic.event_bus.subscribe(SceneEvents.OBJECT_ADDED, self._refresh_scene_data)
+            self._logic.event_bus.subscribe(SceneEvents.OBJECT_REMOVED, self._refresh_scene_data)
 
     def setup_ui(self) -> None:
-        """Configura a interface do usuário."""
-        # A base já fornece self.layout (QVBoxLayout)
-        self.layout.setContentsMargins(5, 5, 5, 5)
+        """Configura a interface (sobrescrita da BaseSidePanel)."""
         self.layout.setSpacing(10)
-
-        # Configurações de layout
-        self.setMinimumSize(0, 0)
-        self.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Preferred)
 
         group_sel = QtWidgets.QGroupBox("Seleção de Malhas")
         layout_sel = QtWidgets.QFormLayout(group_sel)
-        layout_sel.setContentsMargins(5, 5, 5, 5)
-        layout_sel.setSpacing(6)
 
         self.combo_target = QtWidgets.QComboBox()
         self.combo_source = QtWidgets.QComboBox()
@@ -52,34 +38,37 @@ class Registration_SidePanel(BaseSidePanel):
         layout_sel.addRow("Móvel (Source):", self.combo_source)
         self.layout.addWidget(group_sel)
 
-        self.layout.addWidget(QtWidgets.QLabel("Correspondência de Pontos:"))
-
         self.table = QtWidgets.QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["Ponto", "Vista A", "Vista B"])
-        self.table.horizontalHeader().setSectionResizeMode(QtWidgets.QHeaderView.Stretch)
-        self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-        self.table.setAlternatingRowColors(True)
-        self.table.setSizePolicy(QtWidgets.QSizePolicy.Ignored, QtWidgets.QSizePolicy.Ignored)
+        self.layout.addWidget(self.table)
 
-        self.layout.addWidget(self.table, stretch=1)
-
+        # --- CORREÇÃO: Criar e adicionar os botões ---
         btn_layout = QtWidgets.QHBoxLayout()
         self.btn_clear = QtWidgets.QPushButton("Limpar Pontos")
         self.btn_align = QtWidgets.QPushButton("Alinhar objetos")
+
+        # Conexões
         self.btn_clear.clicked.connect(self.limparPontos.emit)
         self.btn_align.clicked.connect(self.solicitarAlinhamento.emit)
+
         btn_layout.addWidget(self.btn_clear)
         btn_layout.addWidget(self.btn_align)
         self.layout.addLayout(btn_layout)
 
-        # Inicializar combos
-        self._is_initializing = True
         self._refresh_scene_data()
-        self._is_initializing = False
+
+    @property
+    def scene_manager(self) -> Optional[SceneManager]:
+        """Acesso seguro ao gerenciador de cena."""
+        return getattr(self, '_scene_manager', None)
 
     def _on_target_changed(self, texto):
         if not self._is_initializing:
+            if texto == self.combo_source.currentText() and texto != "":
+                self.combo_source.blockSignals(True)
+                self.combo_source.setCurrentIndex(0)  # Seleciona o vazio
+                self.combo_source.blockSignals(False)
+
             self._validar_selecao()
             self.targetChanged.emit(texto)
 
@@ -155,19 +144,24 @@ class Registration_SidePanel(BaseSidePanel):
             self.table.setRowCount(0)
 
     def _refresh_scene_data(self, **kwargs):
-        if self.scene_manager:
-            nomes = [obj.name for obj in self.scene_manager.objects.all()]
-            self.atualizar_combos(nomes)
+        """Atualiza a lista de objetos de forma segura."""
+        if not self.scene_manager or not hasattr(self, 'combo_target'):
+            return
+
+        objs = getattr(self.scene_manager.objects, 'all', lambda: [])()
+        nomes = [obj.name for obj in objs]
+        self.atualizar_combos(nomes)
 
 
 if __name__ == "__main__":
     import sys
+    from unittest.mock import MagicMock
 
     app = QtWidgets.QApplication(sys.argv)
+    mock_ctx = MagicMock()
 
-    # CORRIGIDO: Usar a nova assinatura
-    panel = Registration_SidePanel(context=None, title="Alinhar Objetos")
-    panel.setup_component()
+    panel = Registration_SidePanel(context=mock_ctx, title="Alinhar Objetos")
+
     panel.resize(300, 400)
     panel.show()
 
