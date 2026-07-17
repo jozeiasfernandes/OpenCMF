@@ -4,11 +4,10 @@ from .contracts import IModule
 
 logger = logging.getLogger(__name__)
 
-
 class ModuleFactory:
     _modules: Dict[str, Type[IModule]] = {}
     _instances: Dict[str, IModule] = {}
-    _shared_dependencies: Dict[str, Any] = {}
+    _context: Optional[Any] = None
 
     @classmethod
     def register(cls, module_id: str, module_class: Type[IModule]):
@@ -16,9 +15,10 @@ class ModuleFactory:
         logger.debug(f"Módulo '{module_id}' registrado com sucesso.")
 
     @classmethod
-    def set_shared_dependencies(cls, **dependencies):
-        cls._shared_dependencies.update(dependencies)
-        logger.debug(f"Dependências compartilhadas atualizadas: {list(dependencies.keys())}")
+    def set_context(cls, context: Any):
+        """Define o contexto único que será injetado em todos os módulos."""
+        cls._context = context
+        logger.debug("Contexto da aplicação definido na Factory.")
 
     @classmethod
     def create(cls, module_id: str, force_new: bool = False, **extra_args) -> IModule:
@@ -32,13 +32,10 @@ class ModuleFactory:
 
         module_class = cls._modules[module_id]
 
-        init_args = {**cls._shared_dependencies, **extra_args}
-
         try:
-            instance = module_class(**init_args)
+            instance = module_class(context=cls._context, **extra_args)
         except Exception as e:
-            logger.error(f"Falha ao instanciar o módulo '{module_id}' com args {list(init_args.keys())}: {e}",
-                         exc_info=True)
+            logger.error(f"Falha ao instanciar o módulo '{module_id}': {e}", exc_info=True)
             raise RuntimeError(f"Erro ao instanciar o módulo '{module_id}': {e}") from e
 
         if not isinstance(instance, IModule):
@@ -51,12 +48,11 @@ class ModuleFactory:
 
     @classmethod
     def clear_cache(cls):
-        # Limpeza reversa ou via lista para evitar erros durante a iteração
         for module_id in list(cls._instances.keys()):
             instance = cls._instances.pop(module_id)
-            if hasattr(instance, "cleanup"):
+            if hasattr(instance, "dispose"): # Alterado para 'dispose' conforme seu BaseComponent
                 try:
-                    instance.cleanup()
+                    instance.dispose()
                 except Exception as e:
-                    logger.warning(f"Erro no cleanup do módulo '{module_id}': {e}")
+                    logger.warning(f"Erro no dispose do módulo '{module_id}': {e}")
         logger.info("Cache da Factory limpo.")

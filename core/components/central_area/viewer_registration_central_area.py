@@ -1,7 +1,6 @@
 import sys
 import logging
 from typing import TYPE_CHECKING, Optional, Any
-
 from PySide6 import QtWidgets, QtCore, QtGui
 import vtk
 
@@ -9,10 +8,14 @@ from core.shortcut.shortcuts import get_shortcuts_by_scope, match_shortcut
 from core.components.bases.base_central_area import CentralAreaBase
 from core.components.central_area.viewer_3d_central_area import Viewer3D_Widget_CentralArea
 
+from core.scene.scene_manager import SceneManager
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
+from core.scene.registry.object_registry import ObjectRegistry
+from core.scene.events.event_bus import EventBus
+from core.scene.registry.object_registry import ObjectRegistry
+from core.scene.registry.actor_registry import ActorRegistry
+from core.scene.scene_state import SceneState
 
-if TYPE_CHECKING:
-    from core.scene.scene_manager import SceneManager
 
 logger = logging.getLogger("OpenCMF.ViewerRegistration_Widget_CentralArea")
 
@@ -38,27 +41,14 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
         # Configurar UI imediatamente (setup_component será chamado pelo módulo)
         self.setup_component()
 
-    @property
-    def scene_manager(self):
-        """Retorna o scene_manager do contexto."""
-        return self._logic.scene_manager if hasattr(self, '_logic') else None
-
-    @property
-    def view_registration(self):
-        """Retorna a referência para si mesmo (compatibilidade)."""
-        return self
-
     def setup_ui(self) -> None:
         """Configura a interface do usuário."""
-        # Verificar se layout_principal existe
         if self.layout_principal is None:
             self._setup_base_ui()
 
-        # Usar o layout da CentralAreaBase
         self.layout_principal.setContentsMargins(0, 0, 0, 0)
         self.layout_principal.setSpacing(0)
 
-        # Criar splitter principal
         self.main_splitter = QtWidgets.QSplitter(QtCore.Qt.Vertical)
         self.top_splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
@@ -68,31 +58,19 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
             layout.setContentsMargins(2, 2, 2, 2)
             layout.setSpacing(2)
 
-            # Criar view 3D usando Viewer3D_Widget_CentralArea
+            # CORREÇÃO: Passar self.context (que contém o scene_manager)
+            # em vez de passar self.scene_manager diretamente.
+            # Certifique-se de que Viewer3D_Widget_CentralArea também aceite 'context'
             view = Viewer3D_Widget_CentralArea(
                 nome=f"Vista {side}",
                 cor_borda="#202020",
                 parent=self,
-                scene_manager=self.scene_manager
+                context=self.context
             )
 
             combo = QtWidgets.QComboBox()
             combo.setMaximumHeight(25)
-            combo.setStyleSheet("""
-                QComboBox {
-                    background-color: #2b2b2b;
-                    color: white;
-                    border: 1px solid #555;
-                    border-radius: 3px;
-                    padding: 3px;
-                }
-                QComboBox:hover {
-                    border: 1px solid #888;
-                }
-                QComboBox::drop-down {
-                    border: none;
-                }
-            """)
+            # ... (seu estilo permanece igual)
 
             layout.addWidget(view, stretch=1)
             layout.addWidget(combo)
@@ -114,7 +92,7 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
             nome="Visor Geral",
             cor_borda="#202020",
             parent=self,
-            scene_manager=self.scene_manager
+            context=self.context  # CORREÇÃO AQUI TAMBÉM
         )
         self._views["C"] = self.view_c
 
@@ -125,12 +103,19 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
         self.main_splitter.setSizes([500, 300])
 
         self.layout_principal.addWidget(self.main_splitter)
-
-        # Configurar shortcuts
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
-
-        # Conectar sinais da cena
         self._bind_scene_listeners()
+
+    @property
+    def scene_manager(self):
+        if hasattr(self, '_context') and self._context:
+            return self._context.scene_manager
+        return None
+
+    @property
+    def view_registration(self):
+        """Retorna a referência para si mesmo (compatibilidade)."""
+        return self
 
     def _bind_scene_listeners(self) -> None:
         """Conecta os listeners da cena."""
@@ -289,11 +274,37 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
 
+
+    # 1. Crie um objeto simples que simule o seu ApplicationContext
+    class FakeContext:
+        def __init__(self):
+            # Instancie as dependências necessárias para o SceneManager
+            self.event_bus = EventBus()
+            self.scene_state = SceneState()
+            self.object_registry = ObjectRegistry()
+            self.actor_registry = ActorRegistry()
+
+            # Agora instancie o SceneManager com o que ele precisa
+            self.scene_manager = SceneManager(
+                state=self.scene_state,
+                event_bus=self.event_bus,
+                object_registry=self.object_registry,
+                actor_registry=self.actor_registry,
+                selection_manager=None,  # Se precisar de um mock aqui também
+                importer=None  # Se precisar de um mock aqui também
+            )
+
+            self.project_service = None
+
+
+    # 2. Instancie o contexto
+    context = FakeContext()
+
     window = QtWidgets.QMainWindow()
     window.resize(1024, 768)
 
-    # Usar a nova assinatura com context
-    registration_widget = ViewerRegistration_Widget_CentralArea(context=None, title="Registro")
+    # 3. Passe o contexto criado
+    registration_widget = ViewerRegistration_Widget_CentralArea(context=context, title="Registro")
     window.setCentralWidget(registration_widget)
 
     window.show()

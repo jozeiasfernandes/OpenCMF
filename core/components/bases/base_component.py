@@ -31,7 +31,6 @@ class BaseComponent(QtCore.QObject):
         self._scene_manager = value
 
     def set_context(self, context: Any) -> None:
-        """Injeta o contexto e valida a presença do scene_manager."""
         if not hasattr(context, "scene_manager"):
             raise AttributeError(
                 f"Falha ao injetar contexto em {self.__class__.__name__}. "

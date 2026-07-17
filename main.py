@@ -36,6 +36,13 @@ vtk.vtkObject.GlobalWarningDisplayOff()
 def get_resource_path() -> Path:
     return Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
 
+class ApplicationContext:
+    def __init__(self, scene_manager, project_service, event_bus, object_registry):
+        self.scene_manager = scene_manager
+        self.project_service = project_service
+        self.event_bus = event_bus
+        self.object_registry = object_registry
+
 class MainWindow(QtWidgets.QMainWindow):
     theme_changed = QtCore.Signal()
 
@@ -43,15 +50,14 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.base_dir = get_resource_path()
 
-        # 1. Componentes base da Cena (mantendo o SceneState aqui)
+        # 1. Componentes base da Cena
         self.event_bus = EventBus()
-        self.scene_state = SceneState() # Renomeado para evitar conflito
+        self.scene_state = SceneState()
 
         # 2. Registries e Managers
         self.object_registry = ObjectRegistry()
         self.actor_registry = ActorRegistry()
 
-        # Usando scene_state para o selection_manager
         self.selection_manager = SelectionManager(state=self.scene_state, event_bus=self.event_bus)
         self.importer = ObjectImporter(patient_path=".")
 
@@ -69,12 +75,16 @@ class MainWindow(QtWidgets.QMainWindow):
         IconManager.set_base_path(self.base_dir / "appearance" / "icons")
         self.project_service = ProjectServiceHomePage(self.base_dir / "patients")
 
-        ModuleFactory.set_shared_dependencies(
-            project_service=self.project_service,
+        # --- CORREÇÃO: Criar o contexto usando os atributos instanciados acima ---
+        context = ApplicationContext(
             scene_manager=self.scene_manager,
+            project_service=self.project_service,
             event_bus=self.event_bus,
             object_registry=self.object_registry
         )
+
+        ModuleFactory.set_context(context)
+        # ------------------------------------------------------------------------
 
         self.current_patient_path: Optional[str] = None
         self.workflow: Optional[FluxoBase] = None
