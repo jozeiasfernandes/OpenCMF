@@ -5,6 +5,7 @@ from PySide6 import QtWidgets, QtCore
 from .header_container.header_panel import HeaderPanel
 from .toolbar_container.toolbar_manager import ToolbarManager
 from .side_panel_container.side_panel_manager import SidePanelManager
+from .central_area_container.central_area_manager import CentralAreaManager
 from .layout import ModuleDistributor
 from .registry import WorkspaceRegistry
 from status_bar.status_bar import StatusBarManager
@@ -32,44 +33,39 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.toolbar_manager = ToolbarManager()
         self.main_layout.addWidget(self.toolbar_manager.top_container)
 
-        # Splitter - Configuração crucial de política
+        # Splitter
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitter.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
-        # Central Host
-        self.central_host = QtWidgets.QStackedWidget()
-        # Garante que o central_host aceite expandir
-        self.central_host.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-        self.splitter.addWidget(self.central_host)
+        # Central Manager (Substitui o QStackedWidget)
+        self.central_manager = CentralAreaManager(self)
+        self.splitter.addWidget(self.central_manager.get_container())
 
         # Side Manager
         self.side_manager = SidePanelManager(self)
         self.side_manager.container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
         self.splitter.addWidget(self.side_manager.container)
 
-        # Configurações de comportamento do Splitter
+        # Configurações do Splitter
         self.splitter.setCollapsible(1, False)
         self.splitter.setStretchFactor(0, 4)
         self.splitter.setStretchFactor(1, 1)
-
-        # Adiciona o splitter ao layout com stretch=1 para consumir o espaço central
         self.main_layout.addWidget(self.splitter, stretch=1)
 
         # Toolbar Inferior e StatusBar
         self.main_layout.addWidget(self.toolbar_manager.bottom_container)
-
         self.status_bar_manager = StatusBarManager()
         self.main_layout.addWidget(self.status_bar_manager)
 
-        # Ajuste de tamanho inicial
         QtCore.QTimer.singleShot(100, lambda: self.splitter.setSizes([900, 300]))
 
     def on_module_changed(self, module_id: str):
         try:
+            # Passamos o central_manager em vez do central_host
             ModuleDistributor.cleanup(
                 self.toolbar_manager,
                 self.side_manager,
-                self.central_host
+                self.central_manager
             )
 
             module = self.registry.get_or_create_module(module_id)
@@ -78,18 +74,14 @@ class WorkspaceManager(QtWidgets.QWidget):
                 module,
                 self.toolbar_manager,
                 self.side_manager,
-                self.central_host
+                self.central_manager
             )
 
             logger.info(f"Módulo '{module_id}' carregado com sucesso.")
-            self.status_bar_manager.showMessage(
-                f"Módulo '{module_id}' carregado com sucesso.",
-                3000
-            )
+            self.status_bar_manager.showMessage(f"Módulo '{module_id}' carregado.", 3000)
         except Exception as e:
-            logger.error(f"Erro crítico ao carregar módulo '{module_id}': {e}", exc_info=True)
-
-            self.status_bar_manager.showMessage(f"Erro ao carregar módulo: {type(e).__name__}", 5000)
+            logger.error(f"Erro crítico: {e}", exc_info=True)
+            self.status_bar_manager.showMessage("Erro ao carregar módulo", 5000)
 
     def get_modulo_ativo(self) -> Optional[IModule]:
         """Retorna o módulo correspondente à aba atualmente selecionada."""
@@ -107,14 +99,6 @@ class WorkspaceManager(QtWidgets.QWidget):
     def reset_workspace(self):
         self.registry.clear_all()
         self.header.clear_tabs()
-
-        if hasattr(self, 'toolbar_manager'):
-            self.toolbar_manager.clear_all()
-
-        if hasattr(self, 'side_manager'):
-            self.side_manager.clear_all()
-
-        while self.central_host.count() > 0:
-            widget = self.central_host.widget(0)
-            self.central_host.removeWidget(widget)
-            widget.deleteLater()
+        self.toolbar_manager.clear_all()
+        self.side_manager.clear_all()
+        self.central_manager.clear()

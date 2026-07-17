@@ -7,6 +7,7 @@ from .contracts import IModule
 if TYPE_CHECKING:
     from .toolbar_container.toolbar_manager import ToolbarManager
     from .side_panel_container.side_panel_manager import SidePanelManager
+    from .central_area_container.central_area_manager import CentralAreaManager
 
 
 class ModuleDistributor:
@@ -16,7 +17,7 @@ class ModuleDistributor:
             module: IModule,
             toolbar_manager: 'ToolbarManager',
             side_manager: 'SidePanelManager',
-            central_host: QtWidgets.QStackedWidget
+            central_manager: 'CentralAreaManager'
     ):
         # 1. Distribuir Toolbars
         if hasattr(module, "get_workspace_toolbar"):
@@ -31,7 +32,6 @@ class ModuleDistributor:
             toolboxes = module.get_toolboxes()
             for name, widget in toolboxes.items():
                 if widget:
-                    # Garantir que o widget não seja tratado como janela
                     widget.setWindowFlags(QtCore.Qt.Widget)
                     if widget.parent():
                         widget.setParent(None)
@@ -43,42 +43,33 @@ class ModuleDistributor:
         if hasattr(module, "get_main_widget"):
             viewport = module.get_main_widget()
             if viewport:
-                # CORREÇÃO: Resetar flags e parent antes da inserção
                 viewport.setWindowFlags(QtCore.Qt.Widget)
                 if viewport.parent():
                     viewport.setParent(None)
 
-                # Garantir políticas de tamanho
                 viewport.setSizePolicy(
                     QtWidgets.QSizePolicy.Expanding,
                     QtWidgets.QSizePolicy.Expanding
                 )
 
-                # Adicionar ao central_host
-                central_host.addWidget(viewport)
-                central_host.setCurrentWidget(viewport)
+                # Adicionar ao central_manager
+                central_manager.set_view(viewport)
 
-                # Garantir visibilidade dentro do container
+                # Garantir visibilidade
                 viewport.setVisible(True)
 
     @staticmethod
     def cleanup(
             toolbar_manager: 'ToolbarManager',
             side_manager: 'SidePanelManager',
-            central_host: QtWidgets.QStackedWidget
+            central_manager: 'CentralAreaManager'
     ):
-        """Limpa todos os containers antes de carregar um novo módulo."""
-        # Limpa Toolbars
+
         for tb_id in list(toolbar_manager.top_container.toolbars.keys()):
             toolbar_manager.top_container.remove_toolbar(tb_id)
 
-        # Limpa Painéis Laterais
         if hasattr(side_manager.container, 'panels'):
             for p_id in list(side_manager.container.panels.keys()):
                 side_manager.container.remove_panel(p_id)
 
-        # Limpa Central Host
-        while central_host.count() > 0:
-            widget = central_host.widget(0)
-            central_host.removeWidget(widget)
-            widget.deleteLater()
+        central_manager.clear()
