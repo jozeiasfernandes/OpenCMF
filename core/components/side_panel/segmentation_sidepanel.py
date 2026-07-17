@@ -13,26 +13,24 @@ class Segmentation_SidePanel(BaseSidePanel):
     side_panel_name = "Segmentação de Volumes"
 
     def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None, **kwargs):
-        super().__init__(context, self.side_panel_name, parent)
+        super().__init__(context=context, title=self.side_panel_name, parent=parent)
 
     def setup_ui(self) -> None:
-        """Configura a interface do usuário."""
-        # O layout já existe e está disponível como self.layout
-        # Limpa o layout caso já tenha widgets (por segurança)
-        self.clear_layout()
+
 
         self.layout.setSpacing(10)
         self.layout.setContentsMargins(5, 5, 5, 5)
 
-        # GroupBox: Fonte de Dados
         group_arq = QtWidgets.QGroupBox("Fonte de Dados")
         lay_arq = QtWidgets.QVBoxLayout(group_arq)
+
         self.edit_tomografia = QtWidgets.QLineEdit()
         self.edit_tomografia.setPlaceholderText("Caminho da pasta DICOM...")
+
         self.edit_tomografia.textChanged.connect(self.pathChanged.emit)
 
         def abrir_seletor():
-            p = QtWidgets.QFileDialog.getExistingDirectory(None, "Selecionar Pasta DICOM")
+            p = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta DICOM")
             if p:
                 self.edit_tomografia.setText(p)
 
@@ -100,13 +98,14 @@ class Segmentation_SidePanel(BaseSidePanel):
         self.layout.addWidget(self.btn_stl)
 
     def clear_layout(self):
-        """Remove todos os widgets do layout."""
         while self.layout.count():
             item = self.layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
-            elif item.layout():
-                self.clear_layout_recursive(item.layout())
+            widget = item.widget()
+
+            if widget:
+                widget.deleteLater()
+            else:
+                self._clear_layout_recursive(item.layout())
 
     def clear_layout_recursive(self, layout):
         """Remove recursivamente widgets de sub-layouts."""
@@ -133,7 +132,6 @@ class Segmentation_SidePanel(BaseSidePanel):
         return self.combo_qualidade.currentIndex()
 
 
-# Mantém o Component para compatibilidade com o sistema de plugins
 Component = Segmentation_SidePanel
 
 if __name__ == "__main__":
@@ -142,47 +140,32 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
-
-    # Criar um contexto mock para teste
     class MockContext:
         scene_manager = None
 
 
     context = MockContext()
 
-    # Criar um QMainWindow para hospedar o dock widget
+    # Criar janela principal
     window = QtWidgets.QMainWindow()
     window.setWindowTitle("OpenCMF - Teste Segmentation Toolbox")
     window.resize(400, 500)
 
-    # Criar o widget como um dockable panel
+
     widget = Segmentation_SidePanel(context)
 
-    # Adicionar como dock widget na janela principal
-    window.addDockWidget(QtCore.Qt.LeftDockWidgetArea, widget)
+    scroll = QtWidgets.QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setWidget(widget)
 
+    # Definir o scroll como widget central
+    window.setCentralWidget(scroll)
 
-    def on_path_changed(path):
-        print(f"Caminho alterado: {path}")
-
-
-    def on_threshold_changed(value):
-        print(f"Threshold alterado: {value}")
-
-
-    def on_solicitar_mascara():
-        print("Solicitando geração de máscara")
-
-
-    def on_solicitar_exportar_stl():
-        print("Solicitando exportação STL")
-
-
-    widget.pathChanged.connect(on_path_changed)
-    widget.thresholdChanged.connect(on_threshold_changed)
-    widget.solicitarMascara.connect(on_solicitar_mascara)
-    widget.solicitarExportarSTL.connect(on_solicitar_exportar_stl)
+    # Conexões de Sinais
+    widget.pathChanged.connect(lambda path: print(f"Caminho alterado: {path}"))
+    widget.thresholdChanged.connect(lambda val: print(f"Threshold alterado: {val}"))
+    widget.solicitarMascara.connect(lambda: print("Solicitando geração de máscara"))
+    widget.solicitarExportarSTL.connect(lambda: print("Solicitando exportação STL"))
 
     window.show()
-
     sys.exit(app.exec())
