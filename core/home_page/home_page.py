@@ -133,7 +133,6 @@ class Home_page(QtWidgets.QWidget):
         self.projects_view.setMinimumHeight(150)
         self.projects_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.projects_view.customContextMenuRequested.connect(self._show_context_menu)
-        self.projects_view.itemDoubleClicked.connect(self._open_selected_project)
         self.view_container.addWidget(self.projects_view)
 
         self.grid_scroll = QtWidgets.QScrollArea()
@@ -158,10 +157,8 @@ class Home_page(QtWidgets.QWidget):
         self.refresh_projects()
 
     def refresh_projects(self):
-        # 1. Limpa a visualização em lista
         self.projects_view.clear()
 
-        # 2. Limpeza robusta do Grid Layout
         while self.grid_layout.count():
             item = self.grid_layout.takeAt(0)
             widget = item.widget()
