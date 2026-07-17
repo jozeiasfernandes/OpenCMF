@@ -53,10 +53,8 @@ class SidePanelContainer(QtWidgets.QWidget):
         panel.setVisible(True)
 
     def remove_panel(self, panel_id: str):
-        """Remove um painel do container."""
         if panel := self.panels.pop(panel_id, None):
-            # Chama o método dispose se for um BaseComponent
-            if hasattr(panel, 'dispose'):
+            if hasattr(panel, 'dispose') and callable(panel.dispose):
                 panel.dispose()
 
             self._layout.removeWidget(panel)

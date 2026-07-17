@@ -63,3 +63,11 @@ class BaseSidePanel(QtWidgets.QWidget):
     @property
     def has_scene(self) -> bool:
         return self.scene_manager is not None
+
+    @property
+    def scene_manager(self):
+        return self._logic.scene_manager
+
+    @property
+    def context(self):
+        return self._logic.context
