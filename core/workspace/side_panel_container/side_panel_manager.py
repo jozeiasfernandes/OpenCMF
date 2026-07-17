@@ -1,3 +1,5 @@
+# core/workspace/side_panel_container/side_panel_manager.py
+
 from PySide6 import QtWidgets, QtCore
 from .side_panel_container import SidePanelContainer
 
@@ -5,32 +7,26 @@ from .side_panel_container import SidePanelContainer
 class SidePanelManager:
     def __init__(self, parent_window):
         self.parent_window = parent_window
-        self.container = SidePanelContainer("Side Panel")
+        self.container = SidePanelContainer("Side Panel", parent_window)
 
-        self.container.setMinimumWidth(200)
+        # Configurar visibilidade
+        self.container.setVisible(True)
+        self.container.setMinimumWidth(250)
 
-    def set_position(self, area: QtCore.Qt.DockWidgetArea):
-        print("A posição deve ser alterada via layout do WorkspaceManager.")
-
-    def toggle_floating(self):
-        """Alterna o estado de floating (se o container suportar)."""
-        if hasattr(self.container, "setFloating"):
-            self.container.setFloating(not self.container.isFloating())
-
-    def clear_all(self):
-        """Limpa o conteúdo do painel lateral."""
-        content_widget = self.container.widget() if hasattr(self.container, "widget") else self.container
-
-        layout = content_widget.layout()
-        if layout:
-            while layout.count():
-                item = layout.takeAt(0)
-                widget = item.widget()
-                if widget:
-                    widget.deleteLater()
-
-    def add_panel(self, name, widget):
-        """Método auxiliar para injetar widgets no container."""
-        # Verifique se o seu SidePanelContainer possui um método de adição
+    def add_panel(self, name: str, widget: QtWidgets.QWidget):
+        """Adiciona um widget ao container lateral."""
         if hasattr(self.container, "add_panel"):
             self.container.add_panel(name, widget)
+            # Garantir visibilidade
+            self.container.setVisible(True)
+            widget.setVisible(True)
+
+    def remove_panel(self, name: str):
+        """Remove um widget do container lateral."""
+        if hasattr(self.container, "remove_panel"):
+            self.container.remove_panel(name)
+
+    def clear_all(self):
+        """Limpa todos os painéis."""
+        if hasattr(self.container, "clear_all"):
+            self.container.clear_all()
