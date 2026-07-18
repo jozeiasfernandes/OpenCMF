@@ -149,6 +149,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.workspace.header.home_requested.connect(self.back_to_home)
         self.workspace.header.module_changed.connect(self.sync_active_module)
 
+
+    def _abrir_ajuda(self):
+        """Método auxiliar para abrir a ajuda como janela modal."""
+        from core.workspace.help.help_page import HelpPage
+        help_win = HelpPage(parent=self)
+        help_win.exec()
+
     def _setup_appearance(self):
         """Configura aparência inicial da janela."""
         self.setGeometry(150, 50, 1024, 650)

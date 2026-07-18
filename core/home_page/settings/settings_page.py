@@ -12,8 +12,8 @@ class PaginaConfig(QtWidgets.QWidget):
     voltar_solicitado = QtCore.Signal()
     tema_alterado = QtCore.Signal(str)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent: QtWidgets.QWidget = None):
+        super().__init__(parent)
         self._setup_ui()
         self._conectar_sinais_internos()
 
