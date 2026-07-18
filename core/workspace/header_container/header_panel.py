@@ -2,8 +2,8 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6 import QtWidgets, QtCore, QtGui
-
 from core.workspace.btn_home import HomeButton
+from core.loaders.components_list import Components_List
 
 
 class HeaderPanel(QtWidgets.QWidget):
@@ -40,8 +40,15 @@ class HeaderPanel(QtWidgets.QWidget):
         self.tab_bar.setMovable(True)
         self.tab_bar.currentChanged.connect(self._on_tab_changed)
 
-        # Botão de configurações
-        self.btn_config = self._create_tool_button("settings", self.settings_requested.emit)
+        # Defina o caminho do ícone aqui para garantir que esteja correto
+        config_icon_path = self.base_dir / "appearance" / "icons" / "config_branco.svg"
+
+        # Botão de configurações passando o caminho do ícone
+        self.btn_config = self._create_tool_button(
+            "config_branco",
+            self._open_components_loader,
+            icon_path=config_icon_path
+        )
 
         # Montagem do layout
         layout.addWidget(self.btn_home)
@@ -49,15 +56,32 @@ class HeaderPanel(QtWidgets.QWidget):
         layout.addStretch(1)
         layout.addWidget(self.btn_config)
 
+    def _open_components_loader(self):
+        """Abre a janela de carregamento de componentes de forma segura."""
+        try:
+            loader_dialog = Components_List(parent=self)
+            loader_dialog.exec()
+        except ImportError as e:
+            print(f"Erro ao importar Components_List: {e}")
+        except Exception as e:
+            print(f"Erro ao abrir o gerenciador de componentes: {e}")
+
     def _create_tool_button(
-        self, icon_name: str, callback
+            self, icon_name: str, callback, icon_path: Optional[Path] = None
     ) -> QtWidgets.QToolButton:
-        """Cria um botão de ferramenta simples."""
         btn = QtWidgets.QToolButton()
         btn.setFixedSize(32, 32)
         btn.setCursor(QtCore.Qt.PointingHandCursor)
         btn.setAutoRaise(True)
-        btn.setText(icon_name[0].upper())
+
+        # Se um caminho de ícone for fornecido, usa ele
+        if icon_path and icon_path.exists():
+            btn.setIcon(QtGui.QIcon(str(icon_path)))
+            btn.setIconSize(QtCore.QSize(24, 24))
+        else:
+            # Caso contrário, mantém o texto como fallback
+            btn.setText(icon_name[0].upper())
+
         btn.clicked.connect(callback)
         return btn
 
