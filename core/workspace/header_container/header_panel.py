@@ -7,20 +7,23 @@ from core.workspace.btn_home import HomeButton
 
 
 class HeaderPanel(QtWidgets.QWidget):
+    """Barra de cabeçalho do workspace com botão Home, abas e configurações."""
+
     home_requested = QtCore.Signal()
     settings_requested = QtCore.Signal()
     module_changed = QtCore.Signal(str)
 
     def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
+
         self.setFixedHeight(42)
 
-        # Define o diretório base do projeto para localizar ícones
-        self.base_dir = Path(__file__).resolve().parents[2]
+        self.base_dir = Path(__file__).resolve().parents[3]
 
         self._setup_ui()
 
     def _setup_ui(self):
+        """Configura o layout e os widgets do header."""
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(8, 4, 8, 4)
         layout.setSpacing(10)
@@ -49,6 +52,7 @@ class HeaderPanel(QtWidgets.QWidget):
     def _create_tool_button(
         self, icon_name: str, callback
     ) -> QtWidgets.QToolButton:
+        """Cria um botão de ferramenta simples."""
         btn = QtWidgets.QToolButton()
         btn.setFixedSize(32, 32)
         btn.setCursor(QtCore.Qt.PointingHandCursor)
@@ -58,33 +62,36 @@ class HeaderPanel(QtWidgets.QWidget):
         return btn
 
     def _on_tab_changed(self, index: int):
+        """Emite sinal quando a aba ativa é alterada."""
         if index >= 0:
             module_id = self.tab_bar.tabData(index)
             if module_id:
                 self.module_changed.emit(module_id)
 
     def add_module_tab(self, module_id: str, title: str):
+        """Adiciona uma nova aba de módulo."""
         index = self.tab_bar.addTab(title)
         self.tab_bar.setTabData(index, module_id)
 
     def clear_tabs(self):
+        """Remove todas as abas."""
         while self.tab_bar.count() > 0:
             self.tab_bar.removeTab(0)
 
 
-# Bloco de teste isolado
+# ======================= Teste isolado =======================
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
 
-    # Cria o painel
     header = HeaderPanel()
 
-    # Adiciona alguns dados para teste
+    # Dados de teste
     header.add_module_tab("mod_1", "Análise 3D")
     header.add_module_tab("mod_2", "Relatórios")
 
-    # Conecta sinais para debug no console
+    # Conexões para debug
     header.home_requested.connect(lambda: print("Home solicitada"))
     header.settings_requested.connect(lambda: print("Configurações solicitadas"))
     header.module_changed.connect(lambda mid: print(f"Módulo alterado para: {mid}"))

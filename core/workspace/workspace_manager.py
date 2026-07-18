@@ -1,75 +1,100 @@
+import sys
 import logging
 from typing import Optional
-from core.workspace.contracts import IModule
+
 from PySide6 import QtWidgets, QtCore
-from .header_container.header_panel import HeaderPanel
-from .toolbar_container.toolbar_manager import ToolbarManager
-from .side_panel_container.side_panel_manager import SidePanelManager
-from .central_area_container.central_area_manager import CentralAreaManager
-from .layout import ModuleDistributor
-from .registry import WorkspaceRegistry
-from status_bar.status_bar import StatusBarManager
-from .state import WorkspaceState
+
+from core.workspace.contracts import IModule
+from core.workspace.header_container.header_panel import HeaderPanel
+from core.workspace.toolbar_container.toolbar_manager import ToolbarManager
+from core.workspace.side_panel_container.side_panel_manager import SidePanelManager
+from core.workspace.central_area_container.central_area_manager import CentralAreaManager
+from core.workspace.layout import ModuleDistributor
+from core.workspace.registry import WorkspaceRegistry
+from core.workspace.status_bar.status_bar import StatusBarManager
+from core.workspace.state import WorkspaceState
 
 
 logger = logging.getLogger("OpenCMF.Workspace")
 
 
 class WorkspaceManager(QtWidgets.QWidget):
+    """Gerencia o layout principal do workspace e a integração entre componentes."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
+
         self.state = WorkspaceState()
         self.registry = WorkspaceRegistry()
 
-        # Layout Principal
+        self._setup_layout()
+        self._setup_components()
+        self._configure_splitter()
+
+    def _setup_layout(self):
+        """Configura o layout principal vertical."""
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        # Header e Toolbar
+    def _setup_components(self):
+        """Inicializa e adiciona todos os componentes visuais."""
+        # Header
         self.header = HeaderPanel()
         self.main_layout.addWidget(self.header)
 
+        # Toolbar Manager
         self.toolbar_manager = ToolbarManager()
         self.main_layout.addWidget(self.toolbar_manager.top_container)
 
-        # Splitter
+        # Splitter (Central + Side Panel)
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        self.splitter.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+        self.splitter.setSizePolicy(
+            QtWidgets.QSizePolicy.Expanding,
+            QtWidgets.QSizePolicy.Expanding
+        )
 
-        # Central Manager (Substitui o QStackedWidget)
         self.central_manager = CentralAreaManager(self)
         self.splitter.addWidget(self.central_manager.get_container())
 
-        # Side Manager
         self.side_manager = SidePanelManager(self)
-        self.side_manager.container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+        self.side_manager.container.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Expanding
+        )
         self.splitter.addWidget(self.side_manager.container)
 
-        # Configurações do Splitter
-        self.splitter.setCollapsible(1, False)
-        self.splitter.setStretchFactor(0, 4)
-        self.splitter.setStretchFactor(1, 1)
         self.main_layout.addWidget(self.splitter, stretch=1)
 
-        # Toolbar Inferior e StatusBar
+        # Toolbar inferior + Status Bar
         self.main_layout.addWidget(self.toolbar_manager.bottom_container)
+
         self.status_bar_manager = StatusBarManager()
         self.main_layout.addWidget(self.status_bar_manager)
 
+        # Ajuste inicial do splitter
         QtCore.QTimer.singleShot(100, lambda: self.splitter.setSizes([900, 300]))
 
+    def _configure_splitter(self):
+        """Configurações do QSplitter."""
+        self.splitter.setCollapsible(1, False)
+        self.splitter.setStretchFactor(0, 4)
+        self.splitter.setStretchFactor(1, 1)
+
+    # ======================= Módulos =======================
+
     def on_module_changed(self, module_id: str):
+        """Troca o módulo ativo e distribui seus componentes."""
         try:
-            # Passamos o central_manager em vez do central_host
+            # Limpeza dos containers
             ModuleDistributor.cleanup(
                 self.toolbar_manager,
                 self.side_manager,
                 self.central_manager
             )
 
+            # Carrega e distribui o novo módulo
             module = self.registry.get_or_create_module(module_id)
-
             ModuleDistributor.distribute(
                 module,
                 self.toolbar_manager,
@@ -79,8 +104,9 @@ class WorkspaceManager(QtWidgets.QWidget):
 
             logger.info(f"Módulo '{module_id}' carregado com sucesso.")
             self.status_bar_manager.showMessage(f"Módulo '{module_id}' carregado.", 3000)
+
         except Exception as e:
-            logger.error(f"Erro crítico: {e}", exc_info=True)
+            logger.error(f"Erro crítico ao carregar módulo '{module_id}': {e}", exc_info=True)
             self.status_bar_manager.showMessage("Erro ao carregar módulo", 5000)
 
     def get_modulo_ativo(self) -> Optional[IModule]:
@@ -92,13 +118,28 @@ class WorkspaceManager(QtWidgets.QWidget):
                 return self.registry.get_or_create_module(module_id)
         return None
 
+    # ======================= Patient & Reset =======================
+
     def set_patient_path(self, path: str):
-        """Atualiza o caminho do paciente no estado do workspace."""
+        """Atualiza o caminho do paciente no estado global."""
         self.state.current_patient = path
 
     def reset_workspace(self):
+        """Limpa todo o workspace (módulos, abas, painéis, etc)."""
         self.registry.clear_all()
         self.header.clear_tabs()
         self.toolbar_manager.clear_all()
         self.side_manager.clear_all()
         self.central_manager.clear()
+
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+
+    workspace = WorkspaceManager()
+    workspace.setWindowTitle("Teste de WorkspaceManager")
+    workspace.resize(1280, 720)
+
+    workspace.show()
+
+    sys.exit(app.exec())
