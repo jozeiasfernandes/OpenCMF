@@ -2,7 +2,6 @@ from typing import Dict, Optional, Any
 import logging
 import uuid
 from pathlib import Path
-from typing import Dict, Optional
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.scene.scene_object import SceneObject
 from core.scene.scene_manager import SceneManager
@@ -33,8 +32,6 @@ class ObjectManager_SidePanel(BaseSidePanel):
     requestSave = QtCore.Signal()
 
     def __init__(self, context: Any, title: str = "Gerenciador de Objetos", parent: Optional[QtWidgets.QWidget] = None):
-        # O 'context' aqui deve ser um objeto que contenha o 'scene_manager'
-        # Se você passa o próprio SceneManager como context, ajuste o BaseComponent
         super().__init__(context=context, title=title, parent=parent)
 
         self.cats: Dict[str, QtWidgets.QTreeWidgetItem] = {}
@@ -65,8 +62,8 @@ class ObjectManager_SidePanel(BaseSidePanel):
 
     @property
     def scene_manager(self):
-        """Retorna o scene_manager do contexto."""
-        return self._logic.scene_manager if hasattr(self, '_logic') else None
+        """Retorna o scene_manager do contexto de forma segura."""
+        return self._safe_get_attr("scene_manager")
 
     def clear_layout(self, layout):
         """Remove todos os widgets de um layout."""
@@ -202,9 +199,7 @@ class ObjectManager_SidePanel(BaseSidePanel):
         if action == menu.exec(self.tree_widget.viewport().mapToGlobal(pos)):
             oid = item.data(0, QtCore.Qt.UserRole)
             self.deleteRequested.emit(oid)
-            # Remove da árvore
             item.parent().removeChild(item)
-            # Remove do SceneManager
             self.scene_manager.remove_object(oid)
             self.requestSave.emit()
 
@@ -212,14 +207,12 @@ class ObjectManager_SidePanel(BaseSidePanel):
         """Remove um objeto da lista pelo ID."""
         if not self.tree_widget:
             return
-        # Procurar o item na árvore
         for i in range(self.tree_widget.topLevelItemCount()):
             category_item = self.tree_widget.topLevelItem(i)
             for j in range(category_item.childCount()):
                 child = category_item.child(j)
                 if child.data(0, QtCore.Qt.UserRole) == object_id:
                     category_item.removeChild(child)
-                    # Se a categoria ficou vazia, remover também
                     if category_item.childCount() == 0:
                         self.tree_widget.takeTopLevelItem(i)
                     return
@@ -235,6 +228,8 @@ if __name__ == "__main__":
     from core.scene.selection.selection_manager import SelectionManager
     from core.scene.io.importer import ObjectImporter
     from core.scene.utils.factory import SceneObjectFactory
+    from core.components.bases.base_toolbar import AppContext
+    from core.components.bases.base_tool.tool_manager import ToolManager
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
@@ -247,7 +242,7 @@ if __name__ == "__main__":
     actor_registry = ActorRegistry()
 
     # 2. Instancia o SelectionManager e Importer
-    selection_manager = SelectionManager(state=shared_state)
+    selection_manager = SelectionManager(state=shared_state, event_bus=event_bus)
     importer = ObjectImporter(patient_path=caminho_projeto)
 
     # 3. Instancia o SceneManager
@@ -270,13 +265,19 @@ if __name__ == "__main__":
                     obj = SceneObjectFactory.create_from_file(str(f), cat)
                     scene_manager.add_object(obj)
 
-    # 5. Configura a UI
+    # 5. Cria o AppContext para satisfazer o BaseComponent (scene_manager, tool_manager, event_bus)
+    app_context = AppContext(
+        scene_manager=scene_manager,
+        tool_manager=ToolManager(),
+        event_bus=event_bus
+    )
+
+    # 6. Configura a UI
     window = QtWidgets.QMainWindow()
     window.setWindowTitle("OpenCMF - Teste de Gerenciador")
 
-    # CORRIGIDO: Usar a nova assinatura (context, title, parent)
     lista_widget = ObjectManager_SidePanel(
-        context=scene_manager,
+        context=app_context,
         title="Gerenciador de Objetos",
         parent=None
     )

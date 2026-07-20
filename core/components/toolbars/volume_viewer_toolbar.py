@@ -4,6 +4,7 @@ from core.volume.lookup_table.lut_presets import LUTPresets
 from core.components.bases.base_toolbar import BaseToolbar, AppContext
 from core.components.tools.color_map_tool import ColorMapTool
 from core.components.tools.layout_dicom_tool import LayoutDicomTool
+from core.localization.translator import get_base_dir  # Import necessário para localizar os ícones
 
 
 class LUTDelegate(QtWidgets.QStyledItemDelegate):
@@ -39,6 +40,13 @@ class VolumeViewerToolbar(BaseToolbar):
         self._combo_layout = None
         self._combo_lut = None
 
+    def get_icon(self, icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIcon) -> QtGui.QIcon:
+        """Método helper da classe para carregar ícones com segurança."""
+        path = get_base_dir() / "appearance" / "icons" / icon_name
+        if path.exists():
+            return QtGui.QIcon(str(path))
+        return QtWidgets.QApplication.style().standardIcon(fallback)
+
     def setup_ui(self) -> None:
         """Configuração da UI utilizando a estrutura da BaseToolbar."""
         self.setFixedHeight(38)
@@ -65,7 +73,6 @@ class VolumeViewerToolbar(BaseToolbar):
         self.addWidget(self._combo_lut)
 
     def _populate_layouts(self):
-        # A lógica de carregamento de ícones pode usar self.get_icon() da BaseToolbar
         opcoes = [
             ("4 Quadrantes", "4_janelas.png"),
             ("3D Destacado", "3_1.png"),
@@ -79,7 +86,6 @@ class VolumeViewerToolbar(BaseToolbar):
             self._combo_layout.addItem(icon, nome)
 
     def _on_layout_changed(self, name: str):
-        # Acesso via self.scene_manager ou tool_manager injetados na base
         layout_tool = self.tool_manager.get_tool("layout_dicom_tool")
         if layout_tool and hasattr(layout_tool, 'apply_layout'):
             layout_tool.apply_layout(name)
@@ -108,7 +114,7 @@ if __name__ == "__main__":
 
 
     class MockToolManager:
-        def get_tool(self, name): return None  # Implemente conforme sua necessidade
+        def get_tool(self, name): return None
 
 
     class MockSceneManager: pass
@@ -116,9 +122,7 @@ if __name__ == "__main__":
 
     class MockSettings:
         def get(self, key, default=None): return default
-
         def set(self, key, value): pass
-
 
 
     app = QtWidgets.QApplication(sys.argv)
@@ -130,9 +134,6 @@ if __name__ == "__main__":
     )
 
     viewer_toolbar = VolumeViewerToolbar(app_context=app_context)
-
-
     viewer_toolbar.initialize()
-
     viewer_toolbar.show()
     sys.exit(app.exec())

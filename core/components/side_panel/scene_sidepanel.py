@@ -5,6 +5,8 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.scene.events.scene_events import SceneEvents
 from core.components.bases.base_sidepanel import BaseSidePanel
+from core.components.bases.base_toolbar import AppContext  # Import necessário para criar o contexto completo
+from core.components.bases.base_tool.tool_manager import ToolManager  # Import do ToolManager
 
 _TIPO_EXIBICAO = {
     "surfaces": "Superfícies",
@@ -76,7 +78,7 @@ class SceneMonitor_SidePanel(BaseSidePanel):
 
     def _highlight_selection(self, object_id: str):
         self.tree.blockSignals(True)
-        items = self.tree.findItems(object_id, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive, 0)  # Simplificado
+        items = self.tree.findItems(object_id, QtCore.Qt.MatchExactly | QtCore.Qt.MatchRecursive, 0)
         for i in range(self.tree.topLevelItemCount()):
             item = self.tree.topLevelItem(i)
             if item.data(0, QtCore.Qt.UserRole) == object_id:
@@ -104,11 +106,12 @@ class SceneMonitor_SidePanel(BaseSidePanel):
     def _on_item_clicked(self, item, column):
         oid = item.data(0, QtCore.Qt.UserRole)
         self.itemSelected.emit(oid)
-        self.scene_manager.select_object(oid, multi=False)  # Uso correto do método [cite: 61]
+        self.scene_manager.select_object(oid, multi=False)
 
     def _solicitar_remocao(self):
         if item := self.tree.currentItem():
-            self.scene_manager.remove_object(item.data(0, QtCore.Qt.UserRole))  # Uso correto [cite: 60]
+            self.scene_manager.remove_object(item.data(0, QtCore.Qt.UserRole))
+
 
 def _fase_para_objeto(obj: Any) -> str:
     md = getattr(obj, "metadata", None) or {}
@@ -130,6 +133,7 @@ def _obter_local_exato(obj: Any) -> str:
     path = md.get("file_path") or md.get("origin")
     return path if (path and os.path.exists(path)) else str(md.get("storage", "RAM")).upper()
 
+
 if __name__ == "__main__":
     from core.scene.scene_object import SceneObject
     from core.scene.scene_state import SceneState
@@ -149,9 +153,14 @@ if __name__ == "__main__":
         SelectionManager(SceneState(), bus), ObjectImporter(patient_path=".")
     )
 
-    # CORREÇÃO: Passar os argumentos exigidos pela classe base (context e title)
-    # A classe SceneMonitor_SidePanel deve ter sido ajustada no seu __init__
-    # para aceitar esses parâmetros ou repassá-los ao super().
-    win = SceneMonitor_SidePanel(context=sm, title="Monitor de Cena")
+    # Cria o AppContext para satisfazer todos os contratos exigidos pelo BaseComponent
+    app_context = AppContext(
+        scene_manager=sm,
+        tool_manager=ToolManager(),
+        event_bus=bus
+    )
+
+    # Passa o app_context em vez de passar apenas o sm diretamente
+    win = SceneMonitor_SidePanel(context=app_context, title="Monitor de Cena")
     win.show()
     sys.exit(app.exec())

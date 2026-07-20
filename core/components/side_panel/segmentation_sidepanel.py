@@ -136,21 +136,25 @@ Component = Segmentation_SidePanel
 
 if __name__ == "__main__":
     import sys
+    from unittest.mock import MagicMock
+    from core.components.bases.base_toolbar import AppContext
+    from core.components.bases.base_tool.tool_manager import ToolManager
+    from core.scene.events.event_bus import EventBus
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    class MockContext:
-        scene_manager = None
-
-
-    context = MockContext()
+    # Criação do contexto completo satisfazendo os contratos da arquitetura base
+    context = AppContext(
+        scene_manager=MagicMock(),
+        tool_manager=ToolManager(),
+        event_bus=EventBus()
+    )
 
     # Criar janela principal
     window = QtWidgets.QMainWindow()
     window.setWindowTitle("OpenCMF - Teste Segmentation Toolbox")
     window.resize(400, 500)
-
 
     widget = Segmentation_SidePanel(context)
 

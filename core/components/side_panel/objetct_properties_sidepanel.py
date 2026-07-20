@@ -10,7 +10,7 @@ from core.components.bases.base_sidepanel import BaseSidePanel
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# ObjectProperties_SidePanel (Painel Principal — Mantido no topo)
+# ObjectProperties_SidePanel (Painel Principal)
 # ---------------------------------------------------------------------------
 
 class ObjectProperties_SidePanel(BaseSidePanel):
@@ -21,15 +21,13 @@ class ObjectProperties_SidePanel(BaseSidePanel):
         super().__init__(context=context, title=title, parent=parent)
 
         self.current_object_id = None
+        self.current_object_name = ""
         self._is_loading_props = False
 
-        # A inicialização da UI deve ocorrer após o super().__init__
-        # que já configura o layout da BaseSidePanel
         self.setup_ui()
 
     def setup_ui(self) -> None:
         """Configura a interface usando o layout herdado de BaseSidePanel."""
-        # Nota: O layout já foi criado em BaseSidePanel, apenas configuramos.
         self.layout.setSpacing(8)
 
         # ── Transform ────────────────────────────────────────────────────────
@@ -97,13 +95,11 @@ class ObjectProperties_SidePanel(BaseSidePanel):
             self._save_property_change(property_name, value)
             if self.event_bus:
                 event_name = f"object_{property_name}_changed"
-
                 payload = {
-                    "object_id": self.current_object_id,  # Recomendo passar ID, não apenas nome
+                    "object_id": self.current_object_id,
                     "object_name": self.current_object_name,
                     "value": value
                 }
-
                 self.event_bus.emit(event_name, payload)
 
         except Exception as e:
@@ -113,7 +109,6 @@ class ObjectProperties_SidePanel(BaseSidePanel):
         """Carrega propriedades tratando dados de dicts ou objetos (dataclasses)."""
         self._is_loading_props = True
 
-        # Converte para dicionário se for um objeto, caso contrário mantém como dict
         t = props.transform if isinstance(props.transform, dict) else vars(props.transform)
         r = props.render if isinstance(props.render, dict) else vars(props.render)
 
@@ -123,8 +118,6 @@ class ObjectProperties_SidePanel(BaseSidePanel):
             self.vec_scl.set_values(t.get("scale", [1, 1, 1]))
 
             self.color_picker.set_rgb(r.get("color", [1.0, 1.0, 1.0]))
-
-            # Nota: 'opacity' geralmente fica no objeto raiz (props), não em 'render'
             self.row_opacity.set_value(getattr(props, "opacity", 1.0))
 
             repr_val = r.get("representation", "surface")
@@ -142,13 +135,12 @@ class ObjectProperties_SidePanel(BaseSidePanel):
             self._is_loading_props = False
 
     def _save_property_change(self, property_name: str, value) -> None:
-        if not self.object_properties or not self.patient_path:
+        if not hasattr(self, "object_properties") or not self.patient_path:
             return
-        # Lógica de atualização interna...
         self._save_to_json()
 
     def _save_to_json(self) -> None:
-        if not self.object_properties or not self.patient_path:
+        if not hasattr(self, "object_properties") or not self.patient_path:
             return
         json_path = self.patient_path / self.object_properties.file_path
         try:
@@ -175,27 +167,21 @@ class Vec3SliderWidget(QtWidgets.QWidget):
         colors = colors or ["#ff4b4b", "#4bff4b", "#4b4bff"]
 
         for lbl, color, d in zip(("X", "Y", "Z"), colors, defaults):
-            # Passando o parâmetro 'color' corretamente
             row = AxisSliderRow(lbl, min_val, max_val, d, decimals=decimals, color=color)
-
             row.changed.connect(self._on_row_changed)
-
             layout.addWidget(row)
             self.rows.append(row)
 
     def _on_row_changed(self, _=None):
-        """Dispara o sinal com a lista de todos os valores atuais."""
         self.changed.emit(self.get_values())
 
     def set_values(self, values):
-        """Atualiza X, Y e Z com uma lista/tupla de valores."""
         if len(values) != len(self.rows):
             return
         for r, v in zip(self.rows, values):
             r.set_value(v)
 
     def get_values(self):
-        """Retorna uma lista com [X, Y, Z]."""
         return [r.get_value() for r in self.rows]
 
 
@@ -213,7 +199,6 @@ class AxisSliderRow(QtWidgets.QWidget):
 
         self.prec = 10 ** decimals
 
-        # 1. Widgets
         lbl_widget = QtWidgets.QLabel(label)
         if color:
             lbl_widget.setStyleSheet(f"color: {color}; font-weight: bold;")
@@ -221,26 +206,21 @@ class AxisSliderRow(QtWidgets.QWidget):
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.spinbox = QtWidgets.QDoubleSpinBox()
 
-        # 2. Configuração dos limites
         self.slider.setRange(int(min_val * self.prec), int(max_val * self.prec))
         self.spinbox.setRange(min_val, max_val)
         self.spinbox.setDecimals(decimals)
         self.spinbox.setSingleStep(1.0 / self.prec)
 
-        # 3. Layout
         layout.addWidget(lbl_widget)
         layout.addWidget(self.slider)
         layout.addWidget(self.spinbox)
 
-        # 4. Conexões de sinais
         self.slider.valueChanged.connect(self._on_slider_changed)
         self.spinbox.valueChanged.connect(self._on_spinbox_changed)
 
-        # 5. Valor inicial
         self.set_value(default)
 
     def _on_slider_changed(self, value):
-        """Traduz valor do slider para a spinbox."""
         val = value / self.prec
         self.spinbox.blockSignals(True)
         self.spinbox.setValue(val)
@@ -248,21 +228,18 @@ class AxisSliderRow(QtWidgets.QWidget):
         self.changed.emit(val)
 
     def _on_spinbox_changed(self, value):
-        """Traduz valor da spinbox para o slider."""
         self.slider.blockSignals(True)
         self.slider.setValue(int(value * self.prec))
         self.slider.blockSignals(False)
         self.changed.emit(value)
 
     def set_value(self, value):
-        """Atualiza programaticamente."""
-        self.blockSignals(True)  # Bloqueia sinal de 'changed' deste widget
+        self.blockSignals(True)
         self.spinbox.setValue(value)
         self.slider.setValue(int(value * self.prec))
         self.blockSignals(False)
 
     def get_value(self):
-        """Retorna valor atual."""
         return self.spinbox.value()
 
 
@@ -270,16 +247,11 @@ if __name__ == "__main__":
     from dataclasses import dataclass, field
     from unittest.mock import MagicMock
 
-    from dataclasses import dataclass, field
-
-
     @dataclass
     class FakeProps:
         id: str = "123"
         file_path: str = "object_123.json"
         opacity: float = 0.8
-        # Usar dict diretamente no default_factory é correto,
-        # mas garanta que as chaves coincidam com o load_from_props
         transform: dict = field(default_factory=lambda: {
             "position": [10.0, 20.0, 30.0],
             "rotation": [0.0, 45.0, 0.0],
@@ -296,7 +268,6 @@ if __name__ == "__main__":
         })
 
         def to_json(self):
-            # Retorna o dicionário completo da instância
             return {
                 "id": self.id,
                 "file_path": self.file_path,
@@ -308,32 +279,27 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    # ... (Configuração de paleta mantida) ...
-
     win = QtWidgets.QMainWindow()
     win.setWindowTitle("OpenCMF — Properties Editor")
     win.resize(400, 860)
 
-    # 1. Configurar context mockado
+    # 1. Configurar o contexto corretamente contendo as dependências esperadas pelo BaseComponent
     mock_context = MagicMock()
-    # Adicionamos um event_bus mockado para não dar erro no _dispatch
     mock_context.event_bus = MagicMock()
+    mock_context.scene_manager = MagicMock()
+    mock_context.tool_manager = MagicMock()
 
-    # 2. Instanciar painel
+    # 2. Instanciar painel passando o contexto adequado
     comp = ObjectProperties_SidePanel(
         context=mock_context,
         title="Propriedades"
     )
-
-    # Injetar o event_bus diretamente no componente (se não estiver vindo do context)
-    comp.event_bus = mock_context.event_bus
 
     # 3. Preparar estado interno para o dispatch funcionar
     fake_props = FakeProps()
     comp.object_properties = fake_props
     comp.patient_path = Path("./teste")
 
-    # Definir IDs necessários para o dispatch rodar
     comp.current_object_id = "123"
     comp.current_object_name = "Objeto Teste"
 
@@ -347,4 +313,3 @@ if __name__ == "__main__":
     win.show()
 
     sys.exit(app.exec())
-
