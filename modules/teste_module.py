@@ -56,7 +56,7 @@ class Modulo(ModuloBase):
 
         return {"Operações": self._toolbox}
 
-    def get_workspace_toolbar(self, tool_manager: Optional[QtWidgets.QToolBar] = None) -> Optional[QtWidgets.QToolBar]:
+    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
         """Retorna a toolbar do módulo."""
         if not self._toolbar:
             self._toolbar = QtWidgets.QToolBar("Toolbar do Módulo")

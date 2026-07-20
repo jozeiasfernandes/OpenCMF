@@ -5,7 +5,7 @@ from typing import Dict, Optional, Any
 from PySide6 import QtWidgets
 
 # Core imports
-from core.workspace.contracts import IModule
+from modules.base_module.base_module import ModuloBase
 from core.scene.scene_manager import SceneManager
 from core.scene.scene_state import SceneState
 from core.scene.events.event_bus import EventBus
@@ -14,7 +14,6 @@ from core.scene.registry.actor_registry import ActorRegistry
 from core.scene.selection.selection_manager import SelectionManager
 from core.scene.io.importer import ObjectImporter
 from core.scene.scene_object import SceneObject
-from core.scene.events.scene_events import RegistrationEvents
 
 # Components
 from core.components.bases.base_toolbar import AppContext
@@ -25,34 +24,38 @@ from core.components.toolbars.registration_toolbar import RegistrationToolbar
 
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
+
 class RegistrationContext:
     """Wrapper para satisfazer a expectativa do BaseComponent."""
+
     def __init__(self, scene_manager):
         self.scene_manager = scene_manager
 
-class Modulo(IModule):
+
+class Modulo(ModuloBase):
     """Módulo de Registro/Alinhamento. Atua como Provedor de Componentes para o ModuleDistributor."""
 
-    def __init__(self, context=None, **kwargs):
-        super().__init__()
-        self.id = "modulo.registration"
-        self._is_initialized = False
-        self._subscribers = []
+    def __init__(self, context: Any = None, parent: Optional[QtWidgets.QWidget] = None, **kwargs):
+        super().__init__(context=context, parent=parent)
 
-        # Prioriza o scene_manager vindo dos kwargs, caso contrário cria o padrão
-        self.scene_manager = kwargs.get("scene_manager") or self._criar_scene_manager_padrao()
+        self.id = "modulo.registration"
+        self.nome = "Registro"
+        self._is_initialized = False
+
+        # Prioriza o scene_manager vindo do contexto ou kwargs, caso contrário cria o padrão
+        self.scene_manager = kwargs.get("scene_manager") or getattr(context, "scene_manager",
+                                                                    None) or self._criar_scene_manager_padrao()
 
         # Cria o objeto de contexto que o BaseComponent espera (com o atributo .scene_manager)
         self.widget_context = RegistrationContext(self.scene_manager)
 
-        # Passa o 'widget_context' para os componentes em vez do scene_manager direto
+        # Passa o 'widget_context' para os componentes
         self.widget_reg = ViewerRegistration_Widget_CentralArea(context=self.widget_context)
         self.widget_objetos = ObjectManager_SidePanel(context=self.widget_context)
         self.widget_propriedades = ObjectProperties_SidePanel(context=self.widget_context)
 
-        self.widget_reg.setWindowTitle("Registro")
-        self.widget_objetos.setWindowTitle("Objetos")
-        self.widget_propriedades.setWindowTitle("Propriedades")
+        # Define o viewer principal para a ModuloBase gerenciar
+        self.viewer = self.widget_reg
 
     def _criar_scene_manager_padrao(self) -> SceneManager:
         bus = EventBus()
@@ -68,6 +71,7 @@ class Modulo(IModule):
         )
 
     def inicializar(self, caminho_paciente: str) -> None:
+        super().inicializar(caminho_paciente)
         if self._is_initialized:
             self.cleanup()
 
@@ -83,11 +87,9 @@ class Modulo(IModule):
             self.widget_objetos.set_patient_path(caminho_paciente)
 
         self._is_initialized = True
+        logger.info(f"Módulo '{self.nome}' inicializado com paciente: {caminho_paciente}")
 
-    def get_main_widget(self) -> QtWidgets.QWidget:
-        return self.widget_reg
-
-    def get_workspace_toolbar(self, tool_manager=None) -> Optional[QtWidgets.QToolBar]:
+    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
         context = AppContext(
             tool_manager=tool_manager,
             scene_manager=self.scene_manager,
@@ -100,7 +102,6 @@ class Modulo(IModule):
         )
 
         toolbar.initialize()
-
         return toolbar
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
@@ -110,22 +111,44 @@ class Modulo(IModule):
         }
 
     def cleanup(self) -> None:
-        if not self._is_initialized: return
-
-        if hasattr(self, 'object_manager'):
+        if self._is_initialized and hasattr(self, 'object_manager'):
             try:
                 self.object_manager.object_added.disconnect(self._on_scene_object_added)
-            except:
+            except Exception:
                 pass
 
         for w in [self.widget_reg, self.widget_objetos, self.widget_propriedades]:
-            if hasattr(w, "cleanup"): w.cleanup()
+            if w:
+                try:
+                    import shiboken6
+                    if shiboken6.isValid(w):
+                        w.deleteLater()
+                except (RuntimeError, ImportError):
+                    pass
+                if hasattr(w, "cleanup"):
+                    try:
+                        w.cleanup()
+                    except Exception:
+                        pass
 
-        self.scene_manager.clear()
+        if self.scene_manager:
+            try:
+                self.scene_manager.clear()
+            except Exception:
+                pass
+
+        self.widget_reg = None
+        self.widget_objetos = None
+        self.widget_propriedades = None
+        self.viewer = None
+
+        super().cleanup()
         self._is_initialized = False
+        logger.info(f"Módulo '{self.nome}' limpo com sucesso.")
 
     def _on_scene_object_added(self, obj: SceneObject):
-        self.widget_objetos.adicionar_objeto_lista(obj.name, obj.type, None, objeto_id=obj.id)
+        if self.widget_objetos:
+            self.widget_objetos.adicionar_objeto_lista(obj.name, obj.type, None, objeto_id=obj.id)
 
 
 if __name__ == "__main__":
@@ -134,30 +157,32 @@ if __name__ == "__main__":
     from core.workspace.layout import ModuleDistributor
     from core.workspace.module_factory import ModuleFactory
 
-    # 1. Garante uma única instância de QApplication
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
 
-    # 2. Registro e instanciação
+
+    class MockContext:
+        def __init__(self):
+            self.app = app
+            self.settings = {}
+
+
+    contexto_mock = MockContext()
+
     ModuleFactory.register("modulo.registration", Modulo)
+    ModuleFactory.set_context(contexto_mock)
 
     try:
-        # A Factory passará o contexto automaticamente, e nosso novo __init__
-        # está preparado para recebê-lo com (context=None, **kwargs)
         modulo = ModuleFactory.create("modulo.registration")
+        modulo.inicializar("./teste_paciente")
 
-        # 3. Inicialização de dados
-        caminho_teste = "./teste_paciente"
-        modulo.inicializar(caminho_teste)
-
-        # 4. Configuração do Workspace
         workspace = WorkspaceManager()
+        workspace.resize(1200, 800)
 
-        # 5. Distribuição dos componentes via Distributor
         ModuleDistributor.distribute(
             modulo,
             workspace.toolbar_manager,
             workspace.side_manager,
-            workspace.central_host
+            workspace.central_manager
         )
 
         workspace.show()

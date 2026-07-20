@@ -1,74 +1,106 @@
 import logging
+from typing import Optional, Any, Dict
 from PySide6 import QtWidgets, QtCore
 from modules.base_module.base_module import ModuloBase
-from core.workspace.contracts import IModule
 
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
+
 class Modulo(ModuloBase):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, context: Any = None, parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(context=context, parent=parent)
+
         self.id = "modulo.cefalometria"
+        self.nome = "Cefalometria"
+
+        # Criação dos componentes visuais do módulo
+        self._main_widget: Optional[QtWidgets.QWidget] = None
+        self._toolbox: Optional[QtWidgets.QWidget] = None
 
     def get_main_widget(self) -> QtWidgets.QWidget:
-        """Substitui o antigo get_workspace."""
-        label = QtWidgets.QLabel("ÁREA DE TRAÇADO CEFALOMÉTRICO 2D/3D")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        return label
+        """Retorna o widget principal do módulo (Área central)."""
+        if not self._main_widget:
+            self._main_widget = QtWidgets.QWidget()
+            layout = QtWidgets.QVBoxLayout(self._main_widget)
+            layout.setContentsMargins(0, 0, 0, 0)
 
-    def get_toolboxes(self) -> dict[str, QtWidgets.QWidget]:
-        """Substitui o antigo get_toolbox retornando um dicionário de painéis."""
-        widget = QtWidgets.QWidget()
-        layout = QtWidgets.QVBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
+            label = QtWidgets.QLabel("ÁREA DE TRAÇADO CEFALOMÉTRICO 2D/3D")
+            label.setAlignment(QtCore.Qt.AlignCenter)
+            label.setStyleSheet("font-size: 16px; font-weight: bold; color: #333;")
 
-        layout.addWidget(QtWidgets.QLabel("Pontos Anatômicos:"))
-        layout.addWidget(QtWidgets.QPushButton("Marcar Ponto Násio (N)"))
-        layout.addWidget(QtWidgets.QPushButton("Marcar Ponto Sela (S)"))
-        layout.addStretch()
+            layout.addWidget(label)
 
-        return {"Ferramentas": widget}
+        return self._main_widget
 
-    def get_workspace_toolbar(self) -> None:
+    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
+        """Retorna um dicionário de painéis laterais (toolboxes)."""
+        if not self._toolbox:
+            self._toolbox = QtWidgets.QWidget()
+            layout = QtWidgets.QVBoxLayout(self._toolbox)
+            layout.setContentsMargins(0, 0, 0, 0)
+
+            layout.addWidget(QtWidgets.QLabel("Pontos Anatômicos:"))
+            layout.addWidget(QtWidgets.QPushButton("Marcar Ponto Násio (N)"))
+            layout.addWidget(QtWidgets.QPushButton("Marcar Ponto Sela (S)"))
+            layout.addStretch()
+
+        return {"Ferramentas": self._toolbox}
+
+    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
         """Opcional: Retorna uma QToolBar se necessário."""
         return None
 
+    def inicializar(self, caminho_paciente: str) -> None:
+        """Inicializa o módulo com o caminho do paciente."""
+        super().inicializar(caminho_paciente)
+        logger.info(f"Módulo '{self.nome}' inicializado com paciente: {caminho_paciente}")
+
     def cleanup(self) -> None:
-        """Limpeza de recursos."""
-        logger.info("Limpeza do módulo de Cefalometria realizada.")
+        """Limpeza segura de recursos e widgets."""
+        if self._main_widget:
+            self._main_widget.deleteLater()
+            self._main_widget = None
+
+        if self._toolbox:
+            self._toolbox.deleteLater()
+            self._toolbox = None
+
+        super().cleanup()
+        logger.info(f"Módulo '{self.nome}' limpo com sucesso.")
 
 
 if __name__ == "__main__":
     import sys
 
-    # Criação da aplicação
+    # Criação da aplicação de teste isolado
     app = QtWidgets.QApplication(sys.argv)
 
-    # Instancia o seu módulo
-    modulo = Modulo()
 
-    # Cria uma janela principal para envolver o módulo
+    class MockContext:
+        def __init__(self):
+            self.app = app
+            self.settings = {}
+
+
+    # Instancia o módulo passando o contexto mock
+    modulo = Modulo(context=MockContext())
+    modulo.inicializar("./debug_paciente")
+
+    # Janela de teste
     janela = QtWidgets.QMainWindow()
     janela.setWindowTitle("Teste do Módulo: Cefalometria")
     janela.resize(800, 600)
 
-    # Configura o layout da janela
     central_widget = QtWidgets.QWidget()
     layout_principal = QtWidgets.QHBoxLayout(central_widget)
 
-    # Acessa os novos métodos do protocolo IModule
     toolboxes = modulo.get_toolboxes()
     main_widget = modulo.get_main_widget()
 
-    # Adiciona a toolbox ("Ferramentas") e o widget principal
-    # Usamos o dicionário retornado pelo get_toolboxes
     layout_principal.addWidget(toolboxes["Ferramentas"], stretch=1)
     layout_principal.addWidget(main_widget, stretch=3)
 
     janela.setCentralWidget(central_widget)
-
-    # Exibe a janela
     janela.show()
 
-    # Executa o loop de eventos
     sys.exit(app.exec())
