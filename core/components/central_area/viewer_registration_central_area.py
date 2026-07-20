@@ -1,8 +1,7 @@
 import sys
 import logging
-from typing import TYPE_CHECKING, Optional, Any
-from PySide6 import QtWidgets, QtCore, QtGui
-import vtk
+from typing import Optional, Any
+from PySide6 import QtWidgets, QtCore
 
 from core.shortcut.shortcuts import get_shortcuts_by_scope, match_shortcut
 from core.components.bases.base_central_area import CentralAreaBase
@@ -12,10 +11,9 @@ from core.scene.scene_manager import SceneManager
 from core.scene.selection.selection_manager import SelectionManager
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 from core.scene.registry.object_registry import ObjectRegistry
-from core.scene.events.event_bus import EventBus
-from core.scene.registry.object_registry import ObjectRegistry
 from core.scene.registry.actor_registry import ActorRegistry
 from core.scene.scene_state import SceneState
+from core.scene.events.event_bus import EventBus
 
 
 logger = logging.getLogger("OpenCMF.ViewerRegistration_Widget_CentralArea")
@@ -24,28 +22,26 @@ logger = logging.getLogger("OpenCMF.ViewerRegistration_Widget_CentralArea")
 class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
     """
     Widget central para registro de objetos.
-    Herda de CentralAreaBase para integração com a arquitetura.
+    Herda de CentralAreaBase para integração com a nova arquitetura baseada em composição.
     """
     pontoAdicionado = QtCore.Signal(str, list)
     requisitarCarregamentoObjeto = QtCore.Signal(str, str)
 
     def __init__(self, context: Any, title: str = "Registro", parent: Optional[QtWidgets.QWidget] = None):
-        self.context = context
-
-        # 2. Inicializar CentralAreaBase
-        super().__init__(context=context, title=title, cor_identificacao="#202020", usar_vtk=False, parent=parent)
-
-        self.shortcuts = get_shortcuts_by_scope("view3d")
-        self.current_mode = "select"
-        self.properties_panel = None
         self._views = {}
         self._combos = {}
+        self.properties_panel = None
+        self.current_mode = "select"
+        self.shortcuts = get_shortcuts_by_scope("view3d")
 
-        # Configurar UI imediatamente
+        # Inicializa a CentralAreaBase (que encapsula o BaseComponent por composição)
+        super().__init__(context=context, title=title, cor_identificacao="#202020", usar_vtk=False, parent=parent)
+
+        # Configurar UI imediatamente após a inicialização base
         self.setup_component()
 
     def setup_ui(self) -> None:
-        """Configura a interface do usuário."""
+        """Configura a interface do usuário conforme o contrato da base."""
         if self.layout_principal is None:
             self._setup_base_ui()
 
@@ -61,9 +57,6 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
             layout.setContentsMargins(2, 2, 2, 2)
             layout.setSpacing(2)
 
-            # CORREÇÃO: Passar self.context (que contém o scene_manager)
-            # em vez de passar self.scene_manager diretamente.
-            # Certifique-se de que Viewer3D_Widget_CentralArea também aceite 'context'
             view = Viewer3D_Widget_CentralArea(
                 nome=f"Vista {side}",
                 cor_borda="#202020",
@@ -73,7 +66,6 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
 
             combo = QtWidgets.QComboBox()
             combo.setMaximumHeight(25)
-            # ... (seu estilo permanece igual)
 
             layout.addWidget(view, stretch=1)
             layout.addWidget(combo)
@@ -95,7 +87,7 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
             nome="Visor Geral",
             cor_borda="#202020",
             parent=self,
-            context=self.context  # CORREÇÃO AQUI TAMBÉM
+            context=self.context
         )
         self._views["C"] = self.view_c
 
@@ -110,22 +102,16 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
         self._bind_scene_listeners()
 
     @property
-    def scene_manager(self):
-        if hasattr(self, '_context') and self._context:
-            return self._context.scene_manager
-        return None
-
-    @property
     def view_registration(self):
         """Retorna a referência para si mesmo (compatibilidade)."""
         return self
 
     def _bind_scene_listeners(self) -> None:
-        """Conecta os listeners da cena."""
-        if not self.scene_manager:
+        """Conecta os listeners da cena utilizando o event_bus seguro da base."""
+        bus = self.event_bus
+        if not bus:
             return
 
-        bus = self.scene_manager.events
         bus.subscribe(SceneEvents.VISIBILITY_CHANGED, self._on_scene_bus_visibility)
         bus.subscribe(SceneEvents.OBJECT_UPDATED, self._on_scene_bus_object_updated)
         bus.subscribe(SceneEvents.OBJECT_REMOVED, self._on_scene_bus_object_removed)
@@ -133,12 +119,12 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
 
     def _on_combo_changed(self, vista_id: str, nome_objeto: str):
         """Callback quando um combo é alterado."""
-        if nome_objeto and self.scene_manager:
+        if nome_objeto and self.scene_manager and self.event_bus:
             event_key = RegistrationEvents.TARGET_CHANGED if vista_id == "A" else RegistrationEvents.SOURCE_CHANGED
 
-            self.scene_manager.events.emit(
+            self.event_bus.publish(
                 event_key,
-                object_id=nome_objeto
+                {"object_id": nome_objeto}
             )
 
             self.requisitarCarregamentoObjeto.emit(vista_id, nome_objeto)
@@ -148,15 +134,12 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
         self.current_mode = mode
         cursor = QtCore.Qt.ArrowCursor if mode == "select" else QtCore.Qt.CrossCursor
 
-        if hasattr(self, 'view_a'):
-            self.view_a.setCursor(cursor)
-            if hasattr(self.view_a, 'set_interactor_style'):
-                self.view_a.set_interactor_style(mode)
-
-        if hasattr(self, 'view_b'):
-            self.view_b.setCursor(cursor)
-            if hasattr(self.view_b, 'set_interactor_style'):
-                self.view_b.set_interactor_style(mode)
+        for view_name in ['view_a', 'view_b']:
+            if hasattr(self, view_name):
+                view = getattr(self, view_name)
+                view.setCursor(cursor)
+                if hasattr(view, 'set_interactor_style'):
+                    view.set_interactor_style(mode)
 
     def _on_scene_bus_visibility(self, object_id: str, visible: bool, **_kwargs):
         """Callback para mudança de visibilidade."""
@@ -188,14 +171,10 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
                 return view
         return self.view_c
 
-    # ==================== Métodos para compatibilidade com o módulo principal ====================
+    # ==================== Métodos de Compatibilidade ====================
 
     def atualizar_combos(self, lista_objetos: list):
-        """
-        Atualiza os combos com a lista de objetos.
-        Compatível com o método esperado pelo módulo principal.
-        """
-        # Se lista_objetos for uma lista de dicionários com 'id' e 'name'
+        """Atualiza os combos com a lista de objetos."""
         if lista_objetos and isinstance(lista_objetos[0], dict):
             nomes = [obj['name'] for obj in lista_objetos]
         else:
@@ -232,7 +211,6 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
 
     def limpar_tabela(self):
         """Limpa a tabela de pontos."""
-        # Implementar conforme necessário
         pass
 
     def connect_properties_panel(self, properties_panel):
@@ -259,43 +237,32 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
     def execute_action(self, action, view):
         """Executa uma ação de atalho."""
         logger.debug(f"Executando ação: {action}")
-        # Implementar ações específicas aqui
 
     def dispose(self):
-        """Limpeza de recursos."""
-        # Desconectar listeners
-        if self.scene_manager and self.scene_manager.events:
-            bus = self.scene_manager.events
-            bus.unsubscribe(SceneEvents.VISIBILITY_CHANGED, self._on_scene_bus_visibility)
-            bus.unsubscribe(SceneEvents.OBJECT_UPDATED, self._on_scene_bus_object_updated)
-            bus.unsubscribe(SceneEvents.OBJECT_REMOVED, self._on_scene_bus_object_removed)
-            bus.unsubscribe(SceneEvents.INTERACTION_MODE_CHANGED, self.set_interaction_mode)
+        """Limpeza de recursos e remoção de assinaturas do EventBus."""
+        bus = self.event_bus
+        if bus and hasattr(bus, 'unsubscribe'):
+            try:
+                bus.unsubscribe(SceneEvents.VISIBILITY_CHANGED, self._on_scene_bus_visibility)
+                bus.unsubscribe(SceneEvents.OBJECT_UPDATED, self._on_scene_bus_object_updated)
+                bus.unsubscribe(SceneEvents.OBJECT_REMOVED, self._on_scene_bus_object_removed)
+                bus.unsubscribe(SceneEvents.INTERACTION_MODE_CHANGED, self.set_interaction_mode)
+            except Exception:
+                pass
 
         super().dispose()
 
-    @property
-    def scene_manager(self):
-        # Você está checando '_context', mas definiu 'self.context'
-        if hasattr(self, 'context') and self.context:
-            return self.context.scene_manager
-        return None
-
 
 if __name__ == "__main__":
-    # Garante que o QApplication exista antes de criar qualquer Widget
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
 
-
     class FakeContext:
-        """Simula o contexto necessário para a injeção de dependência."""
-
         def __init__(self):
             self.event_bus = EventBus()
             self.scene_state = SceneState()
             self.object_registry = ObjectRegistry()
             self.actor_registry = ActorRegistry()
 
-            # O atributo .scene_manager é obrigatório para o BaseComponent
             self.scene_manager = SceneManager(
                 state=self.scene_state,
                 event_bus=self.event_bus,
@@ -305,19 +272,15 @@ if __name__ == "__main__":
                 importer=None,
                 transform_manager=None
             )
-            self.project_service = None
+            self.tool_manager = None
 
-
-    # Instanciação do contexto mock
     context = FakeContext()
 
-    # Configuração da janela principal
     window = QtWidgets.QMainWindow()
     window.setWindowTitle("Teste de Registro")
     window.resize(1024, 768)
 
     try:
-        # Instanciação do Widget
         registration_widget = ViewerRegistration_Widget_CentralArea(context=context, title="Registro")
         window.setCentralWidget(registration_widget)
 

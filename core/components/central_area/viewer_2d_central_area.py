@@ -3,6 +3,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from core.components.bases.base_central_area import CentralAreaBase
 from core.components.central_area.window_2d_.context_menu_2d import ContextMenu2D
 
+
 class Viewer2D_Widget_CentralArea(CentralAreaBase):
     sliceChanged = QtCore.Signal(int)
     maximizeRequested = QtCore.Signal(bool)
@@ -68,8 +69,9 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
         self.vtkWidget.customContextMenuRequested.connect(self._show_context_menu)
 
     def _show_context_menu(self, pos):
-        menu = ContextMenu2D(self)
-        menu.exec_(self.vtkWidget.mapToGlobal(pos))
+        # Repassa o contexto atual (AppContext) para o ContextMenu2D manter a compatibilidade
+        menu = ContextMenu2D(parent=self, context=self.context, scene_manager=self.scene_manager)
+        menu.exec(self.vtkWidget.mapToGlobal(pos))
 
     def _update_maximize_icon(self):
         icon_name = "minimizar.png" if self.is_maximized else "maximizar.png"
@@ -111,11 +113,11 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
 
-
     class MockContext:
         def __init__(self):
             self.scene_manager = None
-
+            self.tool_manager = None
+            self.event_bus = None
 
     contexto_teste = MockContext()
 
