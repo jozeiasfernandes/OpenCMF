@@ -6,7 +6,7 @@ class ModuloBase(QtWidgets.QWidget):
     """Classe base para módulos que atuam como containers de componentes."""
 
     id: str = "undefined.id"
-    nome: str = "Módulo Genérico"  # Obrigatório para satisfazer o protocolo IModule
+    nome: str = "Módulo Genérico"
     concluido = QtCore.Signal()
 
     def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None):
