@@ -3,47 +3,55 @@ from PySide6 import QtWidgets, QtCore
 
 
 class ModuloBase(QtWidgets.QWidget):
+    """Classe base para módulos que atuam como containers de componentes."""
+
+    id: str = "undefined.id"
     concluido = QtCore.Signal()
 
-    def __init__(self, scene_manager: Optional[Any] = None, parent: Optional[QtWidgets.QWidget] = None, **kwargs):
+    def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent=parent)
 
-        self.scene_manager = scene_manager
-        self.project_service = kwargs.get("project_service")
-        self.pasta_paciente = kwargs.get("pasta_paciente")
-
+        self.context = context
         self.setLayout(QtWidgets.QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
 
         self.viewer: Optional[QtWidgets.QWidget] = None
 
-
     def get_main_widget(self) -> QtWidgets.QWidget:
-        """Retorna o widget principal. Se não existir, retorna o próprio módulo."""
+        """Retorna o widget principal do módulo."""
         return self.viewer if self.viewer is not None else self
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        """
-        Mantém compatibilidade com o contrato. Se o módulo legado tiver
-        uma barra de ferramentas, podemos incluí-la aqui como um dicionário.
-        """
-        toolboxes = {}
-        # Caso exista um método legado de toolbar_container, transformamos em toolbox
+        """Retorna dicionário de painéis laterais (toolboxes)."""
+        toolboxes: Dict[str, QtWidgets.QWidget] = {}
         toolbar = self.get_workspace_toolbar()
+
         if toolbar:
             toolboxes["Ferramentas"] = toolbar
+
         return toolboxes
 
-    # --- Estrutura Base e Métodos Legados ---
+    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+        return None
+
+    def get_workspace(self) -> QtWidgets.QWidget:
+        if self.viewer:
+            return self.viewer
+
+        return QtWidgets.QLabel(
+            f"Workspace de {self.__class__.__name__} não carregado."
+        )
 
     def inicializar(self, caminho_paciente: str) -> None:
-        self.pasta_paciente = caminho_paciente
-        self.configurar_recursos()
+        """Chamado pela orquestração do sistema."""
+        self.configurar_recursos(caminho_paciente)
 
     def cleanup(self) -> None:
+        """Deve ser sobrescrito para limpar referências de componentes filhos."""
         pass
 
-    def configurar_recursos(self) -> None:
+    def configurar_recursos(self, caminho_paciente: str) -> None:
+        """Deve ser implementado pelas subclasses."""
         pass
 
     def verificar_pre_requisitos(self) -> Tuple[bool, str]:
@@ -52,17 +60,10 @@ class ModuloBase(QtWidgets.QWidget):
     def validar_passagem(self) -> bool:
         return True
 
-    def get_workspace_toolbar(self) -> Optional[QtWidgets.QToolBar]:
-        return None
-
-    def get_workspace(self) -> QtWidgets.QWidget:
-        if hasattr(self, "viewer"):
-            return self.viewer
-        return QtWidgets.QLabel(f"Workspace de {self.__class__.__name__} não carregado.")
-
 
 class FluxoBase:
-    # (Mantido como você definiu, pois está bem estruturado)
+    """Classe base para definição e controle de fluxos."""
+
     def __init__(self, dados: Dict[str, Any]):
         self.nome: str = dados.get("nome", "Fluxo Padrão")
         self.sequencia: List[str] = dados.get("sequencia", [])

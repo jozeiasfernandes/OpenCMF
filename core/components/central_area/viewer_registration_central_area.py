@@ -9,6 +9,7 @@ from core.components.bases.base_central_area import CentralAreaBase
 from core.components.central_area.viewer_3d_central_area import Viewer3D_Widget_CentralArea
 
 from core.scene.scene_manager import SceneManager
+from core.scene.selection.selection_manager import SelectionManager
 from core.scene.events.scene_events import SceneEvents, RegistrationEvents
 from core.scene.registry.object_registry import ObjectRegistry
 from core.scene.events.event_bus import EventBus
@@ -29,7 +30,9 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
     requisitarCarregamentoObjeto = QtCore.Signal(str, str)
 
     def __init__(self, context: Any, title: str = "Registro", parent: Optional[QtWidgets.QWidget] = None):
-        # Inicializar CentralAreaBase com context e title
+        self.context = context
+
+        # 2. Inicializar CentralAreaBase
         super().__init__(context=context, title=title, cor_identificacao="#202020", usar_vtk=False, parent=parent)
 
         self.shortcuts = get_shortcuts_by_scope("view3d")
@@ -38,7 +41,7 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
         self._views = {}
         self._combos = {}
 
-        # Configurar UI imediatamente (setup_component será chamado pelo módulo)
+        # Configurar UI imediatamente
         self.setup_component()
 
     def setup_ui(self) -> None:
@@ -270,42 +273,57 @@ class ViewerRegistration_Widget_CentralArea(CentralAreaBase):
 
         super().dispose()
 
+    @property
+    def scene_manager(self):
+        # Você está checando '_context', mas definiu 'self.context'
+        if hasattr(self, 'context') and self.context:
+            return self.context.scene_manager
+        return None
+
 
 if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
+    # Garante que o QApplication exista antes de criar qualquer Widget
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
 
 
-    # 1. Crie um objeto simples que simule o seu ApplicationContext
     class FakeContext:
+        """Simula o contexto necessário para a injeção de dependência."""
+
         def __init__(self):
-            # Instancie as dependências necessárias para o SceneManager
             self.event_bus = EventBus()
             self.scene_state = SceneState()
             self.object_registry = ObjectRegistry()
             self.actor_registry = ActorRegistry()
 
-            # Agora instancie o SceneManager com o que ele precisa
+            # O atributo .scene_manager é obrigatório para o BaseComponent
             self.scene_manager = SceneManager(
                 state=self.scene_state,
                 event_bus=self.event_bus,
                 object_registry=self.object_registry,
                 actor_registry=self.actor_registry,
-                selection_manager=None,  # Se precisar de um mock aqui também
-                importer=None  # Se precisar de um mock aqui também
+                selection_manager=SelectionManager(self.event_bus, self.scene_state),
+                importer=None,
+                transform_manager=None
             )
-
             self.project_service = None
 
 
-    # 2. Instancie o contexto
+    # Instanciação do contexto mock
     context = FakeContext()
 
+    # Configuração da janela principal
     window = QtWidgets.QMainWindow()
+    window.setWindowTitle("Teste de Registro")
     window.resize(1024, 768)
 
-    # 3. Passe o contexto criado
-    registration_widget = ViewerRegistration_Widget_CentralArea(context=context, title="Registro")
-    window.setCentralWidget(registration_widget)
+    try:
+        # Instanciação do Widget
+        registration_widget = ViewerRegistration_Widget_CentralArea(context=context, title="Registro")
+        window.setCentralWidget(registration_widget)
 
-    window.show()
-    sys.exit(app.exec())
+        window.show()
+        sys.exit(app.exec())
+
+    except Exception as e:
+        logger.error(f"Erro ao inicializar widget de teste: {e}", exc_info=True)
+        sys.exit(1)

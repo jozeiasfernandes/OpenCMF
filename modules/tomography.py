@@ -3,6 +3,7 @@ import os
 import logging
 import json
 import vtk
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
@@ -22,23 +23,18 @@ logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
 class Modulo(ModuloBase):
-    def __init__(self, **kwargs):
-        scene_manager = kwargs.pop("scene_manager", None)
-        super().__init__(scene_manager=scene_manager, **kwargs)
+    def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__(context=context, parent=parent)
 
         self.nome = "Tomografia"
         self.id = "modulo.tomografia"
 
-        self.project_service = kwargs.get("project_service")
-        self.scene_manager = scene_manager
-        self.event_bus = kwargs.get("event_bus")
-        self.object_registry = kwargs.get("object_registry")
+        self.project_service = getattr(context, "project_service", None)
+        self.scene_manager = getattr(context, "scene_manager", None)
+        self.event_bus = getattr(context, "event_bus", None)
+        self.object_registry = getattr(context, "object_registry", None)
 
-        self.app_context = AppContext(
-            tool_manager=kwargs.get("tool_manager"),
-            scene_manager=self.scene_manager,
-            settings=kwargs.get("settings")
-        )
+        self.app_context = context
 
         self.engine = DicomEngine()
         self.toolbar_handler = None
@@ -132,6 +128,17 @@ class Modulo(ModuloBase):
 
 
 if __name__ == "__main__":
+    # 1. Definindo o Contexto de Teste
+    @dataclass
+    class AppContext:
+        tool_manager: Any
+        scene_manager: Any
+        settings: Any
+        event_bus: Any
+        object_registry: Any
+        project_service: Any = None
+
+
     class MockToolManager:
         def get_tool(self, key): return None
 
@@ -148,38 +155,37 @@ if __name__ == "__main__":
     path_teste = os.path.abspath("./debug_paciente")
     os.makedirs(os.path.join(path_teste, "projeto"), exist_ok=True)
 
-    # Instanciando dependências mockadas corretamente
-    bus = EventBus()
-    registry = ActorRegistry()
-
-    # Adicionado project_service=None para manter o contrato da classe Modulo
-    modulo = Modulo(
-        pasta_paciente=path_teste,
-        event_bus=bus,
-        actor_registry=registry,
+    # 2. Montando o contexto como a Factory faria
+    contexto_mock = AppContext(
         tool_manager=MockToolManager(),
+        scene_manager=None,  # Aqui você passaria o seu Mock SceneManager
         settings=MockSettings(),
+        event_bus=EventBus(),
+        object_registry=ActorRegistry(),
         project_service=None
     )
+
+    # 3. Instanciando o Módulo via Contexto (conforme refatoramos)
+    modulo = Modulo(context=contexto_mock)
+
+    # Executa a inicialização do Módulo (padrão que definimos)
+    modulo.inicializar(path_teste)
 
     janela_teste = QtWidgets.QMainWindow()
     janela_teste.setWindowTitle(f"Debug Mode: {modulo.nome}")
     janela_teste.resize(1200, 800)
 
-    # --- CORREÇÃO: Inicialização única ---
+    # 4. Distribuição da UI
     toolbar = modulo.get_workspace_toolbar()
     if toolbar:
-        # A inicialização já ocorre dentro de get_workspace_toolbar()
-        # Não é necessário chamar toolbar.initialize() novamente aqui
         janela_teste.addToolBar(toolbar)
 
-    # Define o widget central e força o redimensionamento do layout
-    widget_central = modulo.get_main_widget()
-    janela_teste.setCentralWidget(widget_central)
+    janela_teste.setCentralWidget(modulo.get_main_widget())
 
     janela_teste.show()
 
     try:
         sys.exit(app.exec())
     finally:
+        # cleanup() limpa referências e invoca dispose() dos filhos
         modulo.cleanup()

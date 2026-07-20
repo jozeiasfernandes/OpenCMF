@@ -25,21 +25,30 @@ from core.components.toolbars.registration_toolbar import RegistrationToolbar
 
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
+class RegistrationContext:
+    """Wrapper para satisfazer a expectativa do BaseComponent."""
+    def __init__(self, scene_manager):
+        self.scene_manager = scene_manager
 
 class Modulo(IModule):
     """Módulo de Registro/Alinhamento. Atua como Provedor de Componentes para o ModuleDistributor."""
 
-    def __init__(self, **kwargs):
+    def __init__(self, context=None, **kwargs):
         super().__init__()
         self.id = "modulo.registration"
         self._is_initialized = False
         self._subscribers = []
 
+        # Prioriza o scene_manager vindo dos kwargs, caso contrário cria o padrão
         self.scene_manager = kwargs.get("scene_manager") or self._criar_scene_manager_padrao()
 
-        self.widget_reg = ViewerRegistration_Widget_CentralArea(context=self.scene_manager)
-        self.widget_objetos = ObjectManager_SidePanel(context=self.scene_manager)
-        self.widget_propriedades = ObjectProperties_SidePanel(context=self.scene_manager)
+        # Cria o objeto de contexto que o BaseComponent espera (com o atributo .scene_manager)
+        self.widget_context = RegistrationContext(self.scene_manager)
+
+        # Passa o 'widget_context' para os componentes em vez do scene_manager direto
+        self.widget_reg = ViewerRegistration_Widget_CentralArea(context=self.widget_context)
+        self.widget_objetos = ObjectManager_SidePanel(context=self.widget_context)
+        self.widget_propriedades = ObjectProperties_SidePanel(context=self.widget_context)
 
         self.widget_reg.setWindowTitle("Registro")
         self.widget_objetos.setWindowTitle("Objetos")
@@ -125,22 +134,35 @@ if __name__ == "__main__":
     from core.workspace.layout import ModuleDistributor
     from core.workspace.module_factory import ModuleFactory
 
-    app = QtWidgets.QApplication(sys.argv)
+    # 1. Garante uma única instância de QApplication
+    app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)
 
-    # Registra e cria o módulo via Factory
+    # 2. Registro e instanciação
     ModuleFactory.register("modulo.registration", Modulo)
-    modulo = ModuleFactory.create("modulo.registration")
-    modulo.inicializar("./teste_paciente")
 
-    workspace = WorkspaceManager()
+    try:
+        # A Factory passará o contexto automaticamente, e nosso novo __init__
+        # está preparado para recebê-lo com (context=None, **kwargs)
+        modulo = ModuleFactory.create("modulo.registration")
 
-    # O Distributor faz a mágica de injetar o widget, a toolbar e os side panels
-    ModuleDistributor.distribute(
-        modulo,
-        workspace.toolbar_manager,
-        workspace.side_manager,
-        workspace.central_host
-    )
+        # 3. Inicialização de dados
+        caminho_teste = "./teste_paciente"
+        modulo.inicializar(caminho_teste)
 
-    workspace.show()
-    sys.exit(app.exec())
+        # 4. Configuração do Workspace
+        workspace = WorkspaceManager()
+
+        # 5. Distribuição dos componentes via Distributor
+        ModuleDistributor.distribute(
+            modulo,
+            workspace.toolbar_manager,
+            workspace.side_manager,
+            workspace.central_host
+        )
+
+        workspace.show()
+        sys.exit(app.exec())
+
+    except Exception as e:
+        logger.error(f"Erro fatal ao executar o módulo de registro: {e}", exc_info=True)
+        sys.exit(1)

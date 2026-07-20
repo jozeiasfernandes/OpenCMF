@@ -1,11 +1,11 @@
 from typing import Protocol, runtime_checkable, Dict, Optional, Any
 from PySide6 import QtWidgets
 
-
 @runtime_checkable
 class IModule(Protocol):
 
     id: str
+    nome: str
 
     def get_main_widget(self) -> QtWidgets.QWidget:
         ...
@@ -21,7 +21,6 @@ class IModule(Protocol):
 
     def cleanup(self) -> None:
         ...
-
 
 @runtime_checkable
 class IWorkspaceTab(Protocol):
