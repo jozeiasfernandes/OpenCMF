@@ -4,7 +4,6 @@ import logging
 from .contracts import IModule
 from .module_factory import ModuleFactory
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -18,9 +17,15 @@ class WorkspaceRegistry:
         """Retorna um módulo ativo ou cria um novo se não existir."""
         if module_id not in self._active_modules:
             try:
-                self._active_modules[module_id] = ModuleFactory.create(module_id)
+                instance = ModuleFactory.create(module_id)
+
+                # Validação defensiva extra do contrato IModule
+                if not isinstance(instance, IModule):
+                    raise TypeError(f"A instância do módulo '{module_id}' não implementa o contrato IModule.")
+
+                self._active_modules[module_id] = instance
             except Exception as e:
-                logger.error(f"Erro crítico ao instanciar módulo '{module_id}': {e}")
+                logger.error(f"Erro crítico ao instanciar módulo '{module_id}': {e}", exc_info=True)
                 raise
 
         return self._active_modules[module_id]
@@ -29,7 +34,15 @@ class WorkspaceRegistry:
         """Remove um módulo do registro e realiza sua limpeza."""
         if module_id in self._active_modules:
             instance = self._active_modules.pop(module_id)
-            instance.cleanup()
+
+            try:
+                if hasattr(instance, "cleanup"):
+                    instance.cleanup()
+                elif hasattr(instance, "dispose"):
+                    instance.dispose()
+            except Exception as e:
+                logger.warning(f"Erro ao executar limpeza do módulo '{module_id}': {e}")
+
             ModuleFactory._instances.pop(module_id, None)
 
     def clear_all(self) -> None:

@@ -147,7 +147,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Workspace Header
         self.workspace.header.home_requested.connect(self.back_to_home)
-        self.workspace.header.module_changed.connect(self.sync_active_module)
+        # Delega a mudança de módulo diretamente para o WorkspaceManager fazer a distribuição visual
+        self.workspace.header.module_changed.connect(self.workspace.on_module_changed)
 
 
     def _abrir_ajuda(self):
@@ -262,36 +263,39 @@ class MainWindow(QtWidgets.QMainWindow):
                     logger.warning(f"Módulo '{module_id}' não encontrado.")
                     continue
 
+                # 1. Registra na Factory
                 ModuleFactory.register(module_id, module_class)
-                module = self.workspace.registry.get_or_create_module(module_id)
 
-                title = getattr(module, 'module_title', module_id)
+                # 2. Utiliza o método nativo do WorkspaceRegistry para gerenciar a instância via Factory
+                # (Isso substitui o acesso direto a _modules e garante o cache correto)
+                module = self.workspace.registry.get_or_create_module(module_id)
+                if not module:
+                    continue
+
+                # 3. Pega o atributo 'nome' do módulo para exibir na aba (com fallback para o ID)
+                title = getattr(module, 'nome', module_id)
                 self.workspace.header.add_module_tab(module_id, title)
 
             except Exception as e:
-                logger.error(f"Erro ao carregar o módulo '{module_id}': {e}")
+                logger.error(f"Erro ao carregar o módulo '{module_id}': {e}", exc_info=True)
                 self.workspace.status_bar_manager.showMessage(
                     f"Erro ao carregar {module_id}", 3000
                 )
 
         self.stack.setCurrentWidget(self.workspace)
 
-        # Seleciona o primeiro módulo
         if self.workspace.header.tab_bar.count() > 0:
             self.workspace.header.tab_bar.setCurrentIndex(0)
+            self.sync_active_module()
 
     def sync_active_module(self):
-        """Sincroniza o módulo ativo (chamado ao trocar de aba)."""
+        """Sincroniza o paciente atual com o módulo ativo no workspace."""
         module = self.workspace.get_modulo_ativo()
         if not module:
             return
 
         if self.current_patient_path and hasattr(module, 'inicializar'):
             module.inicializar(self.current_patient_path)
-
-        widget_visual = module.get_main_widget()
-        if isinstance(widget_visual, QtWidgets.QWidget):
-            widget_visual.update()
 
     # ======================= Main Entry =======================
 

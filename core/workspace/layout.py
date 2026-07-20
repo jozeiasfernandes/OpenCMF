@@ -13,6 +13,18 @@ if TYPE_CHECKING:
 class ModuleDistributor:
 
     @staticmethod
+    def _is_valid_qwidget(widget) -> bool:
+        """Verifica de forma segura se o widget do PySide/C++ ainda existe e não foi deletado."""
+        if widget is None:
+            return False
+        try:
+            # Tenta acessar uma propriedade simples do C++ para checar se o objeto foi deletado
+            _ = widget.metaObject()
+            return True
+        except RuntimeError:
+            return False
+
+    @staticmethod
     def distribute(
             module: IModule,
             toolbar_manager: 'ToolbarManager',
@@ -22,7 +34,7 @@ class ModuleDistributor:
         # 1. Distribuir Toolbars
         if hasattr(module, "get_workspace_toolbar"):
             tb = module.get_workspace_toolbar()
-            if tb:
+            if ModuleDistributor._is_valid_qwidget(tb):
                 tb_id = tb.objectName() or f"toolbar_{id(tb)}"
                 toolbar_manager.top_container.add_toolbar(tb_id, tb)
                 tb.setVisible(True)
@@ -31,10 +43,13 @@ class ModuleDistributor:
         if hasattr(module, "get_toolboxes"):
             toolboxes = module.get_toolboxes()
             for name, widget in toolboxes.items():
-                if widget:
-                    widget.setWindowFlags(QtCore.Qt.Widget)
-                    if widget.parent():
-                        widget.setParent(None)
+                if ModuleDistributor._is_valid_qwidget(widget):
+                    try:
+                        widget.setWindowFlags(QtCore.Qt.Widget)
+                        if widget.parent():
+                            widget.setParent(None)
+                    except RuntimeError:
+                        continue
 
                     side_manager.container.add_panel(name, widget)
                     widget.setVisible(True)
@@ -42,10 +57,13 @@ class ModuleDistributor:
         # 3. Configurar Viewport Central
         if hasattr(module, "get_main_widget"):
             viewport = module.get_main_widget()
-            if viewport:
-                viewport.setWindowFlags(QtCore.Qt.Widget)
-                if viewport.parent():
-                    viewport.setParent(None)
+            if ModuleDistributor._is_valid_qwidget(viewport):
+                try:
+                    viewport.setWindowFlags(QtCore.Qt.Widget)
+                    if viewport.parent():
+                        viewport.setParent(None)
+                except RuntimeError:
+                    pass
 
                 viewport.setSizePolicy(
                     QtWidgets.QSizePolicy.Expanding,
