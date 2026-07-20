@@ -2,6 +2,7 @@ import sys
 import json
 import logging
 import ctypes
+from typing import Any
 from pathlib import Path
 from typing import Optional
 
@@ -10,14 +11,21 @@ from PySide6 import QtWidgets, QtCore
 
 from modules.base_module.base_module import FluxoBase
 from core.localization.translator import tr
-from core.workspace.workspace_manager import WorkspaceManager
+
 from core.home_page.settings_app import settings
 from core.home_page.home_page import Home_page
 from core.home_page.flow.flow_editor import PaginaEditorFluxo
 from core.home_page.settings.settings_page import PaginaConfig
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+
 from core.icons.icons_manager import IconManager
+
+from core.components.bases.base_tool.tool_manager import ToolManager
+
 from core.workspace.module_factory import ModuleFactory
+from core.workspace.state import WorkspaceState
+from core.workspace.workspace_manager import WorkspaceManager
+
 from core.scene.scene_manager import SceneManager
 from core.scene.events.event_bus import EventBus
 from core.scene.scene_state import SceneState
@@ -25,7 +33,7 @@ from core.scene.registry.actor_registry import ActorRegistry
 from core.scene.registry.object_registry import ObjectRegistry
 from core.scene.selection.selection_manager import SelectionManager
 from core.scene.io.importer import ObjectImporter
-from core.workspace.state import WorkspaceState
+
 
 
 logging.basicConfig(
@@ -52,11 +60,13 @@ class ApplicationContext:
         project_service: ProjectServiceHomePage,
         event_bus: EventBus,
         object_registry: ObjectRegistry,
+        tool_manager: Any,
     ):
         self.scene_manager = scene_manager
         self.project_service = project_service
         self.event_bus = event_bus
         self.object_registry = object_registry
+        self.tool_manager = tool_manager
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -99,6 +109,8 @@ class MainWindow(QtWidgets.QMainWindow):
             importer=self.importer,
         )
 
+        self.tool_manager = ToolManager()
+
     def _setup_context(self):
         """Configura o contexto da aplicação e o ModuleFactory."""
         IconManager.set_base_path(self.base_dir / "appearance" / "icons")
@@ -112,6 +124,7 @@ class MainWindow(QtWidgets.QMainWindow):
             project_service=self.project_service,
             event_bus=self.event_bus,
             object_registry=self.object_registry,
+            tool_manager=self.tool_manager,
         )
 
         ModuleFactory.set_context(context)

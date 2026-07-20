@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 from PySide6 import QtCore
 from core.components.bases.base_tool.base_tool import BaseTool, InteractionContext
 
@@ -13,6 +13,15 @@ class ToolManager(QtCore.QObject):
         super().__init__()
         self._context = context
         self.active_tool: Optional[BaseTool] = None
+        self._tools: Dict[str, BaseTool] = {}  # Armazena as ferramentas registradas
+
+    def register_tool(self, key: str, tool: BaseTool) -> None:
+        """Registra uma ferramenta no gerenciador."""
+        self._tools[key] = tool
+
+    def get_tool(self, key: str) -> Optional[BaseTool]:
+        """Retorna uma ferramenta com base na chave solicitada pela Toolbar."""
+        return self._tools.get(key, None)
 
     def set_context(self, context: InteractionContext) -> None:
         """Define o contexto caso não esteja disponível na inicialização."""
