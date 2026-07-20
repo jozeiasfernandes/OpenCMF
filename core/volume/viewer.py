@@ -13,7 +13,6 @@ from core.scene.scene_object import SceneObject
 from core.scene.events.scene_events import SceneEvents
 
 
-
 class VolumeViewerWidget(QtWidgets.QWidget):
     sliceChanged = QtCore.Signal(str, int)
     windowLevelChanged = QtCore.Signal(float, float)
@@ -24,7 +23,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     VIEW_UP = {"Axial": (0, -1, 0), "Sagital": (0, 0, 1), "Coronal": (0, 0, 1)}
     CORES = {"Axial": "#D32F2F", "Sagital": "#FBC02D", "Coronal": "#388E3C", "3D": "#1976D2"}
 
-    def __init__(self, event_bus: Any, object_registry: Any, parent=None):
+    def __init__(self, event_bus: Any, object_registry: Any, context: Optional[Any] = None, parent=None):
         super().__init__(parent)
 
         if event_bus is None:
@@ -34,11 +33,15 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
         self.events = event_bus
         self.registry = object_registry
+        self.context = context
 
         self.vistas: Dict[str, QtWidgets.QWidget] = {}
         self.mappers_mpr: Dict[str, vtk.vtkImageResliceMapper] = {}
 
         self.volume_object: Optional[SceneObject] = None
+        self.volume_data: Optional[vtk.vtkImageData] = None
+        self.volume_actor: Optional[vtk.vtkVolume] = None
+
         self.opacity_function = vtk.vtkPiecewiseFunction()
         self.color_function = vtk.vtkColorTransferFunction()
 
@@ -56,6 +59,10 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             if volume_data:
                 self._render_volume(volume_data)
 
+    def set_volume(self, volume: vtk.vtkImageData):
+        """Método público para injetar o volume diretamente."""
+        if volume:
+            self._render_volume(volume)
 
     def _init_paths(self):
         base = os.path.dirname(os.path.abspath(__file__))
@@ -69,16 +76,11 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
         self.toolbar = VolumeViewerToolbar(self.path_icones)
 
-        # Verificação de segurança: conecta apenas se o sinal existir
         if hasattr(self.toolbar, 'layoutChanged'):
             self.toolbar.layoutChanged.connect(self.configurar_layout)
-        else:
-            print("Aviso: 'layoutChanged' não encontrado na toolbar.")
 
         if hasattr(self.toolbar, 'lutChanged'):
             self.toolbar.lutChanged.connect(self.apply_global_lut)
-        else:
-            print("Aviso: 'lutChanged' não encontrado na toolbar.")
 
         self.grid_container = QtWidgets.QWidget()
         self.grid_layout = QtWidgets.QGridLayout(self.grid_container)
@@ -92,17 +94,19 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.configurar_layout("4 Quadrantes")
 
     def _create_viewers(self):
+        # Contexto seguro a ser repassado aos filhos (utiliza o context original se houver)
+        safe_context = self.context if self.context is not None else self
+
         # 1. Viewers 2D
         for nome in self.PLANOS:
             pane = Viewer2D_Widget_CentralArea(
-                context=self,
+                context=safe_context,
                 title=nome,
                 cor=self.CORES[nome]
             )
             pane.sliceChanged.connect(lambda v, n=nome: self.update_slice(n, v))
             pane.maximizeRequested.connect(lambda m, n=nome: self._handle_maximize(n, m))
 
-            # Verificação de segurança para o sinal lutChanged
             if hasattr(pane, 'lutChanged'):
                 pane.lutChanged.connect(self.apply_global_lut)
 
@@ -110,18 +114,15 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
         # 2. Viewer 3D
         p3d = Viewer3D_Dicom_Widget_CentralArea(
-            context=self,
+            context=safe_context,
             title="3D",
             cor=self.CORES["3D"],
             event_bus=self.events,
             viewer_registry=self.registry
         )
 
-        # Conexões seguras para o Viewer 3D
         if hasattr(p3d, 'thresholdChanged'):
             p3d.thresholdChanged.connect(self.update_threshold)
-        else:
-            print("Aviso: 'thresholdChanged' não encontrado em Viewer3D.")
 
         if hasattr(p3d, 'viewChanged'):
             p3d.viewChanged.connect(self.update_3d_view)
@@ -140,14 +141,16 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         for nome, pane in self.vistas.items():
             rw = pane.vtkWidget.GetRenderWindow()
             ren = rw.GetRenderers().GetFirstRenderer() or vtk.vtkRenderer()
-            if not rw.GetRenderers().GetFirstRenderer(): rw.AddRenderer(ren)
+            if not rw.GetRenderers().GetFirstRenderer():
+                rw.AddRenderer(ren)
 
             if nome == "3D":
                 self.volume_actor = ViewerRenderers.configure_3d_renderer(
                     ren, volume, self.color_function, self.opacity_function
                 )
                 preset = pane.combo_presets.currentText()
-                if preset: QtCore.QTimer.singleShot(50, lambda: self.update_preset(preset))
+                if preset:
+                    QtCore.QTimer.singleShot(50, lambda: self.update_preset(preset))
             else:
                 axis = self.DIM_MAP[nome]
                 actor = ViewerRenderers.configure_mpr_renderer(ren, volume, self.NORMALS[nome], centro)
@@ -156,7 +159,8 @@ class VolumeViewerWidget(QtWidgets.QWidget):
                 pane.vtk_property = actor.GetProperty()
 
                 min_s, max_s = ext[axis * 2], ext[axis * 2 + 1]
-                pane.slider_corte.setRange(min_s, max_s)
+                if hasattr(pane, 'slider_corte'):
+                    pane.slider_corte.setRange(min_s, max_s)
 
                 ViewerRenderers.setup_camera_mpr(ren, centro, axis, self.VIEW_UP[nome], nome == "Axial")
                 self.update_slice(nome, (min_s + max_s) // 2)
@@ -174,7 +178,8 @@ class VolumeViewerWidget(QtWidgets.QWidget):
                 pane.vtkWidget.GetRenderWindow().Render()
 
     def update_slice(self, plano: str, index: int):
-        if not self.volume_data or plano not in self.mappers_mpr: return
+        if not self.volume_data or plano not in self.mappers_mpr:
+            return
 
         axis = self.DIM_MAP[plano]
         pos_fisica = self.volume_data.GetOrigin()[axis] + (index * self.volume_data.GetSpacing()[axis])
@@ -190,25 +195,31 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
         cam.SetFocalPoint(focal)
         cam.SetPosition(pos)
-        pane.lbl_mm.setText(f"{pos_fisica:.1f} mm")
+        if hasattr(pane, 'lbl_mm'):
+            pane.lbl_mm.setText(f"{pos_fisica:.1f} mm")
         pane.vtkWidget.GetRenderWindow().Render()
         self.sliceChanged.emit(plano, index)
 
     def update_preset(self, nome: str):
-        if not self.volume_actor: return
+        if not self.volume_actor:
+            return
         path = os.path.join(self.path_presets, f"{nome}.json")
-        if not os.path.exists(path): return
+        if not os.path.exists(path):
+            return
 
-        with open(path, "r") as f:
+        with open(path, "r", encoding="utf-8") as f:
             preset = json.load(f)
 
         self.color_function.RemoveAllPoints()
         self.opacity_function.RemoveAllPoints()
-        for p in preset.get("colors", []): self.color_function.AddRGBPoint(*p)
-        for p in preset.get("opacity", []): self.opacity_function.AddPoint(*p)
+        for p in preset.get("colors", []):
+            self.color_function.AddRGBPoint(*p)
+        for p in preset.get("opacity", []):
+            self.opacity_function.AddPoint(*p)
 
         thr = preset.get("threshold", 400)
-        self.vistas["3D"].slider_threshold.setValue(thr)
+        if hasattr(self.vistas["3D"], 'slider_threshold'):
+            self.vistas["3D"].slider_threshold.setValue(thr)
         self.volume_actor.GetProperty().SetShade(preset.get("shade", True))
 
         mode = vtk.VTK_COMPOSITE_BLEND if not preset.get("mip") else vtk.VTK_MAXIMUM_INTENSITY_BLEND
@@ -218,13 +229,21 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.vistas["3D"].vtkWidget.GetRenderWindow().Render()
 
     def update_threshold(self, value: int):
-        if not self.volume_actor: return
+        if not self.volume_actor:
+            return
         self.opacity_function.RemoveAllPoints()
         self.opacity_function.AddPoint(value - 100, 0.0)
         self.opacity_function.AddPoint(value, 0.2)
         self.opacity_function.AddPoint(value + 500, 0.8)
         self.vistas["3D"].vtkWidget.GetRenderWindow().Render()
 
+    def update_3d_view(self, vista: str):
+        ren = self.vistas["3D"].vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer()
+        maps = {
+            "Frente": (0, -1, 0, 0, 0, 1), "Posterior": (0, 1, 0, 0, 0, 1),
+            "Superior": (0, 0, 1, 0, -1, 0), "Inferior": (0, 0, -1, 0, 1, 0),
+            "Direito": (1, 0, 0, 0, 0, 1), "Esquerdo": (-1, 0, 0, 0, 0, 1)
+        }
     def update_3d_view(self, vista: str):
         ren = self.vistas["3D"].vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer()
         maps = {
@@ -242,7 +261,8 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def configurar_layout(self, modo: str):
         for i in reversed(range(self.grid_layout.count())):
-            if w := self.grid_layout.itemAt(i).widget(): w.setParent(None)
+            if w := self.grid_layout.itemAt(i).widget():
+                w.setParent(None)
 
         for n, obj in self.vistas.items():
             obj.hide()
@@ -267,7 +287,8 @@ class VolumeViewerWidget(QtWidgets.QWidget):
 
     def refresh_display(self):
         for p in self.vistas.values():
-            if p.isVisible(): p.vtkWidget.GetRenderWindow().Render()
+            if p.isVisible():
+                p.vtkWidget.GetRenderWindow().Render()
 
     def _on_object_removed(self, object_id: str):
         if self.volume_object and self.volume_object.id == object_id:

@@ -35,11 +35,10 @@ class Modulo(ModuloBase):
 
         self.engine_seg = SegmentacaoEngine()
 
-        # Instanciação dos componentes visuais
-        self.widget_seg = Segmentation_SidePanel(context=self)
+        self.widget_seg = Segmentation_SidePanel(context=context)
 
         self.widget_central = Viewer3D_Dicom_Widget_CentralArea(
-            context=self,
+            context=context,
             title="Visualizador 3D",
             cor="#2c3e50",
             event_bus=self.event_bus,
@@ -107,6 +106,10 @@ class Modulo(ModuloBase):
 
 if __name__ == "__main__":
     import sys
+    from unittest.mock import MagicMock
+    from core.components.bases.base_toolbar import AppContext
+    from core.components.bases.base_tool.tool_manager import ToolManager
+    from core.scene.events.event_bus import EventBus
     from core.workspace.workspace_manager import WorkspaceManager
     from core.workspace.module_factory import ModuleFactory
     from core.workspace.layout import ModuleDistributor
@@ -114,14 +117,12 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
-
-    class MockContext:
-        def __init__(self):
-            self.app = app
-            self.settings = {}
-
-
-    contexto_mock = MockContext()
+    # Criação de um contexto completo que satisfaz todas as exigências do BaseComponent
+    contexto_mock = AppContext(
+        scene_manager=MagicMock(),
+        tool_manager=ToolManager(),
+        event_bus=EventBus()
+    )
 
     ModuleFactory.register("modulo.segmentacao", Modulo)
     ModuleFactory.set_context(contexto_mock)

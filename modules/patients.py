@@ -1,3 +1,4 @@
+import sys
 import time
 import logging
 from pathlib import Path
@@ -12,8 +13,8 @@ PASTA_PACIENTES = Path("patients")
 
 
 class Modulo(ModuloBase):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, context=None):
+        super().__init__(context=context)
         self.nome = "Pacientes"
         self.id = "modulo.paciente"
         self.pasta_paciente = None
@@ -284,3 +285,33 @@ class Modulo(ModuloBase):
             self.edit_pais.setText("Brasil")
             self.check_estrangeiro.setChecked(False)
             self.edit_nascimento.setDate(QtCore.QDate.currentDate())
+
+
+if __name__ == "__main__":
+    import sys
+    from unittest.mock import MagicMock
+    from core.components.bases.base_toolbar import AppContext
+    from core.components.bases.base_tool.tool_manager import ToolManager
+    from core.scene.events.event_bus import EventBus
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setStyle("Fusion")
+
+    # Criação do contexto completo satisfazendo os contratos da arquitetura base (ModuloBase)
+    context = AppContext(
+        scene_manager=MagicMock(),
+        tool_manager=ToolManager(),
+        event_bus=EventBus()
+    )
+
+    window = QtWidgets.QMainWindow()
+    window.setWindowTitle("OpenCMF - Teste Módulo de Pacientes")
+    window.resize(600, 800)
+
+    modulo = Modulo(context=context)
+    workspace = modulo.get_workspace()
+
+    window.setCentralWidget(workspace)
+    window.show()
+
+    sys.exit(app.exec())

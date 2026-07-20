@@ -26,7 +26,7 @@ class Viewer3D_Dicom_Widget_CentralArea(CentralAreaBase):
         self.event_bus = event_bus
         self.viewer_registry = viewer_registry
 
-        self.viewer_registry.register(self)
+        # Removido self.viewer_registry.register(self) para evitar o TypeError no ActorRegistry
 
         from pathlib import Path
         base_dir = Path(__file__).resolve().parent
