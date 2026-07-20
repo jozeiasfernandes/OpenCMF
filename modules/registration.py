@@ -26,10 +26,13 @@ logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
 class RegistrationContext:
-    """Wrapper para satisfazer a expectativa do BaseComponent."""
+    """Wrapper para satisfazer a expectativa do BaseComponent com todos os atributos obrigatórios."""
 
-    def __init__(self, scene_manager):
+    def __init__(self, scene_manager, tool_manager=None, event_bus=None):
         self.scene_manager = scene_manager
+        self.tool_manager = tool_manager
+        # Se o event_bus não for fornecido explicitamente, extrai do scene_manager se disponível
+        self.event_bus = event_bus or getattr(scene_manager, "event_bus", None)
 
 
 class Modulo(ModuloBase):
@@ -43,11 +46,20 @@ class Modulo(ModuloBase):
         self._is_initialized = False
 
         # Prioriza o scene_manager vindo do contexto ou kwargs, caso contrário cria o padrão
-        self.scene_manager = kwargs.get("scene_manager") or getattr(context, "scene_manager",
-                                                                    None) or self._criar_scene_manager_padrao()
+        self.scene_manager = (
+                kwargs.get("scene_manager")
+                or getattr(context, "scene_manager", None)
+                or self._criar_scene_manager_padrao()
+        )
 
-        # Cria o objeto de contexto que o BaseComponent espera (com o atributo .scene_manager)
-        self.widget_context = RegistrationContext(self.scene_manager)
+        # Extrai opcionalmente o tool_manager do contexto caso exista
+        self.tool_manager = kwargs.get("tool_manager") or getattr(context, "tool_manager", None)
+
+        # Cria o objeto de contexto que o BaseComponent espera preenchendo todos os contratos
+        self.widget_context = RegistrationContext(
+            scene_manager=self.scene_manager,
+            tool_manager=self.tool_manager
+        )
 
         # Passa o 'widget_context' para os componentes
         self.widget_reg = ViewerRegistration_Widget_CentralArea(context=self.widget_context)

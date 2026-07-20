@@ -12,10 +12,10 @@ class CentralAreaBase(QtWidgets.QWidget):
     """
     cena_atualizada = QtCore.Signal()
 
-    def __init__(self, context, title="Central", cor_identificacao="#FFFFFF", usar_vtk=True, parent=None):
+    def __init__(self, context=None, title="Central", cor_identificacao="#FFFFFF", usar_vtk=True, parent=None):
         super().__init__(parent)
 
-        # Composição com BaseComponent para herdar o contrato de injeção de contexto
+        # Composição com BaseComponent para herdar o contrato de injeção de contexto e ciclo de vida
         self._logic = BaseComponent(context=context, parent=self)
 
         self.title = title
@@ -33,6 +33,12 @@ class CentralAreaBase(QtWidgets.QWidget):
     def context(self):
         """Retorna o contexto atual injetado."""
         return self._logic.context if hasattr(self, '_logic') else None
+
+    @context.setter
+    def context(self, new_context):
+        """Permite redefinir o contexto repassando para o componente lógico."""
+        if hasattr(self, '_logic'):
+            self._logic.set_context(new_context)
 
     @property
     def scene_manager(self):
@@ -54,8 +60,7 @@ class CentralAreaBase(QtWidgets.QWidget):
         return None
 
     def setup_component(self):
-        """Implementação do contrato de inicialização."""
-        # Atualizado para utilizar o atributo '_loaded' da nova BaseComponent
+        """Implementação do contrato de inicialização alinhada ao BaseComponent."""
         if self._logic._loaded:
             return
 
@@ -65,6 +70,7 @@ class CentralAreaBase(QtWidgets.QWidget):
         # Chamar setup_ui das classes filhas
         self.setup_ui()
 
+        # Sincroniza o estado de carregamento no componente lógico de composição
         self._logic._loaded = True
 
     def get_ui(self):
@@ -97,10 +103,10 @@ class CentralAreaBase(QtWidgets.QWidget):
         """Conecta sinais do barramento de eventos."""
         bus = self.event_bus
         if bus and hasattr(bus, 'subscribe'):
-            bus.subscribe(SceneEvents.OBJECT_ADDED, self._on_scene_changed)
-
-    def _on_scene_equal_changed(self, **kwargs):
-        pass
+            try:
+                bus.subscribe(SceneEvents.OBJECT_ADDED, self._on_scene_changed)
+            except Exception:
+                pass
 
     def _on_scene_changed(self, **kwargs):
         """Callback quando a cena muda."""
@@ -117,7 +123,7 @@ class CentralAreaBase(QtWidgets.QWidget):
         pass
 
     def dispose(self):
-        """Limpeza necessária para evitar leaks e crashes do VTK."""
+        """Limpeza necessária para evitar leaks e crashes do VTK e do BaseComponent."""
         bus = self.event_bus
         if bus and hasattr(bus, 'unsubscribe'):
             try:
