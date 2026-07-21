@@ -1,5 +1,3 @@
-# core/workspace/layout.py
-
 from typing import TYPE_CHECKING
 from PySide6 import QtWidgets, QtCore
 from .contracts import IModule
@@ -35,6 +33,10 @@ class ModuleDistributor:
         if hasattr(module, "get_workspace_toolbar"):
             tb = module.get_workspace_toolbar()
             if ModuleDistributor._is_valid_qwidget(tb):
+                # Garante que a toolbar foi inicializada de forma segura caso venha de implementações legadas
+                if hasattr(tb, "initialize") and hasattr(tb, "_is_initialized") and not tb._is_initialized:
+                    tb.initialize()
+
                 if not tb.objectName():
                     tb.setObjectName(f"toolbar_{id(tb)}")
                 tb_id = tb.objectName()
