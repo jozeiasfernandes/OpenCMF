@@ -86,8 +86,7 @@ class ModuleDistributor:
         for tb_id in list(toolbar_manager.top_container.toolbars.keys()):
             toolbar_manager.top_container.remove_toolbar(tb_id)
 
-        if hasattr(side_manager.container, 'panels'):
-            for p_id in list(side_manager.container.panels.keys()):
-                side_manager.container.remove_panel(p_id)
+        if hasattr(side_manager.container, 'limpar'):
+            side_manager.container.limpar()
 
         central_manager.clear()

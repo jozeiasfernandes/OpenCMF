@@ -1,6 +1,10 @@
+from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 
-class ToolboxesManager(QtWidgets.QWidget):
+
+class SidePanelManagerLoaders(QtWidgets.QWidget):
+    """Gerencia componentes laterais carregados dinamicamente via abas e QStackedWidget."""
+
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -29,7 +33,7 @@ class ToolboxesManager(QtWidgets.QWidget):
         self.layout_principal.addWidget(self.stack)
         self.layout_principal.addWidget(self.tab_bar)
 
-    def adicionar_widget(self, titulo: str, widget: QtWidgets.QWidget):
+    def add_panel(self, titulo: str, widget: QtWidgets.QWidget):
         widget.setContentsMargins(0, 0, 0, 0)
         widget.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred,
@@ -37,6 +41,11 @@ class ToolboxesManager(QtWidgets.QWidget):
         )
         idx = self.stack.addWidget(widget)
         self.tab_bar.addTab(titulo)
+
+        if self.stack.currentIndex() == -1:
+            self.stack.hide()
+            self.tab_bar.setCurrentIndex(-1)
+
         return idx
 
     def limpar(self):
@@ -44,7 +53,10 @@ class ToolboxesManager(QtWidgets.QWidget):
             w = self.stack.widget(0)
             self.stack.removeWidget(w)
             w.deleteLater()
-        self.tab_bar.clear()
+
+        while self.tab_bar.count() > 0:
+            self.tab_bar.removeTab(0)
+
         self.stack.hide()
 
     def renomear_tab(self, index: int, novo_titulo: str) -> bool:
@@ -61,7 +73,8 @@ class ToolboxesManager(QtWidgets.QWidget):
     def remover_widget_por_caminho(self, caminho):
         for i in range(self.stack.count()):
             w = self.stack.widget(i)
-            if hasattr(w, "__module_path__") and w.__module_path__ == caminho:
+            mod_path = w.property("__module_path__")
+            if mod_path and Path(mod_path) == Path(caminho):
                 self.stack.removeWidget(w)
                 self.tab_bar.removeTab(i)
                 w.deleteLater()

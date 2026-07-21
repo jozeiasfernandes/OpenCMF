@@ -13,7 +13,7 @@ from core.workspace.layout import ModuleDistributor
 from core.workspace.registry import WorkspaceRegistry
 from core.workspace.status_bar.status_bar import StatusBarManager
 from core.workspace.state import WorkspaceState
-
+from core.workspace.workspace_loaders_components import WorkspaceComponentHandler
 
 logger = logging.getLogger("OpenCMF.Workspace")
 
@@ -26,6 +26,9 @@ class WorkspaceManager(QtWidgets.QWidget):
 
         self.state = WorkspaceState()
         self.registry = WorkspaceRegistry()
+
+        # Inicializa o handler de componentes dinâmicos (Components_List)
+        self.component_handler = WorkspaceComponentHandler(self)
 
         self._setup_layout()
         self._setup_components()
@@ -117,6 +120,12 @@ class WorkspaceManager(QtWidgets.QWidget):
             if module_id:
                 return self.registry.get_or_create_module(module_id)
         return None
+
+    # ======================= Configuração de Componentes =======================
+
+    def abrir_seletor_componentes(self):
+        """Abre a janela de listagem de componentes para customização."""
+        self.component_handler.abrir_seletor()
 
     # ======================= Patient & Reset =======================
 

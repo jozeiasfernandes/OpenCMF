@@ -1,3 +1,4 @@
+from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from typing import Dict, Optional
 
@@ -60,6 +61,14 @@ class SidePanelContainer(QtWidgets.QWidget):
             self._layout.removeWidget(panel)
             panel.setParent(None)
             panel.deleteLater()
+
+    def remover_widget_por_caminho(self, caminho: Path):
+        """Remove um painel baseado na propriedade de caminho do módulo."""
+        for panel_id, panel in list(self.panels.items()):
+            mod_path = panel.property("__module_path__")
+            if mod_path and Path(mod_path) == Path(caminho):
+                self.remove_panel(panel_id)
+                break
 
     def clear_all(self):
         """Remove todos os painéis."""
