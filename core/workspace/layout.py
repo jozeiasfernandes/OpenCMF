@@ -35,9 +35,16 @@ class ModuleDistributor:
         if hasattr(module, "get_workspace_toolbar"):
             tb = module.get_workspace_toolbar()
             if ModuleDistributor._is_valid_qwidget(tb):
-                tb_id = tb.objectName() or f"toolbar_{id(tb)}"
+                if not tb.objectName():
+                    tb.setObjectName(f"toolbar_{id(tb)}")
+                tb_id = tb.objectName()
+
                 toolbar_manager.top_container.add_toolbar(tb_id, tb)
+
                 tb.setVisible(True)
+                tb.show()
+                for action in tb.actions():
+                    action.setVisible(True)
 
         # 2. Distribuir Toolboxes (Side Panels)
         if hasattr(module, "get_toolboxes"):
@@ -82,11 +89,12 @@ class ModuleDistributor:
             side_manager: 'SidePanelManager',
             central_manager: 'CentralAreaManager'
     ):
-
-        for tb_id in list(toolbar_manager.top_container.toolbars.keys()):
-            toolbar_manager.top_container.remove_toolbar(tb_id)
+        if hasattr(toolbar_manager.top_container, 'toolbars'):
+            for tb_id in list(toolbar_manager.top_container.toolbars.keys()):
+                toolbar_manager.top_container.remove_toolbar(tb_id)
 
         if hasattr(side_manager.container, 'limpar'):
             side_manager.container.limpar()
 
-        central_manager.clear()
+        if hasattr(central_manager, 'clear'):
+            central_manager.clear()

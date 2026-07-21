@@ -29,6 +29,9 @@ class ToolbarContainer(QtWidgets.QWidget):
         toolbar.setVisible(True)
         toolbar.show()
 
+        self.adjustSize()
+        self.updateGeometry()
+
     def remove_toolbar(self, tb_id: str):
         if tb := self.toolbars.pop(tb_id, None):
             self.layout.removeWidget(tb)

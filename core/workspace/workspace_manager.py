@@ -1,6 +1,6 @@
 import sys
 import logging
-from typing import Optional
+from typing import Optional, Any
 
 from PySide6 import QtWidgets, QtCore
 
@@ -26,6 +26,9 @@ class WorkspaceManager(QtWidgets.QWidget):
 
         self.state = WorkspaceState()
         self.registry = WorkspaceRegistry()
+
+        # Inicializa o controle de caminho do paciente
+        self.current_patient_path = ""
 
         # Inicializa o handler de componentes dinâmicos (Components_List)
         self.component_handler = WorkspaceComponentHandler(self)
@@ -105,6 +108,10 @@ class WorkspaceManager(QtWidgets.QWidget):
                 self.central_manager
             )
 
+            # Garante que o módulo recém-carregado receba o paciente atual se houver
+            if self.state.current_patient and hasattr(module, "inicializar"):
+                module.inicializar(self.state.current_patient)
+
             logger.info(f"Módulo '{module_id}' carregado com sucesso.")
             self.status_bar_manager.showMessage(f"Módulo '{module_id}' carregado.", 3000)
 
@@ -121,6 +128,29 @@ class WorkspaceManager(QtWidgets.QWidget):
                 return self.registry.get_or_create_module(module_id)
         return None
 
+    def set_patient_path(self, path: str):
+        """Atualiza o caminho do paciente evitando chamadas redundantes."""
+        if self.current_patient_path == path:
+            return
+        self.current_patient_path = path
+
+        # Sincroniza também com o state global
+        if hasattr(self, "state"):
+            self.state.current_patient = path
+
+        if modulo := self.get_modulo_ativo():
+            self._safe_inicializar(modulo)
+
+    def _safe_inicializar(self, instancia: Any):
+        """Inicializa o módulo de forma segura caso o caminho seja diferente."""
+        if not self.current_patient_path:
+            return
+
+        path_modulo = getattr(instancia, 'pasta_paciente', None)
+        if str(path_modulo) != str(self.current_patient_path):
+            if hasattr(instancia, 'inicializar'):
+                instancia.inicializar(self.current_patient_path)
+
     # ======================= Configuração de Componentes =======================
 
     def abrir_seletor_componentes(self):
@@ -129,16 +159,18 @@ class WorkspaceManager(QtWidgets.QWidget):
 
     # ======================= Patient & Reset =======================
 
-    def set_patient_path(self, path: str):
-        """Atualiza o caminho do paciente no estado global."""
-        self.state.current_patient = path
-
     def reset_workspace(self):
         """Limpa todo o workspace (módulos, abas, painéis, etc)."""
         self.registry.clear_all()
         self.header.clear_tabs()
         self.toolbar_manager.clear_all()
-        self.side_manager.clear_all()
+
+        # Limpeza segura do side_manager considerando o container loader
+        if hasattr(self.side_manager, 'clear_all'):
+            self.side_manager.clear_all()
+        elif hasattr(self.side_manager.container, 'limpar'):
+            self.side_manager.container.limpar()
+
         self.central_manager.clear()
 
 
