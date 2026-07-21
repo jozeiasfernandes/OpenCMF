@@ -22,8 +22,7 @@ class TomographyToolbar(BaseToolbar):
         super().__init__("Tomografia", app_context, parent)
 
         self._validation_state = False
-
-        self.initialize()
+        # Removido self.initialize() daqui, pois a BaseToolbar já faz a auto-inicialização no __init__
 
     def setup_ui(self):
         tool_keys = ["open", "validate", "save", "reset"]
@@ -40,13 +39,11 @@ class TomographyToolbar(BaseToolbar):
 
         self.add_separator()
 
-
         self.addWidget(QtWidgets.QLabel("Layout:"))
         self.combo_layout = QtWidgets.QComboBox()
         self.combo_layout.addItems(["4 Quadrantes", "3D", "Axial", "Sagital", "Coronal"])
         self.combo_layout.currentTextChanged.connect(self._on_layout_changed)
         self.addWidget(self.combo_layout)
-
 
         self.addWidget(QtWidgets.QLabel("LUT:"))
         self.combo_color = QtWidgets.QComboBox()
@@ -74,7 +71,7 @@ class TomographyToolbar(BaseToolbar):
 
 if __name__ == "__main__":
     class MockToolManager:
-        def get_tool(self, key): return None # Retorne um objeto mockado se necessário
+        def get_tool(self, key): return None  # Retorne um objeto mockado se necessário
 
     class MockSceneManager:
         pass
@@ -95,8 +92,8 @@ if __name__ == "__main__":
     window.setWindowTitle("Debug Toolbar: Tomografia")
     window.resize(600, 100)
 
-
     toolbar = TomographyToolbar(app_context=my_context)
+    # Removido toolbar.initialize() daqui, pois a toolbar já nasce inicializada.
     window.addToolBar(toolbar)
 
     window.show()

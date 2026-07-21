@@ -18,8 +18,6 @@ class RegistrationToolbar(BaseToolbar):
     def __init__(self, app_context: "AppContext", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(title="Registration", app_context=app_context, parent=parent)
 
-        self.initialize()
-
     def get_icon(self, icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIcon) -> QtGui.QIcon:
         """Método helper da classe para carregar ícones com segurança."""
         path = get_base_dir() / "appearance" / "icons" / icon_name
@@ -62,14 +60,6 @@ class RegistrationToolbar(BaseToolbar):
         self.slider.valueChanged.connect(self._on_point_size_changed)
         self.addWidget(self.slider)
 
-    @property
-    def scene_manager(self):
-        return self._scene_manager
-
-    @property
-    def tool_manager(self):
-        return self._tool_manager
-
     def _on_delete_point(self):
         """Remove o último marcador."""
         if self.scene_manager and hasattr(self.scene_manager, 'events'):
@@ -108,8 +98,6 @@ if __name__ == "__main__":
         app_context=app_context,
         parent=main_window
     )
-
-    toolbar.initialize()
 
     main_window.addToolBar(toolbar)
     main_window.setWindowTitle("Registration Toolbar")

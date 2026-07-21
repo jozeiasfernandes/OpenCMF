@@ -49,6 +49,8 @@ class BaseToolbar(QtWidgets.QToolBar):
         self.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)
         self.setIconSize(QtCore.QSize(24, 24))
 
+        self.initialize()
+
     @property
     def tool_manager(self) -> Optional[Any]:
         return self.app.tool_manager if hasattr(self.app, "tool_manager") else None

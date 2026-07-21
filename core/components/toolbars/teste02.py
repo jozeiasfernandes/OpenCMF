@@ -17,15 +17,29 @@ logger = logging.getLogger("ToolbarLoader")
 
 
 class BaseToolbar(QtWidgets.QToolBar):
-    """Classe base_tool unificada para toolbars com suporte a injeção de dependência."""
+    """Classe base unificada para toolbars com suporte a injeção de dependência e auto-inicialização."""
 
     def __init__(self, title: str, tool_manager: ToolManager, scene_manager: Optional["SceneManager"] = None,
                  parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(title, parent)
         self.tool_manager = tool_manager
         self.scene_manager = scene_manager
+        self._is_initialized = False
+
         self.setObjectName(title.lower().replace(" ", "_"))
         self.setIconSize(QtCore.QSize(24, 24))
+
+        # Auto-inicializa a UI assim que o objeto é criado
+        self.initialize()
+
+    def initialize(self) -> None:
+        """Garante que a UI só é montada uma única vez."""
+        if not self._is_initialized:
+            self.setup_ui()
+            self._is_initialized = True
+
+    def setup_ui(self) -> None:
+        pass
 
     def add_tool_button(self, text: str, callback, icon: Optional[QtGui.QIcon] = None, tooltip: str = ""):
         btn = QtWidgets.QToolButton()
@@ -40,13 +54,14 @@ class BaseToolbar(QtWidgets.QToolBar):
 class Teste02Toolbar(BaseToolbar):
     """Implementação específica que carrega ferramentas via JSON."""
 
-    def __init__(self, tool_manager, scene_manager=None):
-        super().__init__("Teste02", tool_manager, scene_manager)
-        self.json_path = Path(__file__).resolve().with_suffix(".json")
-        self.refresh()
+    def __init__(self, tool_manager, scene_manager=None, parent: Optional[QtWidgets.QWidget] = None):
+        super().__init__("Teste02", tool_manager, scene_manager, parent)
+        # Removido self.refresh() daqui, pois agora a montagem ocorre através do setup_ui()
 
-    def refresh(self):
+    def setup_ui(self) -> None:
+        """Substitui a lógica de refresh manual seguindo o padrão centralizado."""
         self.clear()
+        self.json_path = Path(__file__).resolve().with_suffix(".json")
         if not self.json_path.exists():
             return
 
@@ -58,6 +73,11 @@ class Teste02Toolbar(BaseToolbar):
                 self._load_tool(path_str)
         except Exception as e:
             logger.error(f"Erro ao processar JSON: {e}")
+
+    def refresh(self):
+        """Método público opcional para recarregar se necessário."""
+        self._is_initialized = False
+        self.initialize()
 
     def _load_tool(self, path_str: str):
         root_path = Path("C:/OpenCMF")

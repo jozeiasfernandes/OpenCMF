@@ -35,7 +35,7 @@ class LUTDelegate(QtWidgets.QStyledItemDelegate):
 
 class VolumeViewerToolbar(BaseToolbar):
     def __init__(self, app_context: AppContext, parent=None):
-        # Inicializa com o contexto centralizado
+        # Inicializa com o contexto centralizado (a BaseToolbar já executa self.initialize() ao final)
         super().__init__("Volume Viewer", app_context, parent, is_movable=False)
         self._combo_layout = None
         self._combo_lut = None
@@ -134,6 +134,6 @@ if __name__ == "__main__":
     )
 
     viewer_toolbar = VolumeViewerToolbar(app_context=app_context)
-    viewer_toolbar.initialize()
+    # Removido viewer_toolbar.initialize() daqui, pois agora a auto-inicialização ocorre no __init__
     viewer_toolbar.show()
     sys.exit(app.exec())
