@@ -1,5 +1,6 @@
 import inspect
 import importlib.util
+import sys
 from pathlib import Path
 from typing import Optional, Type
 from core.components.registry import ComponentRegistry, ComponentMetadata, ComponentType
@@ -7,10 +8,9 @@ from core.components.bases.base_component import BaseComponent
 
 
 class ComponentScanner:
-    # Mapeamento para saber onde procurar cada tipo de componente
     COMPONENT_MAPPING = {
         "tools": ComponentType.TOOL,
-        "side_panel_container": ComponentType.SIDE_PANEL,
+        "side_panel": ComponentType.SIDE_PANEL,
         "central_area": ComponentType.CENTRAL_AREA,
         "toolbars": ComponentType.TOOLBAR
     }
@@ -37,9 +37,14 @@ class ComponentScanner:
 
     def _extract_metadata(self, file_path: Path, comp_type: ComponentType) -> Optional[ComponentMetadata]:
         try:
-            # Importação dinâmica para introspecção
-            spec = importlib.util.spec_from_file_location(file_path.stem, file_path)
+            # Importação dinâmica com registro seguro em sys.modules
+            module_name = f"scanner_component_{file_path.stem}"
+            spec = importlib.util.spec_from_file_location(module_name, file_path)
+            if not spec or not spec.loader:
+                return None
+
             module = importlib.util.module_from_spec(spec)
+            sys.modules[module_name] = module
             spec.loader.exec_module(module)
 
             # Procura por uma classe que herde de BaseComponent

@@ -1,7 +1,7 @@
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from core.localization.translator import tr
-from core.loaders.tabs_loaders.tools_tab_loaders.tools_tab_service_loaders import ToolbarService
+from core.loaders.tools_tab_loaders.tools_tab_service_loaders import ToolbarService
 
 
 class ToolsTab(QtWidgets.QWidget):

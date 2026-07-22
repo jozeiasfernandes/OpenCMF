@@ -42,8 +42,6 @@ class SidePanelManagerLoaders(QtWidgets.QWidget):
         idx = self.stack.addWidget(widget)
         self.tab_bar.addTab(titulo)
 
-        # Se for o primeiro painel, opcionalmente podemos exibi-lo ou manter oculto conforme o design da aplicação.
-        # Caso queira que ele exiba automaticamente ao ser adicionado:
         if self.stack.count() == 1:
             self.stack.show()
             self.stack.setCurrentIndex(idx)
@@ -89,13 +87,14 @@ class SidePanelManagerLoaders(QtWidgets.QWidget):
             self.tab_bar.setCurrentIndex(-1)
         else:
             current = self.stack.currentIndex()
-            self.tab_bar.setCurrentIndex(current if current < self.stack.count() else self.stack.count() - 1)
+            # Garante que o índice atual é válido após a remoção
+            novo_indice = current if current < self.stack.count() else self.stack.count() - 1
+            self.stack.setCurrentIndex(novo_indice)
+            if not self.stack.isHidden():
+                self.tab_bar.setCurrentIndex(novo_indice)
 
     def _gerenciar_clique(self, index: int):
-        if (
-                not self.stack.isHidden()
-                and self.tab_bar.currentIndex() == index
-        ):
+        if not self.stack.isHidden() and self.tab_bar.currentIndex() == index:
             self.stack.hide()
             self.tab_bar.setCurrentIndex(-1)
         else:

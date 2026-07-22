@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from PySide6 import QtWidgets, QtGui, QtCore
-from core.loaders.tabs_loaders.tools_tab_loaders.tools_tab_loaders import ToolsTab
+from core.loaders.tools_tab_loaders import ToolsTab
 from functools import partial
 
 
@@ -81,9 +81,8 @@ class Components_List(QtWidgets.QDialog):
 
         self.tools_tab = ToolsTab(self.components_path, get_name)
         self.tabs.addTab(self.tools_tab, "Tools")
-
         self.tabs.addTab(self._create_group("toolbars", mode="card"), "Toolbars")
-        self.tabs.addTab(self._create_group("side_panel_container", mode="check"), "Toolboxes")
+        self.tabs.addTab(self._create_group("side_panel", mode="check"), "Side Panel")
         self.tabs.addTab(self._create_group("central_area", mode="radio"), "Central")
 
         main_layout.addWidget(self.tabs)

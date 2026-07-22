@@ -55,7 +55,7 @@ class WorkspaceComponentHandler:
                 comp.setVisible(True)
 
             # 2. Side Panels / Toolboxes
-            elif categoria in ("side_panel_container", "side_panel_manager_loaders"):
+            elif categoria in ("side_panel_container", "side_panel_loaders"):
                 panel_title = getattr(comp, 'toolbox_name', caminho.stem.replace("_", " ").title())
                 panel_id = panel_title.lower().replace(" ", "_")
 
@@ -82,7 +82,7 @@ class WorkspaceComponentHandler:
                 if hasattr(self.workspace.toolbar_manager.top_container, "remove_toolbar"):
                     self.workspace.toolbar_manager.top_container.remove_toolbar(tb_id)
 
-            elif categoria in ("side_panel_container", "side_panel_manager_loaders"):
+            elif categoria in ("side_panel_container", "side_panel_loaders"):
                 side_container = getattr(self.workspace.side_manager, "container", self.workspace.side_manager)
                 if hasattr(side_container, "remover_widget_por_caminho"):
                     side_container.remover_widget_por_caminho(caminho)
