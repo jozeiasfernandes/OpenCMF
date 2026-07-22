@@ -12,10 +12,10 @@ from PySide6 import QtWidgets, QtCore
 from modules.base_module.base_module import FluxoBase
 from core.localization.translator import tr
 
-from core.home_page.settings_app import settings
+from core.settings.settings_app_manager import settings
 from core.home_page.home_page import Home_page
 from core.home_page.flow.flow_editor import PaginaEditorFluxo
-from core.home_page.settings.settings_page import PaginaConfig
+from core.settings.settings_page import PaginaConfig
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 
 from core.icons.icons_manager import IconManager
@@ -23,7 +23,6 @@ from core.icons.icons_manager import IconManager
 from core.components.bases.base_tool.tool_manager import ToolManager
 
 from core.workspace.module_factory import ModuleFactory
-from core.workspace.state import WorkspaceState
 from core.workspace.workspace_manager import WorkspaceManager
 
 from core.scene.scene_manager import SceneManager

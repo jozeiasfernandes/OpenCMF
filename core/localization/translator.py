@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 from functools import lru_cache
 from typing import Any, Optional
-from core.home_page.settings_app import settings
+from core.settings.settings_app_manager import settings
 
 
 def get_base_dir() -> Path:

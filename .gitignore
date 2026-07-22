@@ -14,5 +14,5 @@ patients/
 utils/
 /utils/
 
-/core/config.json
+/core/settings/config.json
 /tests/

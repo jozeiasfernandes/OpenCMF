@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 
-@dataclass
+@dataclass(frozen=True)
 class Tool:
     """Representa uma ferramenta individual."""
     path: Path
@@ -13,7 +12,7 @@ class Tool:
         return self.name
 
 
-@dataclass
+@dataclass(frozen=True)
 class Toolbar:
     """Representa uma coleção de ferramentas."""
     path: Path

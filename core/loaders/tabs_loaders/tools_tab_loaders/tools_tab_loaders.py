@@ -7,7 +7,7 @@ from core.loaders.tabs_loaders.tools_tab_loaders.tools_tab_service_loaders impor
 class ToolsTab(QtWidgets.QWidget):
     tools_changed = QtCore.Signal()
 
-    def __init__(self, components_path: Path, get_name_callback, parent=None):
+    def __init__(self, components_path: Path, get_name_callback=None, parent=None):
         super().__init__(parent)
         self.service = ToolbarService(components_path)
         self._get_name = get_name_callback
@@ -22,7 +22,8 @@ class ToolsTab(QtWidgets.QWidget):
         # Topo
         top_layout = QtWidgets.QHBoxLayout()
         self.combo_toolbar = QtWidgets.QComboBox()
-        self.combo_toolbar.currentTextChanged.connect(self._on_toolbar_changed)
+        # CORREÇÃO: Usar currentIndexChanged para evitar chamadas duplicadas/vazias ao limpar a combobox
+        self.combo_toolbar.currentIndexChanged.connect(self._on_toolbar_changed)
 
         btn_new = QtWidgets.QPushButton(tr("Criar Nova Toolbar"))
         btn_new.clicked.connect(self._create_new_toolbar)
@@ -82,13 +83,18 @@ class ToolsTab(QtWidgets.QWidget):
         self.list_selected.itemDoubleClicked.connect(self._remove_selected_tool)
 
     def _load_toolbars_list(self):
+        # Bloqueia sinais temporariamente para evitar disparar _on_toolbar_changed prematuramente durante o clear
+        self.combo_toolbar.blockSignals(True)
         self.combo_toolbar.clear()
         for tb in self.service.get_all_toolbars():
             self.combo_toolbar.addItem(tb["name"], userData=tb["path"])
+        self.combo_toolbar.blockSignals(False)
 
     def _on_toolbar_changed(self):
         toolbar_path = self.combo_toolbar.currentData()
         if not toolbar_path:
+            self.tree_all.clear()
+            self.list_selected.clear()
             return
 
         self.tree_all.clear()
@@ -100,8 +106,10 @@ class ToolsTab(QtWidgets.QWidget):
         categories = {}
         for tool in all_tools_meta:
             path = tool["path"]
+            display_name = self._get_name(tool) if self._get_name else tool["display_name"]
+
             if path in selected_paths:
-                item = QtWidgets.QListWidgetItem(tool["display_name"])
+                item = QtWidgets.QListWidgetItem(display_name)
                 item.setData(QtCore.Qt.UserRole, path)
                 self.list_selected.addItem(item)
             else:
@@ -111,7 +119,7 @@ class ToolsTab(QtWidgets.QWidget):
                     parent.setExpanded(True)
                     categories[cat_name] = parent
 
-                child = QtWidgets.QTreeWidgetItem(categories[cat_name], [tool["display_name"]])
+                child = QtWidgets.QTreeWidgetItem(categories[cat_name], [display_name])
                 child.setData(0, QtCore.Qt.UserRole, path)
 
     def _add_selected_from_tree(self):
@@ -153,6 +161,8 @@ class ToolsTab(QtWidgets.QWidget):
             try:
                 self.service.create_toolbar(name)
                 self._load_toolbars_list()
+                if self.combo_toolbar.count() > 0:
+                    self.combo_toolbar.setCurrentIndex(self.combo_toolbar.count() - 1)
             except Exception as e:
                 QtWidgets.QMessageBox.critical(self, "Erro", str(e))
 

@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from core.localization.translator import tr
-from core.home_page.settings_app import settings
+from core.settings.settings_app_manager import settings
 
 
 class TabLanguage(QtWidgets.QWidget):

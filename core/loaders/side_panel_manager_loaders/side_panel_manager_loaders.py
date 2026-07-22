@@ -42,9 +42,12 @@ class SidePanelManagerLoaders(QtWidgets.QWidget):
         idx = self.stack.addWidget(widget)
         self.tab_bar.addTab(titulo)
 
-        if self.stack.currentIndex() == -1:
-            self.stack.hide()
-            self.tab_bar.setCurrentIndex(-1)
+        # Se for o primeiro painel, opcionalmente podemos exibi-lo ou manter oculto conforme o design da aplicação.
+        # Caso queira que ele exiba automaticamente ao ser adicionado:
+        if self.stack.count() == 1:
+            self.stack.show()
+            self.stack.setCurrentIndex(idx)
+            self.tab_bar.setCurrentIndex(idx)
 
         return idx
 
@@ -58,6 +61,7 @@ class SidePanelManagerLoaders(QtWidgets.QWidget):
             self.tab_bar.removeTab(0)
 
         self.stack.hide()
+        self.tab_bar.setCurrentIndex(-1)
 
     def renomear_tab(self, index: int, novo_titulo: str) -> bool:
         if 0 <= index < self.tab_bar.count():
@@ -79,16 +83,22 @@ class SidePanelManagerLoaders(QtWidgets.QWidget):
                 self.tab_bar.removeTab(i)
                 w.deleteLater()
                 break
+
         if self.stack.count() == 0:
             self.stack.hide()
+            self.tab_bar.setCurrentIndex(-1)
+        else:
+            current = self.stack.currentIndex()
+            self.tab_bar.setCurrentIndex(current if current < self.stack.count() else self.stack.count() - 1)
 
     def _gerenciar_clique(self, index: int):
         if (
-            not self.stack.isHidden()
-            and self.tab_bar.currentIndex() == index
+                not self.stack.isHidden()
+                and self.tab_bar.currentIndex() == index
         ):
             self.stack.hide()
             self.tab_bar.setCurrentIndex(-1)
         else:
             self.stack.show()
             self.stack.setCurrentIndex(index)
+            self.tab_bar.setCurrentIndex(index)

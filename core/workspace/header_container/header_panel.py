@@ -5,7 +5,7 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from core.workspace.btn_home import HomeButton
 from core.loaders.components_list import Components_List
 from core.workspace.help.help_page import HelpPage
-from core.home_page.settings.settings_page import PaginaConfig
+from core.settings.settings_page import PaginaConfig
 
 
 class HeaderPanel(QtWidgets.QWidget):

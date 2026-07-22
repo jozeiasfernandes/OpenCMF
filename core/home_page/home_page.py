@@ -2,7 +2,9 @@ import sys
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from core import settings, IconManager, tr, ProjectServiceHomePage, FlowServiceHomePage
+from core import settings, IconManager, tr
+from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+from core.home_page.managers.flow_service_home_page import FlowServiceHomePage
 from core.home_page.extras.tela_creditos import Janela_Creditos
 from core.home_page.flow.fluxo_card import FluxoCard
 from core.home_page.managers.project_list_formatter import format_and_add_to_list, create_project_card

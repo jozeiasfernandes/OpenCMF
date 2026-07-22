@@ -39,10 +39,8 @@ class SidePanelContainer(QtWidgets.QWidget):
         if panel_id in self.panels:
             self.remove_panel(panel_id)
 
-        # Garante que o painel seja desvinculado de qualquer parent anterior
         panel.setParent(None)
 
-        # Configura o parent para o widget de conteúdo e adiciona ao layout
         panel.setParent(self._content_widget)
         panel.setSizePolicy(
             QtWidgets.QSizePolicy.Preferred,

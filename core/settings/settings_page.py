@@ -1,10 +1,12 @@
 from PySide6 import QtWidgets, QtCore
 
-from settings.general.tab_language import TabLanguage
-from settings.general.tab_appearance import TabAppearance
-from settings.general.tab_keyboard import TabKeyboard
-from core.home_page.settings.viewer.tab_2d import Tab2DViewer
-from core.home_page.settings.viewer.tab_3d import Tab3DViewer
+from core.settings.tabs.general.tab_language import TabLanguage
+from core.settings.tabs.general.tab_appearance import TabAppearance
+from core.settings.tabs.general.tab_keyboard import TabKeyboard
+from core.settings.tabs.viewer.tab_2d import Tab2DViewer
+from core.settings.tabs.viewer.tab_3d import Tab3DViewer
+from core.settings.tabs.workspace.tab_toolbar import TabToolbar
+from core.settings.tabs.workspace.tab_side_panel import TabSidePanel
 from core import tr
 
 
@@ -47,6 +49,9 @@ class PaginaConfig(QtWidgets.QWidget):
 
         self._adicionar_aba_ao_tree(tr("configs.viewer"), tr("configs.2d_viewer"), Tab2DViewer())
         self._adicionar_aba_ao_tree(tr("configs.viewer"), tr("configs.3d_viewer"), Tab3DViewer())
+
+        self._adicionar_aba_ao_tree(tr("configs.workspace", "Workspace"), tr("configs.toolbar", "Toolbar"), TabToolbar())
+        self._adicionar_aba_ao_tree(tr("configs.workspace", "Workspace"), tr("configs.side_panel", "Side Panel"), TabSidePanel())
 
     def _adicionar_aba_ao_tree(self, grupo, nome, widget):
         items = self.tree.findItems(grupo, QtCore.Qt.MatchExactly)

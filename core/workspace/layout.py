@@ -67,6 +67,11 @@ class ModuleDistributor:
         if hasattr(module, "get_main_widget"):
             viewport = module.get_main_widget()
             if ModuleDistributor._is_valid_qwidget(viewport):
+                # Garante que o componente central execute o ciclo de vida padrão do BaseComponent
+                if hasattr(viewport, "setup_component") and hasattr(viewport, "_logic"):
+                    if not viewport._logic._loaded:
+                        viewport.setup_component()
+
                 try:
                     viewport.setWindowFlags(QtCore.Qt.Widget)
                     if viewport.parent():
@@ -82,7 +87,6 @@ class ModuleDistributor:
                 # Adicionar ao central_manager
                 central_manager.set_view(viewport)
 
-                # Garantir visibilidade
                 viewport.setVisible(True)
 
     @staticmethod

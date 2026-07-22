@@ -1,12 +1,15 @@
 import json
 import importlib.util
+import inspect
 import logging
 from pathlib import Path
 from typing import List, Dict
+from PySide6 import QtWidgets
 from core.components.toolbars.utils.capture_toolbar_png import capture_toolbar_screenshot
 from core.components.bases.base_tool import ToolCategory
 
 logger = logging.getLogger(__name__)
+
 
 class ToolbarService:
     def __init__(self, components_path: Path):
@@ -14,7 +17,6 @@ class ToolbarService:
         self.toolbars_path = components_path / "toolbars"
         self.tools_path = components_path / "tools"
         self.template_path = components_path.parent / "components" / "toolbars" / "template" / "toolbar_template.py"
-
 
     def get_all_toolbars(self) -> List[Dict]:
         toolbars = []
@@ -89,7 +91,9 @@ class ToolbarService:
         with open(self.template_path, "r", encoding="utf-8") as f:
             content = f.read()
 
-        content = content.replace("{class_name}", class_name).replace("{name}", name).replace("{object_name}", file_name.replace(".py", ""))
+        content = content.replace("{class_name}", class_name).replace("{name}", name).replace("{object_name}",
+                                                                                              file_name.replace(".py",
+                                                                                                                ""))
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
 
@@ -109,12 +113,16 @@ class ToolbarService:
     def _get_toolbar_display_name(self, path: Path) -> str:
         try:
             spec = importlib.util.spec_from_file_location(path.stem, path)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-            if hasattr(module, 'Registration_SidePanel'):
-                return getattr(module.Component, 'toolbar_name', module.Component().windowTitle())
-        except Exception:
-            pass
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+
+                for _, obj in inspect.getmembers(module, inspect.isclass):
+                    if issubclass(obj, QtWidgets.QToolBar) and obj is not QtWidgets.QToolBar:
+                        return getattr(obj, 'toolbar_name', path.stem.replace("_", " ").title())
+        except Exception as e:
+            logger.debug(f"Não foi possível extrair metadados da toolbar {path.name}: {e}")
+
         return path.stem.replace("_", " ").title()
 
     def get_all_tools_with_metadata(self):

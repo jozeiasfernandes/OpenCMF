@@ -6,8 +6,8 @@ from PySide6 import QtWidgets, QtGui
 class TabKeyboard(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        base_path = Path(__file__).resolve().parents[3]
-        self.config_path = base_path / "shortcut" / "shortcuts.json"
+        base_path = Path(__file__).resolve().parents[4]
+        self.config_path = base_path / "core" / "shortcut" / "shortcuts.json"
 
         self._setup_ui()
         self.carregar_atalhos()

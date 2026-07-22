@@ -50,7 +50,12 @@ class ModuleFactory:
     def clear_cache(cls):
         for module_id in list(cls._instances.keys()):
             instance = cls._instances.pop(module_id)
-            if hasattr(instance, "dispose"): # Alterado para 'dispose' conforme seu BaseComponent
+            if hasattr(instance, "cleanup"):
+                try:
+                    instance.cleanup()
+                except Exception as e:
+                    logger.warning(f"Erro no cleanup do módulo '{module_id}': {e}")
+            elif hasattr(instance, "dispose"):  # Mantém compatibilidade retroativa opcional
                 try:
                     instance.dispose()
                 except Exception as e:
