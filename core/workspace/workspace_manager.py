@@ -4,6 +4,8 @@ from typing import Optional, Any
 
 from PySide6 import QtWidgets, QtCore
 
+from core.settings.settings_app_manager import settings
+
 from core.workspace.contracts import IModule
 from core.workspace.header_container.header_panel import HeaderPanel
 from core.workspace.toolbar_container.toolbar_manager import ToolbarManager
@@ -156,6 +158,45 @@ class WorkspaceManager(QtWidgets.QWidget):
     def abrir_seletor_componentes(self):
         """Abre a janela de listagem de componentes para customização."""
         self.component_handler.abrir_seletor()
+
+    def reconstruir_side_panel(self):
+        """Reconstrói o container do painel lateral em tempo real ao alterar o modo (tabs/toolbox)."""
+        if not hasattr(self, "splitter") or not hasattr(self, "side_manager"):
+            return
+
+        # 1. Guarda os painéis atuais e seus widgets antes de destruir o container antigo
+        paineis_atuais = {}
+        if hasattr(self.side_manager, "container") and hasattr(self.side_manager.container, "panels"):
+            paineis_atuais = dict(self.side_manager.container.panels)
+            titulos_atuais = dict(self.side_manager.container.panel_titles)
+        else:
+            titulos_atuais = {}
+
+        # 2. Remove o container antigo do QSplitter e o deleta
+        old_container = self.side_manager.container
+        old_container.setParent(None)
+        old_container.deleteLater()
+
+        # 3. Instancia um novo SidePanelManager / SidePanelContainer com o novo modo das settings
+        self.side_manager = SidePanelManager(self)
+        self.side_manager.container.setSizePolicy(
+            QtWidgets.QSizePolicy.Preferred,
+            QtWidgets.QSizePolicy.Expanding
+        )
+
+        # Insere o novo container no splitter na mesma posição (índice 1)
+        self.splitter.addWidget(self.side_manager.container)
+        self.splitter.setStretchFactor(0, 4)
+        self.splitter.setStretchFactor(1, 1)
+
+        # 4. Restaura os painéis que estavam abertos para o novo container criado
+        for panel_id, widget in paineis_atuais.items():
+            titulo = titulos_atuais.get(panel_id, "Panel")
+            self.side_manager.container.add_panel(panel_id, widget, title=titulo)
+
+        # 5. Reaplica a visibilidade correta com base nas configurações
+        show_default = settings.side_panel_show_by_default
+        self.side_manager.container.setVisible(show_default)
 
     # ======================= Patient & Reset =======================
 
