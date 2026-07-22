@@ -1,8 +1,10 @@
+from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 from core import tr
 
+
 class SidePanelHeader(QtWidgets.QWidget):
-    """Cabeçalho personalizado para o painel lateral com título, botão de recolher e botão de configurações."""
+    """Cabeçalho personalizado para o painel lateral com título, botão de recolher lateral e configurações."""
 
     toggle_colapsado_alterado = QtCore.Signal(bool)
     configuracoes_solicitadas = QtCore.Signal()
@@ -11,42 +13,89 @@ class SidePanelHeader(QtWidgets.QWidget):
         super().__init__(parent)
         self.workspace_manager = workspace_manager
         self._colapsado = False
+
+        # Define os caminhos dos ícones SVG na mesma pasta
+        assets_dir = Path(__file__).parent
+        self.icon_right_path = assets_dir / "arrow_right.svg"
+        self.icon_left_path = assets_dir / "arrow_left.svg"
+
         self._setup_ui(titulo)
 
     def _setup_ui(self, titulo_texto: str):
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(6, 4, 6, 4)
         layout.setSpacing(6)
+
         self.btn_toggle = QtWidgets.QToolButton(self)
-        self.btn_toggle.setArrowType(QtCore.Qt.DownArrow)
+        self.btn_toggle.setStyleSheet("""
+            QToolButton {
+                border: none;
+                background-color: transparent;
+            }
+            QToolButton:hover {
+                background-color: rgba(255, 255, 255, 20);
+                border-radius: 3px;
+            }
+        """)
         self.btn_toggle.setAutoRaise(True)
-        self.btn_toggle.setToolTip(tr("side_panel.toggle", "Recolher / Expandir Painel"))
+        self.btn_toggle.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_toggle.setToolTip(tr("side_panel.toggle", "Recolher / Expandir Painel Lateral"))
+
+        # Como o estado inicial começa visível (_colapsado = False), usamos arrow_right.svg
+        self._update_toggle_icon(self._colapsado)
+
         self.btn_toggle.clicked.connect(self._alternar_estado)
         layout.addWidget(self.btn_toggle)
+
         self.lbl_titulo = QtWidgets.QLabel(tr("side_panel.title", titulo_texto), self)
         font = self.lbl_titulo.font()
         font.setBold(True)
         self.lbl_titulo.setFont(font)
         layout.addWidget(self.lbl_titulo)
         layout.addStretch()
+
         self.btn_config = QtWidgets.QToolButton(self)
         self.btn_config.setText("⚙")
         self.btn_config.setAutoRaise(True)
+        self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_config.setToolTip(tr("side_panel.settings", "Configurações do Painel"))
         self.btn_config.clicked.connect(self._abrir_configuracoes)
         layout.addWidget(self.btn_config)
 
+    def _update_toggle_icon(self, colapsado: bool):
+        """Define arrow_right.svg se visível (para ocultar) ou arrow_left.svg se oculto (para mostrar)."""
+        # Se colapsado for True (oculto), mostra seta para a esquerda (arrow_left.svg)
+        # Se colapsado for False (visível), mostra seta para a direita (arrow_right.svg)
+        target_path = self.icon_left_path if colapsado else self.icon_right_path
+
+        if target_path.exists():
+            pixmap = QtGui.QPixmap(str(target_path))
+            if not pixmap.isNull():
+                self.btn_toggle.setIcon(
+                    QtGui.QIcon(pixmap.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)))
+                return
+
+        # Fallback caso o SVG não seja encontrado
+        self.btn_toggle.setArrowType(QtCore.Qt.LeftArrow if colapsado else QtCore.Qt.RightArrow)
+
     def _alternar_estado(self):
         self._colapsado = not self._colapsado
+
+        # Atualiza o ícone SVG de acordo com o novo estado
+        self._update_toggle_icon(self._colapsado)
+
         if self._colapsado:
-            self.btn_toggle.setArrowType(QtCore.Qt.RightArrow)
+            # Painel oculto: oculta título e botão de config para ficar ultra compacto na borda
+            self.lbl_titulo.hide()
+            self.btn_config.hide()
         else:
-            self.btn_toggle.setArrowType(QtCore.Qt.DownArrow)
+            # Painel visível: exibe título e configurações novamente
+            self.lbl_titulo.show()
+            self.btn_config.show()
 
         self.toggle_colapsado_alterado.emit(self._colapsado)
 
     def _abrir_configuracoes(self):
-        """Abre a janela de configurações focada na aba do Side Panel passando o workspace_manager."""
         self.configuracoes_solicitadas.emit()
         try:
             from core.settings.settings_dialog import SettingsDialog
@@ -63,7 +112,6 @@ class SidePanelHeader(QtWidgets.QWidget):
             lay = QtWidgets.QVBoxLayout(dialog)
             tab_widget = TabSidePanel(workspace_manager=self.workspace_manager)
             lay.addWidget(tab_widget)
-
             dialog.exec()
 
     def set_titulo(self, texto: str):

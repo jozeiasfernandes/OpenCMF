@@ -4,8 +4,6 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 class CollapsibleSection(QtWidgets.QWidget):
     """Componente reutilizável para criar seções retráteis com um puxador SVG (drag_indicator.svg)
-
-    e botões de expandir/recolher utilizando ícones SVG (arrow_down.svg e arrow_right.svg).
     """
 
     def __init__(self, title: str, content_widget: QtWidgets.QWidget, parent=None):
@@ -33,11 +31,10 @@ class CollapsibleSection(QtWidgets.QWidget):
             self.btn_grip.setText("⋮⋮")
             self.btn_grip.setStyleSheet("color: #888; font-weight: bold; font-size: 11px;")
 
-        # Título da seção separado do botão de alternância
         self.lbl_title = QtWidgets.QLabel(title)
         self.lbl_title.setStyleSheet("font-weight: bold;")
 
-        # Botão de Ocultar/Reexibir usando arrow_down.svg / arrow_right.svg
+        # Botão de Ocultar/Reexibir usando arrow_up.svg / arrow_down.svg
         self.toggle_button = QtWidgets.QToolButton()
         self.toggle_button.setStyleSheet("""
             QToolButton {
@@ -53,8 +50,8 @@ class CollapsibleSection(QtWidgets.QWidget):
         self.toggle_button.setChecked(True)
         self.toggle_button.setCursor(QtCore.Qt.PointingHandCursor)
 
+        self.icon_up_path = assets_dir / "arrow_up.svg"
         self.icon_down_path = assets_dir / "arrow_down.svg"
-        self.icon_right_path = assets_dir / "arrow_right.svg"
 
         self._update_toggle_icon(True)
 
@@ -72,12 +69,14 @@ class CollapsibleSection(QtWidgets.QWidget):
         self.toggle_button.toggled.connect(self._on_toggle)
 
     def _update_toggle_icon(self, checked: bool) -> None:
-        """Atualiza o ícone do botão com base no estado expandido/recolhido."""
-        target_path = self.icon_down_path if checked else self.icon_right_path
+        target_path = self.icon_up_path if checked else self.icon_down_path
         if target_path.exists():
-            self.toggle_button.setIcon(QtGui.QIcon(str(target_path)))
-        else:
-            self.toggle_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TitleBarShadeButton))
+            pixmap = QtGui.QPixmap(str(target_path))
+            if not pixmap.isNull():
+                self.toggle_button.setIcon(QtGui.QIcon(pixmap.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)))
+                return
+
+        self.toggle_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TitleBarShadeButton))
 
     def _on_toggle(self, checked: bool) -> None:
         """Alterna o ícone de seta e a visibilidade do conteúdo interno."""
