@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from PySide6 import QtWidgets, QtGui, QtCore
-from core.loaders.tools_tab_loaders import ToolsTab
+from core.loaders.tools_tab_loaders.tools_tab_loaders import ToolsTab
 from functools import partial
 
 
@@ -76,8 +76,12 @@ class Components_List(QtWidgets.QDialog):
         self.tabs.setStyleSheet("QTabBar::tab { height: 80px; width: 40px; }")
 
 
-        def get_name(path):
-            return path.stem.replace("_", " ").title()
+        def get_name(item):
+            if isinstance(item, dict):
+                return item.get("display_name", "Desconhecido")
+            return item.stem.replace("_", " ").title()
+
+        self.tools_tab = ToolsTab(self.components_path, get_name)
 
         self.tools_tab = ToolsTab(self.components_path, get_name)
         self.tabs.addTab(self.tools_tab, "Tools")

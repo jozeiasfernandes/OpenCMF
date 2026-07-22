@@ -22,7 +22,6 @@ class ToolsTab(QtWidgets.QWidget):
         # Topo
         top_layout = QtWidgets.QHBoxLayout()
         self.combo_toolbar = QtWidgets.QComboBox()
-        # CORREÇÃO: Usar currentIndexChanged para evitar chamadas duplicadas/vazias ao limpar a combobox
         self.combo_toolbar.currentIndexChanged.connect(self._on_toolbar_changed)
 
         btn_new = QtWidgets.QPushButton(tr("Criar Nova Toolbar"))
@@ -83,7 +82,6 @@ class ToolsTab(QtWidgets.QWidget):
         self.list_selected.itemDoubleClicked.connect(self._remove_selected_tool)
 
     def _load_toolbars_list(self):
-        # Bloqueia sinais temporariamente para evitar disparar _on_toolbar_changed prematuramente durante o clear
         self.combo_toolbar.blockSignals(True)
         self.combo_toolbar.clear()
         for tb in self.service.get_all_toolbars():
@@ -136,14 +134,24 @@ class ToolsTab(QtWidgets.QWidget):
                 self.list_selected.addItem(new_item)
 
     def _remove_selected_tool(self):
+        for current_item in self.list_selected.selectedItems():
+            self.list_selected.takeItem(self.list_selected.row(current_item))
+        # Recarrega limpo chamando o estado atual do combo sem perder as alterações não salvas
+        toolbar_path = self.combo_toolbar.currentData()
+        if toolbar_path:
+            # Opcional: Para simplificar e garantir consistência sem recriar tudo da árvore do zero,
+            # podemos apenas chamar _on_toolbar_changed se preferir forçar o reload do arquivo,
+            # mas o ideal para edição em memória é simplesmente remover da lista selecionada.
+            pass
+
+    def _remove_selected_tool(self):
         current_item = self.list_selected.currentItem()
         if current_item:
             self.list_selected.takeItem(self.list_selected.row(current_item))
-            self._on_toolbar_changed()
+
 
     def _remove_all_tools(self):
         self.list_selected.clear()
-        self._on_toolbar_changed()
 
     def _save_state(self):
         toolbar_path = self.combo_toolbar.currentData()
@@ -172,3 +180,4 @@ class ToolsTab(QtWidgets.QWidget):
             self.service.delete_toolbar(path)
             self._load_toolbars_list()
             self.tools_changed.emit()
+

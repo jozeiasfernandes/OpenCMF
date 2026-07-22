@@ -8,7 +8,6 @@ from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from core.components.bases.base_tool.base_tool import BaseTool
 from core.components.bases.base_component import AppContext
-from core.components.toolbars.base_toolbar import BaseToolbar
 
 if TYPE_CHECKING:
     from core.scene.scene_manager import SceneManager
@@ -17,14 +16,14 @@ if TYPE_CHECKING:
 logger = logging.getLogger("ToolbarLoader")
 
 
-class {class_name}Handler:
+class Teste03Handler:
     """Gerencia a carga e registro dinâmico de ferramentas a partir de um JSON."""
 
-    def __init__(self, toolbar: "{class_name}", app_context: AppContext):
+    def __init__(self, toolbar: "Teste03", app_context: AppContext):
         self.toolbar = toolbar
         self.app_context = app_context
         self.root_path = Path(__file__).resolve().parent
-        self.json_path = self.root_path / f"{{class_name.lower()}}.json"
+        self.json_path = self.root_path / f"{{class_name.lower()}}.json"  # ou with_suffix(".json")
         self._setup_ui()
 
     def _setup_ui(self):
@@ -40,7 +39,7 @@ class {class_name}Handler:
             with open(self.json_path, "r", encoding="utf-8") as f:
                 tool_paths: list[str] = json.load(f)
         except Exception as e:
-            logger.error(f"Erro ao ler JSON da toolbar: {{e}}")
+            logger.error(f"Erro ao ler JSON da toolbar: {e}")
             return
 
         for path_str in tool_paths:
@@ -67,6 +66,7 @@ class {class_name}Handler:
 
             for _, obj in inspect.getmembers(module, inspect.isclass):
                 if issubclass(obj, BaseTool) and obj is not BaseTool:
+                    # Injeta o app_context ou scene_manager dependendo de como a BaseTool foi construída
                     sig = inspect.signature(obj.__init__)
                     if "app_context" in sig.parameters:
                         return obj(app_context=self.app_context)
@@ -75,25 +75,29 @@ class {class_name}Handler:
                     else:
                         return obj()
         except Exception:
-            logger.error(f"Falha ao instanciar tool {{path.name}}:\n{{traceback.format_exc()}}")
+            logger.error(f"Falha ao instanciar tool {path.name}:\n{traceback.format_exc()}")
         return None
 
 
-class {class_name}(BaseToolbar):
-    toolbox_name = "{name}"
+class Teste03(BaseToolbar):
+    toolbox_name = "Teste03"
 
     def __init__(self, app_context: AppContext, parent: Optional[QtWidgets.QWidget] = None):
+        # Repassa o app_context exigido pela nova BaseToolbar
         super().__init__(
             title=self.toolbox_name,
             app_context=app_context,
             parent=parent
         )
-        self.setObjectName("{object_name}")
+        self.setObjectName("teste03")
 
-        self.handler = {class_name}Handler(self, app_context=app_context)
+        # Inicializa o handler passando o contexto unificado
+        self.handler = Teste03
+        Handler(self, app_context=app_context)
         self.initialize()
 
     def setup_ui(self):
+        # A inicialização visual básica já é tratada pelo Handler/BaseToolbar
         pass
 
     def refresh(self):
@@ -107,11 +111,12 @@ if __name__ == "__main__":
 
     main_window = QtWidgets.QMainWindow()
 
+    # Mock do AppContext para testes isolados
     mock_context = AppContext()
-    toolbar = {class_name}(app_context=mock_context)
+    toolbar = Teste03(app_context=mock_context)
 
     main_window.addToolBar(toolbar)
-    main_window.setWindowTitle("Debug Toolbar: {name}")
+    main_window.setWindowTitle("Debug Toolbar: Teste03")
     main_window.resize(400, 100)
     main_window.show()
 

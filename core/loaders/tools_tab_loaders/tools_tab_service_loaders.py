@@ -2,9 +2,12 @@ import json
 import importlib.util
 import inspect
 import logging
+import sys
 from pathlib import Path
 from typing import List, Dict
 from PySide6 import QtWidgets
+
+from core.components.bases.base_tool.base_tool import BaseTool
 from core.components.toolbars.utils.capture_toolbar_png import capture_toolbar_screenshot
 from core.components.bases.base_tool import ToolCategory
 
@@ -16,7 +19,7 @@ class ToolbarService:
         self.components_path = components_path
         self.toolbars_path = components_path / "toolbars"
         self.tools_path = components_path / "tools"
-        self.template_path = components_path.parent / "components" / "toolbars" / "template" / "toolbar_template.py"
+        self.template_path = self.toolbars_path / "template" / "toolbar_template.py"
 
     def get_all_toolbars(self) -> List[Dict]:
         toolbars = []
@@ -32,9 +35,15 @@ class ToolbarService:
         return toolbars
 
     def get_all_tools(self) -> List[Path]:
+        print(f"[DEBUG] Verificando pasta de tools em: {self.tools_path.resolve()}")
+        print(f"[DEBUG] A pasta 'tools' existe? {self.tools_path.exists()}")
+
         if not self.tools_path.exists():
             return []
-        return [p for p in sorted(self.tools_path.glob("*.py")) if p.name != "__init__.py"]
+
+        tools = [p for p in sorted(self.tools_path.glob("*.py")) if p.name != "__init__.py"]
+        print(f"[DEBUG] Arquivos .py encontrados na pasta tools: {[t.name for t in tools]}")
+        return tools
 
     def load_selected_tools(self, toolbar_path: Path) -> List[Path]:
         json_path = toolbar_path.with_suffix(".json")
@@ -112,9 +121,11 @@ class ToolbarService:
 
     def _get_toolbar_display_name(self, path: Path) -> str:
         try:
-            spec = importlib.util.spec_from_file_location(path.stem, path)
+            module_name = f"toolbar_service_{path.stem}"
+            spec = importlib.util.spec_from_file_location(module_name, path)
             if spec and spec.loader:
                 module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
                 spec.loader.exec_module(module)
 
                 for _, obj in inspect.getmembers(module, inspect.isclass):
@@ -127,27 +138,38 @@ class ToolbarService:
 
     def get_all_tools_with_metadata(self):
         tools_list = []
-        for path in self.get_all_tools():
+        all_paths = self.get_all_tools()
+        print(f"[DEBUG] Total de arquivos encontrados para processar: {len(all_paths)}")
+
+        for path in all_paths:
             tool_class = self._instanciar_tool(path)
+            print(f"[DEBUG] Analisando arquivo -> {path.name} | Classe válida encontrada: {tool_class}")
             if tool_class:
                 tools_list.append({
                     "path": path,
                     "display_name": getattr(tool_class, "display_name", "Desconhecido"),
                     "category": getattr(tool_class, "category", ToolCategory.OTHER)
                 })
+
+        print(f"[DEBUG] Total final de ferramentas com metadados carregadas: {len(tools_list)}")
         return tools_list
 
     def _instanciar_tool(self, path):
         try:
-            spec = importlib.util.spec_from_file_location(path.stem, path)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
+            module_name = f"tool_service_{path.stem}"
+            spec = importlib.util.spec_from_file_location(module_name, path)
+            if spec and spec.loader:
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+                spec.loader.exec_module(module)
 
-            for attr_name in dir(module):
-                obj = getattr(module, attr_name)
-
-                if isinstance(obj, type) and hasattr(obj, 'category') and obj.__name__ != 'BaseTool':
-                    return obj
+                for attr_name in dir(module):
+                    obj = getattr(module, attr_name)
+                    if (isinstance(obj, type)
+                            and issubclass(obj, BaseTool)
+                            and obj is not BaseTool
+                            and hasattr(obj, 'category')):
+                        return obj
         except Exception as e:
             logger.error(f"Falha ao instanciar tool {path.name}: {e}")
         return None
