@@ -1,8 +1,13 @@
-from PySide6 import QtWidgets, QtCore, QtGui
 from pathlib import Path
+from PySide6 import QtWidgets, QtCore, QtGui
 
 
 class CollapsibleSection(QtWidgets.QWidget):
+    """Componente reutilizável para criar seções retráteis com um puxador SVG (drag_indicator.svg)
+
+    e botões de expandir/recolher utilizando ícones SVG (arrow_down.svg e arrow_right.svg).
+    """
+
     def __init__(self, title: str, content_widget: QtWidgets.QWidget, parent=None):
         super().__init__(parent)
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -23,13 +28,12 @@ class CollapsibleSection(QtWidgets.QWidget):
         drag_icon_path = assets_dir / "drag_indicator.svg"
         if drag_icon_path.exists():
             pixmap = QtGui.QPixmap(str(drag_icon_path))
-            # Ajusta um tamanho padrão caso necessário (ex: 16x16)
             self.btn_grip.setPixmap(pixmap.scaled(16, 16, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
         else:
             self.btn_grip.setText("⋮⋮")
             self.btn_grip.setStyleSheet("color: #888; font-weight: bold; font-size: 11px;")
 
-        # Título da seção
+        # Título da seção separado do botão de alternância
         self.lbl_title = QtWidgets.QLabel(title)
         self.lbl_title.setStyleSheet("font-weight: bold;")
 
@@ -49,7 +53,6 @@ class CollapsibleSection(QtWidgets.QWidget):
         self.toggle_button.setChecked(True)
         self.toggle_button.setCursor(QtCore.Qt.PointingHandCursor)
 
-        # Caminhos dos ícones de seta
         self.icon_down_path = assets_dir / "arrow_down.svg"
         self.icon_right_path = assets_dir / "arrow_right.svg"
 
@@ -74,7 +77,6 @@ class CollapsibleSection(QtWidgets.QWidget):
         if target_path.exists():
             self.toggle_button.setIcon(QtGui.QIcon(str(target_path)))
         else:
-            # Fallback nativo caso os arquivos SVG não sejam encontrados
             self.toggle_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TitleBarShadeButton))
 
     def _on_toggle(self, checked: bool) -> None:
@@ -102,7 +104,7 @@ if __name__ == "__main__":
     app.setStyle("Fusion")
 
     window = QtWidgets.QMainWindow()
-    window.setWindowTitle("Teste - CollapsibleSection com SVGs Customizados")
+    window.setWindowTitle("Teste - CollapsibleSection com SVGs")
     window.resize(300, 200)
 
     # Widget de conteúdo de exemplo

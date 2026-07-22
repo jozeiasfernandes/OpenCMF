@@ -31,7 +31,7 @@ class ObjectManager_SidePanel(BaseSidePanel):
     objetoSelecionado = QtCore.Signal(str)
     requestSave = QtCore.Signal()
 
-    def __init__(self, context: Any, title: str = "Gerenciador de Objetos", parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, context: Any, title: str = "", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(context=context, title=title, parent=parent)
 
         self.cats: Dict[str, QtWidgets.QTreeWidgetItem] = {}
@@ -278,7 +278,7 @@ if __name__ == "__main__":
 
     lista_widget = ObjectManager_SidePanel(
         context=app_context,
-        title="Gerenciador de Objetos",
+        title="",
         parent=None
     )
 

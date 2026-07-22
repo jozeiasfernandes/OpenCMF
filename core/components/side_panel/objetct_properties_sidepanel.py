@@ -15,16 +15,13 @@ logger = logging.getLogger(__name__)
 
 class ObjectProperties_SidePanel(BaseSidePanel):
     side_panel_name = "Propriedades do Objeto"
-    toolbox_name = "Propriedades"
 
-    def __init__(self, context: Any, title: str = "Propriedades", parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, context: Any, title: str = "", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(context=context, title=title, parent=parent)
 
         self.current_object_id = None
         self.current_object_name = ""
         self._is_loading_props = False
-
-        self.setup_ui()
 
     def setup_ui(self) -> None:
         """Configura a interface usando o layout herdado de BaseSidePanel."""
@@ -283,19 +280,16 @@ if __name__ == "__main__":
     win.setWindowTitle("OpenCMF — Properties Editor")
     win.resize(400, 860)
 
-    # 1. Configurar o contexto corretamente contendo as dependências esperadas pelo BaseComponent
     mock_context = MagicMock()
     mock_context.event_bus = MagicMock()
     mock_context.scene_manager = MagicMock()
     mock_context.tool_manager = MagicMock()
 
-    # 2. Instanciar painel passando o contexto adequado
     comp = ObjectProperties_SidePanel(
         context=mock_context,
-        title="Propriedades"
+        title=""
     )
 
-    # 3. Preparar estado interno para o dispatch funcionar
     fake_props = FakeProps()
     comp.object_properties = fake_props
     comp.patient_path = Path("./teste")
@@ -303,7 +297,6 @@ if __name__ == "__main__":
     comp.current_object_id = "123"
     comp.current_object_name = "Objeto Teste"
 
-    # 4. Carregar dados
     comp.load_from_props(fake_props)
 
     scroll = QtWidgets.QScrollArea()

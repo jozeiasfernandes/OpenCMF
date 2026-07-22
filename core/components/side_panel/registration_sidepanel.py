@@ -13,7 +13,7 @@ class Registration_SidePanel(BaseSidePanel):
     targetChanged = QtCore.Signal(str)
     sourceChanged = QtCore.Signal(str)
 
-    def __init__(self, context: Any, title: str = "Alinhar Objetos", parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, context: Any, title: str = "", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(context=context, title=title, parent=parent)
         self._is_initializing = False
 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     mock_ctx = MagicMock()
 
-    panel = Registration_SidePanel(context=mock_ctx, title="Alinhar Objetos")
+    panel = Registration_SidePanel(context=mock_ctx, title="")
 
     panel.resize(300, 400)
     panel.show()
