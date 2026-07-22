@@ -4,6 +4,8 @@ from typing import Optional, Any
 
 from PySide6 import QtWidgets, QtCore
 
+from core.localization.translator import tr
+
 from core.settings.settings_app_manager import settings
 
 from core.workspace.contracts import IModule
@@ -197,6 +199,23 @@ class WorkspaceManager(QtWidgets.QWidget):
         # 5. Reaplica a visibilidade correta com base nas configurações
         show_default = settings.side_panel_show_by_default
         self.side_manager.container.setVisible(show_default)
+
+    def abrir_configuracoes_side_panel(self):
+        """Abre o diálogo de configurações focado na aba de personalização do Side Panel."""
+        try:
+            from core.settings.tabs.workspace.tab_side_panel_settings import TabSidePanel
+
+            dialog = QtWidgets.QDialog(self)
+            dialog.setWindowTitle(tr("configs.side_panel", "Configurações do Side Panel"))
+            dialog.resize(500, 400)
+
+            layout = QtWidgets.QVBoxLayout(dialog)
+            tab_side = TabSidePanel(workspace_manager=self)
+            layout.addWidget(tab_side)
+
+            dialog.exec()
+        except Exception as e:
+            logger.error(f"Erro ao abrir configurações do side panel: {e}", exc_info=True)
 
     # ======================= Patient & Reset =======================
 

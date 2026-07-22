@@ -3,16 +3,19 @@ from PySide6 import QtWidgets, QtCore
 from typing import Dict, Optional
 from core.settings.settings_app_manager import settings
 from .collapsible_section import CollapsibleSection
+from .side_panel_header import SidePanelHeader
 
 
 class SidePanelContainer(QtWidgets.QWidget):
     """
     Container visual que alterna dinamicamente entre Abas Laterais (East)
-    e Toolbox (Painéis Empilhados customizados via CollapsibleSection) com base nas preferências do usuário.
+    e Toolbox (Painéis Empilhados customizados via CollapsibleSection) com base nas preferências do usuário,
+    incluindo um cabeçalho fixo com controles de colapso, título e configurações.
     """
 
-    def __init__(self, title: str = "Side Panel", parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, title: str = "Side Panel", workspace_manager=None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
+        self.workspace_manager = workspace_manager
 
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
@@ -29,16 +32,32 @@ class SidePanelContainer(QtWidgets.QWidget):
         # Identifica o modo salvo ("tabs" ou "toolbox")
         self.current_mode = settings.side_panel_mode
 
+        # Cria o cabeçalho fixo no topo
+        self._setup_header(title)
+
+        # Cria a área de conteúdo abaixo do cabeçalho
         self._setup_mode_widget()
+
+    def _setup_header(self, title: str):
+        """Configura o cabeçalho do painel lateral."""
+        self.header = SidePanelHeader(title, workspace_manager=self.workspace_manager, parent=self)
+        self.header.toggle_colapsado_alterado.connect(self._on_toggle_colapsado)
+        self.main_layout.addWidget(self.header)
 
     def _setup_mode_widget(self):
         """Configura o widget interno de acordo com o modo escolhido."""
+        # Container wrapper para o conteúdo que será ocultado/exibido ao colapsar o cabeçalho
+        self.content_container = QtWidgets.QWidget(self)
+        content_layout = QtWidgets.QVBoxLayout(self.content_container)
+        content_layout.setContentsMargins(0, 0, 0, 0)
+        content_layout.setSpacing(0)
+
         if self.current_mode == "tabs":
             # Modo Abas Laterais (QTabWidget com abas na vertical à direita - East)
             self.content_widget = QtWidgets.QTabWidget()
             self.content_widget.setTabPosition(QtWidgets.QTabWidget.East)
             self.content_widget.setDocumentMode(True)
-            self.main_layout.addWidget(self.content_widget)
+            content_layout.addWidget(self.content_widget)
         else:
             # Modo Toolbox customizado com rolagem para suportar os painéis empilhados colapsáveis
             self.scroll_area = QtWidgets.QScrollArea()
@@ -52,7 +71,13 @@ class SidePanelContainer(QtWidgets.QWidget):
             self.toolbox_layout.addStretch()  # Mantém os painéis empilhados no topo
 
             self.scroll_area.setWidget(self.toolbox_container)
-            self.main_layout.addWidget(self.scroll_area)
+            content_layout.addWidget(self.scroll_area)
+
+        self.main_layout.addWidget(self.content_container)
+
+    def _on_toggle_colapsado(self, colapsado: bool):
+        """Oculta ou exibe a área de conteúdo mantendo o cabeçalho visível."""
+        self.content_container.setVisible(not colapsado)
 
     def add_panel(self, panel_id: str, panel: QtWidgets.QWidget, title: str = "Panel"):
         """Adiciona um painel como aba ou como seção do toolbox com o CollapsibleSection."""

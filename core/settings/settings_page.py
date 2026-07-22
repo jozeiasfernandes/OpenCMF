@@ -1,12 +1,12 @@
 from PySide6 import QtWidgets, QtCore
 
-from core.settings.tabs.general.tab_language import TabLanguage
-from core.settings.tabs.general.tab_appearance import TabAppearance
-from core.settings.tabs.general.tab_keyboard import TabKeyboard
-from core.settings.tabs.viewer.tab_2d import Tab2DViewer
-from core.settings.tabs.viewer.tab_3d import Tab3DViewer
-from core.settings.tabs.workspace.tab_toolbar import TabToolbar
-from core.settings.tabs.workspace.tab_side_panel import TabSidePanel
+from core.settings.tabs.general.tab_language_settings import TabLanguage
+from core.settings.tabs.general.tab_appearance_settings import TabAppearance
+from core.settings.tabs.general.tab_keyboard_settings import TabKeyboard
+from core.settings.tabs.viewer.tab_2d_settings import Tab2DViewer
+from core.settings.tabs.viewer.tab_3d_settings import Tab3DViewer
+from core.settings.tabs.workspace.tab_toolbar_settings import TabToolbar
+from core.settings.tabs.workspace.tab_side_panel_settings import TabSidePanel
 from core import tr
 
 
