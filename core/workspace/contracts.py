@@ -4,8 +4,13 @@ from PySide6 import QtWidgets
 @runtime_checkable
 class IModule(Protocol):
 
-    id: str
-    nome: str
+    @property
+    def id(self) -> str:
+        ...
+
+    @property
+    def nome(self) -> str:
+        ...
 
     def get_main_widget(self) -> QtWidgets.QWidget:
         ...

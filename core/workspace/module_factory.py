@@ -33,7 +33,13 @@ class ModuleFactory:
         module_class = cls._modules[module_id]
 
         try:
-            instance = module_class(context=cls._context, **extra_args)
+            if cls._context is not None:
+                try:
+                    instance = module_class(context=cls._context, **extra_args)
+                except TypeError:
+                    instance = module_class(**extra_args)
+            else:
+                instance = module_class(**extra_args)
         except Exception as e:
             logger.error(f"Falha ao instanciar o módulo '{module_id}': {e}", exc_info=True)
             raise RuntimeError(f"Erro ao instanciar o módulo '{module_id}': {e}") from e

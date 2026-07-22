@@ -165,11 +165,11 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.header.clear_tabs()
         self.toolbar_manager.clear_all()
 
-        # Limpeza segura do side_manager considerando o container loader
+        # Limpeza segura do side_manager considerando o container loader (corrigido para clear_all)
         if hasattr(self.side_manager, 'clear_all'):
             self.side_manager.clear_all()
-        elif hasattr(self.side_manager.container, 'limpar'):
-            self.side_manager.container.limpar()
+        elif hasattr(self.side_manager.container, 'clear_all'):
+            self.side_manager.container.clear_all()
 
         self.central_manager.clear()
 

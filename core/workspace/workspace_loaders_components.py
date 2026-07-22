@@ -56,10 +56,13 @@ class WorkspaceComponentHandler:
 
             # 2. Side Panels / Toolboxes
             elif categoria in ("side_panel_container", "side_panel_manager_loaders"):
-                panel_name = getattr(comp, 'toolbox_name', caminho.stem.replace("_", " ").title())
+                panel_title = getattr(comp, 'toolbox_name', caminho.stem.replace("_", " ").title())
+                panel_id = panel_title.lower().replace(" ", "_")
+
                 side_container = getattr(self.workspace.side_manager, "container", self.workspace.side_manager)
                 if hasattr(side_container, "add_panel"):
-                    side_container.add_panel(panel_name, comp)
+                    # Passando na ordem correta exigida pelo SidePanelContainer atualizado: panel_id, panel, title
+                    side_container.add_panel(panel_id, comp, title=panel_title)
                 comp.setVisible(True)
 
             # 3. Central Area

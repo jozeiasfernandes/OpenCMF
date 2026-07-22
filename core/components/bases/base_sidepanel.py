@@ -11,7 +11,7 @@ class BaseSidePanel(QtWidgets.QWidget):
     """
     side_panel_name: str = "Painel Lateral Genérico"
 
-    def __init__(self, context: Any, title: str, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, context: Any, title: str = "", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
 
         self.title = title
@@ -23,11 +23,6 @@ class BaseSidePanel(QtWidgets.QWidget):
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(5, 5, 5, 5)
         self.layout.setSpacing(5)
-
-        # Cabeçalho visível no topo do painel
-        self.title_label = QtWidgets.QLabel(title)
-        self.title_label.setStyleSheet("font-weight: bold; padding: 2px;")
-        self.layout.addWidget(self.title_label)
 
         # Chamar setup_component automaticamente
         self.setup_component()

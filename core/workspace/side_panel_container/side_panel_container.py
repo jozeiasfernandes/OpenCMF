@@ -1,62 +1,83 @@
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from typing import Dict, Optional
+from core.settings.settings_app_manager import settings
 
 
 class SidePanelContainer(QtWidgets.QWidget):
     """
-    Representa o container visual que hospeda os componentes laterais.
+    Container visual que alterna dinamicamente entre Abas Laterais (East)
+    e Toolbox (Painéis Empilhados) com base nas preferências do usuário.
     """
 
-    def __init__(self, title: str = "Inspector", parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, title: str = "Side Panel", parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
 
-        # Layout principal para garantir que o ScrollArea preencha todo o espaço
         self.main_layout = QtWidgets.QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        # Widget interno que conterá os painéis
-        self._content_widget = QtWidgets.QWidget()
-        self._layout = QtWidgets.QVBoxLayout(self._content_widget)
-        self._layout.setContentsMargins(5, 5, 5, 5)
-        self._layout.setSpacing(5)
-        self._layout.setAlignment(QtCore.Qt.AlignTop)
-
-        # Scroll area para suportar muitos painéis
-        self._scroll = QtWidgets.QScrollArea()
-        self._scroll.setWidgetResizable(True)
-        self._scroll.setWidget(self._content_widget)
-        self._scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
-
-        # Adiciona o ScrollArea ao layout do container principal
-        self.main_layout.addWidget(self._scroll)
+        # Aplica a largura inicial configurada nas preferências
+        initial_width = settings.side_panel_width
+        self.setFixedWidth(initial_width)
 
         self.panels: Dict[str, QtWidgets.QWidget] = {}
+        self.panel_titles: Dict[str, str] = {}
 
-    def add_panel(self, panel_id: str, panel: QtWidgets.QWidget):
-        """Adiciona um painel ao container."""
+        # Identifica o modo salvo ("tabs" ou "toolbox")
+        self.current_mode = settings.side_panel_mode
+
+        self._setup_mode_widget()
+
+    def _setup_mode_widget(self):
+        """Configura o widget interno de acordo com o modo escolhido."""
+        if self.current_mode == "tabs":
+            # Modo Abas Laterais (QTabWidget com abas na vertical à direita - East)
+            self.content_widget = QtWidgets.QTabWidget()
+            self.content_widget.setTabPosition(QtWidgets.QTabWidget.East)
+            self.content_widget.setDocumentMode(True)
+        else:
+            # Modo Toolbox (Painéis empilhados / colapsáveis)
+            self.content_widget = QtWidgets.QToolBox()
+            self.content_widget.setFrameShape(QtWidgets.QFrame.NoFrame)
+
+        self.main_layout.addWidget(self.content_widget)
+
+    def add_panel(self, panel_id: str, panel: QtWidgets.QWidget, title: str = "Panel"):
+        """Adiciona um painel como aba ou como seção do toolbox."""
         if panel_id in self.panels:
             self.remove_panel(panel_id)
 
-        panel.setParent(None)
+        if title == "Panel":
+            title = getattr(panel, "side_panel_name", None) or panel_id.replace("_", " ").title()
 
-        panel.setParent(self._content_widget)
-        panel.setSizePolicy(
-            QtWidgets.QSizePolicy.Preferred,
-            QtWidgets.QSizePolicy.MinimumExpanding
-        )
-
-        self._layout.addWidget(panel)
         self.panels[panel_id] = panel
+        self.panel_titles[panel_id] = title
+
+        if self.current_mode == "tabs":
+            self.content_widget.addTab(panel, title)
+        else:
+            self.content_widget.addItem(panel, title)
+
         panel.setVisible(True)
 
     def remove_panel(self, panel_id: str):
+        """Remove o painel do container ativo."""
         if panel := self.panels.pop(panel_id, None):
+            self.panel_titles.pop(panel_id, None)
             if hasattr(panel, 'dispose') and callable(panel.dispose):
                 panel.dispose()
 
-            self._layout.removeWidget(panel)
+            # Remove do widget correspondente
+            if self.current_mode == "tabs":
+                idx = self.content_widget.indexOf(panel)
+                if idx != -1:
+                    self.content_widget.removeTab(idx)
+            else:
+                idx = self.content_widget.indexOf(panel)
+                if idx != -1:
+                    self.content_widget.removeItem(idx)
+
             panel.setParent(None)
             panel.deleteLater()
 
@@ -72,3 +93,21 @@ class SidePanelContainer(QtWidgets.QWidget):
         """Remove todos os painéis."""
         for panel_id in list(self.panels.keys()):
             self.remove_panel(panel_id)
+
+    def atualizar_largura(self, width: int):
+        """Atualiza a largura do painel lateral ajustando o QSplitter pai."""
+        self.setMaximumWidth(16777215)
+        self.setMinimumWidth(150)
+
+        splitter = self.parent()
+        while splitter and not isinstance(splitter, QtWidgets.QSplitter):
+            splitter = splitter.parent()
+
+        if splitter:
+            sizes = splitter.sizes()
+            total_width = sum(sizes)
+            if total_width > 0:
+                central_width = total_width - width
+                splitter.setSizes([central_width, width])
+        else:
+            self.setFixedWidth(width)

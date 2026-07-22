@@ -4,10 +4,11 @@ from core.settings.settings_app_manager import settings
 
 
 class TabSidePanel(QtWidgets.QWidget):
-    """Aba de configurações para o Side Panel."""
+    """Aba de configurações para o Side Panel com atualização em tempo real."""
 
-    def __init__(self):
+    def __init__(self, workspace_manager=None):
         super().__init__()
+        self.workspace_manager = workspace_manager
         self._setup_ui()
         self._carregar_valores()
         self._conectar_sinais()
@@ -40,9 +41,9 @@ class TabSidePanel(QtWidgets.QWidget):
         self.slider_width.setTickPosition(QtWidgets.QSlider.TicksBelow)
         self.slider_width.setTickInterval(50)
 
-        # Sincronização entre o Slider e o SpinBox
-        self.slider_width.valueChanged.connect(self.spin_width.setValue)
-        self.spin_width.valueChanged.connect(self.slider_width.setValue)
+        # Sincronização entre o Slider e o SpinBox com bloqueio para evitar loops de sinais
+        self.slider_width.valueChanged.connect(self._on_slider_value_changed)
+        self.spin_width.valueChanged.connect(self._on_spin_value_changed)
 
         width_layout.addWidget(self.lbl_width)
         width_layout.addWidget(self.slider_width)
@@ -64,25 +65,55 @@ class TabSidePanel(QtWidgets.QWidget):
         layout.addStretch()
 
     def _carregar_valores(self):
-        """Carrega os valores salvos no settings_manager para os widgets."""
+        """Carrega os valores salvos no settings_manager para os widgets sem disparar sinais acidentais."""
+        self.checkbox_visibilidade.blockSignals(True)
+        self.slider_width.blockSignals(True)
+        self.spin_width.blockSignals(True)
+        self.combo_mode.blockSignals(True)
+
         self.checkbox_visibilidade.setChecked(settings.side_panel_show_by_default)
-
-        # Define valor no slider (o que atualiza automaticamente o spinbox pela conexão)
         self.slider_width.setValue(settings.side_panel_width)
+        self.spin_width.setValue(settings.side_panel_width)
 
-        # Seleciona o item correspondente no combobox pelo dado armazenado
         index = self.combo_mode.findData(settings.side_panel_mode)
         if index >= 0:
             self.combo_mode.setCurrentIndex(index)
 
+        self.checkbox_visibilidade.blockSignals(False)
+        self.slider_width.blockSignals(False)
+        self.spin_width.blockSignals(False)
+        self.combo_mode.blockSignals(False)
+
     def _conectar_sinais(self):
-        """Conecta as alterações dos componentes diretamente às propriedades do settings."""
-        self.checkbox_visibilidade.toggled.connect(
-            lambda checked: setattr(settings, "side_panel_show_by_default", checked)
-        )
-        self.slider_width.valueChanged.connect(
-            lambda value: setattr(settings, "side_panel_width", value)
-        )
-        self.combo_mode.currentIndexChanged.connect(
-            lambda: setattr(settings, "side_panel_mode", self.combo_mode.currentData())
-        )
+        """Conecta as alterações salvando e atualizando o workspace em tempo real."""
+        self.checkbox_visibilidade.toggled.connect(self._atualizar_visibilidade)
+        self.combo_mode.currentIndexChanged.connect(self._atualizar_modo)
+
+    def _on_slider_value_changed(self, value: int):
+        self.spin_width.blockSignals(True)
+        self.spin_width.setValue(value)
+        self.spin_width.blockSignals(False)
+        self._atualizar_largura(value)
+
+    def _on_spin_value_changed(self, value: int):
+        self.slider_width.blockSignals(True)
+        self.slider_width.setValue(value)
+        self.slider_width.blockSignals(False)
+        self._atualizar_largura(value)
+
+    def _atualizar_visibilidade(self, checked: bool):
+        settings.side_panel_show_by_default = checked
+        if self.workspace_manager and hasattr(self.workspace_manager, "side_manager"):
+            self.workspace_manager.side_manager.container.setVisible(checked)
+
+    def _atualizar_largura(self, value: int):
+        settings.side_panel_width = value
+        if self.workspace_manager and hasattr(self.workspace_manager, "side_manager"):
+            self.workspace_manager.side_manager.atualizar_largura_painel(value)
+
+    def _atualizar_modo(self):
+        mode = self.combo_mode.currentData()
+        if mode is not None:
+            settings.side_panel_mode = mode
+            if self.workspace_manager and hasattr(self.workspace_manager, "reconstruir_side_panel"):
+                self.workspace_manager.reconstruir_side_panel()
