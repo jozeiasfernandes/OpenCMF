@@ -1,120 +1,175 @@
-from PySide6 import QtWidgets, QtCore, QtGui
-from pathlib import Path
+from PySide6 import QtWidgets, QtCore
+from typing import Optional, Any
+from modules.mod_patients.ui_components import criar_linha_arquivo
+from core.components.bases.base_sidepanel import BaseSidePanel
 
 
-class CollapsibleSection(QtWidgets.QWidget):
-    def __init__(self, title: str, content_widget: QtWidgets.QWidget, parent=None):
-        super().__init__(parent)
-        main_layout = QtWidgets.QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+class Segmentation_SidePanel(BaseSidePanel):
+    pathChanged = QtCore.Signal(str)
+    thresholdChanged = QtCore.Signal(int)
+    solicitarMascara = QtCore.Signal()
+    solicitarExportarSTL = QtCore.Signal()
 
-        # 1. Header Layout (Puxador + Título + Botão de Expandir/Recolher com ícone SVG)
-        header_layout = QtWidgets.QHBoxLayout()
-        header_layout.setContentsMargins(4, 2, 4, 2)
-        header_layout.setSpacing(6)
+    side_panel_name = "Segmentação de Volumes"
 
-        # Puxador (Grip) usando drag_indicator.svg
-        self.btn_grip = QtWidgets.QLabel()
-        self.btn_grip.setCursor(QtCore.Qt.SizeVerCursor)
-        self.btn_grip.setToolTip("Arraste para mover")
+    def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None, **kwargs):
+        super().__init__(context=context, title="", parent=parent)
 
-        assets_dir = Path(__file__).parent
-        drag_icon_path = assets_dir / "drag_indicator.svg"
-        if drag_icon_path.exists():
-            pixmap = QtGui.QPixmap(str(drag_icon_path))
-            # Ajusta um tamanho padrão caso necessário (ex: 16x16)
-            self.btn_grip.setPixmap(pixmap.scaled(16, 16, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-        else:
-            self.btn_grip.setText("⋮⋮")
-            self.btn_grip.setStyleSheet("color: #888; font-weight: bold; font-size: 11px;")
+    def setup_ui(self) -> None:
 
-        # Título da seção
-        self.lbl_title = QtWidgets.QLabel(title)
-        self.lbl_title.setStyleSheet("font-weight: bold;")
 
-        # Botão de Ocultar/Reexibir usando arrow_down.svg / arrow_right.svg
-        self.toggle_button = QtWidgets.QToolButton()
-        self.toggle_button.setStyleSheet("""
-            QToolButton {
-                border: none;
-                background-color: transparent;
+        self.layout.setSpacing(10)
+        self.layout.setContentsMargins(5, 5, 5, 5)
+
+        group_arq = QtWidgets.QGroupBox("Fonte de Dados")
+        lay_arq = QtWidgets.QVBoxLayout(group_arq)
+
+        self.edit_tomografia = QtWidgets.QLineEdit()
+        self.edit_tomografia.setPlaceholderText("Caminho da pasta DICOM...")
+
+        self.edit_tomografia.textChanged.connect(self.pathChanged.emit)
+
+        def abrir_seletor():
+            p = QtWidgets.QFileDialog.getExistingDirectory(self, "Selecionar Pasta DICOM")
+            if p:
+                self.edit_tomografia.setText(p)
+
+        lay_arq.addWidget(criar_linha_arquivo(self.edit_tomografia, abrir_seletor, True))
+        self.layout.addWidget(group_arq)
+
+        # GroupBox: Configurações
+        group_config = QtWidgets.QGroupBox("Configurações da malha")
+        grid_layout = QtWidgets.QGridLayout(group_config)
+        grid_layout.setSpacing(10)
+
+        lbl_densidade = QtWidgets.QLabel("Filtro de Densidade:")
+        self.slider_hu = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        self.slider_hu.setRange(-1000, 3000)
+        self.slider_hu.setValue(226)
+        self.slider_hu.valueChanged.connect(self._on_slider_moved)
+
+        self.lbl_hu_value = QtWidgets.QLabel("226 HU")
+        self.lbl_hu_value.setStyleSheet("font-weight: bold;")
+        self.lbl_hu_value.setFixedWidth(60)
+
+        grid_layout.addWidget(lbl_densidade, 0, 0)
+        grid_layout.addWidget(self.slider_hu, 0, 1)
+        grid_layout.addWidget(self.lbl_hu_value, 0, 2)
+
+        lbl_resolucao = QtWidgets.QLabel("Resolução:")
+        self.combo_qualidade = QtWidgets.QComboBox()
+        self.combo_qualidade.addItems(["Alta", "Média", "Baixa"])
+        self.combo_qualidade.setCurrentIndex(1)
+
+        grid_layout.addWidget(lbl_resolucao, 1, 0)
+        grid_layout.addWidget(self.combo_qualidade, 1, 1, 1, 2)
+
+        self.layout.addWidget(group_config)
+
+        # Botão Gerar Máscara
+        self.btn_preview = QtWidgets.QPushButton(" Gerar Máscara")
+        self.btn_preview.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogApplyButton))
+        self.btn_preview.setMinimumHeight(35)
+        self.btn_preview.clicked.connect(self.solicitarMascara.emit)
+        self.layout.addWidget(self.btn_preview)
+
+        # Espaçador
+        self.layout.addStretch()
+
+        # Botão Exportar STL
+        self.btn_stl = QtWidgets.QPushButton(" Exportar STL")
+        self.btn_stl.setMinimumHeight(45)
+        self.btn_stl.setStyleSheet("""
+            QPushButton {
+                background-color: #2d5a27; 
+                color: white; 
+                font-weight: bold; 
+                font-size: 13px;
+                border-radius: 4px;
             }
-            QToolButton:hover {
-                background-color: rgba(255, 255, 255, 20);
-                border-radius: 3px;
+            QPushButton:hover {
+                background-color: #3a7532;
+            }
+            QPushButton:pressed {
+                background-color: #1e3d1a;
             }
         """)
-        self.toggle_button.setCheckable(True)
-        self.toggle_button.setChecked(True)
-        self.toggle_button.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_stl.clicked.connect(self.solicitarExportarSTL.emit)
+        self.layout.addWidget(self.btn_stl)
 
-        # Caminhos dos ícones de seta
-        self.icon_down_path = assets_dir / "arrow_down.svg"
-        self.icon_right_path = assets_dir / "arrow_right.svg"
+    def clear_layout(self):
+        while self.layout.count():
+            item = self.layout.takeAt(0)
+            widget = item.widget()
 
-        self._update_toggle_icon(True)
+            if widget:
+                widget.deleteLater()
+            else:
+                self._clear_layout_recursive(item.layout())
 
-        header_layout.addWidget(self.btn_grip)
-        header_layout.addWidget(self.lbl_title, stretch=1)
-        header_layout.addWidget(self.toggle_button)
+    def clear_layout_recursive(self, layout):
+        """Remove recursivamente widgets de sub-layouts."""
+        while layout.count():
+            item = layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+            elif item.layout():
+                self.clear_layout_recursive(item.layout())
 
-        # 2. Área de Conteúdo
-        self.content_area = content_widget
+    def _on_slider_moved(self, val):
+        self.lbl_hu_value.setText(f"{val} HU")
+        self.thresholdChanged.emit(val)
 
-        main_layout.addLayout(header_layout)
-        main_layout.addWidget(self.content_area)
+    def set_path(self, caminho: str):
+        self.edit_tomografia.blockSignals(True)
+        self.edit_tomografia.setText(caminho)
+        self.edit_tomografia.blockSignals(False)
 
-        # Conexão de comportamento para recolher/expandir
-        self.toggle_button.toggled.connect(self._on_toggle)
+    def get_value(self) -> int:
+        return self.slider_hu.value()
 
-    def _update_toggle_icon(self, checked: bool) -> None:
-        """Atualiza o ícone do botão com base no estado expandido/recolhido."""
-        target_path = self.icon_down_path if checked else self.icon_right_path
-        if target_path.exists():
-            self.toggle_button.setIcon(QtGui.QIcon(str(target_path)))
-        else:
-            # Fallback nativo caso os arquivos SVG não sejam encontrados
-            self.toggle_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TitleBarShadeButton))
+    def get_qualidade_index(self) -> int:
+        return self.combo_qualidade.currentIndex()
 
-    def _on_toggle(self, checked: bool) -> None:
-        """Alterna o ícone de seta e a visibilidade do conteúdo interno."""
-        self.content_area.setVisible(checked)
-        self._update_toggle_icon(checked)
 
-    def set_title(self, title: str) -> None:
-        """Atualiza o texto do título da seção."""
-        self.lbl_title.setText(title)
-
-    def is_expanded(self) -> bool:
-        """Retorna se a seção está expandida ou recolhida."""
-        return self.toggle_button.isChecked()
-
-    def set_expanded(self, expanded: bool) -> None:
-        """Define programaticamente o estado expandido ou recolhido."""
-        self.toggle_button.setChecked(expanded)
-
+Component = Segmentation_SidePanel
 
 if __name__ == "__main__":
     import sys
+    from unittest.mock import MagicMock
+    from core.components.bases.base_toolbar import AppContext
+    from core.components.bases.base_tool.tool_manager import ToolManager
+    from core.scene.events.event_bus import EventBus
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
+    # Criação do contexto completo satisfazendo os contratos da arquitetura base
+    context = AppContext(
+        scene_manager=MagicMock(),
+        tool_manager=ToolManager(),
+        event_bus=EventBus()
+    )
+
+    # Criar janela principal
     window = QtWidgets.QMainWindow()
-    window.setWindowTitle("Teste - CollapsibleSection com SVGs Customizados")
-    window.resize(300, 200)
+    window.setWindowTitle("OpenCMF - Teste Segmentation Toolbox")
+    window.resize(400, 500)
 
-    # Widget de conteúdo de exemplo
-    content = QtWidgets.QWidget()
-    lay = QtWidgets.QVBoxLayout(content)
-    lay.addWidget(QtWidgets.QPushButton("Botão Interno 1"))
-    lay.addWidget(QtWidgets.QPushButton("Botão Interno 2"))
+    widget = Segmentation_SidePanel(context)
 
-    # Instancia a seção retrátil
-    section = CollapsibleSection("Widget 1", content)
+    scroll = QtWidgets.QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setWidget(widget)
 
-    window.setCentralWidget(section)
+    # Definir o scroll como widget central
+    window.setCentralWidget(scroll)
+
+    # Conexões de Sinais
+    widget.pathChanged.connect(lambda path: print(f"Caminho alterado: {path}"))
+    widget.thresholdChanged.connect(lambda val: print(f"Threshold alterado: {val}"))
+    widget.solicitarMascara.connect(lambda: print("Solicitando geração de máscara"))
+    widget.solicitarExportarSTL.connect(lambda: print("Solicitando exportação STL"))
+
     window.show()
-
     sys.exit(app.exec())

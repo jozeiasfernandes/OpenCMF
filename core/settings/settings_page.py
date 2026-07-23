@@ -1,4 +1,5 @@
 from PySide6 import QtWidgets, QtCore
+from typing import Optional
 
 from core.settings.tabs.general.tab_language_settings import TabLanguage
 from core.settings.tabs.general.tab_appearance_settings import TabAppearance
@@ -14,8 +15,9 @@ class PaginaConfig(QtWidgets.QWidget):
     voltar_solicitado = QtCore.Signal()
     tema_alterado = QtCore.Signal(str)
 
-    def __init__(self, parent: QtWidgets.QWidget = None):
+    def __init__(self, workspace_manager: Optional[QtWidgets.QWidget] = None, parent: QtWidgets.QWidget = None):
         super().__init__(parent)
+        self.workspace_manager = workspace_manager
         self._setup_ui()
         self._conectar_sinais_internos()
 

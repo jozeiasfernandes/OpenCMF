@@ -1,13 +1,21 @@
-import sys
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore, QtGui
+import sys
 
-from core import settings, IconManager, tr
-from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
-from core.home_page.managers.flow_service_home_page import FlowServiceHomePage
+from PySide6 import QtCore, QtGui, QtWidgets
+
+from core.icons.icons_manager import IconManager
+from core.settings.settings_app_manager import settings
+from core.localization.translator import tr
 from core.home_page.extras.tela_creditos import Janela_Creditos
 from core.home_page.flow.fluxo_card import FluxoCard
-from core.home_page.managers.project_list_formatter import format_and_add_to_list, create_project_card
+from core.home_page.flow.flow_editor import PaginaEditorFluxo
+from core.home_page.managers.project_list_formatter import (
+    create_project_card,
+    format_and_add_to_list,
+)
+from core.home_page.managers.flow_service_home_page import FlowServiceHomePage
+from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+
 
 def get_project_root():
     if getattr(sys, 'frozen', False):
@@ -135,6 +143,7 @@ class Home_page(QtWidgets.QWidget):
         self.projects_view.setMinimumHeight(150)
         self.projects_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.projects_view.customContextMenuRequested.connect(self._show_context_menu)
+        self.projects_view.itemDoubleClicked.connect(self._open_selected_project_item)
         self.view_container.addWidget(self.projects_view)
 
         self.grid_scroll = QtWidgets.QScrollArea()
@@ -167,7 +176,6 @@ class Home_page(QtWidgets.QWidget):
             if widget:
                 widget.deleteLater()
 
-        # 3. Preenche com novos dados
         projects = self.project_service.list_recent_projects()
         for idx, data in enumerate(projects):
             path = data.get("_path")
@@ -212,11 +220,9 @@ class Home_page(QtWidgets.QWidget):
         manager = IconManager.get_instance()
         cor_default = manager.get_color(theme, "status", "default")
 
-        # Ícones do cabeçalho
         self.btn_logo.setIcon(manager.get_icon("cmf", color=cor_default, size=40))
         self.btn_settings.setIcon(manager.get_icon("config", color=cor_default, size=24))
 
-        # Ícones da seção de projetos
         icon_view = "menu" if self.is_grid_view else "grid"
         self.btn_toggle_view.setIcon(manager.get_icon(icon_view, color=cor_default, size=24))
         self.btn_search.setIcon(manager.get_icon("search", color=cor_default, size=24))
@@ -231,7 +237,6 @@ class Home_page(QtWidgets.QWidget):
     def update_list(self):
         self.refresh_projects()
         self.refresh_flows()
-
 
     def refresh_flows(self):
         while self.cards_layout.count():
@@ -256,7 +261,7 @@ class Home_page(QtWidgets.QWidget):
                 nome_paciente = widget.data.get("paciente", {}).get("nome", "").lower()
                 item.setHidden(text not in nome_paciente)
             else:
-                 item.setHidden(text not in item.text().lower())
+                item.setHidden(text not in item.text().lower())
 
     def _toggle_search(self):
         is_visible = self.search_input.isVisible()
@@ -273,6 +278,9 @@ class Home_page(QtWidgets.QWidget):
             menu.addAction(tr("common.delete_project"), lambda: self._on_delete_project_requested(item))
             menu.exec(self.projects_view.mapToGlobal(position))
 
+    def _open_selected_project_item(self, item):
+        self._open_selected_project(item)
+
     def _open_selected_project(self, item):
         if path := item.data(QtCore.Qt.UserRole):
             self.projeto_selecionado.emit(path, "open")
@@ -285,11 +293,15 @@ class Home_page(QtWidgets.QWidget):
 
     def _on_delete_project_requested(self, item):
         path = item.data(QtCore.Qt.UserRole)
-        if not path: return
+        if not path:
+            return
 
         confirm = QtWidgets.QMessageBox.question(
-            self, tr("home.confirm_deletion_title"), tr("home.confirm_deletion_message"),
-            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No
+            self,
+            tr("home.confirm_deletion_title"),
+            tr("home.confirm_deletion_message"),
+            QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+            QtWidgets.QMessageBox.No,
         )
 
         if confirm == QtWidgets.QMessageBox.Yes:

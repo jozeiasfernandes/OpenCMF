@@ -1,39 +1,31 @@
-import sys
+import ctypes
 import json
 import logging
-import ctypes
-from typing import Any
+import sys
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
+from PySide6 import QtCore, QtWidgets
 import vtk
-from PySide6 import QtWidgets, QtCore
-
-from modules.base_module.base_module import FluxoBase
-from core.localization.translator import tr
-
-from core.settings.settings_app_manager import settings
-from core.home_page.home_page import Home_page
-from core.home_page.flow.flow_editor import PaginaEditorFluxo
-from core.settings.settings_page import PaginaConfig
-from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
-
-from core.icons.icons_manager import IconManager
 
 from core.components.bases.base_tool.tool_manager import ToolManager
-
-from models.module_factory import ModuleFactory
-from core.workspace.workspace_manager import WorkspaceManager
-
-from core.scene.scene_manager import SceneManager
+from core.home_page.flow.flow_editor import PaginaEditorFluxo
+from core.home_page.home_page import Home_page
+from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+from core.icons.icons_manager import IconManager
+from core.localization.translator import tr
 from core.scene.events.event_bus import EventBus
-from core.scene.scene_state import SceneState
+from core.scene.io.importer import ObjectImporter
 from core.scene.registry.actor_registry import ActorRegistry
 from core.scene.registry.object_registry import ObjectRegistry
+from core.scene.scene_manager import SceneManager
+from core.scene.scene_state import SceneState
 from core.scene.selection.selection_manager import SelectionManager
-from core.scene.io.importer import ObjectImporter
-
-
+from core.settings.settings_app_manager import settings
+from core.settings.settings_page import PaginaConfig
+from core.workspace.models.module_factory import ModuleFactory
+from core.workspace.workspace_manager import WorkspaceManager
+from modules.base_module.base_module import FluxoBase
 
 logging.basicConfig(
     level=logging.DEBUG,
@@ -54,18 +46,20 @@ class ApplicationContext:
     """Contexto injetado nas fábricas e módulos."""
 
     def __init__(
-        self,
-        scene_manager: SceneManager,
-        project_service: ProjectServiceHomePage,
-        event_bus: EventBus,
-        object_registry: ObjectRegistry,
-        tool_manager: Any,
+            self,
+            scene_manager: SceneManager,
+            project_service: ProjectServiceHomePage,
+            event_bus: EventBus,
+            object_registry: ObjectRegistry,
+            tool_manager: Any,
+            workspace_manager: Optional[WorkspaceManager] = None,
     ):
         self.scene_manager = scene_manager
         self.project_service = project_service
         self.event_bus = event_bus
         self.object_registry = object_registry
         self.tool_manager = tool_manager
+        self.workspace_manager = workspace_manager
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -80,9 +74,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_patient_path: Optional[str] = None
         self.workflow: Optional[FluxoBase] = None
 
-        self._setup_scene_components()
+        # 1. Configura o contexto e o caminho dos ícones PRIMEIRO
         self._setup_context()
+
+        # 2. Depois inicializa os componentes de cena e widgets da UI
+        self._setup_scene_components()
         self._setup_core_widgets()
+
         self._setup_signals()
         self._setup_appearance()
 
@@ -110,6 +108,19 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.tool_manager = ToolManager()
 
+    def _setup_core_widgets(self):
+        """Configura os widgets principais e o QStackedWidget."""
+        self.stack = QtWidgets.QStackedWidget()
+        self.setCentralWidget(self.stack)
+
+        self.home = Home_page()
+        self.flow_editor = PaginaEditorFluxo()
+        self.workspace = WorkspaceManager(context=self.context)
+        self.settings_page = PaginaConfig(workspace_manager=self.workspace)
+
+        for widget in [self.home, self.flow_editor, self.workspace, self.settings_page]:
+            self.stack.addWidget(widget)
+
     def _setup_context(self):
         """Configura o contexto da aplicação e o ModuleFactory."""
         IconManager.set_base_path(self.base_dir / "appearance" / "icons")
@@ -118,28 +129,16 @@ class MainWindow(QtWidgets.QMainWindow):
             self.base_dir / "patients"
         )
 
-        context = ApplicationContext(
-            scene_manager=self.scene_manager,
+        self.context = ApplicationContext(
+            scene_manager=getattr(self, 'scene_manager', None),
             project_service=self.project_service,
-            event_bus=self.event_bus,
-            object_registry=self.object_registry,
-            tool_manager=self.tool_manager,
+            event_bus=getattr(self, 'event_bus', None),
+            object_registry=getattr(self, 'object_registry', None),
+            tool_manager=getattr(self, 'tool_manager', None),
+            workspace_manager=getattr(self, 'workspace', None),
         )
 
-        ModuleFactory.set_context(context)
-
-    def _setup_core_widgets(self):
-        """Configura os widgets principais e o QStackedWidget."""
-        self.stack = QtWidgets.QStackedWidget()
-        self.setCentralWidget(self.stack)
-
-        self.home = Home_page()
-        self.flow_editor = PaginaEditorFluxo()
-        self.workspace = WorkspaceManager()
-        self.settings_page = PaginaConfig()
-
-        for widget in [self.home, self.flow_editor, self.workspace, self.settings_page]:
-            self.stack.addWidget(widget)
+        ModuleFactory.set_context(self.context)
 
     def _setup_signals(self):
         """Conecta todos os sinais da aplicação."""
@@ -159,9 +158,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Workspace Header
         self.workspace.header.home_requested.connect(self.back_to_home)
-        # Delega a mudança de módulo diretamente para o WorkspaceManager fazer a distribuição visual
         self.workspace.header.module_changed.connect(self.workspace.on_module_changed)
-
 
     def _abrir_ajuda(self):
         """Método auxiliar para abrir a ajuda como janela modal."""
@@ -237,7 +234,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if hasattr(self, 'importer'):
             self.importer.patient_path = Path(self.current_patient_path)
 
-        # Carrega fluxo padrão automaticamente
         default_flow = self.base_dir / "flows" / "default_flow.json"
         if default_flow.exists():
             self.start_workflow(str(default_flow))
@@ -275,16 +271,12 @@ class MainWindow(QtWidgets.QMainWindow):
                     logger.warning(f"Módulo '{module_id}' não encontrado.")
                     continue
 
-                # 1. Registra na Factory
                 ModuleFactory.register(module_id, module_class)
 
-                # 2. Utiliza o método nativo do WorkspaceRegistry para gerenciar a instância via Factory
-                # (Isso substitui o acesso direto a _modules e garante o cache correto)
                 module = self.workspace.registry.get_or_create_module(module_id)
                 if not module:
                     continue
 
-                # 3. Pega o atributo 'nome' do módulo para exibir na aba (com fallback para o ID)
                 title = getattr(module, 'nome', module_id)
                 self.workspace.header.add_module_tab(module_id, title)
 

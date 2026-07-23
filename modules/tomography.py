@@ -8,10 +8,11 @@ from pathlib import Path
 from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
 
+from core.components.toolbars.tomography_toolbar import TomographyToolbar
+
 from core.volume.dicom_engine import DicomEngine
 from core.volume.viewer import VolumeViewerWidget
 from core.volume.validator import DicomValidator
-from core.components.toolbars.tomography_toolbar import TomographyToolbar
 
 from core.scene.events.event_bus import EventBus
 from core.scene.registry.actor_registry import ActorRegistry

@@ -1,19 +1,24 @@
-from PySide6 import QtWidgets, QtCore
 import logging
+from typing import Any, Optional
+from PySide6 import QtCore, QtWidgets
 
+from core.workspace.containers.central_area_container.central_area_manager import CentralAreaManager
 from core.workspace.containers.header_container.header_panel import HeaderPanel
+from core.workspace.containers.header_container.workspace_modules import WorkspaceModulesMixin
+from core.workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
+from core.workspace.containers.status_bar.status_bar import StatusBarManager
 from core.workspace.containers.toolbar_container.toolbar_container import ToolbarContainer
 from core.workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
-from core.workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
-from core.workspace.containers.central_area_container.central_area_manager import CentralAreaManager
-from core.workspace.containers.status_bar.status_bar import StatusBarManager
-from core.workspace.patient.state import WorkspaceState
+
 from core.workspace.models.registry import WorkspaceRegistry
-from core.workspace.services.workspace_loaders_components import WorkspaceComponentHandler
-from core.workspace.containers.header_container.workspace_modules import WorkspaceModulesMixin
+
+from core.workspace.patient.state import WorkspaceState
 from core.workspace.patient.workspace_patient import WorkspacePatientMixin
 
+from core.workspace.services.workspace_loaders_components import WorkspaceComponentHandler
+
 logger = logging.getLogger("OpenCMF.Workspace")
+
 
 class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatientMixin):
     """Gerencia o layout principal do workspace e a integração entre componentes."""
@@ -21,9 +26,10 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
     MIN_CENTRAL_WIDTH = 200
     DEFAULT_STRETCH_FACTORS = [4, 1]
 
-    def __init__(self, parent=None):
+    def __init__(self, context: Optional[Any] = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
 
+        self.context = context
         self.state = WorkspaceState()
         self.registry = WorkspaceRegistry()
 

@@ -1,6 +1,7 @@
 import json
 import logging
 from pathlib import Path
+
 from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtSvg import QSvgRenderer
