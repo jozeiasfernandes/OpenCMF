@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 from PySide6 import QtWidgets, QtCore
-from models.contracts import IModule
+
+from core.workspace.models.contracts import IModule
 
 if TYPE_CHECKING:
     from core. workspace.containers.toolbar_container.toolbar_manager import ToolbarManager

@@ -1,7 +1,7 @@
 from pathlib import Path
 from PySide6 import QtWidgets
-from containers.side_panel_container.side_panel_container import SidePanelContainer
-from containers.side_panel_container.floating_panel_mode.floating_container import FloatingContainer
+from core.workspace.containers.side_panel_container.side_panel_container import SidePanelContainer
+from core.workspace.containers.side_panel_container.floating_panel_mode.floating_container import FloatingContainer
 from core.settings.settings_app_manager import settings
 
 

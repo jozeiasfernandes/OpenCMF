@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6 import QtWidgets, QtCore, QtGui
-from containers.header_container.btn_home import HomeButton
+from core.workspace.containers.header_container.btn_home import HomeButton
 from core.loaders.components_list import Components_List
 from core.settings.help.help_page import HelpPage
 from core.settings.settings_page import PaginaConfig

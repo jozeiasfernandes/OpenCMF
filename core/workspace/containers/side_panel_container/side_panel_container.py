@@ -1,8 +1,10 @@
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from typing import Dict, Optional
+
 from core.settings.settings_app_manager import settings
-from .collapsible_section import CollapsibleSection
+
+from core.workspace.containers.side_panel_container.collapsible_section import CollapsibleSection
 from .side_panel_header import SidePanelHeader
 
 
