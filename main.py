@@ -22,7 +22,7 @@ from core.icons.icons_manager import IconManager
 
 from core.components.bases.base_tool.tool_manager import ToolManager
 
-from core.workspace.module_factory import ModuleFactory
+from models.module_factory import ModuleFactory
 from core.workspace.workspace_manager import WorkspaceManager
 
 from core.scene.scene_manager import SceneManager
@@ -165,7 +165,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _abrir_ajuda(self):
         """Método auxiliar para abrir a ajuda como janela modal."""
-        from core.workspace.help.help_page import HelpPage
+        from core.settings.help.help_page import HelpPage
         help_win = HelpPage(parent=self)
         help_win.exec()
 

@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, Type, Optional, Any
-from .contracts import IModule
+from models.contracts import IModule
 
 logger = logging.getLogger(__name__)
 

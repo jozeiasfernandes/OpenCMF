@@ -1,11 +1,11 @@
 from typing import TYPE_CHECKING
 from PySide6 import QtWidgets, QtCore
-from .contracts import IModule
+from models.contracts import IModule
 
 if TYPE_CHECKING:
-    from .toolbar_container.toolbar_manager import ToolbarManager
-    from .side_panel_container.side_panel_manager import SidePanelManager
-    from .central_area_container.central_area_manager import CentralAreaManager
+    from containers.toolbar_container.toolbar_manager import ToolbarManager
+    from containers.side_panel_container.side_panel_manager import SidePanelManager
+    from containers.central_area_container import CentralAreaManager
 
 
 class ModuleDistributor:

@@ -4,7 +4,6 @@ from PySide6 import QtWidgets
 
 from modules.base_module.base_module import ModuloBase
 from core.scene.events.scene_events import SceneEvents
-from core.scene.events.event_bus import EventBus
 from core.scene.utils.factory import SceneObjectFactory
 from core.volume.segmentation_engine import SegmentacaoEngine
 from core.components.side_panel.segmentation_sidepanel import Segmentation_SidePanel
@@ -111,8 +110,8 @@ if __name__ == "__main__":
     from core.components.bases.base_tool.tool_manager import ToolManager
     from core.scene.events.event_bus import EventBus
     from core.workspace.workspace_manager import WorkspaceManager
-    from core.workspace.module_factory import ModuleFactory
-    from core.workspace.layout import ModuleDistributor
+    from models.module_factory import ModuleFactory
+    from services.layout import ModuleDistributor
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")

@@ -140,8 +140,8 @@ class SidePanelContainer(QtWidgets.QWidget):
         if self.current_mode == "floating":
             return
 
-        self.setMaximumWidth(16777215)
-        self.setMinimumWidth(150)
+        self.setMaximumWidth(self.MAX_WIDTH)
+        self.setMinimumWidth(self.MIN_WIDTH)
 
         # Encontra o QSplitter pai para redimensionamento suave
         splitter = self.parent()

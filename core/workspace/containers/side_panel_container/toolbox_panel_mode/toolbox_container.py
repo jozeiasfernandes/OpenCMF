@@ -1,7 +1,6 @@
-from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea
 
-from core.workspace.side_panel_container.collapsible_section import CollapsibleSection
+from containers.side_panel_container.collapsible_section import CollapsibleSection
 
 class ToolboxContainer(QWidget):
     """Container em formato de Toolbox com seções retráteis para o workspace."""

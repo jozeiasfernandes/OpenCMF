@@ -1,6 +1,5 @@
 from typing import Dict, Any, Optional
-from PySide6 import QtWidgets, QtCore
-from core.workspace.contracts import IModule
+from PySide6 import QtWidgets
 
 
 class ModuloTemplate:

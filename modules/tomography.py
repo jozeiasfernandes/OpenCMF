@@ -11,9 +11,7 @@ from PySide6 import QtWidgets, QtCore
 from core.volume.dicom_engine import DicomEngine
 from core.volume.viewer import VolumeViewerWidget
 from core.volume.validator import DicomValidator
-from core.components.bases.base_toolbar import BaseToolbar, AppContext
 from core.components.toolbars.tomography_toolbar import TomographyToolbar
-from core.workspace.contracts import IModule
 
 from core.scene.events.event_bus import EventBus
 from core.scene.registry.actor_registry import ActorRegistry

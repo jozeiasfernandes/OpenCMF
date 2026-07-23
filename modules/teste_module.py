@@ -1,13 +1,11 @@
-import sys
 import logging
 from typing import Any, Dict, Optional
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets
 
 from core.workspace.workspace_manager import WorkspaceManager
-from core.workspace.module_factory import ModuleFactory
-from core.workspace.layout import ModuleDistributor
+from models.module_factory import ModuleFactory
+from services.layout import ModuleDistributor
 from modules.base_module.base_module import ModuloBase
-from core.workspace.contracts import IModule
 
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 

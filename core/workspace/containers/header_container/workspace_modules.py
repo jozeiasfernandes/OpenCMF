@@ -1,7 +1,7 @@
 import logging
 from typing import Optional
-from core.workspace.contracts import IModule
-from core.workspace.layout import ModuleDistributor
+from models.contracts import IModule
+from services.layout import ModuleDistributor
 
 logger = logging.getLogger("OpenCMF.Workspace.Modules")
 

@@ -1,7 +1,7 @@
 from PySide6.QtCore import Qt, QPoint, Signal
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget
 
-from core.workspace.side_panel_container.collapsible_section import CollapsibleSection
+from containers.side_panel_container.collapsible_section import CollapsibleSection
 from core.settings.settings_app_manager import settings
 from core.icons.icons_manager import IconManager
 

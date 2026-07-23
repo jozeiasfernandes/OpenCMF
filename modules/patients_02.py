@@ -2,7 +2,6 @@ import sys
 from typing import Dict, Any, Optional, Tuple, List
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
-from core.workspace.contracts import IModule
 
 from modules.mod_patients_02.tabs.personal_data_tab import PersonalDataTab
 from modules.mod_patients_02.tabs.file_list_tab import FileListTab
@@ -184,7 +183,7 @@ if __name__ == "__main__":
     window = WorkspaceManager()
 
     # Registra e instancia corretamente através da Factory ou simulando a inserção via WorkspaceRegistry
-    from core.workspace.module_factory import ModuleFactory
+    from models.module_factory import ModuleFactory
 
     ModuleFactory.register("modulo.paciente", Modulo)
 
