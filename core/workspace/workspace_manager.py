@@ -16,6 +16,7 @@ from core.workspace.patient.state import WorkspaceState
 from core.workspace.patient.workspace_patient import WorkspacePatientMixin
 
 from core.workspace.services.workspace_loaders_components import WorkspaceComponentHandler
+from core.workspace.services.workspace_debug_inspector import WorkspaceDebugInspector
 
 logger = logging.getLogger("OpenCMF.Workspace")
 
@@ -35,6 +36,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
 
         self.current_patient_path = ""
         self.component_handler = WorkspaceComponentHandler(self)
+        self.debug_inspector = WorkspaceDebugInspector(self)
 
         self._setup_layout()
         self._setup_components()
@@ -86,6 +88,11 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         logger.info("Solicitação para abrir o seletor de componentes.")
         self.component_handler.abrir_seletor()
 
+    def log_debug_state(self, level: int = logging.INFO):
+        """Dispara a inspeção e registro do estado atual através do WorkspaceDebugInspector."""
+        if hasattr(self, "debug_inspector") and self.debug_inspector:
+            self.debug_inspector.log_full_state(level=level)
+
     def reset_workspace(self):
         logger.info("Iniciando o reset completo do workspace.")
         self.registry.clear_all()
@@ -108,5 +115,7 @@ if __name__ == "__main__":
     workspace.resize(1280, 720)
 
     workspace.show()
+
+    QtCore.QTimer.singleShot(500, workspace.log_debug_state)
 
     sys.exit(app.exec())
