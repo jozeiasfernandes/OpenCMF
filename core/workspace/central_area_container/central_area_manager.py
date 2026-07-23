@@ -14,10 +14,14 @@ class CentralAreaManager:
         self.container.add_view(widget)
 
     def clear(self):
-        """Limpa todos os widgets da área central."""
+        """Limpa todos os widgets da área central de forma imediata e segura."""
         while self.container.count() > 0:
             widget = self.container.widget(0)
-            self.container.remove_view(widget)
+            if widget:
+                self.container.remove_view(widget)
+                # Garante remoção síncrona/imediata se necessário
+                widget.setParent(None)
+                widget.deleteLater()
 
     def get_container(self) -> CentralAreaContainer:
         return self.container
