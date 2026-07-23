@@ -1,4 +1,4 @@
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets
 
 class CentralAreaContainer(QtWidgets.QStackedWidget):
     """
@@ -15,5 +15,8 @@ class CentralAreaContainer(QtWidgets.QStackedWidget):
         self.setCurrentWidget(widget)
 
     def remove_view(self, widget: QtWidgets.QWidget):
-        self.removeWidget(widget)
-        widget.deleteLater()
+        """Remove a vista do stack e assegura a destruição do widget anterior para evitar sobreposições."""
+        if widget:
+            self.removeWidget(widget)
+            widget.setParent(None)
+            widget.deleteLater()

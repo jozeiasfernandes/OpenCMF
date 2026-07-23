@@ -162,7 +162,8 @@ class WorkspaceManager(QtWidgets.QWidget):
         self.component_handler.abrir_seletor()
 
     def reconstruir_side_panel(self):
-        """Reconstrói o container do painel lateral em tempo real ao alterar o modo (tabs/toolbox/floating)."""
+        """Reconstrói o container do painel lateral em tempo real ao alterar o modo (tabs/toolbox/floating)
+           e força a atualização visual da workspace."""
         if not hasattr(self, "splitter") or not hasattr(self, "side_manager"):
             return
 
@@ -180,11 +181,13 @@ class WorkspaceManager(QtWidgets.QWidget):
             self.side_manager.floating_window.hide()
             self.side_manager.floating_window.setParent(None)
             self.side_manager.floating_window.deleteLater()
+            self.side_manager.floating_window = None
 
         # 2. Remove o container antigo do QSplitter (se estiver lá) e o deleta
         old_container = self.side_manager.container
-        old_container.setParent(None)
-        old_container.deleteLater()
+        if old_container:
+            old_container.setParent(None)
+            old_container.deleteLater()
 
         # 3. Instancia um novo SidePanelManager
         self.side_manager = SidePanelManager(self)
@@ -199,6 +202,13 @@ class WorkspaceManager(QtWidgets.QWidget):
                 QtWidgets.QSizePolicy.Expanding
             )
             self.splitter.addWidget(self.side_manager.container)
+
+            # Recalcula a proporção para que a Central Area se ajuste suavemente
+            side_width = settings.side_panel_width or 300
+            total_width = self.splitter.width() or 1200
+            central_width = max(200, total_width - side_width)
+            self.splitter.setSizes([central_width, side_width])
+
             self.splitter.setStretchFactor(0, 4)
             self.splitter.setStretchFactor(1, 1)
 
@@ -210,11 +220,19 @@ class WorkspaceManager(QtWidgets.QWidget):
         # 5. Reaplica a visibilidade correta com base nas configurações
         if current_mode == "floating":
             if settings.side_panel_show_by_default and paineis_atuais:
-                if hasattr(self.side_manager, "floating_window") and self.side_manager.floating_window:
+                if hasattr(self.side_manager, "mostrar_flutuante") and callable(self.side_manager.mostrar_flutuante):
+                    self.side_manager.mostrar_flutuante()
+                elif hasattr(self.side_manager, "floating_window") and self.side_manager.floating_window:
                     self.side_manager.floating_window.show()
         else:
             show_default = settings.side_panel_show_by_default
             self.side_manager.container.setVisible(show_default)
+
+        # 6. Força o redesenho completo do layout e da janela principal para eliminar rastros visuais
+        self.splitter.update()
+        self.update()
+        if hasattr(self, "central_manager") and self.central_manager.container:
+            self.central_manager.container.update()
 
     def abrir_configuracoes_side_panel(self):
         """Abre o diálogo de configurações focado na aba de personalização do Side Panel."""

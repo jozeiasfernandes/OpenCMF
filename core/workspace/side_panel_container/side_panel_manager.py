@@ -70,3 +70,13 @@ class SidePanelManager:
             self.floating_window.resize(width, self.floating_window.height())
         elif hasattr(self.container, "atualizar_largura"):
             self.container.atualizar_largura(width)
+
+    def _criar_janela_flutuante(self):
+        if not self.floating_window:
+            self.floating_window = FloatingContainer(self.workspace_manager)
+            # Conecta o sinal de reanexar à função de reconstrução da workspace
+            if hasattr(self.workspace_manager, "reconstruir_side_panel"):
+                self.floating_window.dock_requested.connect(
+                    self.workspace_manager.reconstruir_side_panel
+                )
+        return self.floating_window

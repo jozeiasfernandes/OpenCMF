@@ -1,7 +1,10 @@
-from PySide6.QtCore import Qt, QPoint
+from PySide6.QtCore import Qt, QPoint, Signal
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget
 
 from core.workspace.side_panel_container.collapsible_section import CollapsibleSection
+from core.settings.settings_app_manager import settings
+from core.icons.icons_manager import IconManager
+
 
 class FloatingContainer(QFrame):
     """Container flutuante que pode sobrepor a área central do workspace,
@@ -9,9 +12,13 @@ class FloatingContainer(QFrame):
     permitindo visualização e edição sem ocupar espaço horizontal fixo.
     """
 
+    # Sinal emitido para solicitar o retorno ao modo fixo (toolbox/tabs)
+    dock_requested = Signal()
+
     def __init__(self, parent: QWidget = None, title: str = "Painel Flutuante"):
         super().__init__(parent)
-        self.setWindowFlags(Qt.SubWindow | Qt.FramelessWindowHint)
+        # CORREÇÃO: Utilizar Qt.Tool em vez de Qt.SubWindow para eliminar problemas de renderização e rastros gráficos
+        self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
         self.setObjectName("FloatingContainer")
         self.setAttribute(Qt.WA_StyledBackground, True)
 
@@ -38,6 +45,23 @@ class FloatingContainer(QFrame):
 
         header_layout.addStretch()
 
+        # Botão para reanexar à workspace (Modo Toolbox)
+        self.dock_btn = QPushButton(header_widget)
+        self.dock_btn.setObjectName("FloatingDockButton")
+        self.dock_btn.setFixedSize(24, 24)
+        self.dock_btn.setToolTip("Reanexar à Workspace")
+
+        # Carrega o ícone arrow_circle_right.svg de forma segura pelo IconManager
+        icon_manager = IconManager.get_instance()
+        dock_icon = icon_manager.get_icon("arrow_circle_right")
+        if not dock_icon.isNull():
+            self.dock_btn.setIcon(dock_icon)
+        else:
+            self.dock_btn.setText("➔")  # Fallback textual caso o ícone não carregue
+
+        self.dock_btn.clicked.connect(self._on_dock_clicked)
+        header_layout.addWidget(self.dock_btn)
+
         # Botão Fechar
         self.close_btn = QPushButton("✕", header_widget)
         self.close_btn.setObjectName("FloatingCloseButton")
@@ -51,6 +75,13 @@ class FloatingContainer(QFrame):
         self.content_layout = QVBoxLayout()
         self.content_layout.setContentsMargins(8, 8, 8, 8)
         layout.addLayout(self.content_layout)
+
+    def _on_dock_clicked(self):
+        """Altera a configuração para o modo toolbox e solicita a reconstrução do painel."""
+        settings.side_panel_mode = "toolbox"
+        settings.save()
+        self.dock_requested.emit()
+        self.hide()
 
     def set_content(self, widget: QWidget):
         """Define ou substitui o widget de conteúdo principal do container."""
@@ -78,7 +109,7 @@ class FloatingContainer(QFrame):
             if event.position().y() <= 40:
                 self._is_dragging = True
                 self._drag_position = (
-                    event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                        event.globalPosition().toPoint() - self.frameGeometry().topLeft()
                 )
                 event.accept()
 
