@@ -3,9 +3,9 @@ from PySide6 import QtWidgets, QtCore
 from models.contracts import IModule
 
 if TYPE_CHECKING:
-    from containers.toolbar_container.toolbar_manager import ToolbarManager
-    from containers.side_panel_container.side_panel_manager import SidePanelManager
-    from containers.central_area_container import CentralAreaManager
+    from core. workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
+    from core. workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
+    from core. workspace.containers.central_area_container import CentralAreaManager
 
 
 class ModuleDistributor:

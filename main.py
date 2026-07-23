@@ -46,13 +46,13 @@ class ApplicationContext:
     """Contexto injetado nas fábricas e módulos."""
 
     def __init__(
-            self,
-            scene_manager: SceneManager,
-            project_service: ProjectServiceHomePage,
-            event_bus: EventBus,
-            object_registry: ObjectRegistry,
-            tool_manager: Any,
-            workspace_manager: Optional[WorkspaceManager] = None,
+        self,
+        scene_manager: Optional[SceneManager] = None,
+        project_service: Optional[ProjectServiceHomePage] = None,
+        event_bus: Optional[EventBus] = None,
+        object_registry: Optional[ObjectRegistry] = None,
+        tool_manager: Any = None,
+        workspace_manager: Optional[WorkspaceManager] = None,
     ):
         self.scene_manager = scene_manager
         self.project_service = project_service
@@ -74,12 +74,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.current_patient_path: Optional[str] = None
         self.workflow: Optional[FluxoBase] = None
 
-        # 1. Configura o contexto e o caminho dos ícones PRIMEIRO
-        self._setup_context()
+        # 1. Configura o IconManager e o diretório base PRIMEIRO
+        IconManager.set_base_path(self.base_dir / "appearance" / "icons")
 
-        # 2. Depois inicializa os componentes de cena e widgets da UI
+        # 2. Inicializa os componentes de cena e widgets da UI
         self._setup_scene_components()
         self._setup_core_widgets()
+
+        # 3. Configura o restante do contexto
+        self._setup_context()
 
         self._setup_signals()
         self._setup_appearance()
@@ -115,7 +118,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.home = Home_page()
         self.flow_editor = PaginaEditorFluxo()
-        self.workspace = WorkspaceManager(context=self.context)
+        self.workspace = WorkspaceManager()
         self.settings_page = PaginaConfig(workspace_manager=self.workspace)
 
         for widget in [self.home, self.flow_editor, self.workspace, self.settings_page]:
@@ -123,20 +126,21 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _setup_context(self):
         """Configura o contexto da aplicação e o ModuleFactory."""
-        IconManager.set_base_path(self.base_dir / "appearance" / "icons")
-
         self.project_service = ProjectServiceHomePage(
             self.base_dir / "patients"
         )
 
         self.context = ApplicationContext(
-            scene_manager=getattr(self, 'scene_manager', None),
+            scene_manager=self.scene_manager,
             project_service=self.project_service,
-            event_bus=getattr(self, 'event_bus', None),
-            object_registry=getattr(self, 'object_registry', None),
-            tool_manager=getattr(self, 'tool_manager', None),
-            workspace_manager=getattr(self, 'workspace', None),
+            event_bus=self.event_bus,
+            object_registry=self.object_registry,
+            tool_manager=self.tool_manager,
+            workspace_manager=self.workspace,
         )
+
+        if hasattr(self.workspace, 'set_context'):
+            self.workspace.set_context(self.context)
 
         ModuleFactory.set_context(self.context)
 

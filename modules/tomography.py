@@ -74,11 +74,18 @@ class Modulo(ModuloBase):
 
     def cleanup(self) -> None:
         if self.viewer:
-            self.viewer.deleteLater()
+            try:
+                # Tenta chamar deleteLater de forma segura caso o objeto C++ ainda exista
+                if hasattr(self.viewer, "deleteLater"):
+                    self.viewer.deleteLater()
+            except RuntimeError:
+                # O objeto C++ subjacente já foi deletado pelo Qt
+                pass
             self.viewer = None
+
         self.engine = None
         self.toolbar_handler = None
-        print(f"Cleanup do módulo {self.nome} executado.")
+        logger.info(f"Cleanup do módulo {self.nome} executado com sucesso.")
 
     # --- Lógica Interna ---
     def _carregar_configs_projeto(self):
@@ -151,7 +158,7 @@ if __name__ == "__main__":
 
 
     class MockToolManager:
-        def get_tool(self, key): return None  # Corrigido de .get() para .get_tool()[cite: 1]
+        def get_tool(self, key): return None
 
 
     class MockSettings:

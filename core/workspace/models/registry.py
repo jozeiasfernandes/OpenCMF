@@ -1,8 +1,8 @@
 from typing import Dict, List
 import logging
 
-from models.contracts import IModule
-from models.module_factory import ModuleFactory
+from core.workspace.models.contracts import IModule
+from core.workspace.models.module_factory import ModuleFactory
 
 logger = logging.getLogger(__name__)
 
