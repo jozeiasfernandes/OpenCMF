@@ -85,3 +85,37 @@ ProjectCardWidget {
 ProjectCardWidget:hover {
     background-color: #26262B;
 }
+
+
+
+
+
+/* Estilos específicos do FloatingContainer */
+#FloatingContainer {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+}
+#FloatingHeader {
+    background-color: #0d1117;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border-bottom: 1px solid #30363d;
+}
+#FloatingTitleLabel {
+    color: #c9d1d9;
+    font-weight: bold;
+    font-size: 10pt;
+}
+#FloatingCloseButton {
+    background-color: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    font-weight: 500;
+}
+#FloatingCloseButton:hover {
+    background-color: #30363d;
+    border-color: #8b949e;
+    color: #f85149;
+}

@@ -8,9 +8,9 @@ from .side_panel_header import SidePanelHeader
 
 class SidePanelContainer(QtWidgets.QWidget):
     """
-    Container visual que alterna dinamicamente entre Abas Laterais (East)
-    e Toolbox (Painéis Empilhados customizados via CollapsibleSection) com base nas preferências do usuário,
-    incluindo um cabeçalho fixo com controles de colapso, título e configurações.
+    Container visual que alterna dinamicamente entre Abas Laterais (East),
+    Toolbox (Painéis Empilhados customizados via CollapsibleSection) ou Painel Flutuante
+    com base nas preferências do usuário.
     """
 
     def __init__(self, title: str = "Side Panel", workspace_manager=None, parent: Optional[QtWidgets.QWidget] = None):
@@ -21,16 +21,20 @@ class SidePanelContainer(QtWidgets.QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        # Aplica a largura inicial configurada nas preferências
-        initial_width = settings.side_panel_width
-        self.setFixedWidth(initial_width)
+        # Identifica o modo salvo ("tabs", "toolbox" ou "floating")
+        self.current_mode = settings.side_panel_mode
+
+        # Se estiver no modo flutuante, o painel lateral fixo pode recolher/ficar oculto por padrão na lateral
+        if self.current_mode == "floating":
+            self.setFixedWidth(0)
+            self.setVisible(False)
+        else:
+            initial_width = settings.side_panel_width
+            self.setFixedWidth(initial_width)
 
         self.panels: Dict[str, QtWidgets.QWidget] = {}
         self.panel_titles: Dict[str, str] = {}
         self.collapsible_sections: Dict[str, CollapsibleSection] = {}
-
-        # Identifica o modo salvo ("tabs" ou "toolbox")
-        self.current_mode = settings.side_panel_mode
 
         # Cria o cabeçalho fixo no topo
         self._setup_header(title)
@@ -46,7 +50,6 @@ class SidePanelContainer(QtWidgets.QWidget):
 
     def _setup_mode_widget(self):
         """Configura o widget interno de acordo com o modo escolhido."""
-        # Container wrapper para o conteúdo que será ocultado/exibido ao colapsar o cabeçalho
         self.content_container = QtWidgets.QWidget(self)
         content_layout = QtWidgets.QVBoxLayout(self.content_container)
         content_layout.setContentsMargins(0, 0, 0, 0)
@@ -59,7 +62,7 @@ class SidePanelContainer(QtWidgets.QWidget):
             self.content_widget.setDocumentMode(True)
             content_layout.addWidget(self.content_widget)
         else:
-            # Modo Toolbox customizado com rolagem para suportar os painéis empilhados colapsáveis
+            # Modo Toolbox ou Floating (utiliza estrutura de painéis empilhados/colapsáveis)
             self.scroll_area = QtWidgets.QScrollArea()
             self.scroll_area.setWidgetResizable(True)
             self.scroll_area.setFrameShape(QtWidgets.QFrame.NoFrame)
@@ -95,7 +98,6 @@ class SidePanelContainer(QtWidgets.QWidget):
         else:
             section = CollapsibleSection(title, panel)
             self.collapsible_sections[panel_id] = section
-            # Insere antes do stretch (último item do layout)
             self.toolbox_layout.insertWidget(self.toolbox_layout.count() - 1, section)
 
         panel.setVisible(True)
@@ -107,7 +109,6 @@ class SidePanelContainer(QtWidgets.QWidget):
             if hasattr(panel, 'dispose') and callable(panel.dispose):
                 panel.dispose()
 
-            # Remove do widget correspondente
             if self.current_mode == "tabs":
                 idx = self.content_widget.indexOf(panel)
                 if idx != -1:
@@ -135,10 +136,14 @@ class SidePanelContainer(QtWidgets.QWidget):
             self.remove_panel(panel_id)
 
     def atualizar_largura(self, width: int):
-        """Atualiza a largura do painel lateral ajustando o QSplitter pai."""
+        """Atualiza a largura do painel lateral ajustando suavemente o QSplitter pai."""
+        if self.current_mode == "floating":
+            return
+
         self.setMaximumWidth(16777215)
         self.setMinimumWidth(150)
 
+        # Encontra o QSplitter pai para redimensionamento suave
         splitter = self.parent()
         while splitter and not isinstance(splitter, QtWidgets.QSplitter):
             splitter = splitter.parent()
@@ -147,7 +152,8 @@ class SidePanelContainer(QtWidgets.QWidget):
             sizes = splitter.sizes()
             total_width = sum(sizes)
             if total_width > 0:
+                # Mantém o restante para a Central Area e define a nova largura no painel
                 central_width = total_width - width
-                splitter.setSizes([central_width, width])
+                splitter.setSizes([max(100, central_width), width])
         else:
             self.setFixedWidth(width)

@@ -20,9 +20,10 @@ class WorkspaceState(QtCore.QObject):
 
     @current_patient.setter
     def current_patient(self, path: str) -> None:
-        if self._current_patient_path != path:
-            self._current_patient_path = path
-            self.patient_changed.emit(path)
+        normalized_path = str(path) if path else ""
+        if self._current_patient_path != normalized_path:
+            self._current_patient_path = normalized_path
+            self.patient_changed.emit(normalized_path)
 
     def update_setting(self, key: str, value: Any) -> None:
         if self._settings.get(key) != value:

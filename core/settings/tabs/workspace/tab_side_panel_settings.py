@@ -50,13 +50,15 @@ class TabSidePanel(QtWidgets.QWidget):
         width_layout.addWidget(self.spin_width)
         layout.addLayout(width_layout)
 
-        # Configuração do modo de exibição / estilo de container (Tab Widget vs Toolbox)
+        # Configuração do modo de exibição / estilo de container (Tab Widget vs Toolbox vs Floating)
         mode_layout = QtWidgets.QHBoxLayout()
         self.lbl_mode = QtWidgets.QLabel(tr("configs.side_panel.mode", "Modo do Container:"))
         self.combo_mode = QtWidgets.QComboBox()
         self.combo_mode.addItem(tr("configs.side_panel.mode.tabs", "Abas Laterais (East)"), "tabs")
         self.combo_mode.addItem(tr("configs.side_panel.mode.toolbox", "Painéis Empilhados (Toolbox / Colapsável)"),
                                 "toolbox")
+        self.combo_mode.addItem(tr("configs.side_panel.mode.floating", "Painel Flutuante (Floating)"),
+                                "floating")
         mode_layout.addWidget(self.lbl_mode)
         mode_layout.addWidget(self.combo_mode)
         mode_layout.addStretch()

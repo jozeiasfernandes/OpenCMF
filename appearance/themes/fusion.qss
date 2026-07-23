@@ -70,11 +70,43 @@ QScrollBar::handle:vertical:hover {
 }
 
 ProjectCardWidget {
-    border: 1px solid #444;
+    border: 1px solid #334155;
     border-radius: 8px;
-    background-color: #282c34;
+    background-color: #1E293B;
 }
 
 ProjectCardWidget:hover {
-    background-color: #26262B;
+    background-color: #334155;
+}
+
+
+
+/* Estilos específicos do FloatingContainer para o tema Fusion */
+#FloatingContainer {
+    background-color: #0F172A;
+    border: 1px solid #334155;
+    border-radius: 8px;
+}
+#FloatingHeader {
+    background-color: #1E293B;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    border-bottom: 1px solid #334155;
+}
+#FloatingTitleLabel {
+    color: #F1F5F9;
+    font-weight: bold;
+    font-size: 10pt;
+}
+#FloatingCloseButton {
+    background-color: #1E293B;
+    color: #F1F5F9;
+    border: 1px solid #334155;
+    border-radius: 4px;
+    font-weight: 500;
+}
+#FloatingCloseButton:hover {
+    background-color: #EF4444;
+    border-color: #EF4444;
+    color: #FFFFFF;
 }

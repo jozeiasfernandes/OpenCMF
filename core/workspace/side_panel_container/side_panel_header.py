@@ -64,8 +64,6 @@ class SidePanelHeader(QtWidgets.QWidget):
 
     def _update_toggle_icon(self, colapsado: bool):
         """Define arrow_right.svg se visível (para ocultar) ou arrow_left.svg se oculto (para mostrar)."""
-        # Se colapsado for True (oculto), mostra seta para a esquerda (arrow_left.svg)
-        # Se colapsado for False (visível), mostra seta para a direita (arrow_right.svg)
         target_path = self.icon_left_path if colapsado else self.icon_right_path
 
         if target_path.exists():
@@ -93,7 +91,12 @@ class SidePanelHeader(QtWidgets.QWidget):
             self.lbl_titulo.show()
             self.btn_config.show()
 
+        # Emite o sinal tradicional para o container pai
         self.toggle_colapsado_alterado.emit(self._colapsado)
+
+        # Opcional: Se o workspace gerenciar painel flutuante, notifica a alternância se necessário
+        if self.workspace_manager and hasattr(self.workspace_manager, "notificar_toggle_side_panel"):
+            self.workspace_manager.notificar_toggle_side_panel(self._colapsado)
 
     def _abrir_configuracoes(self):
         self.configuracoes_solicitadas.emit()
@@ -116,6 +119,7 @@ class SidePanelHeader(QtWidgets.QWidget):
 
     def set_titulo(self, texto: str):
         self.lbl_titulo.setText(texto)
+
 
 if __name__ == "__main__":
     import sys
