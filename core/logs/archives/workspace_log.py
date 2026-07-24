@@ -5,7 +5,7 @@ from PySide6 import QtWidgets, QtCore
 logger = logging.getLogger("OpenCMF.Workspace.Debug")
 
 
-class WorkspaceDebugInspector:
+class Workspace_Logger:
     """
     Classe completa de logs e inspeção para a Workspace do OpenCMF.
     Mapeia a estrutura da workspace, dimensões de containers, dados do paciente,

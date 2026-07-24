@@ -7,16 +7,13 @@ from core.workspace.containers.header_container.header_panel import HeaderPanel
 from core.workspace.containers.header_container.workspace_modules import WorkspaceModulesMixin
 from core.workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
 from core.workspace.containers.status_bar.status_bar import StatusBarManager
-from core.workspace.containers.toolbar_container.toolbar_container import ToolbarContainer
 from core.workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
 
 from core.workspace.models.registry import WorkspaceRegistry
-
 from core.workspace.patient.state import WorkspaceState
 from core.workspace.patient.workspace_patient import WorkspacePatientMixin
-
 from core.workspace.services.workspace_loaders_components import WorkspaceComponentHandler
-from core.workspace.services.workspace_debug_inspector import WorkspaceDebugInspector
+from core.logs.archives.workspace_log import Workspace_Logger
 
 logger = logging.getLogger("OpenCMF.Workspace")
 
@@ -36,7 +33,9 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
 
         self.current_patient_path = ""
         self.component_handler = WorkspaceComponentHandler(self)
-        self.debug_inspector = WorkspaceDebugInspector(self)
+
+        # Instancia o logger/inspetor passando a referência do workspace
+        self.debug_inspector = Workspace_Logger(self)
 
         self._setup_layout()
         self._setup_components()
@@ -70,7 +69,6 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.status_bar_manager = StatusBarManager()
         self.main_layout.addWidget(self.status_bar_manager)
 
-        # Protegido contra deleção prematura usando método separado e verificação
         QtCore.QTimer.singleShot(100, self._apply_initial_splitter_sizes)
 
     def _configure_splitter(self):
@@ -89,7 +87,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.component_handler.abrir_seletor()
 
     def log_debug_state(self, level: int = logging.INFO):
-        """Dispara a inspeção e registro do estado atual através do WorkspaceDebugInspector."""
+        """Dispara a inspeção e registro do estado atual através do Workspace_Logger."""
         if hasattr(self, "debug_inspector") and self.debug_inspector:
             self.debug_inspector.log_full_state(level=level)
 
@@ -108,6 +106,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
 
     workspace = WorkspaceManager()
