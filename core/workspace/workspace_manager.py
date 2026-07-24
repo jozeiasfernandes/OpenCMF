@@ -12,7 +12,7 @@ from core.workspace.containers.toolbar_container.toolbar_manager import ToolbarM
 from core.workspace.models.registry import WorkspaceRegistry
 from core.workspace.patient.state import WorkspaceState
 from core.workspace.patient.workspace_patient import WorkspacePatientMixin
-from core.workspace.services.workspace_loaders_components import WorkspaceComponentHandler
+from core.workspace.layout.workspace_loaders_components import WorkspaceComponentHandler
 from core.logs.archives.workspace_log import Workspace_Logger
 
 logger = logging.getLogger("OpenCMF.Workspace")
@@ -72,15 +72,26 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         QtCore.QTimer.singleShot(100, self._apply_initial_splitter_sizes)
 
     def _configure_splitter(self):
-        self.splitter.setCollapsible(1, False)
-        self.splitter.setStretchFactor(0, self.DEFAULT_STRETCH_FACTORS[0])
-        self.splitter.setStretchFactor(1, self.DEFAULT_STRETCH_FACTORS[1])
+        # Permite que o painel lateral possa ser recolhido (collapsible = True)
+        self.splitter.setCollapsible(0, False)
+        self.splitter.setCollapsible(1, True)
+
+        # Fatores de elasticidade equivalentes a 70% para o centro e 30% para a barra lateral
+        self.splitter.setStretchFactor(0, 7)
+        self.splitter.setStretchFactor(1, 3)
 
     def _apply_initial_splitter_sizes(self):
-        """Aplica os tamanhos iniciais do splitter de forma segura após o carregamento."""
+        """Aplica os tamanhos iniciais do splitter baseados em porcentagem pura da tela."""
         if not self.splitter or not self.splitter.isVisible():
             return
-        self.splitter.setSizes([900, 300])
+
+        total_width = self.splitter.width()
+        if total_width > 0:
+            central_width = int(total_width * 0.70)
+            side_width = total_width - central_width
+            self.splitter.setSizes([central_width, side_width])
+        else:
+            self.splitter.setSizes([700, 300])
 
     def abrir_seletor_componentes(self):
         logger.info("Solicitação para abrir o seletor de componentes.")

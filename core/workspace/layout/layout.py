@@ -4,9 +4,9 @@ from PySide6 import QtWidgets, QtCore
 from core.workspace.models.contracts import IModule
 
 if TYPE_CHECKING:
-    from core. workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
-    from core. workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
-    from core. workspace.containers.central_area_container import CentralAreaManager
+    from core.workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
+    from core.workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
+    from core.workspace.containers.central_area_container import CentralAreaManager
 
 
 class ModuleDistributor:
@@ -49,20 +49,44 @@ class ModuleDistributor:
                 for action in tb.actions():
                     action.setVisible(True)
 
-        # 2. Distribuir Toolboxes (Side Panels)
+        # 2. Distribuir Toolboxes (Side Panels) e controlar comportamento do container/splitter
+        has_toolboxes = False
         if hasattr(module, "get_toolboxes"):
             toolboxes = module.get_toolboxes()
-            for name, widget in toolboxes.items():
-                if ModuleDistributor._is_valid_qwidget(widget):
-                    try:
-                        widget.setWindowFlags(QtCore.Qt.Widget)
-                        if widget.parent():
-                            widget.setParent(None)
-                    except RuntimeError:
-                        continue
+            if toolboxes:
+                has_toolboxes = True
+                for name, widget in toolboxes.items():
+                    if ModuleDistributor._is_valid_qwidget(widget):
+                        try:
+                            widget.setWindowFlags(QtCore.Qt.Widget)
+                            if widget.parent():
+                                widget.setParent(None)
+                        except RuntimeError:
+                            continue
 
-                    side_manager.container.add_panel(name, widget)
-                    widget.setVisible(True)
+                        side_manager.container.add_panel(name, widget)
+                        widget.setVisible(True)
+
+        # Gerencia a visibilidade e o redimensionamento dinâmico do QSplitter do Side Panel
+        if hasattr(side_manager, "container") and hasattr(side_manager.container, "parent"):
+            splitter = side_manager.container.parent()
+            while splitter and not isinstance(splitter, QtWidgets.QSplitter):
+                splitter = splitter.parent()
+
+            if has_toolboxes:
+                side_manager.container.setVisible(True)
+                if splitter:
+                    sizes = splitter.sizes()
+                    total = sum(sizes)
+                    if total > 0 and sizes[1] == 0:
+                        splitter.setSizes([int(total * 0.75), int(total * 0.25)])
+            else:
+                side_manager.container.setVisible(False)
+                if splitter:
+                    sizes = splitter.sizes()
+                    total = sum(sizes)
+                    if total > 0:
+                        splitter.setSizes([total, 0])
 
         # 3. Configurar Viewport Central
         if hasattr(module, "get_main_widget"):
@@ -102,6 +126,7 @@ class ModuleDistributor:
 
         if hasattr(side_manager.container, 'clear_all'):
             side_manager.container.clear_all()
+            side_manager.container.setVisible(False)
 
         if hasattr(central_manager, 'clear'):
             central_manager.clear()

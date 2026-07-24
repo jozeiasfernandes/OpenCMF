@@ -26,13 +26,9 @@ class SidePanelContainer(QtWidgets.QWidget):
         # Identifica o modo salvo ("tabs", "toolbox" ou "floating")
         self.current_mode = settings.side_panel_mode
 
-        # Se estiver no modo flutuante, o painel lateral fixo pode recolher/ficar oculto por padrão na lateral
+        # Se estiver no modo flutuante, o painel lateral fixo fica oculto por padrão
         if self.current_mode == "floating":
-            self.setFixedWidth(0)
             self.setVisible(False)
-        else:
-            initial_width = settings.side_panel_width
-            self.setFixedWidth(initial_width)
 
         self.panels: Dict[str, QtWidgets.QWidget] = {}
         self.panel_titles: Dict[str, str] = {}
@@ -138,24 +134,5 @@ class SidePanelContainer(QtWidgets.QWidget):
             self.remove_panel(panel_id)
 
     def atualizar_largura(self, width: int):
-        """Atualiza a largura do painel lateral ajustando suavemente o QSplitter pai."""
-        if self.current_mode == "floating":
-            return
-
-        self.setMaximumWidth(self.MAX_WIDTH)
-        self.setMinimumWidth(self.MIN_WIDTH)
-
-        # Encontra o QSplitter pai para redimensionamento suave
-        splitter = self.parent()
-        while splitter and not isinstance(splitter, QtWidgets.QSplitter):
-            splitter = splitter.parent()
-
-        if splitter:
-            sizes = splitter.sizes()
-            total_width = sum(sizes)
-            if total_width > 0:
-                # Mantém o restante para a Central Area e define a nova largura no painel
-                central_width = total_width - width
-                splitter.setSizes([max(100, central_width), width])
-        else:
-            self.setFixedWidth(width)
+        """Método mantido por compatibilidade; o redimensionamento dinâmico agora é gerido pelo QSplitter via mouse."""
+        pass

@@ -27,29 +27,6 @@ class TabSidePanel(QtWidgets.QWidget):
         )
         layout.addWidget(self.checkbox_visibilidade)
 
-        # Configuração da largura estimada/inicial com Slider e SpinBox sincronizados
-        width_layout = QtWidgets.QHBoxLayout()
-        self.lbl_width = QtWidgets.QLabel(tr("configs.side_panel.width", "Largura inicial:"))
-
-        self.spin_width = QtWidgets.QSpinBox()
-        self.spin_width.setRange(150, 600)
-        self.spin_width.setSuffix(" px")
-        self.spin_width.setFixedWidth(90)
-
-        self.slider_width = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        self.slider_width.setRange(150, 600)
-        self.slider_width.setTickPosition(QtWidgets.QSlider.TicksBelow)
-        self.slider_width.setTickInterval(50)
-
-        # Sincronização entre o Slider e o SpinBox com bloqueio para evitar loops de sinais
-        self.slider_width.valueChanged.connect(self._on_slider_value_changed)
-        self.spin_width.valueChanged.connect(self._on_spin_value_changed)
-
-        width_layout.addWidget(self.lbl_width)
-        width_layout.addWidget(self.slider_width)
-        width_layout.addWidget(self.spin_width)
-        layout.addLayout(width_layout)
-
         # Configuração do modo de exibição / estilo de container (Tab Widget vs Toolbox vs Floating)
         mode_layout = QtWidgets.QHBoxLayout()
         self.lbl_mode = QtWidgets.QLabel(tr("configs.side_panel.mode", "Modo do Container:"))
@@ -69,21 +46,15 @@ class TabSidePanel(QtWidgets.QWidget):
     def _carregar_valores(self):
         """Carrega os valores salvos no settings_manager para os widgets sem disparar sinais acidentais."""
         self.checkbox_visibilidade.blockSignals(True)
-        self.slider_width.blockSignals(True)
-        self.spin_width.blockSignals(True)
         self.combo_mode.blockSignals(True)
 
         self.checkbox_visibilidade.setChecked(settings.side_panel_show_by_default)
-        self.slider_width.setValue(settings.side_panel_width)
-        self.spin_width.setValue(settings.side_panel_width)
 
         index = self.combo_mode.findData(settings.side_panel_mode)
         if index >= 0:
             self.combo_mode.setCurrentIndex(index)
 
         self.checkbox_visibilidade.blockSignals(False)
-        self.slider_width.blockSignals(False)
-        self.spin_width.blockSignals(False)
         self.combo_mode.blockSignals(False)
 
     def _conectar_sinais(self):
@@ -91,27 +62,10 @@ class TabSidePanel(QtWidgets.QWidget):
         self.checkbox_visibilidade.toggled.connect(self._atualizar_visibilidade)
         self.combo_mode.currentIndexChanged.connect(self._atualizar_modo)
 
-    def _on_slider_value_changed(self, value: int):
-        self.spin_width.blockSignals(True)
-        self.spin_width.setValue(value)
-        self.spin_width.blockSignals(False)
-        self._atualizar_largura(value)
-
-    def _on_spin_value_changed(self, value: int):
-        self.slider_width.blockSignals(True)
-        self.slider_width.setValue(value)
-        self.slider_width.blockSignals(False)
-        self._atualizar_largura(value)
-
     def _atualizar_visibilidade(self, checked: bool):
         settings.side_panel_show_by_default = checked
         if self.workspace_manager and hasattr(self.workspace_manager, "side_manager"):
             self.workspace_manager.side_manager.container.setVisible(checked)
-
-    def _atualizar_largura(self, value: int):
-        settings.side_panel_width = value
-        if self.workspace_manager and hasattr(self.workspace_manager, "side_manager"):
-            self.workspace_manager.side_manager.atualizar_largura_painel(value)
 
     def _atualizar_modo(self):
         mode = self.combo_mode.currentData()

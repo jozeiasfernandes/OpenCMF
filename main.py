@@ -281,6 +281,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.workspace.header.tab_bar.setCurrentIndex(0)
             self.sync_active_module()
 
+        QtCore.QTimer.singleShot(150, lambda: self.workspace.log_debug_state() if hasattr(self.workspace, "log_debug_state") else None)
+
     def sync_active_module(self):
         module = self.workspace.get_modulo_ativo()
         if not module:

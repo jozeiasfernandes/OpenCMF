@@ -1,8 +1,10 @@
 import logging
 from typing import Dict, Any, List, Optional
 from PySide6 import QtWidgets, QtCore
+from core.logs.base_logger import setup_logger
 
-logger = logging.getLogger("OpenCMF.Workspace.Debug")
+# Configura o logger para exibir apenas no terminal (filename=None)
+logger = setup_logger("OpenCMF.Workspace.Debug", filename=None)
 
 
 class Workspace_Logger:
@@ -28,22 +30,23 @@ class Workspace_Logger:
         return report
 
     def log_full_state(self, level: int = logging.INFO) -> None:
-        """Gera e registra o relatório completo formatado nos logs da aplicação."""
+        """Gera e registra o relatório completo formatado em um único bloco nos logs da aplicação."""
         state = self.inspect_full_state()
 
-        log_message = (
-                "\n" + "=" * 60 + "\n"
-                                  "🔍 [WORKSPACE DEBUG INSPECTOR] - RELATÓRIO DE ESTADO\n"
-                                  "=" * 60 + "\n"
-                                             f"• Dimensões da Workspace & Containers:\n{self._format_dict(state['workspace_info'])}\n"
-                                             f"• Dados do Paciente:\n{self._format_dict(state['patient_data'])}\n"
-                                             f"• Módulo Ativo:\n{self._format_dict(state['active_module'])}\n"
-                                             f"• Componentes Ativos:\n{self._format_dict(state['components_active'])}\n"
-                                             f"• Scene / Viewport Central:\n{self._format_dict(state['scene_info'])}\n"
-                                             f"• Outras Configurações:\n{self._format_dict(state['other_configurations'])}\n"
-                + "=" * 60
-        )
-        logger.log(level, log_message)
+        report_lines = [
+            "=" * 60,
+            "🔍 [WORKSPACE DEBUG INSPECTOR] - RELATÓRIO DE ESTADO",
+            "=" * 60,
+            f"• Dimensões da Workspace & Containers:\n{self._format_dict(state['workspace_info'])}",
+            f"• Dados do Paciente:\n{self._format_dict(state['patient_data'])}",
+            f"• Módulo Ativo:\n{self._format_dict(state['active_module'])}",
+            f"• Componentes Ativos:\n{self._format_dict(state['components_active'])}",
+            f"• Scene / Viewport Central:\n{self._format_dict(state['scene_info'])}",
+            f"• Outras Configurações:\n{self._format_dict(state['other_configurations'])}",
+            "=" * 60
+        ]
+
+        logger.log(level, "\n" + "\n".join(report_lines))
 
     def get_workspace_dimensions(self) -> Dict[str, Any]:
         """Obtém as dimensões (geometry, largura e altura) de cada container principal."""

@@ -2,7 +2,7 @@ import sys
 import time
 import logging
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
 from modules.base_module.base_module import ModuloBase
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
@@ -20,13 +20,9 @@ class Modulo(ModuloBase):
         self.pasta_paciente = None
         self.project_service = ProjectServiceHomePage(PASTA_PACIENTES)
 
-        self.main_container = QtWidgets.QWidget(self)
-        self.layout_modulo = QtWidgets.QVBoxLayout(self)
-        self.layout_modulo.setContentsMargins(0, 0, 0, 0)
-        self.layout_modulo.addWidget(self.main_container)
-
         self._init_ui_components()
         self._setup_data_maps()
+        self._construir_interface()
 
     def _init_ui_components(self):
         self.edit_nome = QtWidgets.QLineEdit()
@@ -183,10 +179,14 @@ class Modulo(ModuloBase):
         except Exception as e:
             QtWidgets.QMessageBox.critical(self, "Erro", str(e))
 
-    def get_workspace(self) -> QtWidgets.QWidget:
-        if self.main_container.layout(): return self.main_container
+    def _construir_interface(self):
+        main_layout = self.layout()
+        if not main_layout:
+            main_layout = QtWidgets.QVBoxLayout(self)
+            self.setLayout(main_layout)
 
-        layout = QtWidgets.QVBoxLayout(self.main_container)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
         content = QtWidgets.QWidget()
@@ -194,45 +194,45 @@ class Modulo(ModuloBase):
 
         gp = QtWidgets.QGroupBox("Informações do Paciente")
         lp = QtWidgets.QVBoxLayout(gp)
-        r1 = QtWidgets.QHBoxLayout();
-        r1.addWidget(QtWidgets.QLabel("Nome:"));
-        r1.addWidget(self.edit_nome);
+        r1 = QtWidgets.QHBoxLayout()
+        r1.addWidget(QtWidgets.QLabel("Nome:"))
+        r1.addWidget(self.edit_nome)
         r1.addWidget(self.check_estrangeiro)
-        r2 = QtWidgets.QHBoxLayout();
-        r2.addWidget(QtWidgets.QLabel("CPF:"));
-        r2.addWidget(self.edit_cpf);
-        r2.addWidget(QtWidgets.QLabel("Celular:"));
+        r2 = QtWidgets.QHBoxLayout()
+        r2.addWidget(QtWidgets.QLabel("CPF:"))
+        r2.addWidget(self.edit_cpf)
+        r2.addWidget(QtWidgets.QLabel("Celular:"))
         r2.addWidget(self.edit_celular)
-        r3 = QtWidgets.QHBoxLayout();
-        r3.addWidget(QtWidgets.QLabel("E-mail:"));
-        r3.addWidget(self.edit_email);
-        r3.addWidget(QtWidgets.QLabel("Nasc.:"));
-        r3.addWidget(self.edit_nascimento);
-        r3.addWidget(QtWidgets.QLabel("Sexo:"));
+        r3 = QtWidgets.QHBoxLayout()
+        r3.addWidget(QtWidgets.QLabel("E-mail:"))
+        r3.addWidget(self.edit_email)
+        r3.addWidget(QtWidgets.QLabel("Nasc.:"))
+        r3.addWidget(self.edit_nascimento)
+        r3.addWidget(QtWidgets.QLabel("Sexo:"))
         r3.addWidget(self.combo_sexo)
         for r in [r1, r2, r3]: lp.addLayout(r)
         lay_content.addWidget(gp)
 
         sec_end = SecaoRetratil("Endereço", False, content)
         f_end = QtWidgets.QFormLayout()
-        row_cep = QtWidgets.QHBoxLayout();
-        row_cep.addWidget(self.edit_cep);
+        row_cep = QtWidgets.QHBoxLayout()
+        row_cep.addWidget(self.edit_cep)
         row_cep.addWidget(self.btn_buscar_cep)
-        f_end.addRow("CEP:", row_cep);
-        f_end.addRow("Logradouro:", self.edit_logradouro);
-        f_end.addRow("Cidade:", self.edit_cidade);
-        f_end.addRow("Estado:", self.edit_estado);
+        f_end.addRow("CEP:", row_cep)
+        f_end.addRow("Logradouro:", self.edit_logradouro)
+        f_end.addRow("Cidade:", self.edit_cidade)
+        f_end.addRow("Estado:", self.edit_estado)
         f_end.addRow("País:", self.edit_pais)
         sec_end.layout_interno().addLayout(f_end)
         lay_content.addWidget(sec_end)
 
         sec_clin = SecaoRetratil("Dados clínicos", False, content)
         f_clin = QtWidgets.QFormLayout()
-        f_clin.addRow("Diagnóstico:", self.edit_diagnostico);
-        f_clin.addRow("História Médica:", self.edit_historia_medica);
-        f_clin.addRow("Alergias:", self.edit_alergias);
-        f_clin.addRow("Medicações:", self.edit_medicacoes);
-        f_clin.addRow("Hábitos/Vícios:", self.edit_habitos);
+        f_clin.addRow("Diagnóstico:", self.edit_diagnostico)
+        f_clin.addRow("História Médica:", self.edit_historia_medica)
+        f_clin.addRow("Alergias:", self.edit_alergias)
+        f_clin.addRow("Medicações:", self.edit_medicacoes)
+        f_clin.addRow("Hábitos/Vícios:", self.edit_habitos)
         f_clin.addRow("Planejamento:", self.edit_planejamento)
         sec_clin.layout_interno().addLayout(f_clin)
         lay_content.addWidget(sec_clin)
@@ -254,19 +254,22 @@ class Modulo(ModuloBase):
         lay_content.addWidget(self.btn_salvar)
 
         scroll.setWidget(content)
-        layout.addWidget(scroll)
-        return self.main_container
+        main_layout.addWidget(scroll)
+
+    def get_workspace(self) -> QtWidgets.QWidget:
+        return self
+
+    def get_main_widget(self) -> QtWidgets.QWidget:
+        return self
+
+    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+        return None
 
     def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        aba_acoes = QtWidgets.QWidget()
-        lay_acoes = QtWidgets.QVBoxLayout(aba_acoes)
-        btn_limpar = QtWidgets.QPushButton(" Limpar Formulário")
-        btn_limpar.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_DialogDiscardButton))
-        btn_limpar.setStyleSheet("background-color: #e74c3c; color: white; padding: 10px; border-radius: 4px;")
-        btn_limpar.clicked.connect(self._limpar_formulario)
-        lay_acoes.addWidget(btn_limpar)
-        lay_acoes.addStretch()
-        return {"Ferramentas": aba_acoes}
+        return {}
+
+    def cleanup(self) -> None:
+        logging.info(f"Limpando recursos do módulo: {self.id}")
 
     def _buscar_caminho(self, target, folder=True):
         settings = QtCore.QSettings("OpenCMF", "Config")
@@ -280,8 +283,8 @@ class Modulo(ModuloBase):
 
     def _limpar_formulario(self):
         if QtWidgets.QMessageBox.question(self, "Limpar", "Limpar tudo?") == QtWidgets.QMessageBox.Yes:
-            for w in self.main_container.findChildren(QtWidgets.QLineEdit): w.clear()
-            for w in self.main_container.findChildren(QtWidgets.QTextEdit): w.clear()
+            for w in self.findChildren(QtWidgets.QLineEdit): w.clear()
+            for w in self.findChildren(QtWidgets.QTextEdit): w.clear()
             self.edit_pais.setText("Brasil")
             self.check_estrangeiro.setChecked(False)
             self.edit_nascimento.setDate(QtCore.QDate.currentDate())
@@ -293,25 +296,32 @@ if __name__ == "__main__":
     from core.components.bases.base_toolbar import AppContext
     from core.components.bases.base_tool.tool_manager import ToolManager
     from core.scene.events.event_bus import EventBus
+    from core.workspace.workspace_manager import WorkspaceManager
+    from core.workspace.models.module_factory import ModuleFactory
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    # Criação do contexto completo satisfazendo os contratos da arquitetura base (ModuloBase)
     context = AppContext(
         scene_manager=MagicMock(),
         tool_manager=ToolManager(),
         event_bus=EventBus()
     )
 
-    window = QtWidgets.QMainWindow()
-    window.setWindowTitle("OpenCMF - Teste Módulo de Pacientes")
-    window.resize(600, 800)
+    ModuleFactory.set_context(context)
+    # Substitua "modulo.paciente" e Modulo pelo identificador e classe reais do seu módulo
+    ModuleFactory.register("modulo.paciente", Modulo)
 
-    modulo = Modulo(context=context)
-    workspace = modulo.get_workspace()
+    workspace = WorkspaceManager(context=context)
+    workspace.setWindowTitle("OpenCMF - Teste Módulo de Pacientes")
+    workspace.resize(1280, 720)
 
-    window.setCentralWidget(workspace)
-    window.show()
+    # Adiciona a aba do módulo no Header do Workspace
+    workspace.header.add_module_tab("modulo.paciente", "Teste Módulo de Pacientes")
+
+    workspace.show()
+
+    # Carrega o módulo através do gerenciador de módulos do workspace
+    workspace.on_module_changed("modulo.paciente")
 
     sys.exit(app.exec())

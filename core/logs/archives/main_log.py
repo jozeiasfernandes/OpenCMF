@@ -3,19 +3,21 @@ import sys
 from typing import Any, Optional
 from core.logs.base_logger import setup_logger
 
-# Cria o logger específico para o sistema principal usando o base_logger
-main_logger = setup_logger("OpenCMF.Main", "main.log")
+# Cria o logger específico para o sistema principal apenas para o terminal (filename=None)
+main_logger = setup_logger("OpenCMF.Main", filename=None)
 
 
 class Main_Logger:
     """Classe responsável por gerenciar logs, debugs, interceptar o print()
-    e enriquecer os registros com dados do contexto, paciente, cena e workspace.
+    e enriquecer os registros com dados do contexto, paciente, cena e workspace,
+    emitindo as mensagens exclusivamente no terminal.
     """
 
     _instance = None
 
     def __init__(self, name: str = "OpenCMF.Stdout"):
-        self.logger = setup_logger(name, "stdout.log")
+        # Configura o logger para exibir apenas no terminal (filename=None)
+        self.logger = setup_logger(name, filename=None)
         self.terminal = sys.stdout  # Mantém a referência original caso precise
         self._application_context: Optional[Any] = None
 
@@ -70,8 +72,6 @@ class Main_Logger:
 
         # Extrai caminho do paciente do ProjectService ou Workspace
         try:
-            if hasattr(ctx, "project_service") and ctx.project_service:
-                pass
             if hasattr(ctx, "workspace_manager") and ctx.workspace_manager:
                 if hasattr(ctx.workspace_manager, "current_patient_path"):
                     info["patient_path"] = ctx.workspace_manager.current_patient_path

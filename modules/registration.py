@@ -166,7 +166,7 @@ class Modulo(ModuloBase):
 if __name__ == "__main__":
     import sys
     from core.workspace.workspace_manager import WorkspaceManager
-    from services.layout import ModuleDistributor
+    from layout.layout import ModuleDistributor
     from models.module_factory import ModuleFactory
 
     app = QtWidgets.QApplication.instance() or QtWidgets.QApplication(sys.argv)

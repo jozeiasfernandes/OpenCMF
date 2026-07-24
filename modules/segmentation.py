@@ -111,7 +111,7 @@ if __name__ == "__main__":
     from core.scene.events.event_bus import EventBus
     from core.workspace.workspace_manager import WorkspaceManager
     from models.module_factory import ModuleFactory
-    from services.layout import ModuleDistributor
+    from layout.layout import ModuleDistributor
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")

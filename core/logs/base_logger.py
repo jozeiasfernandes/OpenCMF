@@ -1,14 +1,9 @@
 import logging
-import os
+from typing import Optional
 from logging.handlers import RotatingFileHandler
 
-LOG_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-LOG_FOLDER = os.path.join(LOG_DIR, "logs")
 
-if not os.path.exists(LOG_FOLDER):
-    os.makedirs(LOG_FOLDER, exist_ok=True)
-
-def setup_logger(name: str, filename: str, level=logging.DEBUG) -> logging.Logger:
+def setup_logger(name: str, filename: Optional[str] = None, level=logging.DEBUG) -> logging.Logger:
     logger = logging.getLogger(name)
     logger.setLevel(level)
 
@@ -20,15 +15,15 @@ def setup_logger(name: str, filename: str, level=logging.DEBUG) -> logging.Logge
         datefmt="%Y-%m-%d %H:%M:%S"
     )
 
-    # Console Handler
+    # Console Handler (Sempre ativo para exibir no terminal)
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    # File Handler Rotativo
-    file_path = os.path.join(LOG_FOLDER, filename)
-    file_handler = RotatingFileHandler(file_path, maxBytes=5*1024*1024, backupCount=3, encoding="utf-8")
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
+    # File Handler Rotativo (Mantido apenas caso algum arquivo seja explicitamente informado no futuro)
+    if filename:
+        file_handler = RotatingFileHandler(filename, maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8")
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
 
     return logger

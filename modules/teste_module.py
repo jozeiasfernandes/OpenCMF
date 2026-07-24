@@ -4,7 +4,7 @@ from PySide6 import QtWidgets
 
 from core.workspace.workspace_manager import WorkspaceManager
 from models.module_factory import ModuleFactory
-from services.layout import ModuleDistributor
+from layout.layout import ModuleDistributor
 from modules.base_module.base_module import ModuloBase
 
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")

@@ -28,7 +28,7 @@ class SidePanelManager:
             self.floating_window = FloatingContainer(self.parent_window, title="Side Panel")
             # Define o conteúdo do container flutuante com a estrutura interna do container lateral
             self.floating_window.set_content(self.container.content_container)
-            self.floating_window.resize(settings.side_panel_width, 400)
+            self.floating_window.resize(300, 400)  # Tamanho inicial padrão seguro para o flutuante
 
     def add_panel(self, name: str, widget: QtWidgets.QWidget):
         """Adiciona um widget ao container lateral ou ao painel flutuante."""
@@ -65,18 +65,16 @@ class SidePanelManager:
             self.floating_window.hide()
 
     def atualizar_largura_painel(self, width: int):
-        """Repassa a solicitação de largura para o container interno ou redimensiona o flutuante."""
+        """Método mantido por compatibilidade; redimensionamento lateral agora ocorre via QSplitter."""
         if settings.side_panel_mode == "floating" and self.floating_window:
             self.floating_window.resize(width, self.floating_window.height())
-        elif hasattr(self.container, "atualizar_largura"):
-            self.container.atualizar_largura(width)
 
     def _criar_janela_flutuante(self):
         if not self.floating_window:
-            self.floating_window = FloatingContainer(self.workspace_manager)
+            self.floating_window = FloatingContainer(self.parent_window)
             # Conecta o sinal de reanexar à função de reconstrução da workspace
-            if hasattr(self.workspace_manager, "reconstruir_side_panel"):
+            if hasattr(self.parent_window, "reconstruir_side_panel"):
                 self.floating_window.dock_requested.connect(
-                    self.workspace_manager.reconstruir_side_panel
+                    self.parent_window.reconstruir_side_panel
                 )
         return self.floating_window

@@ -1,5 +1,6 @@
 from typing import Tuple, Optional, Dict, Any, List
 from PySide6 import QtWidgets, QtCore
+from core.logs.archives.module_log import Module_Logger
 
 
 class ModuloBase(QtWidgets.QWidget):
@@ -17,6 +18,8 @@ class ModuloBase(QtWidgets.QWidget):
         self.layout().setContentsMargins(0, 0, 0, 0)
 
         self.viewer: Optional[QtWidgets.QWidget] = None
+
+        self.module_logger = Module_Logger(modulo_instance=self)
 
     def get_main_widget(self) -> QtWidgets.QWidget:
         """Retorna o widget principal do módulo."""
@@ -46,6 +49,8 @@ class ModuloBase(QtWidgets.QWidget):
     def inicializar(self, caminho_paciente: str) -> None:
         """Chamado pela orquestração do sistema."""
         self.configurar_recursos(caminho_paciente)
+
+        self.module_logger.log_full_state()
 
     def cleanup(self) -> None:
         """Deve ser sobrescrito para limpar referências de componentes filhos."""

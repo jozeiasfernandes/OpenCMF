@@ -4,6 +4,8 @@ import sys
 
 from PySide6 import QtCore, QtGui, QtWidgets
 
+from core.logs.logger_manager import home_page_logger, HomePageDebugLogger
+
 from core.icons.icons_manager import IconManager
 from core.settings.settings_app_manager import settings
 from core.localization.translator import tr
@@ -48,8 +50,8 @@ class Home_page(QtWidgets.QWidget):
 
     def __init__(self):
         super().__init__()
+        self.debug_logger = HomePageDebugLogger()
         self.is_grid_view = False
-        self.debugger = HomePageDebugLogger()
 
         self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
         self.flow_service = FlowServiceHomePage(FLOWS_DIR)
@@ -59,7 +61,7 @@ class Home_page(QtWidgets.QWidget):
         self.refresh_flows()
 
         QtCore.QTimer.singleShot(0, self._connect_theme_signal)
-        logger.info("Home_page inicializada com sucesso.")
+        home_page_logger.info("Home_page inicializada com sucesso.")
 
     def init_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -182,7 +184,9 @@ class Home_page(QtWidgets.QWidget):
                 widget.deleteLater()
 
         projects = self.project_service.list_recent_projects()
-        self.debugger.info(f"Total de projetos recentes carregados: {len(projects)}")
+
+        # Log corrigido para usar o debug_logger da home page
+        self.debug_logger.info(f"Total de projetos recentes carregados: {len(projects)}")
 
         for idx, data in enumerate(projects):
             path = data.get("_path")
@@ -293,9 +297,10 @@ class Home_page(QtWidgets.QWidget):
             self._prompt_flow_selection(path)
 
     def _prompt_flow_selection(self, patient_path: str):
-        """Apenas registra o log e impede que a workspace abra sem um fluxo escolhido."""
-        self.debugger.info("Tentativa de abrir projeto sem fluxo definido (Workspace bloqueada até escolha do fluxo)", patient_path=patient_path)
-
+        """Registra o log utilizando o contexto do paciente e impede que a workspace abra sem um fluxo escolhido."""
+        self.debug_logger.info(
+            "Tentativa de abrir projeto sem fluxo definido (Workspace bloqueada até escolha do fluxo)",
+            patient_path=patient_path)
 
     def _on_remove_clicked(self):
         if item := self.projects_view.currentItem():
@@ -319,80 +324,3 @@ class Home_page(QtWidgets.QWidget):
         if confirm == QtWidgets.QMessageBox.Yes:
             if self.project_service.remove_project(path):
                 self.refresh_projects()
-
-
-class HomePageDebugLogger:
-    """Classe dedicada e blindada para gerenciar logs da home page,
-    garantindo que caminhos e dados do paciente apareçam sem exceções silenciosas.
-    """
-
-    def __init__(self, name: str = "OpenCMF.HomePage.Debug"):
-        self.logger = logging.getLogger(name)
-
-    def debug(self, message: str, patient_path: str = None):
-        self._log_with_context("debug", message, patient_path=patient_path)
-
-    def info(self, message: str, patient_path: str = None):
-        self._log_with_context("info", message, patient_path=patient_path)
-
-    def warning(self, message: str, patient_path: str = None):
-        self._log_with_context("warning", message, patient_path=patient_path)
-
-    def error(self, message: str, patient_path: str = None):
-        self._log_with_context("error", message, patient_path=patient_path)
-
-    def critical(self, message: str, exc_info: bool = False, patient_path: str = None):
-        self._log_with_context("critical", message, exc_info=exc_info, patient_path=patient_path)
-
-    def _log_with_context(self, level: str, message: str, exc_info: bool = False, patient_path: str = None):
-        try:
-            context_data = self._extract_patient_info(patient_path)
-            prefix = ""
-            if context_data:
-                prefix = f"[Patient: {context_data.get('patient_name', 'Desconhecido')} | Path: {context_data.get('path', 'N/A')}] "
-            elif patient_path:
-                prefix = f"[Path: {patient_path}] "
-
-            formatted_msg = f"{prefix}{message}"
-            log_method = getattr(self.logger, level.lower(), self.logger.debug)
-
-            if level == "critical":
-                log_method(formatted_msg, exc_info=exc_info)
-            else:
-                log_method(formatted_msg)
-        except Exception as e:
-            # Fallback seguro caso ocorra qualquer falha na extração de metadados
-            self.logger.error(f"Erro interno no HomePageDebugLogger: {e} - Mensagem original: {message}")
-
-    def _extract_patient_info(self, patient_path: str = None) -> dict:
-        info = {}
-        if not patient_path:
-            return info
-
-        try:
-            path_obj = Path(patient_path)
-            info["path"] = str(path_obj.resolve())
-            info["folder_name"] = path_obj.name
-
-            meta_file = path_obj / "metadata.json"
-            if not meta_file.exists():
-                json_files = list(path_obj.glob("*.json"))
-                if json_files:
-                    meta_file = json_files[0]
-
-            if meta_file and meta_file.exists():
-                import json
-                with open(meta_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                    if "paciente" in data and isinstance(data["paciente"], dict):
-                        info["patient_name"] = data["paciente"].get("nome", "Desconhecido")
-                        info["patient_id"] = data["paciente"].get("id", "N/A")
-                    elif "name" in data:
-                        info["patient_name"] = data.get("name")
-            else:
-                info["patient_name"] = path_obj.name
-
-        except Exception as e:
-            info["extraction_error"] = str(e)
-
-        return info
