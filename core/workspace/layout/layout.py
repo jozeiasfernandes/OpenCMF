@@ -17,7 +17,6 @@ class ModuleDistributor:
         if widget is None:
             return False
         try:
-            # Tenta acessar uma propriedade simples do C++ para checar se o objeto foi deletado
             _ = widget.metaObject()
             return True
         except RuntimeError:
@@ -34,7 +33,6 @@ class ModuleDistributor:
         if hasattr(module, "get_workspace_toolbar"):
             tb = module.get_workspace_toolbar()
             if ModuleDistributor._is_valid_qwidget(tb):
-                # Garante que a toolbar foi inicializada de forma segura caso venha de implementações legadas
                 if hasattr(tb, "initialize") and hasattr(tb, "_is_initialized") and not tb._is_initialized:
                     tb.initialize()
 
@@ -48,6 +46,9 @@ class ModuleDistributor:
                 tb.show()
                 for action in tb.actions():
                     action.setVisible(True)
+
+                tb.update()
+                tb.repaint()
 
         # 2. Distribuir Toolboxes (Side Panels) e controlar comportamento do container/splitter
         has_toolboxes = False
@@ -66,6 +67,8 @@ class ModuleDistributor:
 
                         side_manager.container.add_panel(name, widget)
                         widget.setVisible(True)
+                        widget.update()
+                        widget.repaint()
 
         # Gerencia a visibilidade e o redimensionamento dinâmico do QSplitter do Side Panel
         if hasattr(side_manager, "container") and hasattr(side_manager.container, "parent"):
@@ -78,8 +81,14 @@ class ModuleDistributor:
                 if splitter:
                     sizes = splitter.sizes()
                     total = sum(sizes)
-                    if total > 0 and sizes[1] == 0:
-                        splitter.setSizes([int(total * 0.75), int(total * 0.25)])
+                    if total > 0:
+                        splitter.setSizes([total - 40, 40])
+
+                        if hasattr(side_manager.container, "header") and hasattr(side_manager.container.header,
+                                                                                 "_colapsado"):
+                            side_manager.container.header._colapsado = True
+                            side_manager.container.header._update_toggle_icon(True)
+                            side_manager.container.content_container.setVisible(False)
             else:
                 side_manager.container.setVisible(False)
                 if splitter:
@@ -88,14 +97,27 @@ class ModuleDistributor:
                     if total > 0:
                         splitter.setSizes([total, 0])
 
-        # 3. Configurar Viewport Central
+            if splitter:
+                splitter.update()
+                splitter.repaint()
+
+        # 3. Configurar Viewport Central e Ciclo de Vida Unificado
         if hasattr(module, "get_main_widget"):
             viewport = module.get_main_widget()
             if ModuleDistributor._is_valid_qwidget(viewport):
-                # Garante que o componente central execute o ciclo de vida padrão do BaseComponent
+                # Compatibilidade com padrão customizado de componentes
                 if hasattr(viewport, "setup_component") and hasattr(viewport, "_logic"):
-                    if not viewport._logic._loaded:
+                    if hasattr(viewport._logic, "_loaded") and not viewport._logic._loaded:
                         viewport.setup_component()
+
+                # Compatibilidade com o ciclo de vida padrão de ModuloBase / IModule
+                if hasattr(module, "inicializar"):
+                    # Opcional: passa o caminho do paciente se disponível no contexto ou workspace
+                    caminho = getattr(module, "current_patient_path", "")
+                    try:
+                        module.inicializar(caminho)
+                    except Exception:
+                        pass
 
                 try:
                     viewport.setWindowFlags(QtCore.Qt.Widget)
@@ -109,10 +131,16 @@ class ModuleDistributor:
                     QtWidgets.QSizePolicy.Expanding
                 )
 
-                # Adicionar ao central_manager
                 central_manager.set_view(viewport)
 
                 viewport.setVisible(True)
+                viewport.update()
+                viewport.repaint()
+
+                if hasattr(central_manager, "get_container"):
+                    container = central_manager.get_container()
+                    container.update()
+                    container.repaint()
 
     @staticmethod
     def cleanup(

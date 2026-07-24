@@ -56,12 +56,18 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         self.splitter.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
+        # 1. Adiciona a área central (ficará à esquerda)
         self.central_manager = CentralAreaManager(self)
         self.splitter.addWidget(self.central_manager.get_container())
 
+        # 2. Adiciona o painel lateral (ficará à direita)
         self.side_manager = SidePanelManager(self)
         self.side_manager.container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
         self.splitter.addWidget(self.side_manager.container)
+
+        # Garante que o splitter distribua o espaço corretamente (ex: área central expansível e painel lateral fixo/preferencial)
+        self.splitter.setStretchFactor(0, 1)
+        self.splitter.setStretchFactor(1, 0)
 
         self.main_layout.addWidget(self.splitter, stretch=1)
         self.main_layout.addWidget(self.toolbar_manager.bottom_container)
@@ -72,13 +78,26 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         QtCore.QTimer.singleShot(100, self._apply_initial_splitter_sizes)
 
     def _configure_splitter(self):
-        # Permite que o painel lateral possa ser recolhido (collapsible = True)
+        # Permite que o painel lateral possa ser recolhido
         self.splitter.setCollapsible(0, False)
         self.splitter.setCollapsible(1, True)
+
+        # Define largura mínima para o painel lateral acomodar a faixa compacta com as abas verticais (~40px)
+        self.splitter.setChildrenCollapsible(True)
 
         # Fatores de elasticidade equivalentes a 70% para o centro e 30% para a barra lateral
         self.splitter.setStretchFactor(0, 7)
         self.splitter.setStretchFactor(1, 3)
+
+    def notificar_toggle_side_panel(self, colapsado: bool):
+        """Método chamado pelo cabeçalho do side panel para garantir atualização e refresh do layout central."""
+        if self.splitter:
+            self.splitter.update()
+            self.splitter.repaint()
+        if hasattr(self.central_manager, "get_container"):
+            container = self.central_manager.get_container()
+            container.update()
+            container.repaint()
 
     def _apply_initial_splitter_sizes(self):
         """Aplica os tamanhos iniciais do splitter baseados em porcentagem pura da tela."""

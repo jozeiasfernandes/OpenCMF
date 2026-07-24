@@ -83,7 +83,7 @@ class SidePanelHeader(QtWidgets.QWidget):
         self._update_toggle_icon(self._colapsado)
 
         if self._colapsado:
-            # Painel oculto: oculta título e botão de config para ficar ultra compacto na borda
+            # Painel recolhido: oculta o título longo e o botão de config para ocupar largura mínima
             self.lbl_titulo.hide()
             self.btn_config.hide()
         else:
@@ -91,12 +91,19 @@ class SidePanelHeader(QtWidgets.QWidget):
             self.lbl_titulo.show()
             self.btn_config.show()
 
-        # Emite o sinal tradicional para o container pai
+        # Emite o sinal para o container pai redimensionar o splitter
         self.toggle_colapsado_alterado.emit(self._colapsado)
 
-        # Opcional: Se o workspace gerenciar painel flutuante, notifica a alternância se necessário
         if self.workspace_manager and hasattr(self.workspace_manager, "notificar_toggle_side_panel"):
             self.workspace_manager.notificar_toggle_side_panel(self._colapsado)
+
+    def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
+        """Alterna o estado expandido/recolhido ao dar duplo clique no cabeçalho."""
+        if event.button() == QtCore.Qt.LeftButton:
+            self._alternar_estado()
+            event.accept()
+        else:
+            super().mouseDoubleClickEvent(event)
 
     def _abrir_configuracoes(self):
         self.configuracoes_solicitadas.emit()

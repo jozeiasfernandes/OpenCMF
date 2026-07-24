@@ -27,6 +27,7 @@ class IModule(Protocol):
     def cleanup(self) -> None:
         ...
 
+
 @runtime_checkable
 class IWorkspaceTab(Protocol):
 

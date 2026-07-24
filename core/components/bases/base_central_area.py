@@ -27,6 +27,9 @@ class CentralAreaBase(QtWidgets.QWidget):
         self.indicator = None
         self.is_maximized = False
 
+        # Garante política de expansão correta para evitar cortes ou sobreposições no layout pai
+        self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
         self._setup_base_ui()
 
     @property
@@ -77,7 +80,7 @@ class CentralAreaBase(QtWidgets.QWidget):
         return self
 
     def _setup_base_ui(self):
-        """Configura a UI base."""
+        """Configura a UI base de forma limpa e sem sobreposições de layout."""
         if self.layout_principal is None:
             self.layout_principal = QtWidgets.QVBoxLayout(self)
             self.layout_principal.setContentsMargins(0, 0, 0, 0)
@@ -92,6 +95,9 @@ class CentralAreaBase(QtWidgets.QWidget):
             style = vtk.vtkInteractorStyleImage() if "3D" not in self.title else vtk.vtkInteractorStyleTrackballCamera()
             self.vtkWidget.SetInteractorStyle(style)
             self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
+
+            # Assegura política expansiva para o widget VTK
+            self.vtkWidget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
             self.indicator = QtWidgets.QLabel(self.title, self.vtkWidget)
             self.indicator.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
@@ -142,3 +148,19 @@ class CentralAreaBase(QtWidgets.QWidget):
 
     def adicionar_controle(self, widget: QtWidgets.QWidget):
         self.area_controles.addWidget(widget)
+
+    def resizeEvent(self, event):
+        """Força a limpeza e atualização imediata do renderizador VTK e do widget ao redimensionar."""
+        super().resizeEvent(event)
+        if self.vtkWidget:
+            try:
+                # Força o reajuste da janela de renderização do VTK
+                window = self.vtkWidget.GetRenderWindow()
+                if window:
+                    window.Render()
+                self.vtkWidget.update()
+                self.vtkWidget.repaint()
+            except Exception:
+                pass
+        self.update()
+        self.repaint()
