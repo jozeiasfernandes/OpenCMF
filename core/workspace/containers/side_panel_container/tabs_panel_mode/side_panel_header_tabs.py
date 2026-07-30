@@ -3,25 +3,28 @@ from PySide6 import QtWidgets, QtCore, QtGui
 from core import tr
 
 
-class SidePanelHeader(QtWidgets.QWidget):
-    """Cabeçalho personalizado para o painel lateral com título, botão de recolher lateral e configurações."""
+class SidePanelHeaderTabs(QtWidgets.QWidget):
+    """
+    Cabeçalho específico para o Modo Tabs do painel lateral,
+    contendo o botão de alternância de gaveta, título e botão de configurações.
+    """
 
-    toggle_colapsado_alterado = QtCore.Signal(bool)
-    configuracoes_solicitadas = QtCore.Signal()
+    toggle_collapsed_changed = QtCore.Signal(bool)
+    settings_requested = QtCore.Signal()
 
-    def __init__(self, titulo: str = "Side Panel", workspace_manager=None, parent=None):
+    def __init__(self, title_text: str = "Painel", workspace_manager=None, parent=None):
         super().__init__(parent)
         self.workspace_manager = workspace_manager
-        self._colapsado = False
+        self._collapsed = False
 
-        # Define os caminhos dos ícones SVG na mesma pasta
-        assets_dir = Path(__file__).parent
-        self.icon_right_path = assets_dir / "arrow_right.svg"
-        self.icon_left_path = assets_dir / "arrow_left.svg"
 
-        self._setup_ui(titulo)
+        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "appearance" / "icons"
+        self.icon_right_path = self.assets_dir / "arrow_right.svg"
+        self.icon_left_path = self.assets_dir / "arrow_left.svg"
 
-    def _setup_ui(self, titulo_texto: str):
+        self._setup_ui(title_text)
+
+    def _setup_ui(self, title_text: str):
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(6, 4, 6, 4)
         layout.setSpacing(6)
@@ -41,30 +44,34 @@ class SidePanelHeader(QtWidgets.QWidget):
         self.btn_toggle.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_toggle.setToolTip(tr("side_panel.toggle", "Recolher / Expandir Painel Lateral"))
 
-        # Como o estado inicial começa visível (_colapsado = False), usamos arrow_right.svg
-        self._update_toggle_icon(self._colapsado)
-
-        self.btn_toggle.clicked.connect(self._alternar_estado)
+        self._update_toggle_icon(self._collapsed)
+        self.btn_toggle.clicked.connect(self._toggle_state)
         layout.addWidget(self.btn_toggle)
 
-        self.lbl_titulo = QtWidgets.QLabel(tr("side_panel.title", titulo_texto), self)
-        font = self.lbl_titulo.font()
+        self.lbl_title = QtWidgets.QLabel(tr("side_panel.title", title_text), self)
+        font = self.lbl_title.font()
         font.setBold(True)
-        self.lbl_titulo.setFont(font)
-        layout.addWidget(self.lbl_titulo)
+        self.lbl_title.setFont(font)
+        layout.addWidget(self.lbl_title)
+
         layout.addStretch()
 
         self.btn_config = QtWidgets.QToolButton(self)
-        self.btn_config.setText("⚙")
         self.btn_config.setAutoRaise(True)
         self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_config.setToolTip(tr("side_panel.settings", "Configurações do Painel"))
-        self.btn_config.clicked.connect(self._abrir_configuracoes)
+
+        config_icon_path = self.assets_dir / "config.svg"
+        pixmap = QtGui.QPixmap(str(config_icon_path))
+        self.btn_config.setIcon(
+            QtGui.QIcon(pixmap.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+        )
+
+        self.btn_config.clicked.connect(self._open_settings)
         layout.addWidget(self.btn_config)
 
-    def _update_toggle_icon(self, colapsado: bool):
-        """Define arrow_right.svg se visível (para ocultar) ou arrow_left.svg se oculto (para mostrar)."""
-        target_path = self.icon_left_path if colapsado else self.icon_right_path
+    def _update_toggle_icon(self, collapsed: bool):
+        target_path = self.icon_left_path if collapsed else self.icon_right_path
 
         if target_path.exists():
             pixmap = QtGui.QPixmap(str(target_path))
@@ -73,40 +80,33 @@ class SidePanelHeader(QtWidgets.QWidget):
                     QtGui.QIcon(pixmap.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)))
                 return
 
-        # Fallback caso o SVG não seja encontrado
-        self.btn_toggle.setArrowType(QtCore.Qt.LeftArrow if colapsado else QtCore.Qt.RightArrow)
+        self.btn_toggle.setArrowType(QtCore.Qt.LeftArrow if collapsed else QtCore.Qt.RightArrow)
 
-    def _alternar_estado(self):
-        self._colapsado = not self._colapsado
+    def _toggle_state(self):
+        self._collapsed = not self._collapsed
+        self._update_toggle_icon(self._collapsed)
 
-        # Atualiza o ícone SVG de acordo com o novo estado
-        self._update_toggle_icon(self._colapsado)
-
-        if self._colapsado:
-            # Painel recolhido: oculta o título longo e o botão de config para ocupar largura mínima
-            self.lbl_titulo.hide()
+        if self._collapsed:
+            self.lbl_title.hide()
             self.btn_config.hide()
         else:
-            # Painel visível: exibe título e configurações novamente
-            self.lbl_titulo.show()
+            self.lbl_title.show()
             self.btn_config.show()
 
-        # Emite o sinal para o container pai redimensionar o splitter
-        self.toggle_colapsado_alterado.emit(self._colapsado)
+        self.toggle_collapsed_changed.emit(self._collapsed)
 
         if self.workspace_manager and hasattr(self.workspace_manager, "notificar_toggle_side_panel"):
-            self.workspace_manager.notificar_toggle_side_panel(self._colapsado)
+            self.workspace_manager.notificar_toggle_side_panel(self._collapsed)
 
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
-        """Alterna o estado expandido/recolhido ao dar duplo clique no cabeçalho."""
         if event.button() == QtCore.Qt.LeftButton:
-            self._alternar_estado()
+            self._toggle_state()
             event.accept()
         else:
             super().mouseDoubleClickEvent(event)
 
-    def _abrir_configuracoes(self):
-        self.configuracoes_solicitadas.emit()
+    def _open_settings(self):
+        self.settings_requested.emit()
         try:
             from core.settings.settings_dialog import SettingsDialog
             from core.settings.tabs.workspace.tab_side_panel_settings import TabSidePanel
@@ -124,8 +124,8 @@ class SidePanelHeader(QtWidgets.QWidget):
             lay.addWidget(tab_widget)
             dialog.exec()
 
-    def set_titulo(self, texto: str):
-        self.lbl_titulo.setText(texto)
+    def set_title(self, text: str):
+        self.lbl_title.setText(text)
 
 
 if __name__ == "__main__":
@@ -133,9 +133,9 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
 
-    widget = SidePanelHeader("Side Panel")
-    widget.setWindowTitle("Teste SidePanelHeader")
-    widget.resize(300, 50)
-    widget.show()
+    header = SidePanelHeaderTabs("Painel")
+    header.setWindowTitle("Teste SidePanelHeaderTabs")
+    header.resize(300, 50)
+    header.show()
 
     sys.exit(app.exec())

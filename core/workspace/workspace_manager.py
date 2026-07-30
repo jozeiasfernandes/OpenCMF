@@ -14,6 +14,7 @@ from core.workspace.patient.state import WorkspaceState
 from core.workspace.patient.workspace_patient import WorkspacePatientMixin
 from core.workspace.layout.workspace_loaders_components import WorkspaceComponentHandler
 from core.logs.archives.workspace_log import Workspace_Logger
+from core.settings.settings_app_manager import settings
 
 logger = logging.getLogger("OpenCMF.Workspace")
 
@@ -60,14 +61,19 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.central_manager = CentralAreaManager(self)
         self.splitter.addWidget(self.central_manager.get_container())
 
-        # 2. Adiciona o painel lateral (ficará à direita)
+        # 2. Instancia o gerenciador do painel lateral
         self.side_manager = SidePanelManager(self)
-        self.side_manager.container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
-        self.splitter.addWidget(self.side_manager.container)
 
-        # Garante que o splitter distribua o espaço corretamente (ex: área central expansível e painel lateral fixo/preferencial)
-        self.splitter.setStretchFactor(0, 1)
-        self.splitter.setStretchFactor(1, 0)
+        # AJUSTE: Verifica se o modo ativo é "floating". Se for, o container lateral não entra no splitter.
+        current_mode = settings.side_panel_mode
+        if current_mode != "floating":
+            self.side_manager.container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+            self.splitter.addWidget(self.side_manager.container)
+            self.splitter.setStretchFactor(0, 7)
+            self.splitter.setStretchFactor(1, 3)
+        else:
+            # No modo flutuante, a área central ocupa 100% do splitter
+            self.splitter.setStretchFactor(0, 1)
 
         self.main_layout.addWidget(self.splitter, stretch=1)
         self.main_layout.addWidget(self.toolbar_manager.bottom_container)
@@ -78,14 +84,18 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         QtCore.QTimer.singleShot(100, self._apply_initial_splitter_sizes)
 
     def _configure_splitter(self):
-        # Permite que o painel lateral possa ser recolhido
+        current_mode = settings.side_panel_mode
+
+        if current_mode == "floating":
+            self.splitter.setCollapsible(0, False)
+            self.splitter.setStretchFactor(0, 1)
+            return
+
+        # Permite que o painel lateral possa ser recolhido nos modos tabs/toolbox
         self.splitter.setCollapsible(0, False)
         self.splitter.setCollapsible(1, True)
-
-        # Define largura mínima para o painel lateral acomodar a faixa compacta com as abas verticais (~40px)
         self.splitter.setChildrenCollapsible(True)
 
-        # Fatores de elasticidade equivalentes a 70% para o centro e 30% para a barra lateral
         self.splitter.setStretchFactor(0, 7)
         self.splitter.setStretchFactor(1, 3)
 
@@ -102,6 +112,11 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
     def _apply_initial_splitter_sizes(self):
         """Aplica os tamanhos iniciais do splitter baseados em porcentagem pura da tela."""
         if not self.splitter or not self.splitter.isVisible():
+            return
+
+        current_mode = settings.side_panel_mode
+        if current_mode == "floating":
+            self.splitter.setSizes([self.splitter.width(), 0])
             return
 
         total_width = self.splitter.width()

@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 from PySide6 import QtWidgets, QtCore
 
 from core.workspace.models.contracts import IModule
+from core.settings.settings_app_manager import settings
 
 if TYPE_CHECKING:
     from core.workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
@@ -70,49 +71,60 @@ class ModuleDistributor:
                         widget.update()
                         widget.repaint()
 
-        # Gerencia a visibilidade e o redimensionamento dinâmico do QSplitter do Side Panel
-        if hasattr(side_manager, "container") and hasattr(side_manager.container, "parent"):
-            splitter = side_manager.container.parent()
-            while splitter and not isinstance(splitter, QtWidgets.QSplitter):
-                splitter = splitter.parent()
+        # Identifica o modo atual do side panel ("tabs", "toolbox" ou "floating")
+        current_mode = getattr(settings, "side_panel_mode", "toolbox")
 
-            if has_toolboxes:
-                side_manager.container.setVisible(True)
+        if current_mode == "floating":
+            # No modo flutuante, a janela flutuante gerencia sua própria visibilidade e componentes
+            if side_manager.container and hasattr(side_manager.container, "floating_window"):
+                if has_toolboxes:
+                    if side_manager.container.floating_window:
+                        side_manager.container.floating_window.show()
+                else:
+                    if side_manager.container.floating_window:
+                        side_manager.container.floating_window.hide()
+        else:
+            # Gerencia a visibilidade e o redimensionamento dinâmico do QSplitter do Side Panel (Modos Tabs e Toolbox)
+            if hasattr(side_manager, "container") and hasattr(side_manager.container, "parent"):
+                splitter = side_manager.container.parent()
+                while splitter and not isinstance(splitter, QtWidgets.QSplitter):
+                    splitter = splitter.parent()
+
+                if has_toolboxes:
+                    side_manager.container.setVisible(True)
+                    if splitter:
+                        sizes = splitter.sizes()
+                        total = sum(sizes)
+                        if total > 0:
+                            splitter.setSizes([total - 40, 40])
+
+                            if hasattr(side_manager.container, "header") and hasattr(side_manager.container.header,
+                                                                                     "_collapsed"):
+                                side_manager.container.header._collapsed = True
+                                side_manager.container.header._update_toggle_icon(True)
+                                if hasattr(side_manager.container, "content_container"):
+                                    side_manager.container.content_container.setVisible(False)
+                else:
+                    side_manager.container.setVisible(False)
+                    if splitter:
+                        sizes = splitter.sizes()
+                        total = sum(sizes)
+                        if total > 0:
+                            splitter.setSizes([total, 0])
+
                 if splitter:
-                    sizes = splitter.sizes()
-                    total = sum(sizes)
-                    if total > 0:
-                        splitter.setSizes([total - 40, 40])
-
-                        if hasattr(side_manager.container, "header") and hasattr(side_manager.container.header,
-                                                                                 "_colapsado"):
-                            side_manager.container.header._colapsado = True
-                            side_manager.container.header._update_toggle_icon(True)
-                            side_manager.container.content_container.setVisible(False)
-            else:
-                side_manager.container.setVisible(False)
-                if splitter:
-                    sizes = splitter.sizes()
-                    total = sum(sizes)
-                    if total > 0:
-                        splitter.setSizes([total, 0])
-
-            if splitter:
-                splitter.update()
-                splitter.repaint()
+                    splitter.update()
+                    splitter.repaint()
 
         # 3. Configurar Viewport Central e Ciclo de Vida Unificado
         if hasattr(module, "get_main_widget"):
             viewport = module.get_main_widget()
             if ModuleDistributor._is_valid_qwidget(viewport):
-                # Compatibilidade com padrão customizado de componentes
                 if hasattr(viewport, "setup_component") and hasattr(viewport, "_logic"):
                     if hasattr(viewport._logic, "_loaded") and not viewport._logic._loaded:
                         viewport.setup_component()
 
-                # Compatibilidade com o ciclo de vida padrão de ModuloBase / IModule
                 if hasattr(module, "inicializar"):
-                    # Opcional: passa o caminho do paciente se disponível no contexto ou workspace
                     caminho = getattr(module, "current_patient_path", "")
                     try:
                         module.inicializar(caminho)
@@ -155,6 +167,11 @@ class ModuleDistributor:
         if hasattr(side_manager.container, 'clear_all'):
             side_manager.container.clear_all()
             side_manager.container.setVisible(False)
+
+        # Garante o fechamento da janela flutuante se estiver ativa no cleanup
+        if hasattr(side_manager.container, 'floating_window') and side_manager.container.floating_window:
+            side_manager.container.floating_window.close()
+            side_manager.container.floating_window = None
 
         if hasattr(central_manager, 'clear'):
             central_manager.clear()

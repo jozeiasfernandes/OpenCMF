@@ -1,14 +1,13 @@
 from PySide6.QtCore import Qt, QPoint, Signal
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget, QScrollArea
 
-from core.workspace.containers.side_panel_container.collapsible_section import CollapsibleSection
+from core.workspace.containers.side_panel_container.floating_panel_mode.collapsible_section_floating import CollapsibleSectionFloating
 from core.settings.settings_app_manager import settings
 from core.icons.icons_manager import IconManager
 
 
 class FloatingContainer(QFrame):
-    """Container flutuante que pode sobrepor a área central do workspace,
-
+    """Container flutuante que pode sobrepor a área central do workspace em modo toolbox,
     permitindo visualização e edição sem ocupar espaço horizontal fixo.
     """
 
@@ -17,7 +16,6 @@ class FloatingContainer(QFrame):
 
     def __init__(self, parent: QWidget = None, title: str = "Painel Flutuante"):
         super().__init__(parent)
-        # CORREÇÃO: Utilizar Qt.Tool em vez de Qt.SubWindow para eliminar problemas de renderização e rastros gráficos
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
         self.setObjectName("FloatingContainer")
         self.setAttribute(Qt.WA_StyledBackground, True)
@@ -51,13 +49,12 @@ class FloatingContainer(QFrame):
         self.dock_btn.setFixedSize(24, 24)
         self.dock_btn.setToolTip("Reanexar à Workspace")
 
-        # Carrega o ícone arrow_circle_right.svg de forma segura pelo IconManager
         icon_manager = IconManager.get_instance()
         dock_icon = icon_manager.get_icon("arrow_circle_right")
         if not dock_icon.isNull():
             self.dock_btn.setIcon(dock_icon)
         else:
-            self.dock_btn.setText("➔")  # Fallback textual caso o ícone não carregue
+            self.dock_btn.setText("➔")
 
         self.dock_btn.clicked.connect(self._on_dock_clicked)
         header_layout.addWidget(self.dock_btn)
@@ -71,10 +68,22 @@ class FloatingContainer(QFrame):
 
         layout.addWidget(header_widget)
 
-        # Área de Conteúdo Interno
-        self.content_layout = QVBoxLayout()
-        self.content_layout.setContentsMargins(8, 8, 8, 8)
-        layout.addLayout(self.content_layout)
+        # Área de Rolagem alinhada ao ToolboxContainer
+        self.scroll_area = QScrollArea(self)
+        self.scroll_area.setObjectName("FloatingScrollArea")
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QScrollArea.NoFrame)
+
+        self.content_widget = QWidget(self.scroll_area)
+        self.content_widget.setObjectName("FloatingContentWidget")
+
+        self.content_layout = QVBoxLayout(self.content_widget)
+        self.content_layout.setContentsMargins(4, 4, 4, 4)
+        self.content_layout.setSpacing(6)
+        self.content_layout.addStretch()  # Mantém os elementos empurrados para o topo
+
+        self.scroll_area.setWidget(self.content_widget)
+        layout.addWidget(self.scroll_area)
 
     def _on_dock_clicked(self):
         """Altera a configuração para o modo toolbox e solicita a reconstrução do painel."""
@@ -85,19 +94,43 @@ class FloatingContainer(QFrame):
 
     def set_content(self, widget: QWidget):
         """Define ou substitui o widget de conteúdo principal do container."""
-        while self.content_layout.count() > 0:
+        while self.content_layout.count() > 1:
             item = self.content_layout.takeAt(0)
-            if item.widget():
+            if item and item.widget():
                 item.widget().setParent(None)
+                item.widget().deleteLater()
 
         if widget:
-            self.content_layout.addWidget(widget)
+            self.content_layout.insertWidget(0, widget)
 
-    def add_section(self, title: str, content_widget: QWidget) -> CollapsibleSection:
-        """Adiciona diretamente uma seção retrátil (CollapsibleSection) ao container flutuante."""
-        section = CollapsibleSection(title, content_widget, self)
-        self.content_layout.addWidget(section)
+    def add_section(self, section_widget: QWidget):
+        """Adiciona uma seção retrátil ao container flutuante."""
+        count = self.content_layout.count()
+        if count > 0:
+            self.content_layout.insertWidget(count - 1, section_widget)
+        else:
+            self.content_layout.addWidget(section_widget)
+
+    def add_section_by_title(self, title: str, content_widget: QWidget) -> CollapsibleSectionFloating:
+        """Cria e adiciona uma CollapsibleSectionToolbox diretamente ao container flutuante."""
+        section = CollapsibleSectionFloating(title, content_widget, self)
+        self.add_section(section)
         return section
+
+    def remove_section(self, section_widget: QWidget):
+        """Remove uma seção do container flutuante."""
+        self.content_layout.removeWidget(section_widget)
+        section_widget.setParent(None)
+        section_widget.deleteLater()
+
+    def clear_sections(self):
+        """Remove todas as seções do container flutuante."""
+        while self.content_layout.count() > 1:
+            item = self.content_layout.takeAt(0)
+            if item and item.widget():
+                widget = item.widget()
+                widget.setParent(None)
+                widget.deleteLater()
 
     def set_title(self, title: str):
         """Atualiza o texto do título do painel flutuante."""
@@ -109,7 +142,7 @@ class FloatingContainer(QFrame):
             if event.position().y() <= 40:
                 self._is_dragging = True
                 self._drag_position = (
-                        event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                    event.globalPosition().toPoint() - self.frameGeometry().topLeft()
                 )
                 event.accept()
 

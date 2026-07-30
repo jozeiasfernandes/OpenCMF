@@ -2,40 +2,48 @@ from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 
 
-class CollapsibleSection(QtWidgets.QWidget):
-    """Componente reutilizável para criar seções retráteis com um puxador SVG (drag_indicator.svg)
+class CollapsibleSectionFloating(QtWidgets.QWidget):
+    """
+    Componente retrátil (Accordion/Sanfona) especializado para o Modo Floating.
+    Apresenta um puxador de arrasto (drag_indicator.svg), título e botão de alternância (arrow_up/down).
     """
 
     def __init__(self, title: str, content_widget: QtWidgets.QWidget, parent=None):
         super().__init__(parent)
+
+        # Caminho absoluto para a pasta de ícones (C:\OpenCMF\appearance\icons)
+        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "appearance" / "icons"
+
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # 1. Header Layout (Puxador + Título + Botão de Expandir/Recolher com ícone SVG)
+        # 1. Layout do Cabeçalho da Seção (Puxador + Título + Botão de Expandir/Recolher)
         header_layout = QtWidgets.QHBoxLayout()
         header_layout.setContentsMargins(4, 2, 4, 2)
         header_layout.setSpacing(6)
 
-        # Puxador (Grip) usando drag_indicator.svg
-        self.btn_grip = QtWidgets.QLabel()
+        # Puxador de arrasto (Grip)
+        self.btn_grip = QtWidgets.QLabel(self)
         self.btn_grip.setCursor(QtCore.Qt.SizeVerCursor)
         self.btn_grip.setToolTip("Arraste para mover")
 
-        assets_dir = Path(__file__).parent
-        drag_icon_path = assets_dir / "drag_indicator.svg"
+        drag_icon_path = self.assets_dir / "drag_indicator.svg"
         if drag_icon_path.exists():
-            pixmap = QtGui.QPixmap(str(drag_icon_path))
-            self.btn_grip.setPixmap(pixmap.scaled(16, 16, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+            pixmap_grip = QtGui.QPixmap(str(drag_icon_path))
+            self.btn_grip.setPixmap(
+                pixmap_grip.scaled(16, 16, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+            )
         else:
             self.btn_grip.setText("⋮⋮")
             self.btn_grip.setStyleSheet("color: #888; font-weight: bold; font-size: 11px;")
 
-        self.lbl_title = QtWidgets.QLabel(title)
+        # Título da Seção
+        self.lbl_title = QtWidgets.QLabel(title, self)
         self.lbl_title.setStyleSheet("font-weight: bold;")
 
-        # Botão de Ocultar/Reexibir usando arrow_up.svg / arrow_down.svg
-        self.toggle_button = QtWidgets.QToolButton()
+        # Botão de Ocultar/Exibir Conteúdo
+        self.toggle_button = QtWidgets.QToolButton(self)
         self.toggle_button.setStyleSheet("""
             QToolButton {
                 border: none;
@@ -50,8 +58,8 @@ class CollapsibleSection(QtWidgets.QWidget):
         self.toggle_button.setChecked(True)
         self.toggle_button.setCursor(QtCore.Qt.PointingHandCursor)
 
-        self.icon_up_path = assets_dir / "arrow_up.svg"
-        self.icon_down_path = assets_dir / "arrow_down.svg"
+        self.icon_up_path = self.assets_dir / "arrow_up.svg"
+        self.icon_down_path = self.assets_dir / "arrow_down.svg"
 
         self._update_toggle_icon(True)
 
@@ -59,27 +67,30 @@ class CollapsibleSection(QtWidgets.QWidget):
         header_layout.addWidget(self.lbl_title, stretch=1)
         header_layout.addWidget(self.toggle_button)
 
-        # 2. Área de Conteúdo
+        # 2. Área do Conteúdo Interno
         self.content_area = content_widget
 
         main_layout.addLayout(header_layout)
         main_layout.addWidget(self.content_area)
 
-        # Conexão de comportamento para recolher/expandir
+        # Conexão do evento de clique para alternar visibilidade
         self.toggle_button.toggled.connect(self._on_toggle)
 
     def _update_toggle_icon(self, checked: bool) -> None:
+        """Atualiza o ícone do botão com base no estado expandido/recolhido."""
         target_path = self.icon_up_path if checked else self.icon_down_path
         if target_path.exists():
             pixmap = QtGui.QPixmap(str(target_path))
             if not pixmap.isNull():
-                self.toggle_button.setIcon(QtGui.QIcon(pixmap.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)))
+                self.toggle_button.setIcon(
+                    QtGui.QIcon(pixmap.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+                )
                 return
 
         self.toggle_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_TitleBarShadeButton))
 
     def _on_toggle(self, checked: bool) -> None:
-        """Alterna o ícone de seta e a visibilidade do conteúdo interno."""
+        """Alterna a visibilidade do conteúdo e atualiza a seta."""
         self.content_area.setVisible(checked)
         self._update_toggle_icon(checked)
 
@@ -88,11 +99,11 @@ class CollapsibleSection(QtWidgets.QWidget):
         self.lbl_title.setText(title)
 
     def is_expanded(self) -> bool:
-        """Retorna se a seção está expandida ou recolhida."""
+        """Retorna True se a seção estiver expandida."""
         return self.toggle_button.isChecked()
 
     def set_expanded(self, expanded: bool) -> None:
-        """Define programaticamente o estado expandido ou recolhido."""
+        """Define o estado de expansão da seção."""
         self.toggle_button.setChecked(expanded)
 
 
@@ -103,17 +114,15 @@ if __name__ == "__main__":
     app.setStyle("Fusion")
 
     window = QtWidgets.QMainWindow()
-    window.setWindowTitle("Teste - CollapsibleSection com SVGs")
+    window.setWindowTitle("Teste - CollapsibleSectionFloating")
     window.resize(300, 200)
 
-    # Widget de conteúdo de exemplo
     content = QtWidgets.QWidget()
     lay = QtWidgets.QVBoxLayout(content)
-    lay.addWidget(QtWidgets.QPushButton("Botão Interno 1"))
-    lay.addWidget(QtWidgets.QPushButton("Botão Interno 2"))
+    lay.addWidget(QtWidgets.QPushButton("Ferramenta Flutuante 1"))
+    lay.addWidget(QtWidgets.QPushButton("Ferramenta Flutuante 2"))
 
-    # Instancia a seção retrátil
-    section = CollapsibleSection("Widget 1", content)
+    section = CollapsibleSectionFloating("Floating Widget 1", content)
 
     window.setCentralWidget(section)
     window.show()

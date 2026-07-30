@@ -30,6 +30,12 @@ class SidePanelManager:
             self.floating_window.set_content(self.container.content_container)
             self.floating_window.resize(300, 400)  # Tamanho inicial padrão seguro para o flutuante
 
+            # Conecta o sinal de reanexar à função de reconstrução da workspace
+            if hasattr(self.parent_window, "reconstruir_side_panel"):
+                self.floating_window.dock_requested.connect(
+                    self.parent_window.reconstruir_side_panel
+                )
+
     def add_panel(self, name: str, widget: QtWidgets.QWidget):
         """Adiciona um widget ao container lateral ou ao painel flutuante."""
         panel_id = name.lower().replace(" ", "_")
@@ -70,11 +76,6 @@ class SidePanelManager:
             self.floating_window.resize(width, self.floating_window.height())
 
     def _criar_janela_flutuante(self):
-        if not self.floating_window:
-            self.floating_window = FloatingContainer(self.parent_window)
-            # Conecta o sinal de reanexar à função de reconstrução da workspace
-            if hasattr(self.parent_window, "reconstruir_side_panel"):
-                self.floating_window.dock_requested.connect(
-                    self.parent_window.reconstruir_side_panel
-                )
+        """Método auxiliar unificado para garantir configuração e conexões da janela flutuante."""
+        self._setup_floating_window()
         return self.floating_window

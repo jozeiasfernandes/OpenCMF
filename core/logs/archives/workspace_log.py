@@ -221,7 +221,20 @@ class Workspace_Logger:
         return configs
 
     @staticmethod
+    @staticmethod
     def _format_dict(data: Any, indent: int = 4) -> str:
-        """Formata dicionários de forma legível para inserção nos logs."""
+        """Formata dicionários e listas de forma limpa e estruturada para os logs."""
         import pprint
-        return pprint.pformat(data, indent=indent, width=80, compact=False)
+
+        # Se o dicionário ou lista estiver totalmente vazio, retorna uma representação concisa
+        if not data:
+            return "{}" if isinstance(data, dict) else "[]"
+
+        # Usa pprint com indentação controlada e largura adequada para quebra de linhas em listas
+        return pprint.pformat(
+            data,
+            indent=indent,
+            width=70,
+            compact=False,
+            sort_dicts=False
+        )

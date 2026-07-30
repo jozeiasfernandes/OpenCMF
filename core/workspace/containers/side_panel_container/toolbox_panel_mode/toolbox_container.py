@@ -1,9 +1,8 @@
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QScrollArea
-
-from containers.side_panel_container.collapsible_section import CollapsibleSection
+from core.workspace.containers.side_panel_container.toolbox_panel_mode.collapsible_section_toolbox import CollapsibleSectionToolbox
 
 class ToolboxContainer(QWidget):
-    """Container em formato de Toolbox com seções retráteis para o workspace."""
+    """Container em formato de Toolbox com seções retráteis baseadas em CollapsibleSectionTabs para o workspace."""
 
     def __init__(self, parent: QWidget = None):
         super().__init__(parent)
@@ -35,17 +34,17 @@ class ToolboxContainer(QWidget):
         main_layout.addWidget(self.scroll_area)
 
     def add_section(self, section_widget: QWidget):
-        """Adiciona uma seção retrátil (CollapsibleSection) ao toolbox."""
-        # Insere antes do stretch (penúltimo elemento)
+        """Adiciona uma seção retrátil ao toolbox."""
         count = self.content_layout.count()
+        # Insere antes do stretch (que está na última posição se houver itens)
         if count > 0:
             self.content_layout.insertWidget(count - 1, section_widget)
         else:
             self.content_layout.addWidget(section_widget)
 
-    def add_section_by_title(self, title: str, content_widget: QWidget) -> CollapsibleSection:
-        """Cria e adiciona uma CollapsibleSection diretamente ao toolbox usando título e conteúdo."""
-        section = CollapsibleSection(title, content_widget, self)
+    def add_section_by_title(self, title: str, content_widget: QWidget) -> CollapsibleSectionToolbox:
+        """Cria e adiciona uma CollapsibleSectionToolbox diretamente ao toolbox usando título e conteúdo."""
+        section = CollapsibleSectionToolbox(title, content_widget, self)
         self.add_section(section)
         return section
 
@@ -53,10 +52,13 @@ class ToolboxContainer(QWidget):
         """Remove uma seção do toolbox."""
         self.content_layout.removeWidget(section_widget)
         section_widget.setParent(None)
+        section_widget.deleteLater()
 
     def clear_sections(self):
         """Remove todas as seções do toolbox."""
         while self.content_layout.count() > 1:
             item = self.content_layout.takeAt(0)
             if item and item.widget():
-                item.widget().setParent(None)
+                widget = item.widget()
+                widget.setParent(None)
+                widget.deleteLater()
