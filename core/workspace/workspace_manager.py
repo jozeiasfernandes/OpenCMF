@@ -48,7 +48,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.main_layout.setSpacing(0)
 
     def _setup_components(self):
-        self.header = HeaderPanel()
+        self.header = HeaderPanel(workspace_manager=self)
         self.main_layout.addWidget(self.header)
 
         self.toolbar_manager = ToolbarManager()
@@ -64,7 +64,6 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         # 2. Instancia o gerenciador do painel lateral
         self.side_manager = SidePanelManager(self)
 
-        # AJUSTE: Verifica se o modo ativo é "floating". Se for, o container lateral não entra no splitter.
         current_mode = settings.side_panel_mode
         if current_mode != "floating":
             self.side_manager.container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
@@ -81,7 +80,6 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.status_bar_manager = StatusBarManager()
         self.main_layout.addWidget(self.status_bar_manager)
 
-        QtCore.QTimer.singleShot(100, self._apply_initial_splitter_sizes)
 
     def _configure_splitter(self):
         current_mode = settings.side_panel_mode
@@ -110,7 +108,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
             container.repaint()
 
     def _apply_initial_splitter_sizes(self):
-        """Aplica os tamanhos iniciais do splitter baseados em porcentagem pura da tela."""
+        """Aplica os tamanhos iniciais do splitter garantindo que a área central não fique com largura 0."""
         if not self.splitter or not self.splitter.isVisible():
             return
 
@@ -123,6 +121,10 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         if total_width > 0:
             central_width = int(total_width * 0.70)
             side_width = total_width - central_width
+            # Garante o mínimo de espaço para a área central evitar o colapso visual [0, total]
+            if central_width < 200:
+                central_width = 200
+                side_width = total_width - 200
             self.splitter.setSizes([central_width, side_width])
         else:
             self.splitter.setSizes([700, 300])
@@ -147,6 +149,84 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
 
         self.central_manager.clear()
         logger.debug(f"Estado atual pós-reset - Módulos ativos: {self.registry.list_active_modules()}")
+
+    def reconstruir_side_panel(self):
+        """Reconstrói dinamicamente o container do painel lateral com base no novo modo (tabs, toolbox ou floating)."""
+        if not hasattr(self, "side_manager") or not self.side_manager:
+            return
+
+        # 1. Preserva os painéis ativos no container atual para reutilizá-los
+        current_panels = {}
+        if hasattr(self.side_manager, "container") and self.side_manager.container:
+            if hasattr(self.side_manager.container, "panels"):
+                current_panels = dict(self.side_manager.container.panels)
+
+            # Remove o container antigo do layout/splitter de forma segura
+            self.side_manager.container.setParent(None)
+            self.side_manager.container.deleteLater()
+
+        # 2. Instancia um novo container e atualiza a referência no gerenciador
+        from core.workspace.containers.side_panel_container.side_panel_container import SidePanelContainer
+
+        new_container = SidePanelContainer(title="Side Panel", workspace_manager=self, parent=self)
+        self.side_manager.container = new_container
+
+        # 3. Reinsere no QSplitter principal do workspace
+        current_mode = settings.side_panel_mode
+        if current_mode != "floating":
+            new_container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
+            self.splitter.addWidget(new_container)
+            self.splitter.setStretchFactor(0, 7)
+            self.splitter.setStretchFactor(1, 3)
+            new_container.setVisible(True)
+        else:
+            # No modo floating, o container principal permanece oculto e o splitter ajusta para a área central
+            new_container.setVisible(False)
+            self.splitter.setStretchFactor(0, 1)
+
+        # 4. Restaura os painéis abertos no novo container
+        if current_panels:
+            for panel_id, panel_widget in current_panels.items():
+                title = getattr(new_container, "panel_titles", {}).get(panel_id, "Panel")
+                new_container.add_panel(panel_id, panel_widget, title)
+
+        # 5. Reaplica as configurações visuais do splitter e atualiza a interface
+        self._configure_splitter()
+        self.splitter.update()
+        self.splitter.repaint()
+
+    def notificar_toggle_side_panel(self, colapsado: bool):
+        """Método chamado pelo cabeçalho do side panel para atualizar o layout e redimensionar o QSplitter."""
+        current_mode = getattr(settings, "side_panel_mode", "toolbox")
+        if current_mode == "floating":
+            return
+
+        if hasattr(self, "splitter") and self.splitter:
+            sizes = self.splitter.sizes()
+            total = sum(sizes)
+            if total > 0:
+                if colapsado:
+                    # Recolhe o painel lateral mantendo apenas a aba visível (ex: 40 pixels)
+                    self.splitter.setSizes([total - 40, 40])
+                else:
+                    # Restaura o tamanho padrão proporcional (70% / 30%)
+                    central_width = int(total * 0.70)
+                    side_width = total - central_width
+                    self.splitter.setSizes([central_width, side_width])
+
+            self.splitter.update()
+            self.splitter.repaint()
+
+        if hasattr(self, "central_manager") and hasattr(self.central_manager, "get_container"):
+            container = self.central_manager.get_container()
+            if container:
+                container.update()
+                container.repaint()
+
+    def showEvent(self, event):
+        """Garante que os tamanhos do splitter sejam aplicados assim que a janela for exibida e tiver largura real."""
+        super().showEvent(event)
+        QtCore.QTimer.singleShot(50, self._apply_initial_splitter_sizes)
 
 
 if __name__ == "__main__":

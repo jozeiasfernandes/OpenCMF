@@ -65,7 +65,19 @@ class TabSidePanel(QtWidgets.QWidget):
     def _atualizar_visibilidade(self, checked: bool):
         settings.side_panel_show_by_default = checked
         if self.workspace_manager and hasattr(self.workspace_manager, "side_manager"):
-            self.workspace_manager.side_manager.container.setVisible(checked)
+            side_manager = self.workspace_manager.side_manager
+            current_mode = getattr(settings, "side_panel_mode", "toolbox")
+
+            if current_mode == "floating":
+                # No modo flutuante, atualiza a visibilidade da janela flutuante em vez do container embutido
+                if hasattr(side_manager.container, "floating_window") and side_manager.container.floating_window:
+                    if checked:
+                        side_manager.container.floating_window.show()
+                    else:
+                        side_manager.container.floating_window.hide()
+            else:
+                if hasattr(side_manager, "container") and side_manager.container:
+                    side_manager.container.setVisible(checked)
 
     def _atualizar_modo(self):
         mode = self.combo_mode.currentData()

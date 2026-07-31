@@ -50,7 +50,9 @@ class WorkspaceComponentHandler:
 
             # 1. Toolbars
             if categoria == "toolbars":
-                tb_id = comp.objectName() or f"toolbar_{caminho.stem}"
+                if not comp.objectName():
+                    comp.setObjectName(f"toolbar_{caminho.stem}")
+                tb_id = comp.objectName()
                 self.workspace.toolbar_manager.top_container.add_toolbar(tb_id, comp)
                 comp.setVisible(True)
 
@@ -78,9 +80,19 @@ class WorkspaceComponentHandler:
     def _remover_componente(self, categoria: str, caminho: Path):
         try:
             if categoria == "toolbars":
-                tb_id = f"toolbar_{caminho.stem}"
-                if hasattr(self.workspace.toolbar_manager.top_container, "remove_toolbar"):
-                    self.workspace.toolbar_manager.top_container.remove_toolbar(tb_id)
+                # Utiliza a mesma estratégia determinística e verifica toolbars gerenciadas
+                expected_id = f"toolbar_{caminho.stem}"
+                top_container = self.workspace.toolbar_manager.top_container
+
+                if hasattr(top_container, "toolbars"):
+                    for tb_id, toolbar in list(top_container.toolbars.items()):
+                        mod_path = toolbar.property("__module_path__")
+                        if (mod_path and Path(
+                                mod_path) == caminho) or tb_id == expected_id or toolbar.objectName() == expected_id:
+                            top_container.remove_toolbar(tb_id)
+                            toolbar.setParent(None)
+                            toolbar.deleteLater()
+                            break
 
             elif categoria in ("side_panel_container", "side_panel_loaders"):
                 side_container = getattr(self.workspace.side_manager, "container", self.workspace.side_manager)

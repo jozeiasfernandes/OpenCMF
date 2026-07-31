@@ -84,7 +84,7 @@ class ModuleDistributor:
                     if side_manager.container.floating_window:
                         side_manager.container.floating_window.hide()
         else:
-            # Gerencia a visibilidade e o redimensionamento dinâmico do QSplitter do Side Panel (Modos Tabs e Toolbox)
+            # Gerencia a visibilidade do painel lateral sem forçar o colapso agressivo (respeitando o WorkspaceManager)
             if hasattr(side_manager, "container") and hasattr(side_manager.container, "parent"):
                 splitter = side_manager.container.parent()
                 while splitter and not isinstance(splitter, QtWidgets.QSplitter):
@@ -92,18 +92,6 @@ class ModuleDistributor:
 
                 if has_toolboxes:
                     side_manager.container.setVisible(True)
-                    if splitter:
-                        sizes = splitter.sizes()
-                        total = sum(sizes)
-                        if total > 0:
-                            splitter.setSizes([total - 40, 40])
-
-                            if hasattr(side_manager.container, "header") and hasattr(side_manager.container.header,
-                                                                                     "_collapsed"):
-                                side_manager.container.header._collapsed = True
-                                side_manager.container.header._update_toggle_icon(True)
-                                if hasattr(side_manager.container, "content_container"):
-                                    side_manager.container.content_container.setVisible(False)
                 else:
                     side_manager.container.setVisible(False)
                     if splitter:
@@ -123,13 +111,6 @@ class ModuleDistributor:
                 if hasattr(viewport, "setup_component") and hasattr(viewport, "_logic"):
                     if hasattr(viewport._logic, "_loaded") and not viewport._logic._loaded:
                         viewport.setup_component()
-
-                if hasattr(module, "inicializar"):
-                    caminho = getattr(module, "current_patient_path", "")
-                    try:
-                        module.inicializar(caminho)
-                    except Exception:
-                        pass
 
                 try:
                     viewport.setWindowFlags(QtCore.Qt.Widget)
@@ -162,10 +143,18 @@ class ModuleDistributor:
     ):
         if hasattr(toolbar_manager.top_container, 'toolbars'):
             for tb_id in list(toolbar_manager.top_container.toolbars.keys()):
-                toolbar_manager.top_container.remove_toolbar(tb_id)
+                # Apenas remove do container visual sem destruir o widget do toolbar
+                toolbar = toolbar_manager.top_container.toolbars.get(tb_id)
+                if toolbar:
+                    toolbar_manager.top_container.remove_toolbar(tb_id)
+                    toolbar.setParent(None)
 
         if hasattr(side_manager.container, 'clear_all'):
-            side_manager.container.clear_all()
+            for panel_id in list(side_manager.container.panels.keys()):
+                panel = side_manager.container.panels.get(panel_id)
+                if panel:
+                    side_manager.container.remove_panel(panel_id)
+                    panel.setParent(None)
             side_manager.container.setVisible(False)
 
         # Garante o fechamento da janela flutuante se estiver ativa no cleanup

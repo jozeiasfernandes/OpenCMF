@@ -1,51 +1,36 @@
 from pathlib import Path
 from PySide6 import QtWidgets
 from core.workspace.containers.side_panel_container.side_panel_container import SidePanelContainer
-from core.workspace.containers.side_panel_container.floating_panel_mode.floating_container import FloatingContainer
 from core.settings.settings_app_manager import settings
 
 
 class SidePanelManager:
+    """Gerencia a interface do painel lateral, delegando as operações diretamente para o SidePanelContainer."""
+
     def __init__(self, parent_window):
         self.parent_window = parent_window
-        self.container = SidePanelContainer("Side Panel", parent_window)
-        self.floating_window = None
+        self.container = SidePanelContainer("Side Panel", workspace_manager=parent_window, parent=parent_window)
 
-        # Verifica o modo atual de exibição
+        # Configura a visibilidade inicial com base nas preferências
         current_mode = settings.side_panel_mode
         show_default = settings.side_panel_show_by_default
 
         if current_mode == "floating":
             self.container.setVisible(False)
-            # Inicializa o container flutuante de forma oculta por padrão, aguardando painéis
-            self._setup_floating_window()
+            if self.container.floating_window and show_default:
+                self.container.floating_window.show()
         else:
             self.container.setVisible(show_default)
 
-    def _setup_floating_window(self):
-        """Configura a janela flutuante se o modo for floating."""
-        if not self.floating_window:
-            self.floating_window = FloatingContainer(self.parent_window, title="Side Panel")
-            # Define o conteúdo do container flutuante com a estrutura interna do container lateral
-            self.floating_window.set_content(self.container.content_container)
-            self.floating_window.resize(300, 400)  # Tamanho inicial padrão seguro para o flutuante
-
-            # Conecta o sinal de reanexar à função de reconstrução da workspace
-            if hasattr(self.parent_window, "reconstruir_side_panel"):
-                self.floating_window.dock_requested.connect(
-                    self.parent_window.reconstruir_side_panel
-                )
-
     def add_panel(self, name: str, widget: QtWidgets.QWidget):
-        """Adiciona um widget ao container lateral ou ao painel flutuante."""
+        """Adiciona um painel através do container principal."""
         panel_id = name.lower().replace(" ", "_")
         if hasattr(self.container, "add_panel"):
             self.container.add_panel(panel_id, widget, title=name)
 
             if settings.side_panel_mode == "floating":
-                self._setup_floating_window()
-                if settings.side_panel_show_by_default:
-                    self.floating_window.show()
+                if self.container.floating_window and settings.side_panel_show_by_default:
+                    self.container.floating_window.show()
                 self.container.setVisible(False)
             else:
                 self.container.setVisible(True)
@@ -53,29 +38,30 @@ class SidePanelManager:
             widget.setVisible(True)
 
     def remove_panel(self, name: str):
-        """Remove um widget do painel lateral pelo ID/nome."""
+        """Remove um painel do container ativo."""
         panel_id = name.lower().replace(" ", "_")
         if hasattr(self.container, "remove_panel"):
             self.container.remove_panel(panel_id)
 
     def remover_widget_por_caminho(self, caminho: Path):
-        """Repassa a solicitação de remoção por caminho para o container interno."""
+        """Repassa a solicitação de remoção por caminho para o container."""
         if hasattr(self.container, "remover_widget_por_caminho"):
             self.container.remover_widget_por_caminho(caminho)
 
     def clear_all(self):
-        """Limpa todos os painéis e oculta a janela flutuante se ativa."""
+        """Limpa todos os painéis e fecha a janela flutuante se ativa."""
         if hasattr(self.container, "clear_all"):
             self.container.clear_all()
-        if self.floating_window:
-            self.floating_window.hide()
+        if self.container.floating_window:
+            self.container.floating_window.hide()
 
     def atualizar_largura_painel(self, width: int):
-        """Método mantido por compatibilidade; redimensionamento lateral agora ocorre via QSplitter."""
-        if settings.side_panel_mode == "floating" and self.floating_window:
-            self.floating_window.resize(width, self.floating_window.height())
+        """Redimensiona a janela flutuante se o modo ativo for floating."""
+        if settings.side_panel_mode == "floating" and self.container.floating_window:
+            self.container.floating_window.resize(width, self.container.floating_window.height())
 
     def _criar_janela_flutuante(self):
-        """Método auxiliar unificado para garantir configuração e conexões da janela flutuante."""
-        self._setup_floating_window()
-        return self.floating_window
+        """Método auxiliar de compatibilidade que retorna a janela flutuante do container."""
+        if not self.container.floating_window and hasattr(self.container, "_setup_floating_window"):
+            self.container._setup_floating_window("Side Panel")
+        return self.container.floating_window

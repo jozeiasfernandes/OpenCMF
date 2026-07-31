@@ -44,29 +44,33 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
         self.collapsible_sections: Dict[str, QtWidgets.QWidget] = {}
 
         # Instância da janela flutuante caso o modo seja "floating"
-        self.floating_window: Optional[FloatingContainer] = None
+        self.floating_window: Optional[QtWidgets.QMainWindow] = None
+
+        # 1. Container de conteúdo criado sempre (evita AttributeError no manager e no dock)
+        self.content_container = QtWidgets.QWidget(self)
+        self.content_layout = QtWidgets.QVBoxLayout(self.content_container)
+        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        self.content_layout.setSpacing(0)
+
+        # 2. QTabWidget lateral fixo (TabPosition East) apenas para o modo "tabs"
+        self.vertical_tabs = QtWidgets.QTabWidget(self)
+        self.vertical_tabs.setTabPosition(QtWidgets.QTabWidget.East)
+        self.vertical_tabs.setObjectName("SidePanelVerticalTabs")
+        self.vertical_tabs.setFixedWidth(35)
+        self.vertical_tabs.currentChanged.connect(self._on_vertical_tab_clicked)
 
         if self.current_mode == "floating":
             self.setVisible(False)
+            self.main_layout.addWidget(self.content_container, stretch=1)
+            self.vertical_tabs.setVisible(False)
+            self.main_layout.addWidget(self.vertical_tabs)
+            # _setup_floating_window deve ser chamado por último para que o content_container e o layout já estejam prontos
             self._setup_floating_window(title)
         else:
-            # 1. Container de conteúdo (Cabeçalho + Área de Ferramentas)
-            self.content_container = QtWidgets.QWidget(self)
-            self.content_layout = QtWidgets.QVBoxLayout(self.content_container)
-            self.content_layout.setContentsMargins(0, 0, 0, 0)
-            self.content_layout.setSpacing(0)
-
             self._setup_header(title)
             self._setup_mode_widget()
 
             self.main_layout.addWidget(self.content_container, stretch=1)
-
-            # 2. QTabWidget lateral fixo (TabPosition East) apenas para o modo "tabs"
-            self.vertical_tabs = QtWidgets.QTabWidget(self)
-            self.vertical_tabs.setTabPosition(QtWidgets.QTabWidget.East)
-            self.vertical_tabs.setObjectName("SidePanelVerticalTabs")
-            self.vertical_tabs.setFixedWidth(35)
-            self.vertical_tabs.currentChanged.connect(self._on_vertical_tab_clicked)
 
             if self.current_mode == "tabs":
                 self.main_layout.addWidget(self.vertical_tabs)
@@ -93,14 +97,27 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
         if self.floating_window:
             self.floating_window.close()
             self.floating_window = None
+
         self.current_mode = "toolbox"
         self.setVisible(True)
-        # Recria a interface para o modo Toolbox
+
+        # Garante que o content_layout esteja limpo antes de recriar os componentes do toolbox
+        while self.content_layout.count() > 0:
+            item = self.content_layout.takeAt(0)
+            if item and item.widget():
+                item.widget().setParent(None)
+
+        # Recria a interface para o modo Toolbox com segurança
         self._setup_header("Side Panel")
         self._setup_mode_widget()
 
     def _setup_header(self, title: str):
-        """Configura o cabeçalho específico de acordo com o modo ativo."""
+        """Configura o cabeçalho específico de acordo com o modo ativo de forma segura."""
+        if hasattr(self, "header") and self.header:
+            self.content_layout.removeWidget(self.header)
+            self.header.setParent(None)
+            self.header = None
+
         if self.current_mode == "tabs":
             self.header = SidePanelHeaderTabs(title, workspace_manager=self.workspace_manager, parent=self)
             self.header.toggle_collapsed_changed.connect(self.apply_drawer_state)
@@ -111,10 +128,17 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
             self.header = SidePanelHeaderFloating(title, workspace_manager=self.workspace_manager, parent=self)
             self.header.dock_requested.connect(self._on_dock_requested)
 
-        self.content_layout.addWidget(self.header)
+        self.content_layout.insertWidget(0, self.header)
 
     def _setup_mode_widget(self):
-        """Configura o widget interno adequado (TabsContainer ou ToolboxContainer)."""
+        """Configura o widget interno adequado (TabsContainer ou ToolboxContainer) evitando duplicidade."""
+        for attr_name in ["content_widget", "toolbox_container"]:
+            if hasattr(self, attr_name) and getattr(self, attr_name):
+                widget = getattr(self, attr_name)
+                self.content_layout.removeWidget(widget)
+                widget.setParent(None)
+                setattr(self, attr_name, None)
+
         if self.current_mode == "tabs":
             self.content_widget = TabsContainer(self)
             self.content_layout.addWidget(self.content_widget)
@@ -148,11 +172,9 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
         panel.setVisible(True)
 
     def remove_panel(self, panel_id: str):
-        """Remove o painel do container ativo."""
+        """Remove o painel do container ativo sem destruí-lo, permitindo reutilização em cache."""
         if panel := self.panels.pop(panel_id, None):
             title = self.panel_titles.pop(panel_id, None)
-            if hasattr(panel, 'dispose') and callable(panel.dispose):
-                panel.dispose()
 
             if self.current_mode == "tabs":
                 self.content_widget.remove_workspace_tab(panel_id)
@@ -168,8 +190,8 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
                 if section and self.floating_window:
                     self.floating_window.remove_section(section)
 
+            panel.setVisible(False)
             panel.setParent(None)
-            panel.deleteLater()
 
     def remover_widget_por_caminho(self, caminho: Path):
         """Remove um painel baseado na propriedade de caminho do módulo."""
@@ -180,10 +202,10 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
                 break
 
     def clear_all(self):
-        """Remove todos os painéis."""
+        """Remove todos os painéis sem destruí-los, preservando-os no cache."""
         for panel_id in list(self.panels.keys()):
             self.remove_panel(panel_id)
-        if self.floating_window:
+        if self.floating_window and hasattr(self.floating_window, "clear_sections"):
             self.floating_window.clear_sections()
 
     def atualizar_largura(self, width: int):

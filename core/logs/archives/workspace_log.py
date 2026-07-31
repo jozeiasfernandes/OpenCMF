@@ -221,7 +221,6 @@ class Workspace_Logger:
         return configs
 
     @staticmethod
-    @staticmethod
     def _format_dict(data: Any, indent: int = 4) -> str:
         """Formata dicionários e listas de forma limpa e estruturada para os logs."""
         import pprint

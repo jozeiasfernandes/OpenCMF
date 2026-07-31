@@ -3,7 +3,6 @@ from typing import Optional
 
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.workspace.containers.header_container.btn_home import HomeButton
-from core.loaders.components_list import Components_List
 from core.settings.help.help_page import HelpPage
 from core.settings.settings_page import PaginaConfig
 
@@ -13,9 +12,11 @@ class HeaderPanel(QtWidgets.QWidget):
 
     home_requested = QtCore.Signal()
     module_changed = QtCore.Signal(str)
+    components_loader_requested = QtCore.Signal()
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, workspace_manager=None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
+        self.workspace_manager = workspace_manager
 
         self.setFixedHeight(42)
         self.base_dir = Path(__file__).resolve().parents[4]
@@ -61,11 +62,11 @@ class HeaderPanel(QtWidgets.QWidget):
         layout.addWidget(self.btn_settings)
 
     def _open_components_loader(self):
-        try:
-            loader_dialog = Components_List(parent=self)
-            loader_dialog.exec()
-        except Exception as e:
-            print(f"Erro ao abrir o gerenciador de componentes: {e}")
+        """Delega a abertura do seletor de componentes diretamente ao workspace_manager se disponível."""
+        if self.workspace_manager and hasattr(self.workspace_manager, "abrir_seletor_componentes"):
+            self.workspace_manager.abrir_seletor_componentes()
+        else:
+            self.components_loader_requested.emit()
 
     def _open_help(self):
         """Abre a página de ajuda como janela isolada."""
@@ -116,16 +117,13 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
 
-    # O HeaderPanel agora gerencia suas próprias janelas de config e ajuda
     header = HeaderPanel()
-
-    # Dados de teste
     header.add_module_tab("mod_1", "Análise 3D")
     header.add_module_tab("mod_2", "Relatórios")
 
-    # Conexões para debug
     header.home_requested.connect(lambda: print("Home solicitada"))
     header.module_changed.connect(lambda mid: print(f"Módulo alterado para: {mid}"))
+    header.components_loader_requested.connect(lambda: print("Loader de componentes solicitado"))
 
     header.show()
     sys.exit(app.exec())

@@ -14,12 +14,20 @@ class CentralAreaManager:
         self.container.add_view(widget)
 
     def clear(self):
-        """Limpa todos os widgets da área central de forma limpa e segura."""
-        while self.container.count() > 0:
-            widget = self.container.widget(0)
-            if widget:
-                self.container.removeWidget(widget)
-                widget.deleteLater()
+        """Remove todos os widgets da área central sem destruí-los, permitindo reuso em cache."""
+        layout = self.get_container().layout()
+        if isinstance(layout, QtWidgets.QStackedWidget):
+            while layout.count() > 0:
+                widget = layout.widget(0)
+                if widget:
+                    layout.removeWidget(widget)
+                    widget.setParent(None)
+        elif layout:
+            while layout.count() > 0:
+                item = layout.takeAt(0)
+                if item and item.widget():
+                    widget = item.widget()
+                    widget.setParent(None)
 
     def get_container(self) -> CentralAreaContainer:
         return self.container
