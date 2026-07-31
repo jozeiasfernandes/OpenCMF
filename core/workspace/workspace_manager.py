@@ -8,6 +8,7 @@ from core.workspace.containers.header_container.workspace_modules import Workspa
 from core.workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
 from core.workspace.containers.status_bar.status_bar import StatusBarManager
 from core.workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
+from core.workspace.containers.side_panel_container.side_panel_container import SidePanelContainer
 
 from core.workspace.models.registry import WorkspaceRegistry
 from core.workspace.patient.state import WorkspaceState
@@ -64,7 +65,11 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         # 2. Instancia o gerenciador do painel lateral
         self.side_manager = SidePanelManager(self)
 
-        current_mode = settings.side_panel_mode
+        if hasattr(self.side_manager, "container") and self.side_manager.container:
+            if hasattr(self.side_manager.container, "toggle_requested"):
+                self.side_manager.container.toggle_requested.connect(self.notificar_toggle_side_panel)
+
+        current_mode = getattr(settings, "side_panel_mode", "toolbox")
         if current_mode != "floating":
             self.side_manager.container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
             self.splitter.addWidget(self.side_manager.container)
@@ -80,9 +85,8 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.status_bar_manager = StatusBarManager()
         self.main_layout.addWidget(self.status_bar_manager)
 
-
     def _configure_splitter(self):
-        current_mode = settings.side_panel_mode
+        current_mode = getattr(settings, "side_panel_mode", "toolbox")
 
         if current_mode == "floating":
             self.splitter.setCollapsible(0, False)
@@ -98,21 +102,42 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.splitter.setStretchFactor(1, 3)
 
     def notificar_toggle_side_panel(self, colapsado: bool):
-        """Método chamado pelo cabeçalho do side panel para garantir atualização e refresh do layout central."""
-        if self.splitter:
+        """Método unificado chamado pelo cabeçalho do side panel para atualizar o layout, redimensionar e refrescar as vistas."""
+        current_mode = getattr(settings, "side_panel_mode", "toolbox")
+        if current_mode == "floating":
+            return
+
+        if hasattr(self, "splitter") and self.splitter:
+            sizes = self.splitter.sizes()
+            total = sum(sizes)
+            if total > 0:
+                if colapsado:
+                    # Recolhe o painel lateral mantendo apenas a aba visível (ex: 40 pixels)
+                    self.splitter.setSizes([total - 40, 40])
+                else:
+                    # Restaura o tamanho padrão proporcional (70% / 30%)
+                    central_width = int(total * 0.70)
+                    side_width = total - central_width
+                    if central_width < self.MIN_CENTRAL_WIDTH:
+                        central_width = self.MIN_CENTRAL_WIDTH
+                        side_width = total - self.MIN_CENTRAL_WIDTH
+                    self.splitter.setSizes([central_width, side_width])
+
             self.splitter.update()
             self.splitter.repaint()
-        if hasattr(self.central_manager, "get_container"):
+
+        if hasattr(self, "central_manager") and hasattr(self.central_manager, "get_container"):
             container = self.central_manager.get_container()
-            container.update()
-            container.repaint()
+            if container:
+                container.update()
+                container.repaint()
 
     def _apply_initial_splitter_sizes(self):
         """Aplica os tamanhos iniciais do splitter garantindo que a área central não fique com largura 0."""
         if not self.splitter or not self.splitter.isVisible():
             return
 
-        current_mode = settings.side_panel_mode
+        current_mode = getattr(settings, "side_panel_mode", "toolbox")
         if current_mode == "floating":
             self.splitter.setSizes([self.splitter.width(), 0])
             return
@@ -121,10 +146,10 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         if total_width > 0:
             central_width = int(total_width * 0.70)
             side_width = total_width - central_width
-            # Garante o mínimo de espaço para a área central evitar o colapso visual [0, total]
-            if central_width < 200:
-                central_width = 200
-                side_width = total_width - 200
+            # Garante o mínimo de espaço para a área central evitar o colapso visual
+            if central_width < self.MIN_CENTRAL_WIDTH:
+                central_width = self.MIN_CENTRAL_WIDTH
+                side_width = total_width - self.MIN_CENTRAL_WIDTH
             self.splitter.setSizes([central_width, side_width])
         else:
             self.splitter.setSizes([700, 300])
@@ -157,22 +182,31 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
 
         # 1. Preserva os painéis ativos no container atual para reutilizá-los
         current_panels = {}
-        if hasattr(self.side_manager, "container") and self.side_manager.container:
-            if hasattr(self.side_manager.container, "panels"):
-                current_panels = dict(self.side_manager.container.panels)
+        old_container = getattr(self.side_manager, "container", None)
+
+        if old_container:
+            if hasattr(old_container, "panels"):
+                current_panels = dict(old_container.panels)
+
+            # Se estava em modo floating, fecha a janela antiga de forma segura
+            if getattr(old_container, "current_mode", "") == "floating" and hasattr(old_container, "floating_window"):
+                if old_container.floating_window:
+                    old_container.floating_window.close()
 
             # Remove o container antigo do layout/splitter de forma segura
-            self.side_manager.container.setParent(None)
-            self.side_manager.container.deleteLater()
+            old_container.setParent(None)
+            old_container.deleteLater()
 
         # 2. Instancia um novo container e atualiza a referência no gerenciador
-        from core.workspace.containers.side_panel_container.side_panel_container import SidePanelContainer
-
         new_container = SidePanelContainer(title="Side Panel", workspace_manager=self, parent=self)
         self.side_manager.container = new_container
 
+        # Conecta o sinal de toggle do novo container reconstruído ao WorkspaceManager
+        if hasattr(new_container, "toggle_requested"):
+            new_container.toggle_requested.connect(self.notificar_toggle_side_panel)
+
         # 3. Reinsere no QSplitter principal do workspace
-        current_mode = settings.side_panel_mode
+        current_mode = getattr(settings, "side_panel_mode", "toolbox")
         if current_mode != "floating":
             new_container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
             self.splitter.addWidget(new_container)
@@ -188,40 +222,17 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         if current_panels:
             for panel_id, panel_widget in current_panels.items():
                 title = getattr(new_container, "panel_titles", {}).get(panel_id, "Panel")
+
+                if hasattr(panel_widget, "reattach"):
+                    panel_widget.reattach(new_container)
+
                 new_container.add_panel(panel_id, panel_widget, title)
 
-        # 5. Reaplica as configurações visuais do splitter e atualiza a interface
+        # 5. Reaplica as configurações visuais do splitter e recalcula os tamanhos iniciais
         self._configure_splitter()
+        self._apply_initial_splitter_sizes()
         self.splitter.update()
         self.splitter.repaint()
-
-    def notificar_toggle_side_panel(self, colapsado: bool):
-        """Método chamado pelo cabeçalho do side panel para atualizar o layout e redimensionar o QSplitter."""
-        current_mode = getattr(settings, "side_panel_mode", "toolbox")
-        if current_mode == "floating":
-            return
-
-        if hasattr(self, "splitter") and self.splitter:
-            sizes = self.splitter.sizes()
-            total = sum(sizes)
-            if total > 0:
-                if colapsado:
-                    # Recolhe o painel lateral mantendo apenas a aba visível (ex: 40 pixels)
-                    self.splitter.setSizes([total - 40, 40])
-                else:
-                    # Restaura o tamanho padrão proporcional (70% / 30%)
-                    central_width = int(total * 0.70)
-                    side_width = total - central_width
-                    self.splitter.setSizes([central_width, side_width])
-
-            self.splitter.update()
-            self.splitter.repaint()
-
-        if hasattr(self, "central_manager") and hasattr(self.central_manager, "get_container"):
-            container = self.central_manager.get_container()
-            if container:
-                container.update()
-                container.repaint()
 
     def showEvent(self, event):
         """Garante que os tamanhos do splitter sejam aplicados assim que a janela for exibida e tiver largura real."""

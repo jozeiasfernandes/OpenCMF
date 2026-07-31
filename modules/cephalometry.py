@@ -57,13 +57,23 @@ class Modulo(ModuloBase):
 
     def cleanup(self) -> None:
         """Limpeza segura de recursos e widgets."""
-        if self._main_widget:
-            self._main_widget.deleteLater()
-            self._main_widget = None
+        try:
+            if self._main_widget:
+                if not hasattr(self._main_widget, "isVisible") or self._main_widget.isVisible() or self._main_widget:
+                    try:
+                        self._main_widget.deleteLater()
+                    except RuntimeError:
+                        pass
+                self._main_widget = None
 
-        if self._toolbox:
-            self._toolbox.deleteLater()
-            self._toolbox = None
+            if self._toolbox:
+                try:
+                    self._toolbox.deleteLater()
+                except RuntimeError:
+                    pass
+                self._toolbox = None
+        except Exception as e:
+            logger.error(f"Erro ao limpar widgets do módulo {self.nome}: {e}")
 
         super().cleanup()
         logger.info(f"Módulo '{self.nome}' limpo com sucesso.")

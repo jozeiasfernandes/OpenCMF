@@ -31,9 +31,13 @@ class CollapsibleSectionToolbox(QtWidgets.QWidget):
         drag_icon_path = self.assets_dir / "drag_indicator.svg"
         if drag_icon_path.exists():
             pixmap_grip = QtGui.QPixmap(str(drag_icon_path))
-            self.btn_grip.setPixmap(
-                pixmap_grip.scaled(16, 16, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
-            )
+            if not pixmap_grip.isNull():
+                self.btn_grip.setPixmap(
+                    pixmap_grip.scaled(16, 16, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)
+                )
+            else:
+                self.btn_grip.setText("⋮⋮")
+                self.btn_grip.setStyleSheet("color: #888; font-weight: bold; font-size: 11px;")
         else:
             self.btn_grip.setText("⋮⋮")
             self.btn_grip.setStyleSheet("color: #888; font-weight: bold; font-size: 11px;")

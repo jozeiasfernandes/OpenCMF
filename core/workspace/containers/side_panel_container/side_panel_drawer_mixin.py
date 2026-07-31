@@ -1,5 +1,6 @@
-from PySide6 import QtWidgets
-
+from PySide6.QtWidgets import QSizePolicy
+from PySide6.QtCore import Signal
+from PySide6 import QtWidgets, QtCore
 
 class SidePanelDrawerMixin:
     """
@@ -7,34 +8,30 @@ class SidePanelDrawerMixin:
     (recolhimento e expansão lateral com ajuste dinâmico do QSplitter).
     """
 
+    toggle_requested = QtCore.Signal(bool)
+
     def apply_drawer_state(self, collapsed: bool):
-        """Oculta o conteúdo interno, ajusta a largura restrita e redimensiona o splitter pai."""
+        """Oculta o conteúdo interno, ajusta a política e limites de largura e emite o sinal para o WorkspaceManager."""
         if hasattr(self, "content_container"):
             self.content_container.setVisible(not collapsed)
 
-        splitter = self._find_parent_splitter()
+        policy = self.sizePolicy()
 
         if collapsed:
-            # Fixa uma largura mínima/máxima restrita apenas para exibir a barra compacta
+            # Fixa a política e as larguras restritas para exibir apenas a barra compacta
+            policy.setHorizontalPolicy(QSizePolicy.Fixed)
             self.setMaximumWidth(45)
             self.setMinimumWidth(35)
-            if splitter:
-                sizes = splitter.sizes()
-                total = sum(sizes)
-                if total > 0:
-                    # Deixa quase todo o espaço para a área central e o mínimo para o painel lateral
-                    splitter.setSizes([total - 40, 40])
         else:
-            # Libera o painel para retornar ao tamanho normal gerido pelo usuário
-            self.setMaximumWidth(16777215)  # QWIDGETSIZE_MAX
+            # Restaura a política expansível e libera os limites utilizando o valor máximo padrão do Qt (16777215)
+            policy.setHorizontalPolicy(QSizePolicy.Expanding)
+            self.setMaximumWidth(16777215)
             self.setMinimumWidth(100)
-            if splitter:
-                sizes = splitter.sizes()
-                total = sum(sizes)
-                if total > 0:
-                    # Restaura a proporção padrão de 70% para o centro e 30% para o painel
-                    central_w = int(total * 0.70)
-                    splitter.setSizes([central_w, total - central_w])
+
+        self.setSizePolicy(policy)
+
+        # Delega a responsabilidade de manipulação do QSplitter para a autoridade máxima (WorkspaceManager)
+        self.toggle_requested.emit(collapsed)
 
     def _find_parent_splitter(self) -> QtWidgets.QSplitter:
         """Busca recursivamente o QSplitter pai na hierarquia de widgets."""

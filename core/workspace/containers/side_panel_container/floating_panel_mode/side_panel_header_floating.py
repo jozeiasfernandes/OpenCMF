@@ -62,13 +62,26 @@ class SidePanelHeaderFloating(QtWidgets.QWidget):
         self.btn_dock.setAutoRaise(True)
         self.btn_dock.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_dock.setToolTip(tr("side_panel.dock", "Reanexar à Workspace"))
+        self.btn_dock.setStyleSheet("""
+            QToolButton {
+                border: none;
+                background-color: transparent;
+            }
+            QToolButton:hover {
+                background-color: rgba(255, 255, 255, 20);
+                border-radius: 3px;
+            }
+        """)
 
         dock_icon_path = self.assets_dir / "arrow_circle_right.svg"
         if dock_icon_path.exists():
             pixmap_dock = QtGui.QPixmap(str(dock_icon_path))
-            self.btn_dock.setIcon(
-                QtGui.QIcon(pixmap_dock.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-            )
+            if not pixmap_dock.isNull():
+                self.btn_dock.setIcon(
+                    QtGui.QIcon(pixmap_dock.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+                )
+            else:
+                self.btn_dock.setText("➔")
         else:
             self.btn_dock.setText("➔")
 
@@ -80,12 +93,24 @@ class SidePanelHeaderFloating(QtWidgets.QWidget):
         self.btn_config.setAutoRaise(True)
         self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_config.setToolTip(tr("side_panel.settings", "Configurações do Painel"))
+        self.btn_config.setStyleSheet("""
+            QToolButton {
+                border: none;
+                background-color: transparent;
+            }
+            QToolButton:hover {
+                background-color: rgba(255, 255, 255, 20);
+                border-radius: 3px;
+            }
+        """)
 
         config_icon_path = self.assets_dir / "config.svg"
-        pixmap_config = QtGui.QPixmap(str(config_icon_path))
-        self.btn_config.setIcon(
-            QtGui.QIcon(pixmap_config.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-        )
+        if config_icon_path.exists():
+            pixmap_config = QtGui.QPixmap(str(config_icon_path))
+            if not pixmap_config.isNull():
+                self.btn_config.setIcon(
+                    QtGui.QIcon(pixmap_config.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+                )
 
         self.btn_config.clicked.connect(self._open_settings)
         layout.addWidget(self.btn_config)

@@ -75,14 +75,13 @@ class ModuleDistributor:
         current_mode = getattr(settings, "side_panel_mode", "toolbox")
 
         if current_mode == "floating":
-            # No modo flutuante, a janela flutuante gerencia sua própria visibilidade e componentes
-            if side_manager.container and hasattr(side_manager.container, "floating_window"):
+            # Utiliza a propriedade compatível floating_window do container atualizada pela estratégia
+            floating_win = getattr(side_manager.container, "floating_window", None)
+            if floating_win:
                 if has_toolboxes:
-                    if side_manager.container.floating_window:
-                        side_manager.container.floating_window.show()
+                    floating_win.show()
                 else:
-                    if side_manager.container.floating_window:
-                        side_manager.container.floating_window.hide()
+                    floating_win.hide()
         else:
             # Gerencia a visibilidade do painel lateral sem forçar o colapso agressivo (respeitando o WorkspaceManager)
             if hasattr(side_manager, "container") and hasattr(side_manager.container, "parent"):
@@ -143,24 +142,19 @@ class ModuleDistributor:
     ):
         if hasattr(toolbar_manager.top_container, 'toolbars'):
             for tb_id in list(toolbar_manager.top_container.toolbars.keys()):
-                # Apenas remove do container visual sem destruir o widget do toolbar
                 toolbar = toolbar_manager.top_container.toolbars.get(tb_id)
                 if toolbar:
                     toolbar_manager.top_container.remove_toolbar(tb_id)
                     toolbar.setParent(None)
 
         if hasattr(side_manager.container, 'clear_all'):
-            for panel_id in list(side_manager.container.panels.keys()):
-                panel = side_manager.container.panels.get(panel_id)
-                if panel:
-                    side_manager.container.remove_panel(panel_id)
-                    panel.setParent(None)
+            side_manager.container.clear_all()
             side_manager.container.setVisible(False)
 
-        # Garante o fechamento da janela flutuante se estiver ativa no cleanup
-        if hasattr(side_manager.container, 'floating_window') and side_manager.container.floating_window:
-            side_manager.container.floating_window.close()
-            side_manager.container.floating_window = None
+        # Fecha a janela flutuante através da propriedade unificada do container
+        floating_win = getattr(side_manager.container, "floating_window", None)
+        if floating_win:
+            floating_win.close()
 
         if hasattr(central_manager, 'clear'):
             central_manager.clear()

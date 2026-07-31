@@ -29,8 +29,11 @@ class CollapsibleSectionTabs(QtWidgets.QWidget):
         self.btn_grip.setToolTip("Arraste para mover")
 
         drag_icon_path = self.assets_dir / "drag_indicator.svg"
-        pixmap_grip = QtGui.QPixmap(str(drag_icon_path))
-        self.btn_grip.setPixmap(pixmap_grip.scaled(16, 16, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+        if drag_icon_path.exists():
+            pixmap_grip = QtGui.QPixmap(str(drag_icon_path))
+            if not pixmap_grip.isNull():
+                self.btn_grip.setPixmap(
+                    pixmap_grip.scaled(16, 16, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
 
         self.lbl_title = QtWidgets.QLabel(title)
         self.lbl_title.setStyleSheet("font-weight: bold;")
@@ -71,9 +74,15 @@ class CollapsibleSectionTabs(QtWidgets.QWidget):
 
     def _update_toggle_icon(self, checked: bool) -> None:
         target_path = self.icon_up_path if checked else self.icon_down_path
-        pixmap = QtGui.QPixmap(str(target_path))
-        self.toggle_button.setIcon(
-            QtGui.QIcon(pixmap.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)))
+        if target_path.exists():
+            pixmap = QtGui.QPixmap(str(target_path))
+            if not pixmap.isNull():
+                self.toggle_button.setIcon(
+                    QtGui.QIcon(pixmap.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation)))
+                return
+
+        # Fallback de segurança caso os SVGs não sejam encontrados
+        self.toggle_button.setArrowType(QtCore.Qt.UpArrow if checked else QtCore.Qt.DownArrow)
 
     def _on_toggle(self, checked: bool) -> None:
         """Alterna o ícone de seta e a visibilidade do conteúdo interno."""

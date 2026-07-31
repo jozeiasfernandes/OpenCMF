@@ -1,21 +1,24 @@
 from PySide6.QtCore import Qt, QPoint, Signal
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QWidget, QScrollArea
+from typing import Dict, Optional
 
+from core.workspace.containers.side_panel_container.base.base_side_panel_container import BaseSidePanelMode
 from core.workspace.containers.side_panel_container.floating_panel_mode.collapsible_section_floating import CollapsibleSectionFloating
 from core.settings.settings_app_manager import settings
 from core.icons.icons_manager import IconManager
 
 
-class FloatingContainer(QFrame):
-    """Container flutuante que pode sobrepor a área central do workspace em modo toolbox,
+class FloatingSidePanelMode(BaseSidePanelMode, QFrame):
+    """
+    Estratégia no Modo Floating (Flutuante) que pode sobrepor a área central do workspace,
     permitindo visualização e edição sem ocupar espaço horizontal fixo.
     """
 
     # Sinal emitido para solicitar o retorno ao modo fixo (toolbox/tabs)
     dock_requested = Signal()
 
-    def __init__(self, parent: QWidget = None, title: str = "Painel Flutuante"):
-        super().__init__(parent)
+    def __init__(self, container: Optional[QWidget] = None, title: str = "Painel Flutuante"):
+        super().__init__(container)
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
         self.setObjectName("FloatingContainer")
         self.setAttribute(Qt.WA_StyledBackground, True)
@@ -24,7 +27,20 @@ class FloatingContainer(QFrame):
         self._is_dragging = False
         self._drag_position = QPoint()
 
+        # Mapeamento interno para rastrear painéis por ID com segurança
+        self._panel_widgets: Dict[str, QWidget] = {}
+        self._section_widgets: Dict[str, QWidget] = {}
+
         self._setup_ui(title)
+
+        # Se um container pai foi passado, integra o frame no layout dele
+        if container:
+            layout = container.layout()
+            if not layout:
+                layout = QVBoxLayout(container)
+                layout.setContentsMargins(0, 0, 0, 0)
+                layout.setSpacing(0)
+            layout.addWidget(self)
 
     def _setup_ui(self, title: str):
         layout = QVBoxLayout(self)
@@ -92,45 +108,51 @@ class FloatingContainer(QFrame):
         self.dock_requested.emit()
         self.hide()
 
-    def set_content(self, widget: QWidget):
-        """Define ou substitui o widget de conteúdo principal do container."""
-        while self.content_layout.count() > 1:
-            item = self.content_layout.takeAt(0)
-            if item and item.widget():
-                item.widget().setParent(None)
-                item.widget().deleteLater()
+    def add_panel(self, panel_id: str, widget: QWidget, title: str):
+        """Adiciona ou substitui um painel em formato de seção retrátil no container flutuante."""
+        if panel_id in self._panel_widgets:
+            self.remove_panel(panel_id)
 
-        if widget:
-            self.content_layout.insertWidget(0, widget)
+        self._panel_widgets[panel_id] = widget
 
-    def add_section(self, section_widget: QWidget):
-        """Adiciona uma seção retrátil ao container flutuante."""
+        # Cria a seção retrátil envolvendo o widget
+        section = CollapsibleSectionFloating(title, widget, self)
+        self._section_widgets[panel_id] = section
+
+        widget.setVisible(True)
+
         count = self.content_layout.count()
         if count > 0:
-            self.content_layout.insertWidget(count - 1, section_widget)
+            self.content_layout.insertWidget(count - 1, section)
         else:
-            self.content_layout.addWidget(section_widget)
+            self.content_layout.addWidget(section)
 
-    def add_section_by_title(self, title: str, content_widget: QWidget) -> CollapsibleSectionFloating:
-        """Cria e adiciona uma CollapsibleSectionToolbox diretamente ao container flutuante."""
-        section = CollapsibleSectionFloating(title, content_widget, self)
-        self.add_section(section)
-        return section
+    def remove_panel(self, panel_id: str):
+        """Remove a seção e o widget correspondente ao identificador informado."""
+        self._panel_widgets.pop(panel_id, None)
+        section = self._section_widgets.pop(panel_id, None)
 
-    def remove_section(self, section_widget: QWidget):
-        """Remove uma seção do container flutuante."""
-        self.content_layout.removeWidget(section_widget)
-        section_widget.setParent(None)
-        section_widget.deleteLater()
+        if section:
+            self.content_layout.removeWidget(section)
 
-    def clear_sections(self):
-        """Remove todas as seções do container flutuante."""
-        while self.content_layout.count() > 1:
-            item = self.content_layout.takeAt(0)
-            if item and item.widget():
-                widget = item.widget()
-                widget.setParent(None)
-                widget.deleteLater()
+            content = getattr(section, "content_area", None)
+            if content and hasattr(content, 'dispose') and callable(content.dispose):
+                try:
+                    content.dispose()
+                except Exception:
+                    pass
+
+            section.setParent(None)
+            section.deleteLater()
+
+    def clear(self):
+        """Remove todas as seções e limpa os registros internos."""
+        for panel_id in list(self._panel_widgets.keys()):
+            self.remove_panel(panel_id)
+
+    def get_widget_by_id(self, panel_id: str) -> Optional[QWidget]:
+        """Retorna o widget associado ao ID do painel."""
+        return self._panel_widgets.get(panel_id)
 
     def set_title(self, title: str):
         """Atualiza o texto do título do painel flutuante."""

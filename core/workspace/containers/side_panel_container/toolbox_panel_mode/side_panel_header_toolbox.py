@@ -60,12 +60,24 @@ class SidePanelHeaderToolbox(QtWidgets.QWidget):
         self.btn_config.setAutoRaise(True)
         self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_config.setToolTip(tr("side_panel.settings", "Configurações do Painel"))
+        self.btn_config.setStyleSheet("""
+            QToolButton {
+                border: none;
+                background-color: transparent;
+            }
+            QToolButton:hover {
+                background-color: rgba(255, 255, 255, 20);
+                border-radius: 3px;
+            }
+        """)
 
         config_icon_path = self.assets_dir / "config.svg"
-        pixmap = QtGui.QPixmap(str(config_icon_path))
-        self.btn_config.setIcon(
-            QtGui.QIcon(pixmap.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
-        )
+        if config_icon_path.exists():
+            pixmap = QtGui.QPixmap(str(config_icon_path))
+            if not pixmap.isNull():
+                self.btn_config.setIcon(
+                    QtGui.QIcon(pixmap.scaled(14, 14, QtCore.Qt.KeepAspectRatio, QtCore.Qt.SmoothTransformation))
+                )
 
         self.btn_config.clicked.connect(self._open_settings)
         layout.addWidget(self.btn_config)
