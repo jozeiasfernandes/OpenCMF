@@ -6,13 +6,14 @@ from PySide6 import QtWidgets, QtGui
 class TabKeyboard(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        base_path = Path(__file__).resolve().parents[4]
-        self.config_path = base_path / "core" / "shortcut" / "shortcuts.json"
+        # parents[2] sobe de core/settings/tabs/general para core/settings
+        base_path = Path(__file__).resolve().parents[2]
+        self.config_path = base_path / "shortcut" / "shortcuts.json"
 
         self._setup_ui()
         self.carregar_atalhos()
 
-    def _setup_ui(self):  # <--- O método DEVE estar definido aqui
+    def _setup_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(20, 20, 20, 20)
 

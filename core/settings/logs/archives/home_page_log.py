@@ -1,6 +1,5 @@
-import logging
 from pathlib import Path
-from core.logs.base_logger import setup_logger
+from settings.logs.base_logger import setup_logger
 
 home_page_logger = setup_logger("OpenCMF.HomePage", filename=None)
 

@@ -15,12 +15,11 @@ class ModuloTemplate:
         self.project_service = kwargs.get("project_service")
 
         # UI components placeholders
-        self._main_widget: Optional[QtWidgets.QWidget] = None
+        self._central_area: Optional[QtWidgets.QWidget] = None
 
     def initialize(self, context: Dict[str, Any]) -> None:
         """
         Contrato: Injeção de dependências e configuração de estado.
-        Substitui o antigo 'inicializar(caminho_paciente)'.
         """
         self.context = context
         self.pasta_paciente = context.get("caminho_paciente")
@@ -31,11 +30,11 @@ class ModuloTemplate:
         self._is_initialized = True
         print(f"Módulo {self.id} inicializado com sucesso.")
 
-    def get_main_widget(self) -> QtWidgets.QWidget:
-        """Retorna o widget principal do módulo."""
-        if not self._main_widget:
-            self._main_widget = QtWidgets.QLabel("Módulo Template Carregado")
-        return self._main_widget
+    def get_central_area(self) -> QtWidgets.QWidget:
+        """Retorna o widget principal da área central do módulo."""
+        if not self._central_area:
+            self._central_area = QtWidgets.QLabel("Módulo Template Carregado")
+        return self._central_area
 
     def _construir_ui(self) -> QtWidgets.QWidget:
         container = QtWidgets.QWidget()
@@ -49,22 +48,23 @@ class ModuloTemplate:
 
         return container
 
-    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+    def get_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+        """Retorna a barra de ferramentas do módulo."""
         toolbar = QtWidgets.QToolBar("Ferramentas")
         toolbar.addAction("Resetar Visão")
         return toolbar
 
-    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
+    def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         """Contrato IModule: Retorna dicionário de painéis laterais."""
-        toolbox = QtWidgets.QWidget()
-        layout = QtWidgets.QVBoxLayout(toolbox)
+        side_panel_widget = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(side_panel_widget)
         layout.addWidget(QtWidgets.QLabel("<b>PARÂMETROS</b>"))
         layout.addWidget(QtWidgets.QPushButton("Executar Cálculo"))
-        return {"Parâmetros": toolbox}
+        return {"Parâmetros": side_panel_widget}
 
     def cleanup(self) -> None:
         """Limpeza de recursos."""
-        self._main_widget = None
+        self._central_area = None
         self._is_initialized = False
 
 
@@ -85,11 +85,11 @@ if __name__ == "__main__":
     central = QtWidgets.QWidget()
     layout = QtWidgets.QHBoxLayout(central)
 
-    toolboxes = modulo.get_toolboxes()
-    if toolboxes:
-        primeira_chave = list(toolboxes.keys())[0]
-        layout.addWidget(toolboxes[primeira_chave], stretch=1)
-    layout.addWidget(modulo.get_main_widget(), stretch=3)
+    side_panels = modulo.get_side_panel()
+    if side_panels:
+        primeira_chave = list(side_panels.keys())[0]
+        layout.addWidget(side_panels[primeira_chave], stretch=1)
+    layout.addWidget(modulo.get_central_area(), stretch=3)
     janela.setCentralWidget(central)
     janela.show()
     sys.exit(app.exec())

@@ -1,7 +1,6 @@
 import logging
-from typing import Dict, Any, List, Optional
-from PySide6 import QtWidgets
-from core.logs.base_logger import setup_logger
+from typing import Dict, Any, Optional
+from settings.logs.base_logger import setup_logger
 
 logger = setup_logger("OpenCMF.Module.Debug", filename=None)
 

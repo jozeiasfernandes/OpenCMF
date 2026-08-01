@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
-from core.localization.translator import tr
+from core.settings.localization.translator import tr
 from core.settings.settings_app_manager import settings
 
 
@@ -32,20 +32,25 @@ class TabLanguage(QtWidgets.QWidget):
         layout.addStretch()
 
     def _carregar_idiomas_disponiveis(self):
-        # Ajuste o número de .parents conforme a profundidade real deste arquivo
-        base_path = Path(__file__).resolve().parents[4]
-        trans_dir = base_path / "core" / "localization" / "translations"
+        root_path = Path(__file__).resolve().parents[2]
+        trans_dir = root_path / "localization" / "translations"
 
         self.combo_idioma.blockSignals(True)
-        for file in trans_dir.glob("*.json"):
-            lang_code = file.stem
-            try:
-                with open(file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                    display_name = data.get("meta", {}).get("language_name", lang_code)
-            except:
-                display_name = lang_code
-            self.combo_idioma.addItem(display_name, lang_code)
+        self.combo_idioma.clear()
+
+        if trans_dir.exists():
+            for file in trans_dir.glob("*.json"):
+                lang_code = file.stem
+                try:
+                    with open(file, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        display_name = data.get("meta", {}).get("language_name", lang_code)
+                except Exception:
+                    display_name = lang_code
+                self.combo_idioma.addItem(display_name, lang_code)
+        else:
+            print(f"Diretório de traduções não encontrado: {trans_dir}")
+
         self.combo_idioma.blockSignals(False)
 
     def _sincronizar_combo(self):

@@ -1,7 +1,6 @@
-import logging
 import sys
 from typing import Any, Optional
-from core.logs.base_logger import setup_logger
+from settings.logs.base_logger import setup_logger
 
 # Cria o logger específico para o sistema principal apenas para o terminal (filename=None)
 main_logger = setup_logger("OpenCMF.Main", filename=None)

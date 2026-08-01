@@ -1,6 +1,7 @@
 from typing import Tuple, Optional, Dict, Any, List
 from PySide6 import QtWidgets, QtCore
-from core.logs.archives.module_log import Module_Logger
+from settings.logs.archives.module_log import Module_Logger
+from core.workspace.models.contracts import IModule
 
 
 class ModuloBase(QtWidgets.QWidget):
@@ -21,35 +22,25 @@ class ModuloBase(QtWidgets.QWidget):
 
         self.module_logger = Module_Logger(modulo_instance=self)
 
-    def get_main_widget(self) -> QtWidgets.QWidget:
-        """Retorna o widget principal do módulo."""
+    def get_central_area(self) -> QtWidgets.QWidget:
+        """Retorna o widget principal da área central do módulo."""
         return self.viewer if self.viewer is not None else self
 
-    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        """Retorna dicionário de painéis laterais (toolboxes)."""
-        toolboxes: Dict[str, QtWidgets.QWidget] = {}
-        toolbar = self.get_workspace_toolbar()
+    def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
+        """Retorna o dicionário de painéis laterais (side_panel)."""
+        return {}
 
-        if toolbar:
-            toolboxes["Ferramentas"] = toolbar
-
-        return toolboxes
-
-    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+    def get_toolbar(self) -> Optional[QtWidgets.QToolBar]:
+        """Retorna a barra de ferramentas do módulo."""
         return None
 
-    def get_workspace(self) -> QtWidgets.QWidget:
-        if self.viewer:
-            return self.viewer
-
-        return QtWidgets.QLabel(
-            f"Workspace de {self.__class__.__name__} não carregado."
-        )
+    def get_bottom_panel(self) -> Optional[QtWidgets.QWidget]:
+        """Retorna o painel inferior do módulo."""
+        return None
 
     def inicializar(self, caminho_paciente: str) -> None:
         """Chamado pela orquestração do sistema."""
         self.configurar_recursos(caminho_paciente)
-
         self.module_logger.log_full_state()
 
     def cleanup(self) -> None:
@@ -65,6 +56,11 @@ class ModuloBase(QtWidgets.QWidget):
 
     def validar_passagem(self) -> bool:
         return True
+
+
+# Registra formalmente a ModuloBase como uma subclasse virtual de IModule
+# Isso faz com que isinstance(instance, IModule) retorne True sem causar conflito de metaclasse.
+IModule.register(ModuloBase)
 
 
 class FluxoBase:

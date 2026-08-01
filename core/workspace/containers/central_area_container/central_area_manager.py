@@ -14,7 +14,7 @@ class CentralAreaManager:
             self.container.add_view(widget)
 
     def clear(self):
-        """Remove todos os widgets da área central sem destruí-los, permitindo reuso em cache."""
+        """Remove todos os widgets do container SEM destruí-los, preservando-os para cache."""
         container = self.get_container()
         if container and isinstance(container, QtWidgets.QStackedWidget):
             while container.count() > 0:

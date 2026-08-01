@@ -14,8 +14,10 @@ from core.workspace.models.registry import WorkspaceRegistry
 from core.workspace.patient.state import WorkspaceState
 from core.workspace.patient.workspace_patient import WorkspacePatientMixin
 from core.workspace.layout.workspace_loaders_components import WorkspaceComponentHandler
-from core.logs.archives.workspace_log import Workspace_Logger
+from core.settings.logs.archives.workspace_log import Workspace_Logger
 from core.settings.settings_app_manager import settings
+
+from settings.logs.archives.containers import container
 
 logger = logging.getLogger("OpenCMF.Workspace")
 
@@ -28,6 +30,14 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
 
     def __init__(self, context: Optional[Any] = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
+
+        # Debug/Inspeção dos containers acoplada à inicialização da Workspace
+        containers_logger = container.containers_logger()
+        state_info = containers_logger.inspect_container_state(container)
+        containers_logger.info(
+            f"Container inspecionado via Workspace. Provedores ativos: {state_info.get('providers', [])}",
+            container_name="ApplicationContainer"
+        )
 
         self.context = context
         self.state = WorkspaceState()
@@ -69,7 +79,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
             if hasattr(self.side_manager.container, "toggle_requested"):
                 self.side_manager.container.toggle_requested.connect(self.notificar_toggle_side_panel)
 
-        current_mode = getattr(settings, "side_panel_mode", "toolbox")
+        current_mode = getattr(settings, "side_panel_mode", "tabs")
         if current_mode != "floating":
             self.side_manager.container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
             self.splitter.addWidget(self.side_manager.container)
@@ -85,15 +95,23 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.status_bar_manager = StatusBarManager()
         self.main_layout.addWidget(self.status_bar_manager)
 
+
+        try:
+            containers_logger = container.containers_logger()
+            if hasattr(self.side_manager, "container") and self.side_manager.container:
+                containers_logger.inspect_side_panel_widgets(self.side_manager.container, container_name="SidePanelDiagnostic")
+        except Exception as e:
+            logger.error(f"Erro ao rodar diagnóstico do side panel: {e}")
+
     def _configure_splitter(self):
-        current_mode = getattr(settings, "side_panel_mode", "toolbox")
+        current_mode = getattr(settings, "side_panel_mode", "tabs")
 
         if current_mode == "floating":
             self.splitter.setCollapsible(0, False)
             self.splitter.setStretchFactor(0, 1)
             return
 
-        # Permite que o painel lateral possa ser recolhido nos modos tabs/toolbox
+        # Permite que o painel lateral possa ser recolhido
         self.splitter.setCollapsible(0, False)
         self.splitter.setCollapsible(1, True)
         self.splitter.setChildrenCollapsible(True)
@@ -103,7 +121,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
 
     def notificar_toggle_side_panel(self, colapsado: bool):
         """Método unificado chamado pelo cabeçalho do side panel para atualizar o layout, redimensionar e refrescar as vistas."""
-        current_mode = getattr(settings, "side_panel_mode", "toolbox")
+        current_mode = getattr(settings, "side_panel_mode", "tabs")
         if current_mode == "floating":
             return
 
@@ -137,7 +155,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         if not self.splitter or not self.splitter.isVisible():
             return
 
-        current_mode = getattr(settings, "side_panel_mode", "toolbox")
+        current_mode = getattr(settings, "side_panel_mode", "tabs")
         if current_mode == "floating":
             self.splitter.setSizes([self.splitter.width(), 0])
             return
@@ -176,7 +194,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         logger.debug(f"Estado atual pós-reset - Módulos ativos: {self.registry.list_active_modules()}")
 
     def reconstruir_side_panel(self):
-        """Reconstrói dinamicamente o container do painel lateral com base no novo modo (tabs, toolbox ou floating)."""
+        """Reconstrói dinamicamente o container do painel lateral com base no novo modo (tabs ou floating)."""
         if not hasattr(self, "side_manager") or not self.side_manager:
             return
 
@@ -206,7 +224,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
             new_container.toggle_requested.connect(self.notificar_toggle_side_panel)
 
         # 3. Reinsere no QSplitter principal do workspace
-        current_mode = getattr(settings, "side_panel_mode", "toolbox")
+        current_mode = getattr(settings, "side_panel_mode", "tabs")
         if current_mode != "floating":
             new_container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
             self.splitter.addWidget(new_container)
@@ -214,25 +232,37 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
             self.splitter.setStretchFactor(1, 3)
             new_container.setVisible(True)
         else:
-            # No modo floating, o container principal permanece oculto e o splitter ajusta para a área central
+            # No modo flutuante, o container principal permanece oculto e o splitter ajusta para a área central
             new_container.setVisible(False)
             self.splitter.setStretchFactor(0, 1)
 
-        # 4. Restaura os painéis abertos no novo container
+        # 4. Restaura os painéis abertos no novo container usando o método nativo do container
         if current_panels:
-            for panel_id, panel_widget in current_panels.items():
-                title = getattr(new_container, "panel_titles", {}).get(panel_id, "Panel")
-
-                if hasattr(panel_widget, "reattach"):
-                    panel_widget.reattach(new_container)
-
-                new_container.add_panel(panel_id, panel_widget, title)
+            new_container.panels = current_panels
+            if hasattr(new_container, "reattach_panels_to_new_container"):
+                new_container.reattach_panels_to_new_container(new_container)
 
         # 5. Reaplica as configurações visuais do splitter e recalcula os tamanhos iniciais
         self._configure_splitter()
         self._apply_initial_splitter_sizes()
         self.splitter.update()
         self.splitter.repaint()
+
+    def reattach_panels_to_new_container(self, new_container):
+        """Reanexa os painéis em cache para o novo container, evitando reparenting redundante."""
+        for panel_id, panel in list(self.panels.items()):
+            title = self.panel_titles.get(panel_id, panel_id.replace("_", " ").title())
+
+            # Se o painel possui método próprio de reattach, delega e evita add_panel duplicado
+            if hasattr(panel, "reattach") and callable(panel.reattach):
+                panel.reattach(new_container)
+
+            # Caso contrário, adiciona diretamente ao novo container
+            elif new_container and hasattr(new_container, "add_panel"):
+                new_container.add_panel(panel_id, panel, title)
+
+            if panel:
+                panel.setVisible(True)
 
     def showEvent(self, event):
         """Garante que os tamanhos do splitter sejam aplicados assim que a janela for exibida e tiver largura real."""

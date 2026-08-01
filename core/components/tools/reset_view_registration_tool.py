@@ -1,7 +1,7 @@
 from __future__ import annotations
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
 from core.components.bases.base_tool.base_tool import InteractionContext
-from core.localization.translator import tr
+from settings.localization.translator import tr
 
 class ResetViewTool(BaseTool):
     name: str = "reset_view"

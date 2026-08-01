@@ -4,7 +4,7 @@ from typing import Optional, Any
 from enum import Enum, auto
 import vtk
 from PySide6 import QtGui, QtWidgets
-from core.localization.translator import get_base_dir
+from settings.localization.translator import get_base_dir
 from core.scene.scene_manager import SceneManager
 
 #   category = ToolCategory.SELECTION

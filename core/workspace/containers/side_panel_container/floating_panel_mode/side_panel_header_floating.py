@@ -1,6 +1,6 @@
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
-from core import tr
+from core.settings.localization.translator import tr
 
 
 class SidePanelHeaderFloating(QtWidgets.QWidget):
@@ -19,7 +19,7 @@ class SidePanelHeaderFloating(QtWidgets.QWidget):
         self._collapsed = False
 
         # Define o diretório de assets com base na estrutura padrão (C:\OpenCMF\appearance\icons)
-        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "appearance" / "icons"
+        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "appearance" / "icons"
         self.icon_up_path = self.assets_dir / "arrow_up.svg"
         self.icon_down_path = self.assets_dir / "arrow_down.svg"
 

@@ -3,9 +3,10 @@ from PySide6.QtWidgets import QFrame, QVBoxLayout, QHBoxLayout, QLabel, QPushBut
 from typing import Dict, Optional
 
 from core.workspace.containers.side_panel_container.base.base_side_panel_container import BaseSidePanelMode
-from core.workspace.containers.side_panel_container.floating_panel_mode.collapsible_section_floating import CollapsibleSectionFloating
+from core.workspace.containers.side_panel_container.floating_panel_mode.collapsible_section_floating import \
+    CollapsibleSectionFloating
 from core.settings.settings_app_manager import settings
-from core.icons.icons_manager import IconManager
+from core.settings.icons.icons_manager import IconManager
 
 
 class FloatingSidePanelMode(BaseSidePanelMode, QFrame):
@@ -17,8 +18,12 @@ class FloatingSidePanelMode(BaseSidePanelMode, QFrame):
     # Sinal emitido para solicitar o retorno ao modo fixo (toolbox/tabs)
     dock_requested = Signal()
 
-    def __init__(self, container: Optional[QWidget] = None, title: str = "Painel Flutuante"):
-        super().__init__(container)
+    # Sinal emitido quando o painel flutuante é fechado/ocultado, evitando dessincronia visual
+    closed = Signal()
+
+    def __init__(self, container: Optional[QWidget] = None, title: str = "Painel Flutuante", parent: Optional[QWidget] = None):
+        QFrame.__init__(self, parent)
+        BaseSidePanelMode.__init__(self, container)
         self.setWindowFlags(Qt.Tool | Qt.FramelessWindowHint)
         self.setObjectName("FloatingContainer")
         self.setAttribute(Qt.WA_StyledBackground, True)
@@ -79,7 +84,7 @@ class FloatingSidePanelMode(BaseSidePanelMode, QFrame):
         self.close_btn = QPushButton("✕", header_widget)
         self.close_btn.setObjectName("FloatingCloseButton")
         self.close_btn.setFixedSize(24, 24)
-        self.close_btn.clicked.connect(self.hide)
+        self.close_btn.clicked.connect(self._on_close_clicked)
         header_layout.addWidget(self.close_btn)
 
         layout.addWidget(header_widget)
@@ -108,6 +113,18 @@ class FloatingSidePanelMode(BaseSidePanelMode, QFrame):
         self.dock_requested.emit()
         self.hide()
 
+    def _on_close_clicked(self):
+        """Manipula o fechamento do painel flutuante pelo botão X ou equivalente."""
+        settings.side_panel_mode = "toolbox"
+        settings.save()
+        self.closed.emit()
+        self.hide()
+
+    def closeEvent(self, event):
+        """Garante que o evento de fechamento nativo da janela dispare a sincronização."""
+        self._on_close_clicked()
+        super().closeEvent(event)
+
     def add_panel(self, panel_id: str, widget: QWidget, title: str):
         """Adiciona ou substitui um painel em formato de seção retrátil no container flutuante."""
         if panel_id in self._panel_widgets:
@@ -128,19 +145,16 @@ class FloatingSidePanelMode(BaseSidePanelMode, QFrame):
             self.content_layout.addWidget(section)
 
     def remove_panel(self, panel_id: str):
-        """Remove a seção e o widget correspondente ao identificador informado."""
+        """Remove apenas a seção visual, preservando o widget interno no cache."""
         self._panel_widgets.pop(panel_id, None)
         section = self._section_widgets.pop(panel_id, None)
 
         if section:
             self.content_layout.removeWidget(section)
 
-            content = getattr(section, "content_area", None)
-            if content and hasattr(content, 'dispose') and callable(content.dispose):
-                try:
-                    content.dispose()
-                except Exception:
-                    pass
+            # Desvincula o widget interno da seção antes de destruir a seção,
+            if hasattr(section, "content_area") and section.content_area:
+                section.content_area.setParent(None)
 
             section.setParent(None)
             section.deleteLater()
@@ -164,7 +178,7 @@ class FloatingSidePanelMode(BaseSidePanelMode, QFrame):
             if event.position().y() <= 40:
                 self._is_dragging = True
                 self._drag_position = (
-                    event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+                        event.globalPosition().toPoint() - self.frameGeometry().topLeft()
                 )
                 event.accept()
 

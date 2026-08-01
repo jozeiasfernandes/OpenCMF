@@ -1,7 +1,7 @@
 import sys
 from pathlib import Path
 from PySide6 import QtWidgets, QtGui, QtCore
-from core.loaders.tools_tab_loaders.tools_tab_loaders import ToolsTab
+from components_loaders.tools_tab_loaders.tools_tab_loaders import ToolsTab
 from functools import partial
 
 

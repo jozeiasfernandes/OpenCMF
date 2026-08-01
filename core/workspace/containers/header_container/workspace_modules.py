@@ -50,17 +50,19 @@ class WorkspaceModulesMixin:
                     logger.debug(f"Módulo '{module_id}' já estava inicializado para o paciente: {patient_path}")
 
             logger.info(f"Módulo '{module_id}' carregado com sucesso.")
-            self.status_bar_manager.showMessage(f"Módulo '{module_id}' carregado.", 3000)
+            if hasattr(self, 'status_bar_manager') and self.status_bar_manager:
+                self.status_bar_manager.showMessage(f"Módulo '{module_id}' carregado.", 3000)
 
         except Exception as e:
             logger.error(f"Erro crítico ao carregar módulo '{module_id}': {e}", exc_info=True)
-            self.status_bar_manager.showMessage("Erro ao carregar módulo", 5000)
+            if hasattr(self, 'status_bar_manager') and self.status_bar_manager:
+                self.status_bar_manager.showMessage("Erro ao carregar módulo", 5000)
 
     def get_modulo_ativo(self) -> Optional[IModule]:
         """Retorna o módulo atualmente ativo se já estiver instanciado, evitando criação acidental."""
         current_index = self.header.tab_bar.currentIndex()
         if current_index >= 0:
             module_id = self.header.tab_bar.tabData(current_index)
-            if module_id and hasattr(self, "registry") and hasattr(self.registry, "modules"):
-                return self.registry.modules.get(module_id)
+            if module_id and hasattr(self, "registry") and hasattr(self.registry, "get_module"):
+                return self.registry.get_module(module_id)
         return None

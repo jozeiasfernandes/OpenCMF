@@ -1,10 +1,7 @@
-import os
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.volume.lookup_table.lut_presets import LUTPresets
 from core.components.bases.base_toolbar import BaseToolbar, AppContext
-from core.components.tools.color_map_tool import ColorMapTool
-from core.components.tools.layout_dicom_tool import LayoutDicomTool
-from core.localization.translator import get_base_dir  # Import necessário para localizar os ícones
+from settings.localization.translator import get_base_dir  # Import necessário para localizar os ícones
 
 
 class LUTDelegate(QtWidgets.QStyledItemDelegate):

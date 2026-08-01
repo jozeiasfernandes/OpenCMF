@@ -41,7 +41,7 @@ class Modulo(ModuloBase):
         self.pasta_paciente: Optional[str] = None
         self.caminho_dicom: Optional[str] = None
 
-    def get_main_widget(self) -> QtWidgets.QWidget:
+    def get_central_area(self) -> QtWidgets.QWidget:
         if self.viewer is None:
             self.viewer = VolumeViewerWidget(
                 context=self,
@@ -64,7 +64,7 @@ class Modulo(ModuloBase):
 
         return self.toolbar_handler
 
-    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
+    def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         return {}
 
     def configurar_recursos(self, caminho_paciente: str) -> None:
@@ -192,7 +192,7 @@ if __name__ == "__main__":
     if toolbar:
         janela_teste.addToolBar(toolbar)
 
-    janela_teste.setCentralWidget(modulo.get_main_widget())
+    janela_teste.setCentralWidget(modulo.get_central_area())
     janela_teste.show()
 
     try:

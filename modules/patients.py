@@ -259,13 +259,13 @@ class Modulo(ModuloBase):
     def get_workspace(self) -> QtWidgets.QWidget:
         return self
 
-    def get_main_widget(self) -> QtWidgets.QWidget:
+    def get_central_area(self) -> QtWidgets.QWidget:
         return self
 
     def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
         return None
 
-    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
+    def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         return {}
 
     def cleanup(self) -> None:

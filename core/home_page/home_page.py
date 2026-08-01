@@ -2,16 +2,15 @@ import logging
 from pathlib import Path
 import sys
 
-from PySide6 import QtCore, QtGui, QtWidgets
+from PySide6 import QtCore, QtWidgets
 
-from core.logs.logger_manager import home_page_logger, HomePageDebugLogger
+from settings.logs.logger_manager import home_page_logger, HomePageDebugLogger
 
-from core.icons.icons_manager import IconManager
+from settings.icons.icons_manager import IconManager
 from core.settings.settings_app_manager import settings
-from core.localization.translator import tr
+from settings.localization.translator import tr
 from core.home_page.extras.tela_creditos import Janela_Creditos
 from core.home_page.flow.fluxo_card import FluxoCard
-from core.home_page.flow.flow_editor import PaginaEditorFluxo
 from core.home_page.managers.project_list_formatter import (
     create_project_card,
     format_and_add_to_list,

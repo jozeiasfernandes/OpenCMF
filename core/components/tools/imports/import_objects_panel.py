@@ -25,7 +25,6 @@ Camada Gráfica: VTKActorFactory
 '''
 
 import sys
-from pathlib import Path
 from typing import Optional, Callable, List, Tuple
 from core.scene.io.importer import ObjectImporter
 from core.scene.registry import ObjectRegistry
@@ -35,7 +34,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal, QPoint, QSize, QEvent
 from PySide6.QtGui import QIcon
-from core.localization.translator import get_base_dir, tr
+from settings.localization.translator import get_base_dir, tr
 from core.scene.rendering.vtk_actor_factory import VTKActorFactory
 
 # Centralização de cores e estilos para fácil manutenção

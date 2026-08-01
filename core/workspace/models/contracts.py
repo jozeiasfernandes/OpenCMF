@@ -12,13 +12,13 @@ class IModule(Protocol):
     def nome(self) -> str:
         ...
 
-    def get_main_widget(self) -> QtWidgets.QWidget:
+    def get_central_area(self) -> QtWidgets.QWidget:
         ...
 
-    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+    def get_toolbar(self) -> Optional[QtWidgets.QToolBar]:
         ...
 
-    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
+    def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         ...
 
     def inicializar(self, caminho_paciente: str) -> None:

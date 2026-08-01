@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets
-from core import tr
+from core.settings.localization.translator import tr
 
 
 class TabToolbar(QtWidgets.QWidget):

@@ -8,7 +8,7 @@ from core.settings.tabs.viewer.tab_2d_settings import Tab2DViewer
 from core.settings.tabs.viewer.tab_3d_settings import Tab3DViewer
 from core.settings.tabs.workspace.tab_toolbar_settings import TabToolbar
 from core.settings.tabs.workspace.tab_side_panel_settings import TabSidePanel
-from core import tr
+from core.settings.localization.translator import tr
 
 
 class PaginaConfig(QtWidgets.QWidget):

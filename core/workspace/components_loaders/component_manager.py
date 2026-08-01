@@ -1,9 +1,9 @@
 import logging
 from pathlib import Path
-from typing import Dict, Any, Optional
+from typing import Any, Optional
 from core.components.registry import ComponentRegistry, ComponentType, ComponentMetadata
 from core.components.scanner import ComponentScanner
-from core.loaders.loader_components import ComponentLoader
+from components_loaders.loader_components import ComponentLoader
 
 logger = logging.getLogger("ComponentManager")
 

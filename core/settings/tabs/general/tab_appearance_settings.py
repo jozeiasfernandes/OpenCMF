@@ -1,6 +1,6 @@
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
-from core.localization.translator import tr
+from settings.localization.translator import tr
 from core.settings.settings_app_manager import settings
 
 

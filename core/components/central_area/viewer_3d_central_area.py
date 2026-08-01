@@ -2,11 +2,10 @@ import os
 import sys
 import vtk
 from PySide6 import QtCore, QtWidgets
-from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
 
 from core.scene.rendering.vtk_scene_renderer import VTKSceneRenderer
 from core.scene.events.scene_events import SceneEvents
-from core.shortcut.shortcuts import get_shortcuts_by_scope
+from settings.shortcut.shortcuts import get_shortcuts_by_scope
 from core.components.bases.base_central_area import CentralAreaBase
 
 os.environ["QT_API"] = "pyside6"

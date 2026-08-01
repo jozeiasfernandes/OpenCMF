@@ -31,8 +31,8 @@ class ModuleDistributor:
             central_manager: 'CentralAreaManager'
     ):
         # 1. Distribuir Toolbars
-        if hasattr(module, "get_workspace_toolbar"):
-            tb = module.get_workspace_toolbar()
+        if hasattr(module, "get_toolbar"):
+            tb = module.get_toolbar()
             if ModuleDistributor._is_valid_qwidget(tb):
                 if hasattr(tb, "initialize") and hasattr(tb, "_is_initialized") and not tb._is_initialized:
                     tb.initialize()
@@ -51,13 +51,13 @@ class ModuleDistributor:
                 tb.update()
                 tb.repaint()
 
-        # 2. Distribuir Toolboxes (Side Panels) e controlar comportamento do container/splitter
-        has_toolboxes = False
-        if hasattr(module, "get_toolboxes"):
-            toolboxes = module.get_toolboxes()
-            if toolboxes:
-                has_toolboxes = True
-                for name, widget in toolboxes.items():
+        # 2. Distribuir Side Panels e controlar comportamento do container/splitter
+        has_panels = False
+        if hasattr(module, "get_side_panel"):
+            panels = module.get_side_panel()
+            if panels:
+                has_panels = True
+                for name, widget in panels.items():
                     if ModuleDistributor._is_valid_qwidget(widget):
                         try:
                             widget.setWindowFlags(QtCore.Qt.Widget)
@@ -71,25 +71,23 @@ class ModuleDistributor:
                         widget.update()
                         widget.repaint()
 
-        # Identifica o modo atual do side panel ("tabs", "toolbox" ou "floating")
-        current_mode = getattr(settings, "side_panel_mode", "toolbox")
+        # Identifica o modo atual do side panel ("tabs" ou "floating")
+        current_mode = getattr(settings, "side_panel_mode", "tabs")
 
         if current_mode == "floating":
-            # Utiliza a propriedade compatível floating_window do container atualizada pela estratégia
             floating_win = getattr(side_manager.container, "floating_window", None)
             if floating_win:
-                if has_toolboxes:
+                if has_panels:
                     floating_win.show()
                 else:
                     floating_win.hide()
         else:
-            # Gerencia a visibilidade do painel lateral sem forçar o colapso agressivo (respeitando o WorkspaceManager)
             if hasattr(side_manager, "container") and hasattr(side_manager.container, "parent"):
                 splitter = side_manager.container.parent()
                 while splitter and not isinstance(splitter, QtWidgets.QSplitter):
                     splitter = splitter.parent()
 
-                if has_toolboxes:
+                if has_panels:
                     side_manager.container.setVisible(True)
                 else:
                     side_manager.container.setVisible(False)
@@ -104,8 +102,8 @@ class ModuleDistributor:
                     splitter.repaint()
 
         # 3. Configurar Viewport Central e Ciclo de Vida Unificado
-        if hasattr(module, "get_main_widget"):
-            viewport = module.get_main_widget()
+        if hasattr(module, "get_central_area"):
+            viewport = module.get_central_area()
             if ModuleDistributor._is_valid_qwidget(viewport):
                 if hasattr(viewport, "setup_component") and hasattr(viewport, "_logic"):
                     if hasattr(viewport._logic, "_loaded") and not viewport._logic._loaded:
@@ -151,7 +149,6 @@ class ModuleDistributor:
             side_manager.container.clear_all()
             side_manager.container.setVisible(False)
 
-        # Fecha a janela flutuante através da propriedade unificada do container
         floating_win = getattr(side_manager.container, "floating_window", None)
         if floating_win:
             floating_win.close()

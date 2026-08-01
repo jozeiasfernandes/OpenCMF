@@ -1,7 +1,7 @@
 import logging
-from typing import Dict, Any, List, Optional
-from PySide6 import QtWidgets, QtCore
-from core.logs.base_logger import setup_logger
+from typing import Dict, Any, List
+from PySide6 import QtWidgets
+from settings.logs.base_logger import setup_logger
 
 # Configura o logger para exibir apenas no terminal (filename=None)
 logger = setup_logger("OpenCMF.Workspace.Debug", filename=None)

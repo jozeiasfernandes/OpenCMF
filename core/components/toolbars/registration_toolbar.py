@@ -1,17 +1,16 @@
-from typing import Optional, Any, TYPE_CHECKING
+from typing import Optional, TYPE_CHECKING
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from core.components.bases.base_toolbar import BaseToolbar, ToolData
+from core.components.bases.base_toolbar import BaseToolbar
 from core.components.bases.base_tool.tool_manager import ToolManager
-from core.components.bases.base_tool.base_toolbar_handler import BaseToolbarHandler
 from core.components.tools.add_point_registration_tool import AddPointRegistrationTool
 from core.components.tools.select_tool import SelectTool
 
-from core.localization.translator import get_base_dir, tr
-from core.scene.events.scene_events import SceneEvents, RegistrationEvents
+from settings.localization.translator import get_base_dir, tr
+from core.scene.events.scene_events import RegistrationEvents
 
 if TYPE_CHECKING:
-    from core.scene.scene_manager import SceneManager
+    pass
 
 
 class RegistrationToolbar(BaseToolbar):

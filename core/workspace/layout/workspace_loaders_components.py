@@ -17,7 +17,7 @@ class WorkspaceComponentHandler:
     def abrir_seletor(self):
         """Abre a janela de componentes e conecta o sinal de alteração."""
         if self._config_window is None:
-            from core.loaders.components_list import Components_List
+            from components_loaders import Components_List
             self._config_window = Components_List(self.workspace)
             self._config_window.componente_alterado.connect(self._on_componente_configurado)
 
@@ -39,7 +39,7 @@ class WorkspaceComponentHandler:
 
     def _carregar_e_injetar(self, categoria: str, caminho: Path, modulo_ativo):
         try:
-            from core.loaders.loader_components import ComponentLoader
+            from components_loaders import ComponentLoader
 
             # Ajustado para corresponder à assinatura do ComponentLoader (caminho, context)
             comp = ComponentLoader.carregar(caminho, modulo_ativo)
@@ -100,10 +100,10 @@ class WorkspaceComponentHandler:
                     side_container.remover_widget_por_caminho(caminho)
 
             elif categoria == "central_area":
-                # Restaura a view padrão do módulo ativo se necessário
+                # Restaura a view padrão do módulo ativo usando a nomenclatura atualizada
                 modulo_ativo = self.workspace.get_modulo_ativo()
-                if modulo_ativo and hasattr(modulo_ativo, "get_main_widget"):
-                    viewport = modulo_ativo.get_main_widget()
+                if modulo_ativo and hasattr(modulo_ativo, "get_central_area"):
+                    viewport = modulo_ativo.get_central_area()
                     if viewport:
                         self.workspace.central_manager.set_view(viewport)
                         viewport.setVisible(True)

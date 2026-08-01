@@ -23,7 +23,7 @@ class Modulo(ModuloBase):
         self._toolbox: Optional[QtWidgets.QWidget] = None
         self._toolbar: Optional[QtWidgets.QToolBar] = None
 
-    def get_main_widget(self) -> Optional[QtWidgets.QWidget]:
+    def get_central_area(self) -> Optional[QtWidgets.QWidget]:
         """Retorna o widget principal do módulo."""
         if not self._main_widget:
             self._main_widget = QtWidgets.QWidget()
@@ -39,7 +39,7 @@ class Modulo(ModuloBase):
 
         return self._main_widget
 
-    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
+    def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         """Retorna os toolboxes do módulo."""
         if not self._toolbox:
             self._toolbox = QtWidgets.QWidget()

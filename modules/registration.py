@@ -6,6 +6,7 @@ from PySide6 import QtWidgets
 
 # Core imports
 from modules.base_module.base_module import ModuloBase
+
 from core.scene.scene_manager import SceneManager
 from core.scene.scene_state import SceneState
 from core.scene.events.event_bus import EventBus
@@ -31,7 +32,6 @@ class RegistrationContext:
     def __init__(self, scene_manager, tool_manager=None, event_bus=None):
         self.scene_manager = scene_manager
         self.tool_manager = tool_manager
-        # Se o event_bus não for fornecido explicitamente, extrai do scene_manager se disponível
         self.event_bus = event_bus or getattr(scene_manager, "event_bus", None)
 
 
@@ -91,8 +91,17 @@ class Modulo(ModuloBase):
         if not path.exists():
             return
 
-        self.object_manager = ObjectImporter(patient_path=caminho_paciente)
-        self.object_manager.object_added.connect(self._on_scene_object_added)
+        # Correção: Utiliza o importer existente no scene_manager ou inicializa corretamente
+        if hasattr(self.scene_manager, "importer") and self.scene_manager.importer:
+            self.object_importer = self.scene_manager.importer
+            # Se necessário atualizar o caminho do paciente no importer
+            if hasattr(self.object_importer, "patient_path"):
+                self.object_importer.patient_path = caminho_paciente
+        else:
+            self.object_importer = ObjectImporter(patient_path=caminho_paciente)
+
+        if hasattr(self.object_importer, "object_added"):
+            self.object_importer.object_added.connect(self._on_scene_object_added)
 
         self.scene_manager.state.current_patient = caminho_paciente
         if hasattr(self.widget_objetos, "set_patient_path"):
@@ -101,9 +110,15 @@ class Modulo(ModuloBase):
         self._is_initialized = True
         logger.info(f"Módulo '{self.nome}' inicializado com paciente: {caminho_paciente}")
 
-    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+    def get_central_area(self) -> QtWidgets.QWidget:
+        """Retorna o widget principal da área central do módulo."""
+        return self.widget_reg if self.widget_reg is not None else super().get_central_area()
+
+    def get_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+        """Retorna a QToolBar seguindo o contrato padrão."""
+        manager = tool_manager or self.tool_manager
         context = AppContext(
-            tool_manager=tool_manager,
+            tool_manager=manager,
             scene_manager=self.scene_manager,
             settings=None
         )
@@ -116,16 +131,16 @@ class Modulo(ModuloBase):
         toolbar.initialize()
         return toolbar
 
-    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
+    def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         return {
             "Objetos": self.widget_objetos,
             "Propriedades": self.widget_propriedades
         }
 
     def cleanup(self) -> None:
-        if self._is_initialized and hasattr(self, 'object_manager'):
+        if self._is_initialized and hasattr(self, 'object_importer'):
             try:
-                self.object_manager.object_added.disconnect(self._on_scene_object_added)
+                self.object_importer.object_added.disconnect(self._on_scene_object_added)
             except Exception:
                 pass
 

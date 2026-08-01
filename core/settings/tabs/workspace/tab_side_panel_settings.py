@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets, QtCore
-from core import tr
+from core.settings.localization.translator import tr
 from core.settings.settings_app_manager import settings
 
 

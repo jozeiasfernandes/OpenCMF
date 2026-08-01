@@ -5,11 +5,13 @@ from core.workspace.containers.side_panel_container.toolbox_panel_mode.collapsib
     CollapsibleSectionToolbox
 
 
+
 class ToolboxSidePanelMode(BaseSidePanelMode, QWidget):
     """Estratégia no Modo Toolbox com seções retráteis baseadas em CollapsibleSectionToolbox para o workspace."""
 
     def __init__(self, container: Optional[QWidget] = None):
-        super().__init__(container)
+        QWidget.__init__(self, container)
+        BaseSidePanelMode.__init__(self, container)
         self.setObjectName("ToolboxContainer")
 
         # Mapeamento interno para rastrear painéis por ID com segurança
@@ -54,6 +56,9 @@ class ToolboxSidePanelMode(BaseSidePanelMode, QWidget):
         """Adiciona ou substitui um painel em formato de seção retrátil no toolbox."""
         if panel_id in self._panel_widgets:
             self.remove_panel(panel_id)
+
+        # Garante que o widget está livre de qualquer parent antigo antes de criar a nova seção,
+        widget.setParent(None)
 
         self._panel_widgets[panel_id] = widget
 

@@ -1,6 +1,5 @@
 import ctypes
 import json
-import logging
 import sys
 from pathlib import Path
 from typing import Any, Optional
@@ -8,14 +7,14 @@ from typing import Any, Optional
 from PySide6 import QtCore, QtWidgets
 import vtk
 
-from core.logs.logger_manager import Main_Logger, main_logger
+from settings.logs.logger_manager import Main_Logger, main_logger
 
 from core.components.bases.base_tool.tool_manager import ToolManager
 from core.home_page.flow.flow_editor import PaginaEditorFluxo
 from core.home_page.home_page import Home_page
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
-from core.icons.icons_manager import IconManager
-from core.localization.translator import tr
+from settings.icons.icons_manager import IconManager
+from settings.localization.translator import tr
 from core.scene.events.event_bus import EventBus
 from core.scene.io.importer import ObjectImporter
 from core.scene.registry.actor_registry import ActorRegistry

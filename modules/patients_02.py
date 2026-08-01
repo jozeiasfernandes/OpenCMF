@@ -11,7 +11,7 @@ from core.home_page.managers.project_service_home_page import ProjectServiceHome
 
 
 class ModuloBase(QtWidgets.QWidget):
-    """Classe base para módulos que atuam como containers de componentes[cite: 1]."""
+    """Classe base para módulos que atuam como containers de componentes."""
 
     id: str = "undefined.id"
     nome: str = "Módulo Genérico"
@@ -26,41 +26,28 @@ class ModuloBase(QtWidgets.QWidget):
 
         self.viewer: Optional[QtWidgets.QWidget] = None
 
-    def get_main_widget(self) -> QtWidgets.QWidget:
-        """Retorna o widget principal do módulo[cite: 1]."""
+    def get_central_area(self) -> QtWidgets.QWidget:
+        """Retorna o widget principal do módulo (Área central)."""
         return self.viewer if self.viewer is not None else self
 
-    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
-        """Retorna dicionário de painéis laterais (toolboxes)[cite: 1]."""
-        toolboxes: Dict[str, QtWidgets.QWidget] = {}
-        toolbar = self.get_workspace_toolbar()
+    def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
+        """Módulo sem painel lateral."""
+        return {}
 
-        if toolbar:
-            toolboxes["Ferramentas"] = toolbar
-
-        return toolboxes
-
-    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+    def get_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+        """Módulo sem barra de ferramentas."""
         return None
 
-    def get_workspace(self) -> QtWidgets.QWidget:
-        if self.viewer:
-            return self.viewer
-
-        return QtWidgets.QLabel(
-            f"Workspace de {self.__class__.__name__} não carregado."
-        )
-
     def inicializar(self, caminho_paciente: str) -> None:
-        """Chamado pela orquestração do sistema[cite: 1]."""
+        """Chamado pela orquestração do sistema."""
         self.configurar_recursos(caminho_paciente)
 
     def cleanup(self) -> None:
-        """Deve ser sobrescrito para limpar referências de componentes filhos[cite: 1]."""
+        """Deve ser sobrescrito para limpar referências de componentes filhos."""
         pass
 
     def configurar_recursos(self, caminho_paciente: str) -> None:
-        """Deve ser implementado pelas subclasses[cite: 1]."""
+        """Deve ser implementado pelas subclasses."""
         pass
 
     def verificar_pre_requisitos(self) -> Tuple[bool, str]:
@@ -71,7 +58,6 @@ class ModuloBase(QtWidgets.QWidget):
 
 
 class FluxoBase:
-
 
     def __init__(self, dados: Dict[str, Any]):
         self.nome: str = dados.get("nome", "Fluxo Padrão")
@@ -191,7 +177,7 @@ if __name__ == "__main__":
 
     # Adiciona a aba no HeaderPanel e exibe a view central seguindo a arquitetura do WorkspaceManager
     window.header.add_module_tab("modulo.paciente", modulo.nome)
-    window.central_manager.set_view(modulo.get_main_widget())
+    window.central_manager.set_view(modulo.get_central_area())
 
     window.resize(1000, 700)
     window.show()

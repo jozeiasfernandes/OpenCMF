@@ -57,9 +57,9 @@ class Modulo(ModuloBase):
         self.widget_seg.solicitarExportarSTL.connect(self._executar_exportacao_stl)
 
     # --- Implementação / Sobrescrita ---
-    def get_toolboxes(self) -> Dict[str, QtWidgets.QWidget]:
+    def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         """Retorna os painéis laterais (toolboxes) do módulo."""
-        toolboxes = super().get_toolboxes()
+        toolboxes = super().get_side_panel()
         toolboxes["Ferramentas"] = self.widget_seg
         return toolboxes
 

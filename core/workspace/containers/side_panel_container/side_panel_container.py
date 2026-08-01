@@ -46,42 +46,38 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         self.content_layout.setSpacing(0)
 
-        # QTabWidget lateral fixo (TabPosition East) para acesso rápido no modo "tabs"
-        self.vertical_tabs = QtWidgets.QTabWidget(self)
-        self.vertical_tabs.setTabPosition(QtWidgets.QTabWidget.East)
-        self.vertical_tabs.setObjectName("SidePanelVerticalTabs")
-        self.vertical_tabs.setFixedWidth(35)
-        self.vertical_tabs.currentChanged.connect(self._on_vertical_tab_clicked)
+        self.header = None
 
         self._init_layout_mode(title)
 
     def _init_layout_mode(self, title: str):
-        """Inicializa o cabeçalho e a estratégia do modo ativo."""
+        """Inicializa a estratégia do modo ativo sem exibir o cabeçalho redundante superior."""
+        # Limpa completamente o layout de conteúdo antes de popular novamente
+        while self.content_layout.count() > 0:
+            item = self.content_layout.takeAt(0)
+            if item and item.widget():
+                w = item.widget()
+                if w != self.mode_strategy:
+                    w.setParent(None)
+
+        self.header = None
+
+        self._setup_strategy()
+
         if self.current_mode == "floating":
             self.setVisible(False)
-            self.main_layout.addWidget(self.content_container, stretch=1)
-            self.vertical_tabs.setVisible(False)
-            self.main_layout.addWidget(self.vertical_tabs)
-
-            self._setup_header(title)
-            self._setup_strategy()
-            if hasattr(self.mode_strategy, "show"):
-                self.mode_strategy.show()
+            if self.main_layout.indexOf(self.content_container) == -1:
+                self.main_layout.addWidget(self.content_container, stretch=1)
         else:
-            self._setup_header(title)
-            self._setup_strategy()
-            self.main_layout.addWidget(self.content_container, stretch=1)
-
-            if self.current_mode == "tabs":
-                self.main_layout.addWidget(self.vertical_tabs)
-            else:
-                self.vertical_tabs.setVisible(False)
+            if self.main_layout.indexOf(self.content_container) == -1:
+                self.main_layout.addWidget(self.content_container, stretch=1)
 
     def _setup_header(self, title: str):
-        """Configura o cabeçalho específico de acordo com o modo ativo."""
+        """Configura e substitui o cabeçalho de forma limpa, evitando sobreposições."""
         if hasattr(self, "header") and self.header:
             self.content_layout.removeWidget(self.header)
             self.header.setParent(None)
+            self.header.deleteLater()
             self.header = None
 
         if self.current_mode == "tabs":
@@ -103,6 +99,7 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
             if isinstance(self.mode_strategy, QtWidgets.QWidget):
                 self.content_layout.removeWidget(self.mode_strategy)
                 self.mode_strategy.setParent(None)
+                self.mode_strategy.deleteLater()
             self.mode_strategy = None
 
         if self.current_mode == "tabs":
@@ -134,15 +131,7 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
         settings.save()
 
         self.setVisible(True)
-        self.vertical_tabs.setVisible(False)
-
-        while self.content_layout.count() > 0:
-            item = self.content_layout.takeAt(0)
-            if item and item.widget():
-                item.widget().setParent(None)
-
-        self._setup_header("Side Panel")
-        self._setup_strategy()
+        self._init_layout_mode("Side Panel")
 
         # Reinsere os painéis existentes na nova estratégia
         for panel_id, panel in self.panels.items():
@@ -165,24 +154,15 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
         if self.mode_strategy:
             self.mode_strategy.add_panel(panel_id, panel, title)
 
-        if self.current_mode == "tabs":
-            self.vertical_tabs.addTab(QtWidgets.QWidget(), title)
-
         panel.setVisible(True)
 
     def remove_panel(self, panel_id: str):
         """Remove o painel da estratégia ativa sem destruí-lo (preservando cache)."""
         if panel := self.panels.pop(panel_id, None):
-            title = self.panel_titles.pop(panel_id, None)
+            self.panel_titles.pop(panel_id, None)
 
             if self.mode_strategy:
                 self.mode_strategy.remove_panel(panel_id)
-
-            if self.current_mode == "tabs":
-                for i in range(self.vertical_tabs.count()):
-                    if self.vertical_tabs.tabText(i) == title:
-                        self.vertical_tabs.removeTab(i)
-                        break
 
             panel.setVisible(False)
             panel.setParent(None)
@@ -196,7 +176,10 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
                 break
 
     def clear_all(self):
-        """Limpa todos os painéis gerenciados preservando-os."""
+        """
+        Remove todos os painéis gerenciados SEM destruí-los,
+        preservando suas instâncias para reuso (cache).
+        """
         for panel_id in list(self.panels.keys()):
             self.remove_panel(panel_id)
         if self.mode_strategy and hasattr(self.mode_strategy, "clear"):
@@ -212,20 +195,11 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
         """Propriedade de compatibilidade para referenciar a janela flutuante quando em modo floating."""
         return self.mode_strategy if self.current_mode == "floating" else None
 
-    def _on_vertical_tab_clicked(self, index: int):
-        """Expande o painel e foca na aba correspondente ao clicar na faixa vertical."""
-        if index < 0:
-            return
-
-        if self.current_mode == "tabs" and self.mode_strategy and hasattr(self.mode_strategy, "setCurrentIndex"):
-            self.mode_strategy.setCurrentIndex(index)
-
-        if hasattr(self, "header") and hasattr(self.header, "_collapsed") and self.header._collapsed:
-            self.header._collapsed = False
-            if hasattr(self.header, "_update_toggle_icon"):
-                self.header._update_toggle_icon(False)
-            if hasattr(self.header, "lbl_title"):
-                self.header.lbl_title.show()
-            if hasattr(self.header, "btn_config"):
-                self.header.btn_config.show()
-            self.apply_drawer_state(False)
+    def reattach_panels_to_new_container(self, new_container):
+        """Reanexa os painéis em cache para o novo container sem duplicações."""
+        for panel_id, panel in list(self.panels.items()):
+            title = self.panel_titles.get(panel_id, panel_id.replace("_", " ").title())
+            if new_container and hasattr(new_container, "add_panel"):
+                new_container.add_panel(panel_id, panel, title)
+            if panel:
+                panel.setVisible(True)

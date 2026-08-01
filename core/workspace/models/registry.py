@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import Dict, List, Any
 import logging
 
 from core.workspace.models.contracts import IModule
@@ -11,17 +11,18 @@ class WorkspaceRegistry:
     """Gerencia o registro e ciclo de vida dos módulos ativos no workspace."""
 
     def __init__(self) -> None:
-        self._active_modules: Dict[str, IModule] = {}
+        self._active_modules: Dict[str, Any] = {}
 
-    def get_or_create_module(self, module_id: str) -> IModule:
+    def get_or_create_module(self, module_id: str) -> Any:
         """Retorna um módulo ativo ou cria um novo se não existir."""
         if module_id not in self._active_modules:
             try:
                 instance = ModuleFactory.create(module_id)
 
-                # Validação defensiva extra do contrato IModule
-                if not isinstance(instance, IModule):
-                    raise TypeError(f"A instância do módulo '{module_id}' não implementa o contrato IModule.")
+                # Validação defensiva robusta (suporta isinstance virtual ou verificação estrutural)
+                required_methods = ["inicializar", "get_central_area", "get_side_panel"]
+                if not isinstance(instance, IModule) and not all(hasattr(instance, m) for m in required_methods):
+                    raise TypeError(f"A instância do módulo '{module_id}' não atende ao contrato do sistema.")
 
                 self._active_modules[module_id] = instance
             except Exception as e:

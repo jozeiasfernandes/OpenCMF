@@ -1,6 +1,6 @@
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
-from core import tr
+from core.settings.localization.translator import tr
 
 
 class SidePanelHeaderToolbox(QtWidgets.QWidget):
