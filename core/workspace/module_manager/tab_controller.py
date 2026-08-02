@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets, QtCore
-from .tab_ui import WorkspaceTabWidget
+from module_manager.workspace_tab_widget import WorkspaceTabWidget
 
 
 class TabController(QtCore.QObject):

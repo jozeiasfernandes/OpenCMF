@@ -1,38 +1,27 @@
-import logging
-from pathlib import Path
-import sys
-
 from PySide6 import QtCore, QtWidgets
 
-from settings.logs.logger_manager import home_page_logger, HomePageDebugLogger
+# Project
+from core.home_page.managers.flow_service_home_page import FlowServiceHomePage
+from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 
+# Settings
+from settings.settings_app_manager import settings
+
+import logging
+from settings.logs.logger_manager import home_page_logger, HomePageDebugLogger
+logger = logging.getLogger("OpenCMF.HomePage")
+
+from list_paths import PATIENTS_DIR, FLOWS_DIR, REGISTRATION_FLOW_NAME
 from settings.icons.icons_manager import IconManager
-from core.settings.settings_app_manager import settings
 from settings.localization.translator import tr
+
+#Extras
 from core.home_page.extras.tela_creditos import Janela_Creditos
 from core.home_page.flow.fluxo_card import FluxoCard
 from core.home_page.managers.project_list_formatter import (
     create_project_card,
     format_and_add_to_list,
 )
-from core.home_page.managers.flow_service_home_page import FlowServiceHomePage
-from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
-
-logger = logging.getLogger("OpenCMF.HomePage")
-
-
-def get_project_root():
-    if getattr(sys, 'frozen', False):
-        return Path(sys._MEIPASS)
-    return Path(__file__).resolve().parents[2]
-
-
-BASE_DIR = get_project_root()
-PATIENTS_DIR = BASE_DIR / "patients"
-FLOWS_DIR = BASE_DIR / "flows"
-ICONS_DIR = BASE_DIR / "appearance" / "icons"
-REGISTRATION_FLOW_NAME = "new_patient_registration.json"
-
 
 class ClickableLabel(QtWidgets.QLabel):
     clicked = QtCore.Signal()
@@ -184,7 +173,6 @@ class Home_page(QtWidgets.QWidget):
 
         projects = self.project_service.list_recent_projects()
 
-        # Log corrigido para usar o debug_logger da home page
         self.debug_logger.info(f"Total de projetos recentes carregados: {len(projects)}")
 
         for idx, data in enumerate(projects):

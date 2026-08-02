@@ -1,7 +1,8 @@
-from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from settings.localization.translator import tr
-from core.settings.settings_app_manager import settings
+from settings.settings_app_manager import settings
+
+from list_paths import THEMES_DIR
 
 
 class TabAppearance(QtWidgets.QWidget):
@@ -28,8 +29,8 @@ class TabAppearance(QtWidgets.QWidget):
         layout.addStretch()
 
     def _carregar_temas(self):
-        # Ajuste o número de .parents conforme a profundidade real deste arquivo
-        themes_dir = Path(__file__).resolve().parents[4] / "appearance" / "themes"
+        # Utiliza o THEMES_DIR centralizado do list_paths
+        themes_dir = THEMES_DIR
 
         self.combo_temas.blockSignals(True)
         if not themes_dir.exists():

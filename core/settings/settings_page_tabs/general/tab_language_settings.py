@@ -1,8 +1,9 @@
 import json
-from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from core.settings.localization.translator import tr
-from core.settings.settings_app_manager import settings
+from settings.settings_app_manager import settings
+
+from list_paths import TRANSLATIONS_DIR
 
 
 class TabLanguage(QtWidgets.QWidget):
@@ -32,8 +33,8 @@ class TabLanguage(QtWidgets.QWidget):
         layout.addStretch()
 
     def _carregar_idiomas_disponiveis(self):
-        root_path = Path(__file__).resolve().parents[2]
-        trans_dir = root_path / "localization" / "translations"
+        # Utiliza o TRANSLATIONS_DIR centralizado do list_paths
+        trans_dir = TRANSLATIONS_DIR
 
         self.combo_idioma.blockSignals(True)
         self.combo_idioma.clear()

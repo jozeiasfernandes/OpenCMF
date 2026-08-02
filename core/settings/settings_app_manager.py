@@ -1,12 +1,13 @@
 import json
 import logging
-from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
+
+from list_paths import CONFIG_FILE_PATH
 
 
 class SettingsManager:
-    def __init__(self, file_name: str = "config.json"):
-        self.path = Path(__file__).parent / file_name
+    def __init__(self, file_name: Optional[str] = None):
+        self.path = CONFIG_FILE_PATH
         self.data: Dict[str, Any] = {}
         self.load()
 
@@ -41,8 +42,7 @@ class SettingsManager:
             },
             "side_panel": {
                 "show_by_default": True,
-                "width": 250,
-                "mode": "tabs"
+                "mode": "settings_page_tabs"
             }
         }
 
@@ -90,7 +90,7 @@ class SettingsManager:
 
     @property
     def side_panel_mode(self) -> str:
-        return self.get("side_panel", "mode", "tabs")
+        return self.get("side_panel", "mode", "settings_page_tabs")
 
     @side_panel_mode.setter
     def side_panel_mode(self, value: str):

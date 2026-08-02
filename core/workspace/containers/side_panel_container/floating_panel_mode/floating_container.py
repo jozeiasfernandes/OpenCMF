@@ -5,7 +5,7 @@ from typing import Dict, Optional
 from core.workspace.containers.side_panel_container.base.base_side_panel_container import BaseSidePanelMode
 from core.workspace.containers.side_panel_container.floating_panel_mode.collapsible_section_floating import \
     CollapsibleSectionFloating
-from core.settings.settings_app_manager import settings
+from settings.settings_app_manager import settings
 from core.settings.icons.icons_manager import IconManager
 
 
@@ -15,7 +15,7 @@ class FloatingSidePanelMode(BaseSidePanelMode, QFrame):
     permitindo visualização e edição sem ocupar espaço horizontal fixo.
     """
 
-    # Sinal emitido para solicitar o retorno ao modo fixo (toolbox/tabs)
+    # Sinal emitido para solicitar o retorno ao modo fixo (toolbox/settings_page_tabs)
     dock_requested = Signal()
 
     # Sinal emitido quando o painel flutuante é fechado/ocultado, evitando dessincronia visual

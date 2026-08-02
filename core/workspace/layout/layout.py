@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 from PySide6 import QtWidgets, QtCore
 
 from core.workspace.models.contracts import IModule
-from core.settings.settings_app_manager import settings
+from settings.settings_app_manager import settings
 
 if TYPE_CHECKING:
     from core.workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
@@ -71,8 +71,8 @@ class ModuleDistributor:
                         widget.update()
                         widget.repaint()
 
-        # Identifica o modo atual do side panel ("tabs" ou "floating")
-        current_mode = getattr(settings, "side_panel_mode", "tabs")
+        # Identifica o modo atual do side panel ("settings_page_tabs" ou "floating")
+        current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
 
         if current_mode == "floating":
             floating_win = getattr(side_manager.container, "floating_window", None)

@@ -6,15 +6,26 @@ from typing import Any, Optional
 
 from PySide6 import QtCore, QtWidgets
 import vtk
+vtk.vtkObject.GlobalWarningDisplayOff()
 
-from settings.logs.logger_manager import Main_Logger, main_logger
-
-from core.components.bases.base_tool.tool_manager import ToolManager
+# Home page
 from core.home_page.flow.flow_editor import PaginaEditorFluxo
 from core.home_page.home_page import Home_page
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+
+# Settings
+from settings.settings_app_manager import settings
+from settings.settings_page import PaginaConfig
+
 from settings.icons.icons_manager import IconManager
 from settings.localization.translator import tr
+
+from list_paths import BASE_DIR, PATIENTS_DIR, THEMES_DIR, DEFAULT_FLOW_PATH, ICONS_DIR
+
+from settings.logs.logger_manager import Main_Logger, main_logger
+Main_Logger.setup_redirect()
+
+# Scene
 from core.scene.events.event_bus import EventBus
 from core.scene.io.importer import ObjectImporter
 from core.scene.registry.actor_registry import ActorRegistry
@@ -22,21 +33,14 @@ from core.scene.registry.object_registry import ObjectRegistry
 from core.scene.scene_manager import SceneManager
 from core.scene.scene_state import SceneState
 from core.scene.selection.selection_manager import SelectionManager
-from core.settings.settings_app_manager import settings
-from core.settings.settings_page import PaginaConfig
+
+# Components
+from core.components.bases.base_tool.tool_manager import ToolManager
+
+# Workspace
 from core.workspace.models.module_factory import ModuleFactory
 from core.workspace.workspace_manager import WorkspaceManager
 from modules.base_module.base_module import FluxoBase
-
-# Configuração básica do Logging e Redirecionamento de Print
-Main_Logger.setup_redirect()
-
-# Desativa warnings do VTK
-vtk.vtkObject.GlobalWarningDisplayOff()
-
-
-def get_resource_path() -> Path:
-    return Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent))
 
 
 class ApplicationContext:
@@ -68,11 +72,11 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
 
         try:
-            self.base_dir = get_resource_path()
+            self.base_dir = BASE_DIR
             self.current_patient_path = None
             self.workflow = None
 
-            IconManager.set_base_path(self.base_dir / "appearance" / "icons")
+            IconManager.get_instance().set_base_path(ICONS_DIR)
             self._setup_scene_components()
             self._setup_core_widgets()
             self._setup_context()
@@ -126,9 +130,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _setup_context(self):
         """Configura o contexto da aplicação e o ModuleFactory."""
-        self.project_service = ProjectServiceHomePage(
-            self.base_dir / "patients"
-        )
+        self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
 
         self.context = ApplicationContext(
             scene_manager=self.scene_manager,
@@ -168,7 +170,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _setup_appearance(self):
         """Configura aparência inicial da janela."""
-        self.setGeometry(150, 50, 1024, 650)
         self.setWindowTitle(
             tr("main.window_title", settings.get("app_info", "title", "OpenCMF"))
         )
@@ -176,6 +177,9 @@ class MainWindow(QtWidgets.QMainWindow):
         theme = settings.get("preferencias", "tema", "dark")
         self.apply_theme_by_name(theme)
         self.setup_icon()
+
+        # Abre a janela maximizada
+        self.showMaximized()
 
     def apply_theme(self, qss_path_str: str):
         """Aplica tema a partir do caminho do arquivo QSS."""
@@ -196,7 +200,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.theme_changed.emit()
 
     def apply_theme_by_name(self, theme_name: str):
-        qss_path = self.base_dir / "appearance" / "themes" / f"{theme_name}.qss"
+        qss_path = THEMES_DIR / f"{theme_name}.qss"
         if qss_path.exists():
             QtWidgets.QApplication.instance().setStyleSheet(
                 qss_path.read_text(encoding="utf-8")
@@ -224,11 +228,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if hasattr(self, 'importer'):
             self.importer.patient_path = Path(self.current_patient_path)
 
-        default_flow = self.base_dir / "flows" / "default_flow.json"
-        if default_flow.exists():
-            self.start_workflow(str(default_flow))
+        if DEFAULT_FLOW_PATH.exists():
+            self.start_workflow(str(DEFAULT_FLOW_PATH))
         else:
-            main_logger.warning(f"Fluxo padrão não encontrado em: {default_flow}")
+            main_logger.warning(f"Fluxo padrão não encontrado em: {DEFAULT_FLOW_PATH}")
 
     def start_workflow(self, config_path: str):
         try:

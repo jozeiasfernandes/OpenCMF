@@ -1,16 +1,10 @@
 import json
 import logging
-import sys
-from pathlib import Path
 from functools import lru_cache
 from typing import Any, Optional
-from core.settings.settings_app_manager import settings
+from settings.settings_app_manager import settings
 
-
-def get_base_dir() -> Path:
-    if getattr(sys, 'frozen', False):
-        return Path(sys._MEIPASS)
-    return Path(__file__).resolve().parent.parent.parent
+from list_paths import TRANSLATIONS_DIR
 
 
 class Translator:
@@ -25,9 +19,7 @@ class Translator:
 
     def _load_dictionary(self, language: str = None) -> None:
         lang = language or settings.get("preferencias", "idioma", "pt_BR")
-        translation_path = (
-                get_base_dir() / "core" / "localization" / "translations" / f"{lang}.json"
-        )
+        translation_path = TRANSLATIONS_DIR / f"{lang}.json"
 
         if not translation_path.exists():
             logging.error(f"Translation file not found: {translation_path}")

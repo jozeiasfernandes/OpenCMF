@@ -1,7 +1,7 @@
 from pathlib import Path
 from PySide6 import QtWidgets
 from core.workspace.containers.side_panel_container.side_panel_container import SidePanelContainer
-from core.settings.settings_app_manager import settings
+from settings.settings_app_manager import settings
 
 
 class SidePanelManager:

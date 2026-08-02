@@ -1,14 +1,15 @@
 from PySide6 import QtWidgets, QtCore
 from typing import Optional
 
-from core.settings.tabs.general.tab_language_settings import TabLanguage
-from core.settings.tabs.general.tab_appearance_settings import TabAppearance
-from core.settings.tabs.general.tab_keyboard_settings import TabKeyboard
-from core.settings.tabs.viewer.tab_2d_settings import Tab2DViewer
-from core.settings.tabs.viewer.tab_3d_settings import Tab3DViewer
-from core.settings.tabs.workspace.tab_toolbar_settings import TabToolbar
-from core.settings.tabs.workspace.tab_side_panel_settings import TabSidePanel
 from core.settings.localization.translator import tr
+
+from settings.settings_page_tabs.general.tab_language_settings import TabLanguage
+from settings.settings_page_tabs.general.tab_appearance_settings import TabAppearance
+from settings.settings_page_tabs.general.tab_keyboard_settings import TabKeyboard
+from settings.settings_page_tabs.viewer.tab_2d_settings import Tab2DViewer
+from settings.settings_page_tabs.viewer.tab_3d_settings import Tab3DViewer
+from settings.settings_page_tabs.workspace.tab_toolbar_settings import TabToolbar
+from settings.settings_page_tabs.workspace.tab_side_panel_settings import TabSidePanel
 
 
 class PaginaConfig(QtWidgets.QWidget):

@@ -1,6 +1,6 @@
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets
 from core.settings.localization.translator import tr
-from core.settings.settings_app_manager import settings
+from settings.settings_app_manager import settings
 
 
 class TabSidePanel(QtWidgets.QWidget):
@@ -31,7 +31,7 @@ class TabSidePanel(QtWidgets.QWidget):
         mode_layout = QtWidgets.QHBoxLayout()
         self.lbl_mode = QtWidgets.QLabel(tr("configs.side_panel.mode", "Modo do Container:"))
         self.combo_mode = QtWidgets.QComboBox()
-        self.combo_mode.addItem(tr("configs.side_panel.mode.tabs", "Abas Laterais (East)"), "tabs")
+        self.combo_mode.addItem(tr("configs.side_panel.mode.settings_page_tabs", "Abas Laterais (East)"), "settings_page_tabs")
         self.combo_mode.addItem(tr("configs.side_panel.mode.toolbox", "Painéis Empilhados (Toolbox / Colapsável)"),
                                 "toolbox")
         self.combo_mode.addItem(tr("configs.side_panel.mode.floating", "Painel Flutuante (Floating)"),

@@ -2,27 +2,46 @@
     "common": {
         "warning": "Atenção",
         "error": "Erro",
+        "critical_error": "Erro Crítico",
         "close_button": "Fechar",
+        "theme_error": "Erro ao Aplicar Tema",
+        "flow_error": "Falha ao carregar fluxo",
+        "missing_data": "Requisito Ausente",
         "open_project": "Abrir Projeto",
         "delete_project": "Remover Projeto"
     },
     "home": {
         "recent_projects_title": "Projetos Recentes",
         "new_project_button": "Novo Projeto",
-        "select_project_msg": "Selecione um paciente antes de prosseguir.",
+        "delete_project": "Remover projeto",
+        "select_patient_msg": "Selecione um paciente antes de prosseguir.",
+        "select_patient_first": "Selecione um paciente para iniciar este fluxo.",
         "confirm_deletion_title": "Confirmar Exclusão",
         "confirm_deletion_message": "Deseja apagar permanentemente este projeto?",
         "available_flows_title": "Fluxos Disponíveis",
         "new_flow_button": "Novo Fluxo",
-        "unknown_patient": "Paciente Desconhecido"
+        "unknown_patient": "Paciente Desconhecido",
+        "delete_flow_msg": "Tem certeza de que deseja excluir o fluxo",
+        "delete_folder_error": "Falha ao remover a pasta do projeto."
     },
     "configs": {
         "settings_title": "Configurações",
         "theme_label": "Tema do Sistema",
+        "language": "Idioma",
         "language_label": "Idioma",
         "language_changed_title": "Idioma Alterado",
         "restart_required_msg": "Por favor, reinicie a aplicação para aplicar as mudanças.",
-        "default_theme": "Padrão"
+        "default_theme": "Padrão",
+        "general": "Geral",
+        "appearance": "Aparência",
+        "keyboard_shortcuts": "Atalhos de Teclado",
+        "viewer": "Visualizador",
+        "2d_viewer": "Visualizador 2D",
+        "3d_viewer": "Visualizador 3D",
+        "back": "Voltar",
+        "workspace": "Espaço de Trabalho",
+        "toolbar": "Barra de Ferramentas",
+        "side_panel": "Painel Lateral"
     },
     "import": {
         "secao": {

@@ -4,7 +4,7 @@ from PySide6 import QtCore, QtWidgets
 
 from core.workspace.containers.central_area_container.central_area_manager import CentralAreaManager
 from core.workspace.containers.header_container.header_panel import HeaderPanel
-from core.workspace.containers.header_container.workspace_modules import WorkspaceModulesMixin
+from module_manager.workspace_modules_mixin import WorkspaceModulesMixin
 from core.workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
 from core.workspace.containers.status_bar.status_bar import StatusBarManager
 from core.workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
@@ -15,7 +15,7 @@ from core.workspace.patient.state import WorkspaceState
 from core.workspace.patient.workspace_patient import WorkspacePatientMixin
 from core.workspace.layout.workspace_loaders_components import WorkspaceComponentHandler
 from core.settings.logs.archives.workspace_log import Workspace_Logger
-from core.settings.settings_app_manager import settings
+from settings.settings_app_manager import settings
 
 from settings.logs.archives.containers import container
 
@@ -79,7 +79,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
             if hasattr(self.side_manager.container, "toggle_requested"):
                 self.side_manager.container.toggle_requested.connect(self.notificar_toggle_side_panel)
 
-        current_mode = getattr(settings, "side_panel_mode", "tabs")
+        current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
         if current_mode != "floating":
             self.side_manager.container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
             self.splitter.addWidget(self.side_manager.container)
@@ -104,7 +104,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
             logger.error(f"Erro ao rodar diagnóstico do side panel: {e}")
 
     def _configure_splitter(self):
-        current_mode = getattr(settings, "side_panel_mode", "tabs")
+        current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
 
         if current_mode == "floating":
             self.splitter.setCollapsible(0, False)
@@ -121,7 +121,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
 
     def notificar_toggle_side_panel(self, colapsado: bool):
         """Método unificado chamado pelo cabeçalho do side panel para atualizar o layout, redimensionar e refrescar as vistas."""
-        current_mode = getattr(settings, "side_panel_mode", "tabs")
+        current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
         if current_mode == "floating":
             return
 
@@ -155,7 +155,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         if not self.splitter or not self.splitter.isVisible():
             return
 
-        current_mode = getattr(settings, "side_panel_mode", "tabs")
+        current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
         if current_mode == "floating":
             self.splitter.setSizes([self.splitter.width(), 0])
             return
@@ -194,7 +194,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         logger.debug(f"Estado atual pós-reset - Módulos ativos: {self.registry.list_active_modules()}")
 
     def reconstruir_side_panel(self):
-        """Reconstrói dinamicamente o container do painel lateral com base no novo modo (tabs ou floating)."""
+        """Reconstrói dinamicamente o container do painel lateral com base no novo modo (settings_page_tabs ou floating)."""
         if not hasattr(self, "side_manager") or not self.side_manager:
             return
 
@@ -224,7 +224,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
             new_container.toggle_requested.connect(self.notificar_toggle_side_panel)
 
         # 3. Reinsere no QSplitter principal do workspace
-        current_mode = getattr(settings, "side_panel_mode", "tabs")
+        current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
         if current_mode != "floating":
             new_container.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Expanding)
             self.splitter.addWidget(new_container)

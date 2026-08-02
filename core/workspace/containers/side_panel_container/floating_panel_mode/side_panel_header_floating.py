@@ -144,13 +144,13 @@ class SidePanelHeaderFloating(QtWidgets.QWidget):
         self.settings_requested.emit()
         try:
             from core.settings.settings_dialog import SettingsDialog
-            from core.settings.tabs.workspace.tab_side_panel_settings import TabSidePanel
+            from settings.settings_page_tabs.workspace.tab_side_panel_settings import TabSidePanel
             dialog = SettingsDialog(workspace_manager=self.workspace_manager, parent=self)
             if hasattr(dialog, "selecionar_aba_por_tipo"):
                 dialog.selecionar_aba_por_tipo(TabSidePanel)
             dialog.exec()
         except ImportError:
-            from core.settings.tabs.workspace.tab_side_panel_settings import TabSidePanel
+            from settings.settings_page_tabs.workspace.tab_side_panel_settings import TabSidePanel
             dialog = QtWidgets.QDialog(self)
             dialog.setWindowTitle(tr("configs.side_panel", "Configurações do Side Panel"))
             dialog.resize(450, 300)

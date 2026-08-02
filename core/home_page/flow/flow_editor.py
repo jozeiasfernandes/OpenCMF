@@ -1,4 +1,3 @@
-# Editor de flow
 from PySide6 import QtWidgets, QtCore
 
 class PaginaEditorFluxo(QtWidgets.QWidget):
@@ -54,3 +53,15 @@ class PaginaEditorFluxo(QtWidgets.QWidget):
         l.addWidget(QtWidgets.QPushButton("+"), alignment=QtCore.Qt.AlignCenter)
 
         return box
+
+if __name__ == "__main__":
+    import sys
+
+    app = QtWidgets.QApplication(sys.argv)
+
+    janela = PaginaEditorFluxo()
+    janela.setWindowTitle("Teste de Editor de Fluxos")
+    janela.resize(800, 500)
+    janela.show()
+
+    sys.exit(app.exec())

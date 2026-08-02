@@ -1,14 +1,12 @@
-from pathlib import Path
-
 from PySide6 import QtWidgets, QtCore, QtGui
+from list_paths import ICONS_DIR
 
 
 class HomeButton(QtWidgets.QToolButton):
     clicked_signal = QtCore.Signal()
 
-    def __init__(self, base_dir: Path, icon_size: QtCore.QSize):
+    def __init__(self, icon_size: QtCore.QSize):
         super().__init__()
-        self.base_dir = base_dir
         self.icon_size_setting = icon_size
 
         self._configure_identity()
@@ -22,7 +20,7 @@ class HomeButton(QtWidgets.QToolButton):
         self.setCursor(QtCore.Qt.PointingHandCursor)
 
     def _apply_icon_or_fallback(self):
-        icon_path = self.base_dir / "appearance" / "icons" / "home.svg"
+        icon_path = ICONS_DIR / "home.svg"
 
         if icon_path.exists():
             icon = QtGui.QIcon(str(icon_path))

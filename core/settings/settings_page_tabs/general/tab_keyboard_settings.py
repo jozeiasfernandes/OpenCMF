@@ -1,14 +1,14 @@
 import json
-from pathlib import Path
 from PySide6 import QtWidgets, QtGui
+
+from list_paths import SHORTCUTS_FILE_PATH
 
 
 class TabKeyboard(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
-        # parents[2] sobe de core/settings/tabs/general para core/settings
-        base_path = Path(__file__).resolve().parents[2]
-        self.config_path = base_path / "shortcut" / "shortcuts.json"
+        # Utiliza o path centralizado do list_paths.py
+        self.config_path = SHORTCUTS_FILE_PATH
 
         self._setup_ui()
         self.carregar_atalhos()

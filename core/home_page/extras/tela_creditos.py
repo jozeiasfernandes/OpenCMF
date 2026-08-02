@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets, QtCore, QtGui
-from pathlib import Path
+from list_paths import ICONS_DIR
 
 
 class Janela_Creditos(QtWidgets.QDialog):
@@ -18,8 +18,8 @@ class Janela_Creditos(QtWidgets.QDialog):
         self.lbl_logo = QtWidgets.QLabel()
         self.lbl_logo.setAlignment(QtCore.Qt.AlignCenter)
 
-        # Caminho subindo um nível para achar a pasta icons
-        path_logo = Path(__file__).parent.parent / "icons" / "OpenCFM.png"
+        # Caminho obtido centralizado através do list_paths
+        path_logo = ICONS_DIR / "OpenCFM.png"
 
         if path_logo.exists():
             pixmap = QtGui.QPixmap(str(path_logo))
@@ -59,3 +59,12 @@ class Janela_Creditos(QtWidgets.QDialog):
         layout.addWidget(self.lbl_texto)
         layout.addStretch()
         layout.addWidget(self.btn_fechar, alignment=QtCore.Qt.AlignCenter)
+
+
+if __name__ == "__main__":
+    import sys
+
+    app = QtWidgets.QApplication(sys.argv)
+    window = Janela_Creditos()
+    window.show()
+    sys.exit(app.exec())

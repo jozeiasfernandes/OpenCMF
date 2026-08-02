@@ -4,7 +4,8 @@ from typing import Optional, Any
 from enum import Enum, auto
 import vtk
 from PySide6 import QtGui, QtWidgets
-from settings.localization.translator import get_base_dir
+
+from list_paths import ICONS_DIR
 from core.scene.scene_manager import SceneManager
 
 #   category = ToolCategory.SELECTION
@@ -79,7 +80,7 @@ class BaseTool:
 
     def get_qicon(self) -> QtGui.QIcon:
         if self.icon:
-            path = get_base_dir() / "appearance" / "icons" / self.icon
+            path = ICONS_DIR / self.icon
             if path.exists():
                 return QtGui.QIcon(str(path))
         return QtWidgets.QApplication.style().standardIcon(

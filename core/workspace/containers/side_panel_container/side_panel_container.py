@@ -1,8 +1,8 @@
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore
+from PySide6 import QtWidgets
 from typing import Dict, Optional
 
-from core.settings.settings_app_manager import settings
+from settings.settings_app_manager import settings
 from core.workspace.containers.side_panel_container.side_panel_drawer_mixin import SidePanelDrawerMixin
 from core.workspace.containers.side_panel_container.base.base_side_panel_container import BaseSidePanelMode
 
@@ -80,7 +80,7 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
             self.header.deleteLater()
             self.header = None
 
-        if self.current_mode == "tabs":
+        if self.current_mode == "settings_page_tabs":
             self.header = SidePanelHeaderTabs(title, workspace_manager=self.workspace_manager, parent=self)
             self.header.toggle_collapsed_changed.connect(self.apply_drawer_state)
         elif self.current_mode == "toolbox":
@@ -102,7 +102,7 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
                 self.mode_strategy.deleteLater()
             self.mode_strategy = None
 
-        if self.current_mode == "tabs":
+        if self.current_mode == "settings_page_tabs":
             self.mode_strategy = TabsSidePanelMode(self.content_container)
             self.content_layout.addWidget(self.mode_strategy)
         elif self.current_mode == "toolbox":
