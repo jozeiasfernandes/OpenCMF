@@ -1,3 +1,6 @@
+# Lógica de controle das abas
+# Adicionar, remover, ordenar, ativar e sincronizar com o QStackedWidget.
+
 from PySide6 import QtWidgets, QtCore
 from module_manager.workspace_tab_widget import WorkspaceTabWidget
 

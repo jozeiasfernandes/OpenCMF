@@ -1,28 +1,39 @@
 import logging
 from typing import Any, Optional
+
 from PySide6 import QtCore, QtWidgets
 
-from core.workspace.containers.central_area_container.central_area_manager import CentralAreaManager
-from core.workspace.containers.header_container.header_panel import HeaderPanel
-from module_manager.workspace_modules_mixin import WorkspaceModulesMixin
-from core.workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
-from core.workspace.containers.status_bar.status_bar import StatusBarManager
-from core.workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
-from core.workspace.containers.side_panel_container.side_panel_container import SidePanelContainer
-
-from core.workspace.models.registry import WorkspaceRegistry
+# Patient
 from core.workspace.patient.state import WorkspaceState
-from core.workspace.patient.workspace_patient import WorkspacePatientMixin
-from core.workspace.layout.workspace_loaders_components import WorkspaceComponentHandler
-from core.settings.logs.archives.workspace_log import Workspace_Logger
+
+# Settings
 from settings.settings_app_manager import settings
 
+from core.settings.logs.archives.workspace_log import Workspace_Logger
+logger = logging.getLogger("OpenCMF.Workspace")
 from settings.logs.archives.containers import container
 
-logger = logging.getLogger("OpenCMF.Workspace")
+# Workspace / Layout
+from module_manager.workspace_module_manager import WorkspaceModuleManager
+from core.workspace.patient.workspace_patient import WorkspacePatientMixin
+from core.workspace.layout.workspace_loaders_components import WorkspaceComponentHandler
+
+from core.workspace.models.registry import WorkspaceRegistry
+
+# Containers
+from core.workspace.containers.header_container.header_panel import HeaderPanel
+
+from core.workspace.containers.toolbar_container.toolbar_manager import ToolbarManager
+
+from core.workspace.containers.central_area_container.central_area_manager import CentralAreaManager
+
+from core.workspace.containers.side_panel_container.side_panel_container import SidePanelContainer
+from core.workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
+
+from core.workspace.containers.status_bar.status_bar import StatusBarManager
 
 
-class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatientMixin):
+class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
     """Gerencia o layout principal do workspace e a integração entre componentes."""
 
     MIN_CENTRAL_WIDTH = 200
@@ -72,8 +83,27 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.central_manager = CentralAreaManager(self)
         self.splitter.addWidget(self.central_manager.get_container())
 
+        # Instancia o WorkspaceModuleManager utilizando o container central como base
+        self.module_manager = WorkspaceModuleManager(
+            container=self.central_manager.get_container(),
+            registry=self.registry,
+            toolbar_manager=self.toolbar_manager,
+            side_manager=None,  # Será associado logo abaixo
+            central_manager=self.central_manager,
+            parent=self
+        )
+
+        # Expõe o layout das abas para o header se houver suporte antes de carregar
+        if hasattr(self.header, 'add_tabs_layout'):
+            self.header.add_tabs_layout(self.module_manager.tab_bar_layout)
+
+        # Carrega e instancia os módulos ativos na interface com segurança
+        if hasattr(self.module_manager, "load_modules"):
+            self.module_manager.load_modules()
+
         # 2. Instancia o gerenciador do painel lateral
         self.side_manager = SidePanelManager(self)
+        self.module_manager.side_manager = self.side_manager
 
         if hasattr(self.side_manager, "container") and self.side_manager.container:
             if hasattr(self.side_manager.container, "toggle_requested"):
@@ -93,8 +123,8 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         self.main_layout.addWidget(self.toolbar_manager.bottom_container)
 
         self.status_bar_manager = StatusBarManager()
+        self.module_manager.status_bar_manager = self.status_bar_manager
         self.main_layout.addWidget(self.status_bar_manager)
-
 
         try:
             containers_logger = container.containers_logger()
@@ -268,6 +298,17 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspaceModulesMixin, WorkspacePatien
         """Garante que os tamanhos do splitter sejam aplicados assim que a janela for exibida e tiver largura real."""
         super().showEvent(event)
         QtCore.QTimer.singleShot(50, self._apply_initial_splitter_sizes)
+
+    def get_modulo_ativo(self):
+        """Delega a busca do módulo ativo para o novo gerenciador unificado."""
+        if hasattr(self, 'module_manager'):
+            return self.module_manager.get_modulo_ativo()
+        return None
+
+    def on_module_changed(self, module_id: str):
+        """Delega a mudança de módulo para o novo gerenciador."""
+        if hasattr(self, 'module_manager'):
+            self.module_manager.on_module_changed(module_id)
 
 
 if __name__ == "__main__":

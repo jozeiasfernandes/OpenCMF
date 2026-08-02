@@ -31,6 +31,11 @@ class WorkspaceRegistry:
 
         return self._active_modules[module_id]
 
+    # Adicionado método alias para compatibilidade com o WorkspaceModuleManager
+    def get_module(self, module_id: str) -> Any:
+        """Retorna o módulo ativo pelo ID, criando-o se necessário."""
+        return self.get_or_create_module(module_id)
+
     def unregister(self, module_id: str) -> None:
         """Remove um módulo do registro e realiza sua limpeza."""
         if module_id in self._active_modules:

@@ -68,5 +68,12 @@
         "btn": {
             "import_objects": "Import Objects"
         }
+    },
+    "logs": {
+        "monitor_title": "System Log Monitor - OpenCMF",
+        "tab_main": "Main",
+        "tab_home": "Home Page",
+        "tab_containers": "Containers",
+        "btn_copy": "Copy"
     }
 }

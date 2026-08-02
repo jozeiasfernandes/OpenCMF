@@ -1,3 +1,4 @@
+# Apresentação visual e interação direta de uma aba individual
 from PySide6 import QtWidgets, QtCore
 
 

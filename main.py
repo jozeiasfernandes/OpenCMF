@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from PySide6 import QtCore, QtWidgets
 import vtk
+
 vtk.vtkObject.GlobalWarningDisplayOff()
 
 # Home page
@@ -23,6 +24,7 @@ from settings.localization.translator import tr
 from list_paths import BASE_DIR, PATIENTS_DIR, THEMES_DIR, DEFAULT_FLOW_PATH, ICONS_DIR
 
 from settings.logs.logger_manager import Main_Logger, main_logger
+
 Main_Logger.setup_redirect()
 
 # Scene
@@ -252,8 +254,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if not self.workflow:
             return
 
-        self.workspace.registry.clear_all()
-        self.workspace.header.clear_tabs()
+        self.workspace.reset_workspace()
 
         for module_id in self.workflow.sequencia:
             try:
@@ -269,7 +270,11 @@ class MainWindow(QtWidgets.QMainWindow):
                     continue
 
                 title = getattr(module, 'nome', module_id)
-                self.workspace.header.add_module_tab(module_id, title)
+                content_widget = getattr(module, 'central_widget', None) or getattr(module, 'get_widget', lambda: QtWidgets.QWidget())()
+
+                # Delega a abertura da aba diretamente para o WorkspaceModuleManager
+                if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'open_module_tab'):
+                    self.workspace.module_manager.open_module_tab(module_id, title, content_widget)
 
             except Exception as e:
                 main_logger.error(f"Erro ao carregar o módulo '{module_id}': {e}", exc_info=True)
@@ -279,8 +284,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.stack.setCurrentWidget(self.workspace)
 
-        if self.workspace.header.tab_bar.count() > 0:
-            self.workspace.header.tab_bar.setCurrentIndex(0)
+        # Sincroniza o primeiro módulo ativo se houver abas no TabController
+        if hasattr(self.workspace, 'module_manager') and self.workspace.module_manager.tab_controller.tabs:
+            self.workspace.module_manager.tab_controller.set_active(0)
             self.sync_active_module()
 
         QtCore.QTimer.singleShot(150, lambda: self.workspace.log_debug_state() if hasattr(self.workspace, "log_debug_state") else None)

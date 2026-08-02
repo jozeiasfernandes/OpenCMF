@@ -95,7 +95,7 @@ class Modulo(ModuloBase):
     def __init__(self, context: Any = None, caminho_paciente: str = None, **kwargs):
         super().__init__(context=context)
         self.id = "modulo.paciente"
-        self.nome = "Módulo Paciente"
+        self.nome = "Paciente"
         self._caminho_paciente = caminho_paciente
         self.project_service = ProjectServiceHomePage(Path("patients"))
 

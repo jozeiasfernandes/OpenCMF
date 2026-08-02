@@ -15,13 +15,17 @@ from list_paths import PATIENTS_DIR, FLOWS_DIR, REGISTRATION_FLOW_NAME
 from settings.icons.icons_manager import IconManager
 from settings.localization.translator import tr
 
-#Extras
+# Extras
 from core.home_page.extras.tela_creditos import Janela_Creditos
 from core.home_page.flow.fluxo_card import FluxoCard
 from core.home_page.managers.project_list_formatter import (
     create_project_card,
     format_and_add_to_list,
 )
+
+# Monitor de Logs
+from core.settings.logs.log_monitor_window import LogMonitorWindow
+
 
 class ClickableLabel(QtWidgets.QLabel):
     clicked = QtCore.Signal()
@@ -66,6 +70,7 @@ class Home_page(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
 
         open_credits = lambda: Janela_Creditos(self).exec()
+        open_logs = self._open_log_monitor
 
         self.btn_logo = QtWidgets.QPushButton()
         self.btn_logo.setFixedSize(24, 24)
@@ -79,6 +84,15 @@ class Home_page(QtWidgets.QWidget):
         self.lbl_title.setStyleSheet("font-weight: bold; font-size: 16px; color: #FFFFFF;")
         self.lbl_title.clicked.connect(open_credits)
 
+        # Botão para abrir o Monitor de Logs (ícone terminal)
+        self.btn_logs = QtWidgets.QPushButton()
+        self.btn_logs.setFixedSize(24, 24)
+        self.btn_logs.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_logs.setIconSize(QtCore.QSize(24, 24))
+        self.btn_logs.clicked.connect(open_logs)
+        self.btn_logs.setStyleSheet("QPushButton { border: none; }")
+        self.btn_logs.setToolTip(tr("logs.monitor_title", "Monitor de Logs"))
+
         self.btn_settings = QtWidgets.QPushButton()
         self.btn_settings.setFixedSize(24, 24)
         self.btn_settings.setCursor(QtCore.Qt.PointingHandCursor)
@@ -90,8 +104,18 @@ class Home_page(QtWidgets.QWidget):
         layout.addSpacing(10)
         layout.addWidget(self.lbl_title)
         layout.addStretch()
+        layout.addWidget(self.btn_logs)       # Inserido antes de settings
+        layout.addSpacing(10)                 # Espaçamento leve entre os ícones
         layout.addWidget(self.btn_settings)
         return panel
+
+    def _open_log_monitor(self):
+        """Abre a janela do monitor de logs como uma janela secundária."""
+        if not hasattr(self, "log_window") or self.log_window is None:
+            self.log_window = LogMonitorWindow(self)
+        self.log_window.show()
+        self.log_window.raise_()
+        self.log_window.activateWindow()
 
     def _build_projects_section(self):
         panel = QtWidgets.QFrame()
@@ -219,6 +243,7 @@ class Home_page(QtWidgets.QWidget):
         cor_default = manager.get_color(theme, "status", "default")
 
         self.btn_logo.setIcon(manager.get_icon("cmf", color=cor_default, size=40))
+        self.btn_logs.setIcon(manager.get_icon("terminal", color=cor_default, size=24))
         self.btn_settings.setIcon(manager.get_icon("config", color=cor_default, size=24))
 
         icon_view = "menu" if self.is_grid_view else "grid"

@@ -1,3 +1,6 @@
+# Regra de negócio dos módulos
+# Carregar, limpar, inicializar via registro e contexto do paciente.
+
 import logging
 from typing import Optional
 from core.workspace.models.contracts import IModule
@@ -59,10 +62,14 @@ class WorkspaceModulesMixin:
                 self.status_bar_manager.showMessage("Erro ao carregar módulo", 5000)
 
     def get_modulo_ativo(self) -> Optional[IModule]:
-        """Retorna o módulo atualmente ativo se já estiver instanciado, evitando criação acidental."""
-        current_index = self.header.tab_bar.currentIndex()
-        if current_index >= 0:
-            module_id = self.header.tab_bar.tabData(current_index)
-            if module_id and hasattr(self, "registry") and hasattr(self.registry, "get_module"):
-                return self.registry.get_module(module_id)
+        """Retorna o módulo ativo consultando o TabController e o Registry."""
+        try:
+            current_index = self.tab_controller.container.currentIndex()
+            if current_index >= 0:
+                active_modules = self.registry.list_active_modules()
+                if current_index < len(active_modules):
+                    module_id = active_modules[current_index]
+                    return self.registry.get_module(module_id)
+        except Exception as e:
+            logger.error(f"Erro ao obter módulo ativo no manager: {e}")
         return None
