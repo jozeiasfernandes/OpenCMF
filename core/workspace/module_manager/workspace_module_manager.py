@@ -21,14 +21,14 @@ class WorkspaceModuleManager(QtCore.QObject, WorkspaceModulesMixin):
     module_closed = QtCore.Signal(int)
 
     def __init__(
-        self,
-        container: QtWidgets.QStackedWidget,
-        registry,
-        toolbar_manager,
-        side_manager,
-        central_manager,
-        status_bar_manager: Optional[QtWidgets.QStatusBar] = None,
-        parent: Optional[QtCore.QObject] = None,
+            self,
+            container: QtWidgets.QStackedWidget,
+            registry,
+            toolbar_manager,
+            side_manager,
+            central_manager,
+            status_bar_manager: Optional[QtWidgets.QStatusBar] = None,
+            parent: Optional[QtCore.QObject] = None,
     ):
         super().__init__(parent)
         self.registry = registry
@@ -39,6 +39,9 @@ class WorkspaceModuleManager(QtCore.QObject, WorkspaceModulesMixin):
 
         # Controlador de abas visual e de navegação
         self.tab_controller = TabController(container)
+
+        # Mapeamento interno reverso para garantir rastreabilidade exata do module_id
+        self._widget_to_module_id: dict[QtWidgets.QWidget, str] = {}
 
         # Conecta os sinais do TabController aos comportamentos do gerenciador
         self.tab_controller.tab_changed.connect(self._handle_tab_changed)
@@ -61,7 +64,6 @@ class WorkspaceModuleManager(QtCore.QObject, WorkspaceModulesMixin):
                     module_instance = None
 
                 if module_instance:
-                    # Correção: alinhado com as propriedades e métodos do IModule ('nome' e 'get_central_area')
                     title = getattr(module_instance, "nome", None) or getattr(module_instance, "name", module_id)
 
                     widget = None
@@ -83,17 +85,18 @@ class WorkspaceModuleManager(QtCore.QObject, WorkspaceModulesMixin):
         return self.tab_controller.tab_bar_layout
 
     def open_module_tab(self, module_id: str, title: str, content_widget: QtWidgets.QWidget):
-        """Apenas adiciona uma nova aba para o módulo sem forçar a ativação imediata."""
+        """Adiciona uma nova aba para o módulo e mapeia seu ID de forma segura."""
+        self._widget_to_module_id[content_widget] = module_id
         self.tab_controller.add_tab(title, content_widget)
         self.module_opened.emit(module_id)
 
     def _handle_tab_changed(self, index: int):
         """Disparado quando o usuário troca de aba visualmente."""
         try:
-            active_modules = self.registry.list_active_modules()
-            if 0 <= index < len(active_modules):
-                module_id = active_modules[index]
-                # Dispara o método de troca de módulo do mixin/manager
+            # Obtém o widget ativo atual diretamente do container gerenciado pelo TabController
+            current_widget = self.tab_controller.container.currentWidget()
+            if current_widget and current_widget in self._widget_to_module_id:
+                module_id = self._widget_to_module_id[current_widget]
                 if hasattr(self, "on_module_changed"):
                     self.on_module_changed(module_id)
         except Exception as e:
@@ -102,8 +105,11 @@ class WorkspaceModuleManager(QtCore.QObject, WorkspaceModulesMixin):
     def _handle_tab_closed(self, index: int):
         """Disparado quando uma aba é fechada pelo usuário."""
         self.module_closed.emit(index)
+
+        # Limpa referências órfãs do dicionário se necessário
         # Se não houver mais abas, limpa o workspace atual
         if not self.tab_controller.tabs:
+            self._widget_to_module_id.clear()
             from core.workspace.layout.layout import ModuleDistributor
             ModuleDistributor.cleanup(
                 self.toolbar_manager,
@@ -112,16 +118,13 @@ class WorkspaceModuleManager(QtCore.QObject, WorkspaceModulesMixin):
             )
 
     def get_modulo_ativo(self) -> Optional[IModule]:
-        """Retorna o módulo ativo consultando o TabController e o Registry."""
+        """Retorna o módulo ativo consultando diretamente o mapeamento do widget atual."""
         try:
-            current_index = self.tab_controller.container.currentIndex()
-            if current_index >= 0:
-                active_modules = self.registry.list_active_modules()
-                if current_index < len(active_modules):
-                    module_id = active_modules[current_index]
-                    # Usa o método correto do registry (ex: get_or_create_module)
-                    if hasattr(self.registry, "get_or_create_module"):
-                        return self.registry.get_or_create_module(module_id)
+            current_widget = self.tab_controller.container.currentWidget()
+            if current_widget and current_widget in self._widget_to_module_id:
+                module_id = self._widget_to_module_id[current_widget]
+                if hasattr(self.registry, "get_or_create_module"):
+                    return self.registry.get_or_create_module(module_id)
         except Exception as e:
             logger.error(f"Erro ao obter módulo ativo no manager: {e}")
         return None

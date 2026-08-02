@@ -11,8 +11,6 @@ from core.settings.help.help_page import HelpPage
 from settings.settings_page import PaginaConfig
 
 
-
-
 class HeaderPanel(QtWidgets.QWidget):
     """Barra de cabeçalho do workspace com botão Home, abas e janelas flutuantes."""
 
@@ -40,12 +38,17 @@ class HeaderPanel(QtWidgets.QWidget):
         self.btn_home = HomeButton(QtCore.QSize(32, 32))
         self.btn_home.clicked_signal.connect(self.home_requested.emit)
 
-        self.tab_bar = QtWidgets.QTabBar()
-        self.tab_bar.setDocumentMode(True)
-        self.tab_bar.setDrawBase(False)
-        self.tab_bar.setExpanding(False)
-        self.tab_bar.setMovable(True)
-        self.tab_bar.currentChanged.connect(self._on_tab_changed)
+        # Se o workspace_manager possuir um tab_controller, usamos a tab_bar oficial dele.
+        # Caso contrário, inicializamos uma própria como fallback.
+        if self.workspace_manager and hasattr(self.workspace_manager, "tab_controller"):
+            self.tab_bar = self.workspace_manager.tab_controller.tab_bar
+        else:
+            self.tab_bar = QtWidgets.QTabBar()
+            self.tab_bar.setDocumentMode(True)
+            self.tab_bar.setDrawBase(False)
+            self.tab_bar.setExpanding(False)
+            self.tab_bar.setMovable(True)
+            self.tab_bar.currentChanged.connect(self._on_tab_changed)
 
         self.btn_loader_components = self._create_tool_button(
             "widgets", self._open_components_loader, ICONS_DIR / "widgets.svg"

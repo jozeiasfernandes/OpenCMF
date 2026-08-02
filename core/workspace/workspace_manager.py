@@ -93,13 +93,12 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
             parent=self
         )
 
-        # Expõe o layout das abas para o header se houver suporte antes de carregar
+        # Expõe o layout das abas para o header
         if hasattr(self.header, 'add_tabs_layout'):
             self.header.add_tabs_layout(self.module_manager.tab_bar_layout)
 
-        # Carrega e instancia os módulos ativos na interface com segurança
-        if hasattr(self.module_manager, "load_modules"):
-            self.module_manager.load_modules()
+        # ⚠️ REMOVIDO DAQUI: load_modules() não deve rodar no __init__ do Workspace,
+        # pois o fluxo e os módulos ainda não foram definidos pela MainWindow.
 
         # 2. Instancia o gerenciador do painel lateral
         self.side_manager = SidePanelManager(self)

@@ -44,7 +44,7 @@ class Modulo(ModuloBase):
     def __init__(self, context: Any = None, parent: Optional[QtWidgets.QWidget] = None, **kwargs):
         super().__init__(context=context, parent=parent)
 
-        self.id = "modulo.registration"
+        self.id = "registration"
         self.nome = "Registro"
         self._is_initialized = False
 

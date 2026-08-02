@@ -252,43 +252,63 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _load_workflow_modules(self):
         if not self.workflow:
+            main_logger.warning(
+                "[MainWindow] Tentativa de carregar módulos, mas nenhum fluxo (workflow) está definido.")
             return
 
+        main_logger.info(
+            f"[MainWindow] Carregando fluxo '{self.workflow.nome}' com a sequência de etapas: {self.workflow.sequencia}")
         self.workspace.reset_workspace()
 
         # 1. Registra as classes dos módulos na fábrica e informa o registry da workspace
         for module_id in self.workflow.sequencia:
             try:
+                main_logger.info(f"[MainWindow] Buscando classe para o module_id: '{module_id}' via project_service...")
                 module_class = self.project_service.get_module_class(module_id)
+
                 if not module_class:
-                    main_logger.warning(f"Módulo '{module_id}' não encontrado.")
+                    main_logger.error(
+                        f"[MainWindow] FALHA: Módulo '{module_id}' retornado como None pelo project_service.get_module_class()!")
                     continue
 
+                main_logger.info(
+                    f"[MainWindow] Classe encontrada para '{module_id}': {module_class.__name__}. Registrando na ModuleFactory...")
                 ModuleFactory.register(module_id, module_class)
 
                 if hasattr(self.workspace.registry, "register_active_module"):
                     self.workspace.registry.register_active_module(module_id)
+                    main_logger.info(f"[MainWindow] Módulo '{module_id}' registrado com sucesso no WorkspaceRegistry.")
 
             except Exception as e:
-                main_logger.error(f"Erro ao registrar o módulo '{module_id}': {e}", exc_info=True)
+                main_logger.error(f"[MainWindow] Erro crítico ao registrar o módulo '{module_id}': {e}", exc_info=True)
                 if hasattr(self.workspace, 'status_bar_manager') and self.workspace.status_bar_manager:
                     self.workspace.status_bar_manager.showMessage(
                         f"Erro ao carregar {module_id}", 3000
                     )
 
         # 2. Exibe a workspace na tela principal
+        main_logger.info("[MainWindow] Exibindo o widget da workspace na pilha principal (QStackedWidget)...")
         self.stack.setCurrentWidget(self.workspace)
 
         # 3. Delega o carregamento visual e a criação das abas inteiramente para o WorkspaceModuleManager
         if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'load_modules'):
+            main_logger.info(
+                "[MainWindow] Disparando o carregamento visual dos módulos através do module_manager.load_modules()...")
             self.workspace.module_manager.load_modules()
+        else:
+            main_logger.warning(
+                "[MainWindow] O WorkspaceModuleManager não foi encontrado ou não possui o método 'load_modules'.")
 
         # 4. Sincroniza o primeiro módulo ativo se houver abas no TabController
         if hasattr(self.workspace, 'module_manager') and self.workspace.module_manager.tab_controller.tabs:
+            main_logger.info("[MainWindow] Abas detectadas no TabController. Ativando o índice 0 e sincronizando...")
             self.workspace.module_manager.tab_controller.set_active(0)
             self.sync_active_module()
+        else:
+            main_logger.warning("[MainWindow] Nenhuma aba encontrada no TabController após carregar os módulos.")
 
-        QtCore.QTimer.singleShot(150, lambda: self.workspace.log_debug_state() if hasattr(self.workspace, "log_debug_state") else None)
+        QtCore.QTimer.singleShot(150, lambda: self.workspace.log_debug_state() if hasattr(self.workspace,
+                                                                                          "log_debug_state") else None)
 
     def sync_active_module(self):
         module = self.workspace.get_modulo_ativo()

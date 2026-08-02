@@ -22,7 +22,7 @@ logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
 class Modulo(ModuloBase):
-    id = "modulo.tomografia"
+    id = "tomography"
     nome = "Tomografia"
 
     def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None):

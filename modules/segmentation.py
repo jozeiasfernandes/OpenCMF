@@ -16,7 +16,7 @@ class Modulo(ModuloBase):
     def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None, **kwargs):
         super().__init__(context=context, parent=parent)
 
-        self.nome = "Segmentação"
+        self.nome = "segmentation"
         self.id = "modulo.segmentacao"
 
         # Extração de dependências do contexto ou kwargs se fornecidos
