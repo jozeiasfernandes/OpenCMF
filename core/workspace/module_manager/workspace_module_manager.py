@@ -50,11 +50,39 @@ class WorkspaceModuleManager(QtCore.QObject, WorkspaceModulesMixin):
     def load_modules(self):
         """Carrega e instancia todos os módulos ativos do registry na barra de abas."""
         try:
+            # 1. Limpa completamente o mapeamento interno de widgets
+            self._widget_to_module_id.clear()
+
+            # 2. Limpa as abas do controlador visual de forma robusta e esvazia o layout da barra de abas
+            if hasattr(self.tab_controller, "clear_tabs"):
+                self.tab_controller.clear_tabs()
+            elif hasattr(self.tab_controller, "clear"):
+                self.tab_controller.clear()
+            elif hasattr(self.tab_controller, "removeAllTabs"):
+                self.tab_controller.removeAllTabs()
+
+            # Força a remoção visual de todos os elementos residuais do layout da barra de abas
+            if hasattr(self.tab_controller, "tab_bar_layout") and self.tab_controller.tab_bar_layout:
+                layout = self.tab_controller.tab_bar_layout
+                while layout.count() > 0:
+                    item = layout.takeAt(0)
+                    if item.widget():
+                        item.widget().setParent(None)
+                        item.widget().deleteLater()
+
             if not hasattr(self.registry, "list_active_modules"):
                 return
 
             active_module_ids = self.registry.list_active_modules()
+
+            # Conjunto para evitar adicionar o mesmo module_id mais de uma vez na mesma carga
+            loaded_ids = set()
+
             for module_id in active_module_ids:
+                if module_id in loaded_ids:
+                    continue
+                loaded_ids.add(module_id)
+
                 # Obtém ou instancia o módulo através do registro
                 if hasattr(self.registry, "get_or_create_module"):
                     module_instance = self.registry.get_or_create_module(module_id)
@@ -77,7 +105,7 @@ class WorkspaceModuleManager(QtCore.QObject, WorkspaceModulesMixin):
                     if widget:
                         self.open_module_tab(module_id, title, widget)
         except Exception as e:
-            logger.error(f"Erro ao carregar os módulos no manager: {e}")
+            logger.error(f"Erro ao carregar os módulos no manager: {e}", exc_info=True)
 
     @property
     def tab_bar_layout(self) -> QtWidgets.QHBoxLayout:
