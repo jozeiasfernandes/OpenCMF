@@ -1,12 +1,12 @@
-import logging
 from pathlib import Path
 from typing import Dict, Optional, Any
 
 from PySide6 import QtWidgets
 
-# Core imports
+# Module
 from modules.base_module.base_module import ModuloBase
 
+# Scene
 from core.scene.scene_manager import SceneManager
 from core.scene.scene_state import SceneState
 from core.scene.events.event_bus import EventBus
@@ -23,6 +23,9 @@ from core.components.side_panel.object_manager_sidepanel import ObjectManager_Si
 from core.components.side_panel.objetct_properties_sidepanel import ObjectProperties_SidePanel
 from core.components.toolbars.registration_toolbar import RegistrationToolbar
 
+
+# Settings
+import logging
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 

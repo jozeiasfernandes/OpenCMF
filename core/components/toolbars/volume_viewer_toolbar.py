@@ -1,7 +1,7 @@
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.volume.lookup_table.lut_presets import LUTPresets
 from core.components.bases.base_toolbar import BaseToolbar, AppContext
-from settings.localization.translator import get_base_dir  # Import necessário para localizar os ícones
+from list_paths import ICONS_DIR
 
 
 class LUTDelegate(QtWidgets.QStyledItemDelegate):
@@ -39,7 +39,7 @@ class VolumeViewerToolbar(BaseToolbar):
 
     def get_icon(self, icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIcon) -> QtGui.QIcon:
         """Método helper da classe para carregar ícones com segurança."""
-        path = get_base_dir() / "appearance" / "icons" / icon_name
+        path = ICONS_DIR / icon_name
         if path.exists():
             return QtGui.QIcon(str(path))
         return QtWidgets.QApplication.style().standardIcon(fallback)
@@ -131,6 +131,5 @@ if __name__ == "__main__":
     )
 
     viewer_toolbar = VolumeViewerToolbar(app_context=app_context)
-    # Removido viewer_toolbar.initialize() daqui, pois agora a auto-inicialização ocorre no __init__
     viewer_toolbar.show()
     sys.exit(app.exec())

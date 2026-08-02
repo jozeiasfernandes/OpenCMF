@@ -6,7 +6,8 @@ from core.components.bases.base_tool.tool_manager import ToolManager
 from core.components.tools.add_point_registration_tool import AddPointRegistrationTool
 from core.components.tools.select_tool import SelectTool
 
-from settings.localization.translator import get_base_dir, tr
+from settings.localization.translator import tr
+from list_paths import ICONS_DIR
 from core.scene.events.scene_events import RegistrationEvents
 
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ class RegistrationToolbar(BaseToolbar):
 
     def get_icon(self, icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIcon) -> QtGui.QIcon:
         """Método helper da classe para carregar ícones com segurança."""
-        path = get_base_dir() / "appearance" / "icons" / icon_name
+        path = ICONS_DIR / icon_name
         if path.exists():
             return QtGui.QIcon(str(path))
         return QtWidgets.QApplication.style().standardIcon(fallback)

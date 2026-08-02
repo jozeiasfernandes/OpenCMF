@@ -256,6 +256,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.workspace.reset_workspace()
 
+        # 1. Registra as classes dos módulos na fábrica e informa o registry da workspace
         for module_id in self.workflow.sequencia:
             try:
                 module_class = self.project_service.get_module_class(module_id)
@@ -265,26 +266,24 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 ModuleFactory.register(module_id, module_class)
 
-                module = self.workspace.registry.get_or_create_module(module_id)
-                if not module:
-                    continue
-
-                title = getattr(module, 'nome', module_id)
-                content_widget = getattr(module, 'central_widget', None) or getattr(module, 'get_widget', lambda: QtWidgets.QWidget())()
-
-                # Delega a abertura da aba diretamente para o WorkspaceModuleManager
-                if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'open_module_tab'):
-                    self.workspace.module_manager.open_module_tab(module_id, title, content_widget)
+                if hasattr(self.workspace.registry, "register_active_module"):
+                    self.workspace.registry.register_active_module(module_id)
 
             except Exception as e:
-                main_logger.error(f"Erro ao carregar o módulo '{module_id}': {e}", exc_info=True)
-                self.workspace.status_bar_manager.showMessage(
-                    f"Erro ao carregar {module_id}", 3000
-                )
+                main_logger.error(f"Erro ao registrar o módulo '{module_id}': {e}", exc_info=True)
+                if hasattr(self.workspace, 'status_bar_manager') and self.workspace.status_bar_manager:
+                    self.workspace.status_bar_manager.showMessage(
+                        f"Erro ao carregar {module_id}", 3000
+                    )
 
+        # 2. Exibe a workspace na tela principal
         self.stack.setCurrentWidget(self.workspace)
 
-        # Sincroniza o primeiro módulo ativo se houver abas no TabController
+        # 3. Delega o carregamento visual e a criação das abas inteiramente para o WorkspaceModuleManager
+        if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'load_modules'):
+            self.workspace.module_manager.load_modules()
+
+        # 4. Sincroniza o primeiro módulo ativo se houver abas no TabController
         if hasattr(self.workspace, 'module_manager') and self.workspace.module_manager.tab_controller.tabs:
             self.workspace.module_manager.tab_controller.set_active(0)
             self.sync_active_module()

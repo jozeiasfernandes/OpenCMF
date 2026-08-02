@@ -1,7 +1,7 @@
 import vtk
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
-from settings.localization.translator import get_base_dir
+from list_paths import ICONS_DIR
 from core.scene.events.scene_events import RegistrationEvents
 
 class AddPointRegistrationTool(BaseTool):
@@ -17,7 +17,7 @@ class AddPointRegistrationTool(BaseTool):
         self.picker.SetTolerance(0.005)
 
     def get_qicon(self):
-        path = get_base_dir() / "appearance" / "icons" / self.icon
+        path = ICONS_DIR / self.icon
         if path.exists():
             return QtGui.QIcon(str(path))
         return QtWidgets.QApplication.style().standardIcon(QtWidgets.QStyle.SP_FileIcon)

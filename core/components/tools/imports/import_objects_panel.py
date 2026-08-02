@@ -23,7 +23,6 @@ Camada de Dados: SceneObject & ObjectSaver
 Camada Gráfica: VTKActorFactory
 
 '''
-
 import sys
 from typing import Optional, Callable, List, Tuple
 from core.scene.io.importer import ObjectImporter
@@ -34,8 +33,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal, QPoint, QSize, QEvent
 from PySide6.QtGui import QIcon
-from settings.localization.translator import get_base_dir, tr
+from settings.localization.translator import tr
 from core.scene.rendering.vtk_actor_factory import VTKActorFactory
+from list_paths import ICONS_DIR
 
 # Centralização de cores e estilos para fácil manutenção
 COLORS = {
@@ -47,7 +47,7 @@ COLORS = {
 
 
 def get_icon_path(icon_name: str) -> str:
-    path = get_base_dir() / "appearance" / "icons" / icon_name
+    path = ICONS_DIR / icon_name
     return str(path) if path.exists() else ""
 
 
@@ -124,6 +124,7 @@ class SceneController:
 
                 # 4. Renderizar (VTKActorFactory)
                 self.actor_factory.create_actor(scene_obj)
+
 
 class ImportObjectsPanel(QFrame):
     # Sinal emite (categoria_interna, subcategoria_traduzida)

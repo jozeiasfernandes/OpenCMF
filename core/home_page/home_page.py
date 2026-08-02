@@ -311,7 +311,7 @@ class Home_page(QtWidgets.QWidget):
     def _prompt_flow_selection(self, patient_path: str):
         """Registra o log utilizando o contexto do paciente e impede que a workspace abra sem um fluxo escolhido."""
         self.debug_logger.info(
-            "Tentativa de abrir projeto sem fluxo definido (Workspace bloqueada até escolha do fluxo)",
+            "Aguardando o user selecionar o Fluxo para carregar a Workspace",
             patient_path=patient_path)
 
     def _on_remove_clicked(self):
