@@ -71,9 +71,13 @@
     },
     "logs": {
         "monitor_title": "Monitor de Logs do Sistema - OpenCMF",
+        "tab_all": "Todos os Logs",
         "tab_main": "Principal",
         "tab_home": "Página Inicial",
         "tab_containers": "Containers",
+        "tab_module": "Módulo",
+        "tab_components": "Componentes",
+        "tab_scene": "Cena",
         "btn_copy": "Copiar"
     }
 }
