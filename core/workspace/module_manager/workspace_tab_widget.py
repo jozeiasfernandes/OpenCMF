@@ -17,11 +17,10 @@ class WorkspaceTabWidget(QtWidgets.QFrame):
 
         self.title_label = QtWidgets.QLabel(title)
 
-        # Estilização básica do botão de fechar
+        # Configuração do botão de fechar sem estilo inline e sem .hide()
         self.close_button = QtWidgets.QPushButton("×")
         self.close_button.setFixedSize(16, 16)
-        self.close_button.setStyleSheet("border: none; color: #555; font-weight: bold;")
-        self.close_button.hide()
+        self.close_button.setObjectName("TabCloseButton")
         self.close_button.clicked.connect(self.close_requested.emit)
 
         self.layout.addWidget(self.title_label)

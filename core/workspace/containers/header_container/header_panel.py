@@ -100,7 +100,7 @@ class HeaderPanel(QtWidgets.QWidget):
         btn.clicked.connect(callback)
         return btn
 
-    
+
     def add_module_tab(self, module_id: str, title: str):
         index = self.tab_bar.addTab(title)
         self.tab_bar.setTabData(index, module_id)
@@ -111,7 +111,11 @@ class HeaderPanel(QtWidgets.QWidget):
 
     def add_tabs_layout(self, tabs_layout: QtWidgets.QHBoxLayout):
         """Insere o layout customizado de abas do TabController logo após o botão Home."""
-        # Se houver um spacer ou esticar, insere na posição correta (após o btn_home, que é o índice 0)
+        # Remove margens internas e ajusta o espaçamento interno das abas
+        tabs_layout.setContentsMargins(0, 0, 0, 0)
+        tabs_layout.setSpacing(2)
+
+        # Insere na posição correta (após o btn_home, que é o índice 0)
         self.layout().insertLayout(1, tabs_layout)
 
 
