@@ -37,6 +37,29 @@ class TabController(QtCore.QObject):
         if len(self.tabs) == 1:
             self.set_active(0)
 
+    def clear_tabs(self):
+        """Remove e deleta todas as abas e widgets associados de forma segura."""
+        # Remove os widgets associados do container
+        for tab, widget in list(self._tab_to_widget.items()):
+            try:
+                _ = widget.metaObject()
+                self.container.removeWidget(widget)
+                widget.deleteLater()
+            except RuntimeError:
+                pass
+
+        # Remove as abas visuais do layout e deleta
+        for tab in list(self.tabs):
+            try:
+                _ = tab.metaObject()
+                self.tab_bar_layout.removeWidget(tab)
+                tab.deleteLater()
+            except RuntimeError:
+                pass
+
+        self.tabs.clear()
+        self._tab_to_widget.clear()
+
     def _on_tab_clicked(self, tab: WorkspaceTabWidget):
         if tab in self.tabs:
             index = self.tabs.index(tab)
@@ -47,16 +70,26 @@ class TabController(QtCore.QObject):
             return
 
         index = self.tabs.index(tab)
-        widget = self._tab_to_widget.pop(tab)
-        self.tabs.remove(tab)
+        widget = self._tab_to_widget.pop(tab, None)
+        if tab in self.tabs:
+            self.tabs.remove(tab)
 
         # Remove do Container e limpa da pilha de forma segura
-        self.container.removeWidget(widget)
-        widget.deleteLater()
+        if widget is not None:
+            try:
+                _ = widget.metaObject()
+                self.container.removeWidget(widget)
+                widget.deleteLater()
+            except RuntimeError:
+                pass
 
         # Remove visualmente
-        self.tab_bar_layout.removeWidget(tab)
-        tab.deleteLater()
+        try:
+            _ = tab.metaObject()
+            self.tab_bar_layout.removeWidget(tab)
+            tab.deleteLater()
+        except RuntimeError:
+            pass
 
         self.tab_closed.emit(index)
 
@@ -70,7 +103,11 @@ class TabController(QtCore.QObject):
             return
 
         for i, tab in enumerate(self.tabs):
-            tab.set_active(i == index)
+            try:
+                _ = tab.metaObject()
+                tab.set_active(i == index)
+            except RuntimeError:
+                pass
 
         # Mapeia a aba correta para o widget correspondente na pilha do QStackedWidget
         target_tab = self.tabs[index]

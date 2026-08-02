@@ -258,6 +258,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         main_logger.info(
             f"[MainWindow] Carregando fluxo '{self.workflow.nome}' com a sequência de etapas: {self.workflow.sequencia}")
+
+        # Limpa abas antigas antes de resetar e carregar novas para evitar referências C++ órfãs
+        if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'tab_controller'):
+            if hasattr(self.workspace.module_manager.tab_controller, 'clear_tabs'):
+                self.workspace.module_manager.tab_controller.clear_tabs()
+
         self.workspace.reset_workspace()
 
         # 1. Registra as classes dos módulos na fábrica e informa o registry da workspace
