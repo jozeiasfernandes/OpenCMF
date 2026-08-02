@@ -62,10 +62,19 @@ class WorkspaceModulesMixin:
                 self.status_bar_manager.showMessage("Erro ao carregar módulo", 5000)
 
     def get_modulo_ativo(self) -> Optional[IModule]:
-        """Retorna o módulo ativo consultando o TabController e o Registry."""
+        """Retorna o módulo ativo consultando diretamente o mapeamento do widget atual."""
         try:
+            if hasattr(self, "tab_controller") and self.tab_controller:
+                current_widget = self.tab_controller.container.currentWidget()
+                if current_widget and hasattr(self,
+                                              "_widget_to_module_id") and current_widget in self._widget_to_module_id:
+                    module_id = self._widget_to_module_id[current_widget]
+                    if hasattr(self, "registry") and hasattr(self.registry, "get_or_create_module"):
+                        return self.registry.get_or_create_module(module_id)
+
+            # Fallback seguro caso o mixin seja usado isoladamente
             current_index = self.tab_controller.container.currentIndex()
-            if current_index >= 0:
+            if current_index >= 0 and hasattr(self, "registry"):
                 active_modules = self.registry.list_active_modules()
                 if current_index < len(active_modules):
                     module_id = active_modules[current_index]

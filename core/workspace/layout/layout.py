@@ -24,6 +24,7 @@ class ModuleDistributor:
             return False
 
     @staticmethod
+    @staticmethod
     def distribute(
             module: IModule,
             toolbar_manager: 'ToolbarManager',
@@ -89,6 +90,14 @@ class ModuleDistributor:
 
                 if has_panels:
                     side_manager.container.setVisible(True)
+                    # Restaura uma proporção saudável (ex: 70/30) se o painel estava totalmente oculto (0)
+                    if splitter:
+                        sizes = splitter.sizes()
+                        if len(sizes) == 2 and sizes[1] == 0:
+                            total = sum(sizes)
+                            if total > 0:
+                                central_w = int(total * 0.70)
+                                splitter.setSizes([central_w, total - central_w])
                 else:
                     side_manager.container.setVisible(False)
                     if splitter:

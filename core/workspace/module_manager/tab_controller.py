@@ -12,9 +12,7 @@ class TabController(QtCore.QObject):
     def __init__(self, container: QtWidgets.QStackedWidget):
         super().__init__()
         self.container = container
-        # Usamos uma lista para manter a ordem visual
         self.tabs: list[WorkspaceTabWidget] = []
-        # Mapa para garantir que sempre saibamos qual widget pertence a qual aba
         self._tab_to_widget: dict[WorkspaceTabWidget, QtWidgets.QWidget] = {}
 
         self.tab_bar_layout = QtWidgets.QHBoxLayout()
@@ -25,7 +23,6 @@ class TabController(QtCore.QObject):
     def add_tab(self, title: str, content_widget: QtWidgets.QWidget):
         tab = WorkspaceTabWidget(title)
 
-        # Conexões seguras utilizando o índice atual dinamicamente
         tab.close_requested.connect(lambda t=tab: self._handle_close(t))
         tab.clicked.connect(lambda t=tab: self._on_tab_clicked(t))
 
@@ -79,7 +76,13 @@ class TabController(QtCore.QObject):
         target_tab = self.tabs[index]
         target_widget = self._tab_to_widget.get(target_tab)
 
-        if target_widget:
-            self.container.setCurrentWidget(target_widget)
+        if target_widget is not None:
+            try:
+                # Valida se o objeto C++ subjacente ainda existe na memória
+                _ = target_widget.metaObject()
+                self.container.setCurrentWidget(target_widget)
+            except RuntimeError:
+                # O widget foi deletado do C++; evitamos o crash e ignoramos a chamada
+                pass
 
         self.tab_changed.emit(index)

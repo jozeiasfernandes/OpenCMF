@@ -38,18 +38,6 @@ class HeaderPanel(QtWidgets.QWidget):
         self.btn_home = HomeButton(QtCore.QSize(32, 32))
         self.btn_home.clicked_signal.connect(self.home_requested.emit)
 
-        # Se o workspace_manager possuir um tab_controller, usamos a tab_bar oficial dele.
-        # Caso contrário, inicializamos uma própria como fallback.
-        if self.workspace_manager and hasattr(self.workspace_manager, "tab_controller"):
-            self.tab_bar = self.workspace_manager.tab_controller.tab_bar
-        else:
-            self.tab_bar = QtWidgets.QTabBar()
-            self.tab_bar.setDocumentMode(True)
-            self.tab_bar.setDrawBase(False)
-            self.tab_bar.setExpanding(False)
-            self.tab_bar.setMovable(True)
-            self.tab_bar.currentChanged.connect(self._on_tab_changed)
-
         self.btn_loader_components = self._create_tool_button(
             "widgets", self._open_components_loader, ICONS_DIR / "widgets.svg"
         )
@@ -61,11 +49,20 @@ class HeaderPanel(QtWidgets.QWidget):
         )
 
         layout.addWidget(self.btn_home)
-        layout.addWidget(self.tab_bar)
+        # O layout customizado de abas do TabController será inserido dinamicamente aqui via add_tabs_layout()
         layout.addStretch(1)
         layout.addWidget(self.btn_loader_components)
         layout.addWidget(self.btn_help)
         layout.addWidget(self.btn_settings)
+
+    def set_tab_bar(self, tab_bar: QtWidgets.QTabBar):
+        """Substitui a QTabBar interna pela barra oficial gerenciada pelo TabController."""
+        layout = self.layout()
+        if layout:
+            layout.replaceWidget(self.tab_bar, tab_bar)
+            self.tab_bar.deleteLater()
+            self.tab_bar = tab_bar
+            self.tab_bar.currentChanged.connect(self._on_tab_changed)
 
     def _open_components_loader(self):
         """Delega a abertura do seletor de componentes diretamente ao workspace_manager se disponível."""
@@ -103,12 +100,7 @@ class HeaderPanel(QtWidgets.QWidget):
         btn.clicked.connect(callback)
         return btn
 
-    def _on_tab_changed(self, index: int):
-        if index >= 0:
-            module_id = self.tab_bar.tabData(index)
-            if module_id:
-                self.module_changed.emit(module_id)
-
+    
     def add_module_tab(self, module_id: str, title: str):
         index = self.tab_bar.addTab(title)
         self.tab_bar.setTabData(index, module_id)
@@ -116,6 +108,11 @@ class HeaderPanel(QtWidgets.QWidget):
     def clear_tabs(self):
         while self.tab_bar.count() > 0:
             self.tab_bar.removeTab(0)
+
+    def add_tabs_layout(self, tabs_layout: QtWidgets.QHBoxLayout):
+        """Insere o layout customizado de abas do TabController logo após o botão Home."""
+        # Se houver um spacer ou esticar, insere na posição correta (após o btn_home, que é o índice 0)
+        self.layout().insertLayout(1, tabs_layout)
 
 
 if __name__ == "__main__":

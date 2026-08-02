@@ -70,20 +70,11 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
         self.main_layout.setSpacing(0)
 
     def _setup_components(self):
-        self.header = HeaderPanel(workspace_manager=self)
-        self.main_layout.addWidget(self.header)
+        # 1. Instancia os gerenciadores e a área central primeiro para que o tab_controller/tab_bar existam
+        self.central_manager = CentralAreaManager(self)
 
         self.toolbar_manager = ToolbarManager()
-        self.main_layout.addWidget(self.toolbar_manager.top_container)
 
-        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        self.splitter.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
-
-        # 1. Adiciona a área central (ficará à esquerda)
-        self.central_manager = CentralAreaManager(self)
-        self.splitter.addWidget(self.central_manager.get_container())
-
-        # Instancia o WorkspaceModuleManager utilizando o container central como base
         self.module_manager = WorkspaceModuleManager(
             container=self.central_manager.get_container(),
             registry=self.registry,
@@ -93,14 +84,28 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
             parent=self
         )
 
-        # Expõe o layout das abas para o header
-        if hasattr(self.header, 'add_tabs_layout'):
-            self.header.add_tabs_layout(self.module_manager.tab_bar_layout)
+        # 2. Instancia o HeaderPanel e injeta o tab_bar_layout oficial gerido pelo WorkspaceModuleManager
+        self.header = HeaderPanel(workspace_manager=self)
+        if hasattr(self.module_manager, "tab_controller") and hasattr(self.module_manager.tab_controller,
+                                                                      "tab_bar_layout"):
+            # Se o seu HeaderPanel possuir um método para receber o layout, chame-o aqui:
+            if hasattr(self.header, "add_tabs_layout"):
+                self.header.add_tabs_layout(self.module_manager.tab_controller.tab_bar_layout)
+            elif hasattr(self.header, "set_tab_bar"):
+                # Ou adapte caso o seu HeaderPanel espere diretamente o layout
+                self.header.set_tab_bar(self.module_manager.tab_controller.tab_bar_layout)
 
-        # ⚠️ REMOVIDO DAQUI: load_modules() não deve rodar no __init__ do Workspace,
-        # pois o fluxo e os módulos ainda não foram definidos pela MainWindow.
+        self.main_layout.addWidget(self.header)
+        self.main_layout.addWidget(self.toolbar_manager.top_container)
 
-        # 2. Instancia o gerenciador do painel lateral
+        # 3. Inicializa o QSplitter antes de adicionar componentes dependentes dele
+        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        self.splitter.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+
+        # Adiciona a área central (ficará à esquerda)
+        self.splitter.addWidget(self.central_manager.get_container())
+
+        # 4. Instancia o gerenciador do painel lateral
         self.side_manager = SidePanelManager(self)
         self.module_manager.side_manager = self.side_manager
 
@@ -128,7 +133,8 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
         try:
             containers_logger = container.containers_logger()
             if hasattr(self.side_manager, "container") and self.side_manager.container:
-                containers_logger.inspect_side_panel_widgets(self.side_manager.container, container_name="SidePanelDiagnostic")
+                containers_logger.inspect_side_panel_widgets(self.side_manager.container,
+                                                             container_name="SidePanelDiagnostic")
         except Exception as e:
             logger.error(f"Erro ao rodar diagnóstico do side panel: {e}")
 
@@ -213,7 +219,15 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
     def reset_workspace(self):
         logger.info("Iniciando o reset completo do workspace.")
         self.registry.clear_all()
-        self.header.clear_tabs()
+
+        if hasattr(self, "module_manager") and hasattr(self.module_manager, "tab_controller"):
+            if hasattr(self.module_manager.tab_controller, "clear_tabs"):
+                self.module_manager.tab_controller.clear_tabs()
+            elif hasattr(self.module_manager.tab_controller, "clear_all"):
+                self.module_manager.tab_controller.clear_all()
+            elif hasattr(self.module_manager.tab_controller, "clear"):
+                self.module_manager.tab_controller.clear()
+
         self.toolbar_manager.clear_all()
 
         if hasattr(self.side_manager, 'clear_all'):

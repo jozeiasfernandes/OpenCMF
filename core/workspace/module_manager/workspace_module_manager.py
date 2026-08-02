@@ -93,14 +93,34 @@ class WorkspaceModuleManager(QtCore.QObject, WorkspaceModulesMixin):
     def _handle_tab_changed(self, index: int):
         """Disparado quando o usuário troca de aba visualmente."""
         try:
-            # Obtém o widget ativo atual diretamente do container gerenciado pelo TabController
+            # 1. Tenta recuperar o module_id de forma segura através da lista de abas do TabController
+            if hasattr(self.tab_controller, "tabs") and 0 <= index < len(self.tab_controller.tabs):
+                current_tab = self.tab_controller.tabs[index]
+                current_widget = self.tab_controller._tab_to_widget.get(current_tab)
+
+                if current_widget and current_widget in self._widget_to_module_id:
+                    module_id = self._widget_to_module_id[current_widget]
+                    if hasattr(self, "on_module_changed"):
+                        self.on_module_changed(module_id)
+                        return
+
+            # 2. Fallback por índice direto no registry caso o mapeamento direto falhe
+            active_modules = self.registry.list_active_modules()
+            if 0 <= index < len(active_modules):
+                module_id = active_modules[index]
+                if hasattr(self, "on_module_changed"):
+                    self.on_module_changed(module_id)
+                    return
+
+            # 3. Fallback final pelo widget atual do container
             current_widget = self.tab_controller.container.currentWidget()
             if current_widget and current_widget in self._widget_to_module_id:
                 module_id = self._widget_to_module_id[current_widget]
                 if hasattr(self, "on_module_changed"):
                     self.on_module_changed(module_id)
+
         except Exception as e:
-            logger.error(f"Erro ao tratar mudança de aba no index {index}: {e}")
+            logger.error(f"Erro ao tratar mudança de aba no index {index}: {e}", exc_info=True)
 
     def _handle_tab_closed(self, index: int):
         """Disparado quando uma aba é fechada pelo usuário."""
