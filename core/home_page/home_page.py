@@ -72,40 +72,43 @@ class Home_page(QtWidgets.QWidget):
         open_credits = lambda: Janela_Creditos(self).exec()
         open_logs = self._open_log_monitor
 
-        self.btn_logo = QtWidgets.QPushButton()
+        self.btn_logo = QtWidgets.QToolButton()
+        self.btn_logo.setObjectName("HeaderToolButton")
         self.btn_logo.setFixedSize(24, 24)
         self.btn_logo.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_logo.setAutoRaise(True)
         self.btn_logo.setIconSize(QtCore.QSize(24, 24))
         self.btn_logo.clicked.connect(open_credits)
-        self.btn_logo.setStyleSheet("QPushButton { border: none; }")
 
         self.lbl_title = ClickableLabel("OpenCMF")
+        self.lbl_title.setObjectName("AppTitleLabel")
         self.lbl_title.setCursor(QtCore.Qt.PointingHandCursor)
-        self.lbl_title.setStyleSheet("font-weight: bold; font-size: 16px; color: #FFFFFF;")
         self.lbl_title.clicked.connect(open_credits)
 
         # Botão para abrir o Monitor de Logs (ícone terminal)
-        self.btn_logs = QtWidgets.QPushButton()
+        self.btn_logs = QtWidgets.QToolButton()
+        self.btn_logs.setObjectName("HeaderToolButton")
         self.btn_logs.setFixedSize(24, 24)
         self.btn_logs.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_logs.setAutoRaise(True)
         self.btn_logs.setIconSize(QtCore.QSize(24, 24))
         self.btn_logs.clicked.connect(open_logs)
-        self.btn_logs.setStyleSheet("QPushButton { border: none; }")
         self.btn_logs.setToolTip(tr("logs.monitor_title", "Monitor de Logs"))
 
-        self.btn_settings = QtWidgets.QPushButton()
+        self.btn_settings = QtWidgets.QToolButton()
+        self.btn_settings.setObjectName("HeaderToolButton")
         self.btn_settings.setFixedSize(24, 24)
         self.btn_settings.setCursor(QtCore.Qt.PointingHandCursor)
+        self.btn_settings.setAutoRaise(True)
         self.btn_settings.setIconSize(QtCore.QSize(24, 24))
         self.btn_settings.clicked.connect(self.config_solicitada.emit)
-        self.btn_settings.setStyleSheet("QPushButton { border: none; }")
 
         layout.addWidget(self.btn_logo)
         layout.addSpacing(10)
         layout.addWidget(self.lbl_title)
         layout.addStretch()
-        layout.addWidget(self.btn_logs)       # Inserido antes de settings
-        layout.addSpacing(10)                 # Espaçamento leve entre os ícones
+        layout.addWidget(self.btn_logs)
+        layout.addSpacing(10)
         layout.addWidget(self.btn_settings)
         return panel
 

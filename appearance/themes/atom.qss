@@ -85,18 +85,55 @@ ProjectCardWidget:hover {
     background-color: #26262B;
 }
 
+/* Estilização Específica para Botões de Ferramentas / Cabeçalho */
+QToolButton#HeaderToolButton,
+QToolButton#botaoHomeWorkspace {
+    background-color: transparent;
+    border: none;
+    border-radius: 4px;
+}
+
+QToolButton#HeaderToolButton:hover,
+QToolButton#botaoHomeWorkspace:hover {
+    background-color: rgba(100, 100, 100, 40);
+}
+
+QToolButton#HeaderToolButton:pressed,
+QToolButton#botaoHomeWorkspace:pressed {
+    background-color: rgba(100, 100, 100, 70);
+}
+
+
+QLabel#AppTitleLabel {
+    font-weight: bold;
+    font-size: 16px;
+    color: #FFFFFF; /* Branco para o tema escuro */
+    background-color: transparent;
+}
+
+QLabel#AppTitleLabel:hover {
+    color: #61afef; /* Opcional: destaque ao passar o mouse */
+}
+
+
 
 
 /* Estilização específica para as abas da Workspace */
 WorkspaceTabWidget {
-    background-color: #21252b;
+    background-color: #474C52;
     border: 1px solid #181a1f;
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
 }
 
+/* Garante que o rótulo do texto acompanhe a cor e o fundo da aba sem caixas extras */
+WorkspaceTabWidget QLabel {
+    background-color: transparent;
+    color: inherit;
+}
+
 WorkspaceTabWidget[ativo="true"] {
-    background-color: #282c34;
+    background-color: #697386;
     border-bottom: 2px solid #61afef;
     color: #61afef;
 }

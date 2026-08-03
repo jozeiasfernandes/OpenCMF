@@ -9,6 +9,8 @@ from core.workspace.containers.header_container.btn_home import HomeButton
 from list_paths import ICONS_DIR
 from core.settings.help.help_page import HelpPage
 from settings.settings_page import PaginaConfig
+from settings.icons.icons_manager import IconManager
+from settings.settings_app_manager import settings
 
 
 class HeaderPanel(QtWidgets.QWidget):
@@ -30,6 +32,9 @@ class HeaderPanel(QtWidgets.QWidget):
 
         self._setup_ui()
 
+        # Conecta o sinal de mudança de tema de forma assíncrona assim como na Home_page
+        QtCore.QTimer.singleShot(0, self._connect_theme_signal)
+
     def _setup_ui(self):
         layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(8, 4, 8, 4)
@@ -39,13 +44,13 @@ class HeaderPanel(QtWidgets.QWidget):
         self.btn_home.clicked_signal.connect(self.home_requested.emit)
 
         self.btn_loader_components = self._create_tool_button(
-            "widgets", self._open_components_loader, ICONS_DIR / "widgets.svg"
+            "widgets", self._open_components_loader, "HeaderToolButton"
         )
         self.btn_help = self._create_tool_button(
-            "help", self._open_help, ICONS_DIR / "help.svg"
+            "help", self._open_help, "HeaderToolButton"
         )
         self.btn_settings = self._create_tool_button(
-            "settings", self._open_settings, ICONS_DIR / "config.svg"
+            "config", self._open_settings, "HeaderToolButton"
         )
 
         layout.addWidget(self.btn_home)
@@ -55,10 +60,32 @@ class HeaderPanel(QtWidgets.QWidget):
         layout.addWidget(self.btn_help)
         layout.addWidget(self.btn_settings)
 
+    def update_icons(self):
+        """Atualiza dinamicamente as cores dos ícones do header com base no tema atual."""
+        theme = settings.get("preferencias", "tema", "dark")
+        manager = IconManager.get_instance()
+        cor_default = manager.get_color(theme, "status", "default")
+
+        # Atualiza os ícones utilitários usando o IconManager
+        if hasattr(self, "btn_loader_components"):
+            self.btn_loader_components.setIcon(manager.get_icon("widgets", color=cor_default, size=20))
+        if hasattr(self, "btn_help"):
+            self.btn_help.setIcon(manager.get_icon("help", color=cor_default, size=20))
+        if hasattr(self, "btn_settings"):
+            self.btn_settings.setIcon(manager.get_icon("config", color=cor_default, size=20))
+
+    def _connect_theme_signal(self):
+        """Conecta ao sinal de mudança de tema da janela principal se disponível."""
+        if self.window() and hasattr(self.window(), 'theme_changed'):
+            self.window().theme_changed.connect(self.update_icons)
+            self.update_icons()
+        else:
+            QtCore.QTimer.singleShot(500, self._connect_theme_signal)
+
     def set_tab_bar(self, tab_bar: QtWidgets.QTabBar):
         """Substitui a QTabBar interna pela barra oficial gerenciada pelo TabController."""
         layout = self.layout()
-        if layout:
+        if layout and hasattr(self, 'tab_bar') and self.tab_bar:
             layout.replaceWidget(self.tab_bar, tab_bar)
             self.tab_bar.deleteLater()
             self.tab_bar = tab_bar
@@ -84,34 +111,32 @@ class HeaderPanel(QtWidgets.QWidget):
         self.settings_win.show()
 
     def _create_tool_button(
-            self, icon_name: str, callback, icon_path: Optional[Path] = None
+            self, icon_name: str, callback, object_name: str = ""
     ) -> QtWidgets.QToolButton:
         btn = QtWidgets.QToolButton()
         btn.setFixedSize(32, 32)
         btn.setCursor(QtCore.Qt.PointingHandCursor)
         btn.setAutoRaise(True)
+        btn.setIconSize(QtCore.QSize(20, 20))
 
-        if icon_path and icon_path.exists():
-            btn.setIcon(QtGui.QIcon(str(icon_path)))
-            btn.setIconSize(QtCore.QSize(24, 24))
-        else:
-            btn.setText(icon_name[0].upper())
+        if object_name:
+            btn.setObjectName(object_name)
 
         btn.clicked.connect(callback)
         return btn
 
-
     def add_module_tab(self, module_id: str, title: str):
-        index = self.tab_bar.addTab(title)
-        self.tab_bar.setTabData(index, module_id)
+        if hasattr(self, 'tab_bar') and self.tab_bar:
+            index = self.tab_bar.addTab(title)
+            self.tab_bar.setTabData(index, module_id)
 
     def clear_tabs(self):
-        while self.tab_bar.count() > 0:
-            self.tab_bar.removeTab(0)
+        if hasattr(self, 'tab_bar') and self.tab_bar:
+            while self.tab_bar.count() > 0:
+                self.tab_bar.removeTab(0)
 
     def add_tabs_layout(self, tabs_layout: QtWidgets.QHBoxLayout):
         """Insere o layout customizado de abas do TabController logo após o botão Home."""
-        # Remove margens internas e ajusta o espaçamento interno das abas
         tabs_layout.setContentsMargins(0, 0, 0, 0)
         tabs_layout.setSpacing(2)
 
