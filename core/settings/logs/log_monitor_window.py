@@ -100,9 +100,10 @@ class LogMonitorWindow(QtWidgets.QDialog):
         # Adicionando a aba de Todos os Logs primeiro para acesso rápido
         self.tab_all = AllLogsTabWidget()
 
-        # Abas individuais baseadas nos loggers do sistema
+        # Abas individuais baseadas nos loggers do sistema (incluindo Patient após Home Page)
         self.tab_main = LogTabWidget("OpenCMF.Main")
         self.tab_home = LogTabWidget("OpenCMF.HomePage")
+        self.tab_patient = LogTabWidget("OpenCMF.Patient.Debug")
         self.tab_workspace = LogTabWidget("OpenCMF.Workspace.Debug")
         self.tab_containers = LogTabWidget("OpenCMF.Containers.Debug")
         self.tab_module = LogTabWidget("OpenCMF.Module.Debug")
@@ -112,6 +113,7 @@ class LogMonitorWindow(QtWidgets.QDialog):
         self.tab_widget.addTab(self.tab_all, tr("logs.tab_all", "All Logs"))
         self.tab_widget.addTab(self.tab_main, tr("logs.tab_main", "Main"))
         self.tab_widget.addTab(self.tab_home, tr("logs.tab_home", "Home Page"))
+        self.tab_widget.addTab(self.tab_patient, tr("logs.tab_patient", "Patient"))
         self.tab_widget.addTab(self.tab_workspace, tr("configs.workspace", "Workspace"))
         self.tab_widget.addTab(self.tab_containers, tr("logs.tab_containers", "Containers"))
         self.tab_widget.addTab(self.tab_module, tr("logs.tab_module", "Module"))
@@ -150,6 +152,7 @@ if __name__ == "__main__":
     # Logs de teste atualizados
     logging.getLogger("OpenCMF.Main").info("Log de teste na aba Main.")
     logging.getLogger("OpenCMF.HomePage").info("Log de teste na aba Home Page.")
+    logging.getLogger("OpenCMF.Patient.Debug").info("Log de teste na aba Patient.")
     logging.getLogger("OpenCMF.Containers.Debug").info("Log de teste na aba Containers.")
     logging.getLogger("OpenCMF.Workspace.Debug").info("Log de teste na aba Workspace.")
     logging.getLogger("OpenCMF.Module.Debug").info("Log de teste na aba Module.")

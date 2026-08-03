@@ -9,7 +9,7 @@ from core.patient.patient_manager import PatientManager
 from core.settings.settings_app_manager import settings
 
 import logging
-from settings.logs.logger_manager import home_page_logger, HomePageDebugLogger
+from settings.logs.logger_manager import home_page_logger, HomePageDebugLogger, Patient_Logger
 logger = logging.getLogger("OpenCMF.HomePage")
 
 from list_paths import PATIENTS_DIR, FLOWS_DIR, REGISTRATION_FLOW_NAME
@@ -56,6 +56,7 @@ class Home_page(QtWidgets.QWidget):
 
         QtCore.QTimer.singleShot(0, self._connect_theme_signal)
         home_page_logger.info("Home_page inicializada com sucesso.")
+        self.patient_logger = Patient_Logger(self.patient_manager)
 
     def init_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -325,11 +326,15 @@ class Home_page(QtWidgets.QWidget):
     def _select_patient(self, patient_path: str):
         """Apenas define o paciente ativo no PatientManager (carrega os dados), sem abrir a workspace ainda."""
         self.patient_manager.set_active_patient(patient_path)
+
+        if hasattr(self, "patient_logger") and self.patient_logger:
+            self.patient_logger.log_full_state()
+
         self.debug_logger.info(
             "Paciente selecionado e carregado na sessão. Aguardando escolha do fluxo.",
             patient_path=patient_path
         )
-        # Opcional: Feedback visual leve para o usuário saber que o paciente foi selecionado com sucesso.
+
 
     def _on_new_project_clicked(self):
         """Para novo projeto, define o fluxo padrão de registro de paciente."""
