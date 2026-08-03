@@ -46,12 +46,14 @@ class ProjectItemWidget(QtWidgets.QWidget):
         return idade
 
 class ProjectCardWidget(QtWidgets.QFrame):
-    clicado = QtCore.Signal(dict)
+    # Emite o caminho (path) para padronizar com a seleção da lista
+    clicado = QtCore.Signal(str)
 
     def __init__(self, data: dict):
         super().__init__()
         self.data = data
         self.setFixedSize(100, 120)
+        self.setCursor(QtCore.Qt.PointingHandCursor) # Adicionado cursor de clique
 
         layout = QtWidgets.QVBoxLayout(self)
         nome = data.get("paciente", {}).get("nome", "Sem Nome")
@@ -62,7 +64,9 @@ class ProjectCardWidget(QtWidgets.QFrame):
         layout.addStretch()
 
     def mousePressEvent(self, event):
-        self.clicado.emit(self.data)
+        path = self.data.get("_path")
+        if path:
+            self.clicado.emit(path)
 
 def format_and_add_to_list(list_widget: QtWidgets.QListWidget, data: dict):
     path = data.get("_path")

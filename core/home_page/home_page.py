@@ -3,6 +3,7 @@ from PySide6 import QtCore, QtWidgets
 # Project
 from core.home_page.managers.flow_service_home_page import FlowServiceHomePage
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+from core.patient.patient_manager import PatientManager
 
 # Settings
 from core.settings.settings_app_manager import settings
@@ -35,7 +36,7 @@ class ClickableLabel(QtWidgets.QLabel):
 
 
 class Home_page(QtWidgets.QWidget):
-    projeto_selecionado = QtCore.Signal(str, str)
+    # Sinal alterado para emitir apenas o caminho do fluxo escolhido (o paciente já está ativo no PatientManager)
     fluxo_escolhido = QtCore.Signal(str)
     editor_solicitado = QtCore.Signal()
     config_solicitada = QtCore.Signal()
@@ -47,6 +48,7 @@ class Home_page(QtWidgets.QWidget):
 
         self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
         self.flow_service = FlowServiceHomePage(FLOWS_DIR)
+        self.patient_manager = PatientManager.get_instance(self.project_service)
 
         self.init_ui()
         self.refresh_projects()
@@ -137,7 +139,7 @@ class Home_page(QtWidgets.QWidget):
         self.btn_new_project = QtWidgets.QPushButton(tr("home.new_project_button"))
         self.btn_new_project.setFixedSize(150, 35)
         self.btn_new_project.clicked.connect(
-            lambda: self.fluxo_escolhido.emit(str(FLOWS_DIR / REGISTRATION_FLOW_NAME))
+            lambda: self._on_new_project_clicked()
         )
 
         self.btn_remove_project = QtWidgets.QPushButton(tr("common.delete_project"))
@@ -166,6 +168,8 @@ class Home_page(QtWidgets.QWidget):
         self.projects_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.projects_view.customContextMenuRequested.connect(self._show_context_menu)
         self.projects_view.itemDoubleClicked.connect(self._open_selected_project_item)
+        # Clique simples na lista também seleciona o paciente para carregar os dados
+        self.projects_view.itemClicked.connect(self._on_list_item_clicked)
         self.view_container.addWidget(self.projects_view)
 
         self.grid_scroll = QtWidgets.QScrollArea()
@@ -209,7 +213,8 @@ class Home_page(QtWidgets.QWidget):
 
             if self.is_grid_view:
                 card = create_project_card(data)
-                card.clicado.connect(lambda p=path: self._prompt_flow_selection(p))
+                # O card agora apenas define o paciente ativo, sem disparar a workspace diretamente
+                card.clicado.connect(lambda p=path: self._select_patient(p))
                 self.grid_layout.addWidget(card, idx // 4, idx % 4)
             else:
                 item = format_and_add_to_list(self.projects_view, data)
@@ -241,7 +246,6 @@ class Home_page(QtWidgets.QWidget):
         return panel
 
     def update_icons(self):
-        # Utiliza a propriedade ou método padrão do settings_manager para resgatar o tema
         theme = settings.tema
         manager = IconManager.get_instance()
         cor_default = manager.get_color(theme, "status", "default")
@@ -274,7 +278,8 @@ class Home_page(QtWidgets.QWidget):
         for data in self.flow_service.list_flows(exclude_file=REGISTRATION_FLOW_NAME):
             if path := data.get("_file_path"):
                 card = FluxoCard(data, path)
-                card.clicado.connect(lambda p=path: self.fluxo_escolhido.emit(p))
+                # Clicar no fluxo dispara a abertura da workspace utilizando o paciente já selecionado
+                card.clicado.connect(lambda p=path: self._on_flow_selected(p))
                 self.cards_layout.addWidget(card)
         self.cards_layout.addStretch()
 
@@ -301,22 +306,48 @@ class Home_page(QtWidgets.QWidget):
     def _show_context_menu(self, position):
         if item := self.projects_view.itemAt(position):
             menu = QtWidgets.QMenu(self)
-            menu.addAction(tr("common.open_project"), lambda: self._open_selected_project(item))
+            menu.addAction(tr("common.open_project"), lambda: self._select_patient_from_item(item))
             menu.addAction(tr("common.delete_project"), lambda: self._on_delete_project_requested(item))
             menu.exec(self.projects_view.mapToGlobal(position))
 
-    def _open_selected_project_item(self, item):
-        self._open_selected_project(item)
-
-    def _open_selected_project(self, item):
+    def _on_list_item_clicked(self, item):
         if path := item.data(QtCore.Qt.UserRole):
-            self._prompt_flow_selection(path)
+            self._select_patient(path)
 
-    def _prompt_flow_selection(self, patient_path: str):
-        """Registra o log utilizando o contexto do paciente e impede que a workspace abra sem um fluxo escolhido."""
+    def _open_selected_project_item(self, item):
+        if path := item.data(QtCore.Qt.UserRole):
+            self._select_patient(path)
+
+    def _select_patient_from_item(self, item):
+        if path := item.data(QtCore.Qt.UserRole):
+            self._select_patient(path)
+
+    def _select_patient(self, patient_path: str):
+        """Apenas define o paciente ativo no PatientManager (carrega os dados), sem abrir a workspace ainda."""
+        self.patient_manager.set_active_patient(patient_path)
         self.debug_logger.info(
-            "Aguardando o user selecionar o Fluxo para carregar a Workspace",
-            patient_path=patient_path)
+            "Paciente selecionado e carregado na sessão. Aguardando escolha do fluxo.",
+            patient_path=patient_path
+        )
+        # Opcional: Feedback visual leve para o usuário saber que o paciente foi selecionado com sucesso.
+
+    def _on_new_project_clicked(self):
+        """Para novo projeto, define o fluxo padrão de registro de paciente."""
+        registration_flow = str(FLOWS_DIR / REGISTRATION_FLOW_NAME)
+        self.fluxo_escolhido.emit(registration_flow)
+
+    def _on_flow_selected(self, flow_path: str):
+        """Disparado quando o usuário clica em um fluxo após ter selecionado o paciente."""
+        if not self.patient_manager.current_path:
+            QtWidgets.QMessageBox.warning(
+                self,
+                tr("common.warning", "Aviso"),
+                tr("home.select_patient_first_msg", "Por favor, selecione um paciente primeiro.")
+            )
+            return
+
+        self.debug_logger.info("Fluxo selecionado com paciente ativo. Carregando Workspace.")
+        self.fluxo_escolhido.emit(flow_path)
 
     def _on_remove_clicked(self):
         if item := self.projects_view.currentItem():

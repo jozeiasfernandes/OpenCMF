@@ -6,8 +6,9 @@ from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
 
 from modules.base_module.base_module import ModuloBase
-
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+
+from core.patient.patient_manager import PatientManager
 
 from modules.mod_patients.ui_components import SecaoRetratil, criar_linha_arquivo
 from modules.mod_patients.logic import buscar_cep_online, formatar_nome_diretorio
@@ -20,8 +21,12 @@ class Modulo(ModuloBase):
         super().__init__(context=context)
         self.nome = "Pacientes"
         self.id = "modulo.paciente"
-        self.pasta_paciente = None
+
+        # Inicializa o serviço de projetos
         self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
+
+        # Obtém a instância singleton do PatientManager injetando o project_service
+        self.patient_manager = PatientManager.get_instance(self.project_service)
 
         self._init_ui_components()
         self._setup_data_maps()
@@ -115,10 +120,16 @@ class Modulo(ModuloBase):
             self.edit_pais.setText(dados.get("pais", "Brasil"))
 
     def inicializar(self, caminho_paciente: str) -> None:
+        """Inicializa o módulo recebendo o caminho do paciente e atualizando o PatientManager."""
         super().inicializar(caminho_paciente)
-        self.pasta_paciente = caminho_paciente
-        data = self.project_service.load_project(Path(caminho_paciente))
-        if not data: return
+
+        if caminho_paciente:
+            # Notifica o PatientManager central sobre o paciente ativo
+            self.patient_manager.set_active_patient(caminho_paciente)
+
+        data = self.patient_manager.data
+        if not data:
+            return
 
         try:
             sections = {
@@ -144,7 +155,7 @@ class Modulo(ModuloBase):
             if p_data.get("nascimento"):
                 self.edit_nascimento.setDate(QtCore.QDate.fromString(p_data["nascimento"], "yyyy-MM-dd"))
         except Exception as ex:
-            logging.error(f"Erro carregar: {ex}")
+            logging.error(f"Erro ao carregar dados do paciente: {ex}")
 
     def _processar_cadastro(self):
         nome = self.edit_nome.text().strip()
@@ -153,9 +164,11 @@ class Modulo(ModuloBase):
             return
 
         try:
-            diretorio = Path(self.pasta_paciente) if self.pasta_paciente else PATIENTS_DIR / formatar_nome_diretorio(
-                nome, time.time())
+            current_path = self.patient_manager.current_path
+            diretorio = Path(current_path) if current_path else PATIENTS_DIR / formatar_nome_diretorio(nome,
+                                                                                                       time.time())
 
+            # Inicializa a estrutura de pastas no disco se for novo projeto
             self.project_service.initialize_patient_structure(diretorio)
 
             get_val = lambda w: w.text() if isinstance(w, QtWidgets.QLineEdit) else (
@@ -174,8 +187,11 @@ class Modulo(ModuloBase):
             dados["paciente"]["estrangeiro"] = self.check_estrangeiro.isChecked()
             dados["paciente"]["nascimento"] = self.edit_nascimento.date().toString("yyyy-MM-dd")
 
+            # Salva no disco via serviço
             self.project_service.save_project(diretorio, dados)
-            self.pasta_paciente = str(diretorio)
+
+            # Atualiza o estado global no PatientManager (isso dispara os sinais reativos para o resto do app)
+            self.patient_manager.set_active_patient(str(diretorio))
 
             QtWidgets.QMessageBox.information(self, "Sucesso", "Projeto salvo!")
             self.concluido.emit()
@@ -278,7 +294,7 @@ class Modulo(ModuloBase):
         chave = "ultimo_diretorio_dicom" if target == self.edit_tomografia else "ultimo_diretorio_geral"
         ultimo = settings.value(chave, "")
         p = QtWidgets.QFileDialog.getExistingDirectory(self, "Pasta", ultimo) if folder else \
-        QtWidgets.QFileDialog.getOpenFileName(self, "Arquivo", ultimo, "Malhas (*.stl *.obj *.ply)")[0]
+            QtWidgets.QFileDialog.getOpenFileName(self, "Arquivo", ultimo, "Malhas (*.stl *.obj *.ply)")[0]
         if p:
             target.setText(p)
             settings.setValue(chave, p)
@@ -290,40 +306,3 @@ class Modulo(ModuloBase):
             self.edit_pais.setText("Brasil")
             self.check_estrangeiro.setChecked(False)
             self.edit_nascimento.setDate(QtCore.QDate.currentDate())
-
-
-if __name__ == "__main__":
-    import sys
-    from unittest.mock import MagicMock
-    from core.components.bases.base_toolbar import AppContext
-    from core.components.bases.base_tool.tool_manager import ToolManager
-    from core.scene.events.event_bus import EventBus
-    from core.workspace.workspace_manager import WorkspaceManager
-    from core.workspace.models.module_factory import ModuleFactory
-
-    app = QtWidgets.QApplication(sys.argv)
-    app.setStyle("Fusion")
-
-    context = AppContext(
-        scene_manager=MagicMock(),
-        tool_manager=ToolManager(),
-        event_bus=EventBus()
-    )
-
-    ModuleFactory.set_context(context)
-    # Substitua "modulo.paciente" e Modulo pelo identificador e classe reais do seu módulo
-    ModuleFactory.register("modulo.paciente", Modulo)
-
-    workspace = WorkspaceManager(context=context)
-    workspace.setWindowTitle("OpenCMF - Teste Módulo de Pacientes")
-    workspace.resize(1280, 720)
-
-    # Adiciona a aba do módulo no Header do Workspace
-    workspace.header.add_module_tab("modulo.paciente", "Teste Módulo de Pacientes")
-
-    workspace.show()
-
-    # Carrega o módulo através do gerenciador de módulos do workspace
-    workspace.on_module_changed("modulo.paciente")
-
-    sys.exit(app.exec())

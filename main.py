@@ -25,7 +25,7 @@ from settings.settings_page import PaginaConfig
 from settings.icons.icons_manager import IconManager
 from settings.localization.translator import tr
 
-from list_paths import BASE_DIR, PATIENTS_DIR, THEMES_DIR, DEFAULT_FLOW_PATH, ICONS_DIR
+from list_paths import BASE_DIR, PATIENTS_DIR, THEMES_DIR, ICONS_DIR
 
 from settings.logs.logger_manager import Main_Logger, main_logger
 
@@ -115,7 +115,6 @@ class MainWindow(QtWidgets.QMainWindow):
             event_bus=self.event_bus
         )
 
-        # O importer agora pode observar o PatientManager ou receber o caminho inicial
         initial_path = self.patient_manager.current_path or "."
         self.importer = ObjectImporter(patient_path=Path(initial_path))
 
@@ -160,14 +159,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
         ModuleFactory.set_context(self.context)
 
-        # Configura o contexto global na instância do DebugLogger
         debug_instance = Main_Logger.get_instance()
         if debug_instance:
             debug_instance.set_context(self.context)
 
     def _setup_signals(self):
         """Conecta todos os sinais da aplicação."""
-        self.home.projeto_selecionado.connect(self.on_patient_selected)
+        # Conectado apenas ao sinal unificado de fluxo escolhido da Home_page
         self.home.fluxo_escolhido.connect(self.start_workflow)
         self.home.editor_solicitado.connect(
             lambda: self.stack.setCurrentWidget(self.flow_editor)
@@ -182,7 +180,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.workspace.header.home_requested.connect(self.back_to_home)
         self.workspace.header.module_changed.connect(self.workspace.on_module_changed)
 
-        # Ouve mudanças no gerenciador de pacientes para atualizar componentes globais (ex: importer)
         self.patient_manager.patient_changed.connect(self._on_patient_path_changed)
 
     def _setup_appearance(self):
@@ -195,11 +192,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.apply_theme_by_name(theme)
         self.setup_icon()
 
-        # Abre a janela maximizada
         self.showMaximized()
 
     def apply_theme(self, qss_path_str: str):
-        """Aplica tema a partir do caminho do arquivo QSS."""
         qss_path = Path(qss_path_str)
         if not qss_path.exists():
             return
@@ -237,15 +232,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.patient_manager.clear()
         self.stack.setCurrentWidget(self.home)
 
-    def on_patient_selected(self, path: str, _mode: str):
-        """Delega a seleção do paciente diretamente para o PatientManager."""
-        self.patient_manager.set_active_patient(path)
-
-        if DEFAULT_FLOW_PATH.exists():
-            self.start_workflow(str(DEFAULT_FLOW_PATH))
-        else:
-            main_logger.warning(f"Fluxo padrão não encontrado em: {DEFAULT_FLOW_PATH}")
-
     def _on_patient_path_changed(self, new_path: str):
         """Reage à mudança do caminho do paciente propagando para dependências globais."""
         if new_path and hasattr(self, 'importer'):
@@ -259,7 +245,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.workspace.reset_workspace()
             self.workflow = FluxoBase(config)
 
-            # Garante que a workspace receba o caminho atual do patient_manager
             if self.patient_manager.current_path:
                 self.workspace.set_patient_path(self.patient_manager.current_path)
 
@@ -278,14 +263,12 @@ class MainWindow(QtWidgets.QMainWindow):
         main_logger.info(
             f"[MainWindow] Carregando fluxo '{self.workflow.nome}' com a sequência de etapas: {self.workflow.sequencia}")
 
-        # Limpa abas antigas antes de resetar e carregar novas para evitar referências C++ órfãs
         if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'tab_controller'):
             if hasattr(self.workspace.module_manager.tab_controller, 'clear_tabs'):
                 self.workspace.module_manager.tab_controller.clear_tabs()
 
         self.workspace.reset_workspace()
 
-        # 1. Registra as classes dos módulos na fábrica e informa o registry da workspace
         for module_id in self.workflow.sequencia:
             try:
                 main_logger.info(f"[MainWindow] Buscando classe para o module_id: '{module_id}' via project_service...")
@@ -296,13 +279,10 @@ class MainWindow(QtWidgets.QMainWindow):
                         f"[MainWindow] FALHA: Módulo '{module_id}' retornado como None pelo project_service.get_module_class()!")
                     continue
 
-                main_logger.info(
-                    f"[MainWindow] Classe encontrada para '{module_id}': {module_class.__name__}. Registrando na ModuleFactory...")
                 ModuleFactory.register(module_id, module_class)
 
                 if hasattr(self.workspace.registry, "register_active_module"):
                     self.workspace.registry.register_active_module(module_id)
-                    main_logger.info(f"[MainWindow] Módulo '{module_id}' registrado com sucesso no WorkspaceRegistry.")
 
             except Exception as e:
                 main_logger.error(f"[MainWindow] Erro crítico ao registrar o módulo '{module_id}': {e}", exc_info=True)
@@ -311,30 +291,18 @@ class MainWindow(QtWidgets.QMainWindow):
                         f"Erro ao carregar {module_id}", 3000
                     )
 
-        # 2. Exibe a workspace na tela principal
         main_logger.info("[MainWindow] Exibindo o widget da workspace na pilha principal (QStackedWidget)...")
         self.stack.setCurrentWidget(self.workspace)
 
-        # 3. Delega o carregamento visual e a criação das abas inteiramente para o WorkspaceModuleManager
         if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'load_modules'):
-            main_logger.info(
-                "[MainWindow] Disparando o carregamento visual dos módulos através do module_manager.load_modules()...")
             self.workspace.module_manager.load_modules()
-        else:
-            main_logger.warning(
-                "[MainWindow] O WorkspaceModuleManager não foi encontrado ou não possui o método 'load_modules'.")
 
-        # 4. Garante que o caminho do paciente seja propagado para a workspace e para os módulos criados
         if self.patient_manager.current_path:
             self.workspace.set_patient_path(self.patient_manager.current_path)
 
-        # 5. Sincroniza o primeiro módulo ativo se houver abas no TabController
         if hasattr(self.workspace, 'module_manager') and self.workspace.module_manager.tab_controller.tabs:
-            main_logger.info("[MainWindow] Abas detectadas no TabController. Ativando o índice 0 e sincronizando...")
             self.workspace.module_manager.tab_controller.set_active(0)
             self.sync_active_module()
-        else:
-            main_logger.warning("[MainWindow] Nenhuma aba encontrada no TabController após carregar os módulos.")
 
         QtCore.QTimer.singleShot(150, lambda: self.workspace.log_debug_state() if hasattr(self.workspace,
                                                                                           "log_debug_state") else None)
