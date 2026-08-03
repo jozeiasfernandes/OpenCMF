@@ -2,8 +2,6 @@
 QWidget {
     background-color: #1E272E;
     color: #D2D7D9;
-    font-family: "Segoe UI", "Roboto", sans-serif;
-    font-size: 10pt;
     selection-background-color: #2ECC71;
     selection-color: #FFFFFF;
 }
@@ -18,36 +16,56 @@ QLabel {
 QLabel[tipo="header"],
 QLabel[header="true"] {
     color: #FFFFFF;
-    font-weight: bold;
-    font-size: 12pt;
-    margin-bottom: 4px;
+}
+
+/* ====================== ABAS (QTabBar / QTabWidget) ====================== */
+QTabWidget::pane {
+    border-color: #455A6F;
+    background-color: #1E272E;
+}
+
+QTabBar {
+    background-color: #1E272E;
+}
+
+QTabBar::tab {
+    background-color: #263544;
+    color: #D2D7D9;
+    border-color: #455A6F;
+}
+
+QTabBar::tab:hover {
+    background-color: #2C3E50;
+    color: #FFFFFF;
+}
+
+QTabBar::tab:selected {
+    background-color: #2C3E50;
+    border-bottom-color: #2ECC71;
+    color: #FFFFFF;
 }
 
 /* ====================== BOTÕES ====================== */
 QPushButton {
     background-color: #2C3E50;
-    border: 1px solid #455A6F;
-    border-radius: 4px;
+    border-color: #455A6F;
     color: #FFFFFF;
-    font-weight: bold;
-    padding: 6px 12px;
 }
 
 QPushButton:hover {
     background-color: #34495E;
-    border: 1px solid #5F7A9E;
+    border-color: #5F7A9E;
 }
 
 QPushButton:pressed {
     background-color: #1E272E;
-    border: 1px solid #2C3E50;
+    border-color: #2C3E50;
 }
 
 /* Botões de ação - cores mais vibrantes e contraste alto */
 QPushButton[tipo="sucesso"] {
     background-color: #2ECC71;
     color: #FFFFFF;
-    border: none;
 }
 
 QPushButton[tipo="sucesso"]:hover {
@@ -57,7 +75,6 @@ QPushButton[tipo="sucesso"]:hover {
 QPushButton[tipo="erro"] {
     background-color: #E74C3C;
     color: #FFFFFF;
-    border: none;
 }
 
 QPushButton[tipo="erro"]:hover {
@@ -67,10 +84,7 @@ QPushButton[tipo="erro"]:hover {
 /* Botão de configurações */
 QPushButton#btn_settings {
     background-color: transparent;
-    border: none;
     color: #D2D7D9;
-    padding: 6px;
-    font-weight: normal;
 }
 
 QPushButton#btn_settings:hover {
@@ -80,36 +94,32 @@ QPushButton#btn_settings:hover {
 
 /* ====================== FRAMES E CARDS ====================== */
 QFrame {
-    border: none;
 }
 
 /* Card principal */
 QFrame#card_container {
     background-color: #263544;
-    border: 1px solid #455A6F;
-    border-radius: 8px;
+    border-color: #455A6F;
 }
 
 QFrame#card_container:hover {
     background-color: #2C3E50;
-    border: 1px solid #5F7A9E;
+    border-color: #5F7A9E;
 }
 
 /* Cards secundários (usando propriedade dinâmica) */
 QFrame[tipo="card"] {
     background-color: #263544;
-    border: 1px solid #455A6F;
-    border-radius: 6px;
+    border-color: #455A6F;
 }
 
 QFrame[tipo="card"]:hover {
     background-color: #2C3E50;
-    border: 1px solid #5F7A9E;
+    border-color: #5F7A9E;
 }
 
 ProjectCardWidget {
-    border: 1px solid #444;
-    border-radius: 8px;
+    border-color: #444;
     background-color: #282c34;
 }
 

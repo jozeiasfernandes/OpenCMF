@@ -12,25 +12,6 @@ class SecaoRetratil(QtWidgets.QWidget):
         self.botao_toggle.setCheckable(True)
         self.botao_toggle.setChecked(inicial_aberto)
 
-        self.botao_toggle.setStyleSheet("""
-            QPushButton {
-                text-align: left; 
-                padding: 8px; 
-                font-weight: bold;
-                background-color: #2c3e50; 
-                color: white; 
-                border: 1px solid #34495e; 
-                border-radius: 4px;
-            }
-            QPushButton:checked { 
-                border-bottom-left-radius: 0px; 
-                border-bottom-right-radius: 0px; 
-            }
-            QPushButton:hover {
-                background-color: #34495e;
-            }
-        """)
-
         self.conteudo = QtWidgets.QWidget()
         self.conteudo.setVisible(inicial_aberto)
         self.layout_conteudo = QtWidgets.QVBoxLayout(self.conteudo)

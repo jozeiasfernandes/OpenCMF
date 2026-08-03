@@ -17,6 +17,17 @@ QFrame {
 }
 
 QFrame[tipo="sidebar"], QListWidget {
-    border: 1px solid var(--border-color);
+    border-color: var(--border-color);
     background-color: var(--sidebar-bg);
+}
+
+QTabWidget::pane {
+    border: none;
+}
+
+QTabBar::tab {
+    padding: 10px 20px;
+    margin-right: 6px;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
 }

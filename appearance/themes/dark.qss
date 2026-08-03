@@ -2,23 +2,20 @@
 QToolButton#botaoHomeWorkspace {
     background-color: transparent;
     border: none;
-    color: white;
     font-size: 18px;
     margin-left: 5px;
 }
 
 QToolButton#botaoHomeWorkspace:hover {
-    background-color: #3d3d3d;
     border-radius: 5px;
 }
 
 QTabBar {
-    background-color: #1a1a1a;
     border: none;
 }
 
 QTabWidget::pane {
-    border-top: 1px solid #333;
+    border-top: 1px solid palette(mid);
 }
 
 /* --- Novos Elementos da Tela Inicial --- */
@@ -27,11 +24,10 @@ QTabWidget::pane {
 QPushButton#btn_settings {
     background-color: transparent;
     border-radius: 10px;
-    color: white;
 }
 
 QPushButton#btn_settings:hover {
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(128, 128, 128, 0.15);
 }
 
 /* Botões de Ação (Verdes) */
@@ -48,8 +44,6 @@ QPushButton[class="botao-acao"]:hover {
 
 /* Container dos Cards de Fluxo */
 QFrame#card_container {
-    background-color: #1e1e1e;
-    border: 1px solid #333;
     border-radius: 5px;
 }
 
@@ -59,7 +53,6 @@ QFrame#card_container:hover {
 
 /* Labels dentro dos Cards */
 QLabel#label_fluxo {
-    color: white;
     font-weight: bold;
     font-size: 14px;
     border: none;
@@ -67,7 +60,6 @@ QLabel#label_fluxo {
 }
 
 QLabel#label_modulo {
-    color: #000000;
     font-weight: 500;
     font-size: 15px;
     border: none;
@@ -75,44 +67,33 @@ QLabel#label_modulo {
 
 /* --- Ajuste Fino para ListWidgets (Projetos Recentes) --- */
 QListWidget {
-    background-color: #252525;
-    border: 1px solid #333;
     border-radius: 4px;
-    color: #ddd;
     outline: none;
-    padding: 0px; /* Espaço interno para a pílula de seleção não colar na borda */
+    padding: 0px;
 }
 
 QListWidget::item {
-    padding: 1px 2px;     /* Reduzido de 10px para 6px na altura para ser mais fino */
-    margin: 1px 2px;       /* Margem lateral cria o efeito de pílula isolada */
-    border-radius: 4px;    /* Cantos arredondados na seleção */
-    color: #cccccc;
-    border: none;          /* Removida a linha inferior que poluía o visual */
+    padding: 1px 2px;
+    margin: 1px 2px;
+    border-radius: 4px;
+    border: none;
 }
 
 QListWidget::item:hover {
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: rgba(128, 128, 128, 0.1);
 }
 
 QListWidget::item:selected {
-    background-color: #34495e; /* Azul sóbrio */
+    background-color: #34495e;
     color: #ffffff;
     font-weight: 400;
 }
 
-/* Remove qualquer resquício de borda pontilhada de foco */
 QListWidget::item:focus {
     border: none;
     outline: none;
 }
 
 ProjectCardWidget {
-    border: 1px solid #444;
     border-radius: 8px;
-    background-color: #282c34;
-}
-
-ProjectCardWidget:hover {
-    background-color: #26262B;
 }

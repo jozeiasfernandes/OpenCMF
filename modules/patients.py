@@ -4,12 +4,15 @@ import logging
 from pathlib import Path
 from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
+
 from modules.base_module.base_module import ModuloBase
+
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+
 from modules.mod_patients.ui_components import SecaoRetratil, criar_linha_arquivo
 from modules.mod_patients.logic import buscar_cep_online, formatar_nome_diretorio
 
-PASTA_PACIENTES = Path("patients")
+from list_paths import PATIENTS_DIR
 
 
 class Modulo(ModuloBase):
@@ -18,7 +21,7 @@ class Modulo(ModuloBase):
         self.nome = "Pacientes"
         self.id = "modulo.paciente"
         self.pasta_paciente = None
-        self.project_service = ProjectServiceHomePage(PASTA_PACIENTES)
+        self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
 
         self._init_ui_components()
         self._setup_data_maps()
@@ -150,7 +153,7 @@ class Modulo(ModuloBase):
             return
 
         try:
-            diretorio = Path(self.pasta_paciente) if self.pasta_paciente else PASTA_PACIENTES / formatar_nome_diretorio(
+            diretorio = Path(self.pasta_paciente) if self.pasta_paciente else PATIENTS_DIR / formatar_nome_diretorio(
                 nome, time.time())
 
             self.project_service.initialize_patient_structure(diretorio)
@@ -249,7 +252,6 @@ class Modulo(ModuloBase):
 
         lay_content.addStretch()
         self.btn_salvar.setMinimumHeight(45)
-        self.btn_salvar.setStyleSheet("background-color: #27ae60; color: white; font-weight: bold;")
         self.btn_salvar.clicked.connect(self._processar_cadastro)
         lay_content.addWidget(self.btn_salvar)
 

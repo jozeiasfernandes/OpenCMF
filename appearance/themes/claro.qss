@@ -79,6 +79,7 @@ QLineEdit:focus, QComboBox:focus, QAbstractSpinBox:focus {
     border: 1px solid #3498DB;
 }
 
+/* Botões */
 QPushButton {
     background-color: #FFFFFF;
     border: 1px solid #D0D0D0;
@@ -109,6 +110,7 @@ QPushButton[tipo="primary"] {
     color: #FFFFFF;
     border: none;
 }
+
 QPushButton[tipo="primary"]:hover {
     background-color: #2980B9;
 }
@@ -135,7 +137,7 @@ ProjectCardWidget:hover {
     border-color: #BCBDBF;
 }
 
-/* Estilização Específica para Botões de Ferramentas / Cabeçalho (Tema Claro) */
+/* Estilização Específica para Botões de Ferramentas / Cabeçalho */
 QToolButton#HeaderToolButton,
 QToolButton#botaoHomeWorkspace {
     background-color: transparent;
@@ -164,7 +166,7 @@ QLabel#AppTitleLabel:hover {
     color: #3498DB;
 }
 
-/* --- Estilização Específica para as Abas da Workspace (Tema Claro) --- */
+/* --- Estilização Específica para as Abas da Workspace --- */
 
 WorkspaceTabWidget {
     background-color: #CED4DA;

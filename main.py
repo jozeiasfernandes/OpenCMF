@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from PySide6 import QtCore, QtWidgets
+
 import vtk
 
 vtk.vtkObject.GlobalWarningDisplayOff()
@@ -13,6 +14,9 @@ vtk.vtkObject.GlobalWarningDisplayOff()
 from core.home_page.flow.flow_editor import PaginaEditorFluxo
 from core.home_page.home_page import Home_page
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+
+# Patient Manager
+from core.patient.patient_manager import PatientManager
 
 # Settings
 from core.settings.settings_app_manager import settings
@@ -56,6 +60,7 @@ class ApplicationContext:
             object_registry: Optional[ObjectRegistry] = None,
             tool_manager: Any = None,
             workspace_manager: Optional[WorkspaceManager] = None,
+            patient_manager: Optional[PatientManager] = None,
     ):
         self.scene_manager = scene_manager
         self.project_service = project_service
@@ -63,6 +68,7 @@ class ApplicationContext:
         self.object_registry = object_registry
         self.tool_manager = tool_manager
         self.workspace_manager = workspace_manager
+        self.patient_manager = patient_manager
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -75,10 +81,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         try:
             self.base_dir = BASE_DIR
-            self.current_patient_path = None
             self.workflow = None
 
             IconManager.get_instance().set_base_path(ICONS_DIR)
+
+            # Inicializa serviços principais antes dos componentes de cena/contexto
+            self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
+            self.patient_manager = PatientManager.get_instance(self.project_service)
+
             self._setup_scene_components()
             self._setup_core_widgets()
             self._setup_context()
@@ -104,7 +114,10 @@ class MainWindow(QtWidgets.QMainWindow):
             state=self.scene_state,
             event_bus=self.event_bus
         )
-        self.importer = ObjectImporter(patient_path=".")
+
+        # O importer agora pode observar o PatientManager ou receber o caminho inicial
+        initial_path = self.patient_manager.current_path or "."
+        self.importer = ObjectImporter(patient_path=Path(initial_path))
 
         self.scene_manager = SceneManager(
             state=self.scene_state,
@@ -132,8 +145,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _setup_context(self):
         """Configura o contexto da aplicação e o ModuleFactory."""
-        self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
-
         self.context = ApplicationContext(
             scene_manager=self.scene_manager,
             project_service=self.project_service,
@@ -141,6 +152,7 @@ class MainWindow(QtWidgets.QMainWindow):
             object_registry=self.object_registry,
             tool_manager=self.tool_manager,
             workspace_manager=self.workspace,
+            patient_manager=self.patient_manager,
         )
 
         if hasattr(self.workspace, 'set_context'):
@@ -169,6 +181,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.workspace.header.home_requested.connect(self.back_to_home)
         self.workspace.header.module_changed.connect(self.workspace.on_module_changed)
+
+        # Ouve mudanças no gerenciador de pacientes para atualizar componentes globais (ex: importer)
+        self.patient_manager.patient_changed.connect(self._on_patient_path_changed)
 
     def _setup_appearance(self):
         """Configura aparência inicial da janela."""
@@ -209,11 +224,8 @@ class MainWindow(QtWidgets.QMainWindow):
             )
 
     def setup_icon(self):
-        theme = settings.tema
-        color = "#FFFFFF" if theme.lower() in ("dark", "atom") else "#333333"
-
         manager = IconManager.get_instance()
-        app_icon = manager.get_icon("cmf", color=color)
+        app_icon = manager.get_app_icon()
 
         if not app_icon.isNull():
             self.setWindowIcon(app_icon)
@@ -222,18 +234,22 @@ class MainWindow(QtWidgets.QMainWindow):
     def back_to_home(self):
         if hasattr(self.home, 'update_list'):
             self.home.update_list()
+        self.patient_manager.clear()
         self.stack.setCurrentWidget(self.home)
 
     def on_patient_selected(self, path: str, _mode: str):
-        self.current_patient_path = str(Path(path).resolve())
-
-        if hasattr(self, 'importer'):
-            self.importer.patient_path = Path(self.current_patient_path)
+        """Delega a seleção do paciente diretamente para o PatientManager."""
+        self.patient_manager.set_active_patient(path)
 
         if DEFAULT_FLOW_PATH.exists():
             self.start_workflow(str(DEFAULT_FLOW_PATH))
         else:
             main_logger.warning(f"Fluxo padrão não encontrado em: {DEFAULT_FLOW_PATH}")
+
+    def _on_patient_path_changed(self, new_path: str):
+        """Reage à mudança do caminho do paciente propagando para dependências globais."""
+        if new_path and hasattr(self, 'importer'):
+            self.importer.patient_path = Path(new_path)
 
     def start_workflow(self, config_path: str):
         try:
@@ -242,7 +258,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
             self.workspace.reset_workspace()
             self.workflow = FluxoBase(config)
-            self.workspace.set_patient_path(self.current_patient_path)
+
+            # Garante que a workspace receba o caminho atual do patient_manager
+            if self.patient_manager.current_path:
+                self.workspace.set_patient_path(self.patient_manager.current_path)
 
             QtCore.QTimer.singleShot(0, self._load_workflow_modules)
 
@@ -305,7 +324,11 @@ class MainWindow(QtWidgets.QMainWindow):
             main_logger.warning(
                 "[MainWindow] O WorkspaceModuleManager não foi encontrado ou não possui o método 'load_modules'.")
 
-        # 4. Sincroniza o primeiro módulo ativo se houver abas no TabController
+        # 4. Garante que o caminho do paciente seja propagado para a workspace e para os módulos criados
+        if self.patient_manager.current_path:
+            self.workspace.set_patient_path(self.patient_manager.current_path)
+
+        # 5. Sincroniza o primeiro módulo ativo se houver abas no TabController
         if hasattr(self.workspace, 'module_manager') and self.workspace.module_manager.tab_controller.tabs:
             main_logger.info("[MainWindow] Abas detectadas no TabController. Ativando o índice 0 e sincronizando...")
             self.workspace.module_manager.tab_controller.set_active(0)
@@ -321,8 +344,9 @@ class MainWindow(QtWidgets.QMainWindow):
         if not module:
             return
 
-        if self.current_patient_path and hasattr(module, 'inicializar'):
-            module.inicializar(self.current_patient_path)
+        current_path = self.patient_manager.current_path
+        if current_path and hasattr(module, 'inicializar'):
+            module.inicializar(current_path)
 
     @staticmethod
     def run():

@@ -2,9 +2,10 @@ import json
 import logging
 from pathlib import Path
 
-from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor
+from PySide6.QtGui import QIcon, QPixmap, QPainter, QColor, QPalette
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtSvg import QSvgRenderer
+from PySide6.QtWidgets import QApplication
 
 from list_paths import ICONS_DIR, ICONS_THEMES_DIR
 
@@ -50,6 +51,16 @@ class IconManager:
             self._cache[cache_key] = self._create_colored_icon(str(file_path), color, size) if color else QIcon(
                 str(file_path))
         return self._cache[cache_key]
+
+    def get_app_icon(self, size=24) -> QIcon:
+        """Calcula automaticamente a cor ideal com base na paleta atual e retorna o ícone da aplicação."""
+        window_bg_color = QApplication.palette().color(QPalette.ColorRole.Window)
+        luminance = (0.299 * window_bg_color.red() +
+                     0.587 * window_bg_color.green() +
+                     0.114 * window_bg_color.blue())
+
+        color = "#FFFFFF" if luminance < 128 else "#333333"
+        return self.get_icon("cmf", color=color, size=size)
 
     def _create_colored_icon(self, file_path, color_hex, size):
         renderer = QSvgRenderer(file_path)

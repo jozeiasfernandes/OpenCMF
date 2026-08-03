@@ -8,8 +8,6 @@
 QWidget {
     background-color: #0F172A;
     color: #F1F5F9;
-    font-family: "Segoe UI", "Inter", sans-serif;
-    font-size: 10pt;
     selection-background-color: #8B5CF6;
     selection-color: #FFFFFF;
 }
@@ -17,61 +15,52 @@ QWidget {
 /* Botões Estilo Fusion */
 QPushButton {
     background-color: #1E293B;
-    border: 1px solid #334155;
-    border-radius: 4px;
-    padding: 6px 12px;
-    font-weight: 500;
+    border-color: #334155;
 }
 QPushButton:hover {
     background-color: #334155;
-    border: 1px solid #475569;
+    border-color: #475569;
 }
 QPushButton:pressed {
     background-color: #0F172A;
 }
 
 /* Ações de Sucesso/Erro */
-QPushButton[status="sucesso"] { background-color: #10B981; border: none; }
+QPushButton[status="sucesso"] { background-color: #10B981; }
 QPushButton[status="sucesso"]:hover { background-color: #059669; }
 
-QPushButton[status="erro"] { background-color: #EF4444; border: none; }
+QPushButton[status="erro"] { background-color: #EF4444; }
 QPushButton[status="erro"]:hover { background-color: #DC2626; }
 
 /* Entradas (Inputs) */
 QComboBox, QAbstractSpinBox, QLineEdit {
     background-color: #1E293B;
-    border: 1px solid #334155;
-    border-radius: 4px;
-    padding: 4px;
+    border-color: #334155;
     color: #F1F5F9;
 }
 QComboBox:hover, QLineEdit:focus {
-    border: 1px solid #8B5CF6;
+    border-color: #8B5CF6;
 }
 
 /* Containers (Cards) */
 QFrame[tipo="card"] {
     background-color: #1E293B;
-    border: 1px solid #334155;
-    border-radius: 8px;
+    border-color: #334155;
 }
 
 /* ScrollBar Fusion */
 QScrollBar:vertical {
-    width: 8px;
     background: transparent;
 }
 QScrollBar::handle:vertical {
     background: #334155;
-    border-radius: 4px;
 }
 QScrollBar::handle:vertical:hover {
     background: #475569;
 }
 
 ProjectCardWidget {
-    border: 1px solid #334155;
-    border-radius: 8px;
+    border-color: #334155;
     background-color: #1E293B;
 }
 
@@ -79,31 +68,85 @@ ProjectCardWidget:hover {
     background-color: #334155;
 }
 
+/* Estilização de Abas baseada na estrutura do Atom */
+QTabWidget::pane {
+    background-color: #1E293B;
+    border-color: #334155;
+}
 
+QTabBar {
+    background-color: #0F172A;
+}
+
+QTabBar::tab {
+    background-color: #1E293B;
+    color: #94A3B8;
+    border-color: #334155;
+}
+
+QTabBar::tab:hover {
+    background-color: #334155;
+    color: #F1F5F9;
+}
+
+QTabBar::tab:selected {
+    background-color: #334155;
+    border-bottom-color: #8B5CF6;
+    color: #8B5CF6;
+}
+
+/* Estilização personalizada para WorkspaceTabWidget (caso o projeto utilize custom widgets para abas) */
+WorkspaceTabWidget {
+    background-color: #1E293B;
+    border-color: #334155;
+}
+
+WorkspaceTabWidget QLabel {
+    background-color: transparent;
+    color: #94A3B8;
+}
+
+WorkspaceTabWidget[ativo="true"] {
+    background-color: #334155;
+    border-bottom-color: #8B5CF6;
+    color: #8B5CF6;
+}
+
+WorkspaceTabWidget[ativo="true"] QLabel {
+    color: #8B5CF6;
+}
+
+WorkspaceTabWidget QPushButton#TabCloseButton {
+    background-color: transparent;
+    color: transparent;
+}
+
+WorkspaceTabWidget[ativo="true"] QPushButton#TabCloseButton,
+WorkspaceTabWidget:hover QPushButton#TabCloseButton {
+    color: #94A3B8;
+}
+
+WorkspaceTabWidget QPushButton#TabCloseButton:hover {
+    background-color: #EF4444;
+    color: #FFFFFF;
+}
 
 /* Estilos específicos do FloatingContainer para o tema Fusion */
 #FloatingContainer {
     background-color: #0F172A;
-    border: 1px solid #334155;
-    border-radius: 8px;
+    border-color: #334155;
 }
 #FloatingHeader {
     background-color: #1E293B;
-    border-top-left-radius: 7px;
-    border-top-right-radius: 7px;
-    border-bottom: 1px solid #334155;
+    border-bottom-color: #334155;
 }
 #FloatingTitleLabel {
     color: #F1F5F9;
-    font-weight: bold;
-    font-size: 10pt;
 }
 #FloatingCloseButton {
     background-color: #1E293B;
     color: #F1F5F9;
-    border: 1px solid #334155;
-    border-radius: 4px;
-    font-weight: 500;
+    border-color: #334155;
 }
 #FloatingCloseButton:hover {
     background-color: #EF4444;

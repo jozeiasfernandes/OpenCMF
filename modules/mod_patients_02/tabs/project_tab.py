@@ -44,7 +44,6 @@ class ProjectTab(QtWidgets.QWidget):
 
         self.label_tamanho = QtWidgets.QLabel("Tamanho total: 0 KB")
         self.label_tamanho.setAlignment(QtCore.Qt.AlignRight)
-        self.label_tamanho.setStyleSheet("color: #777; font-style: italic; padding: 5px;")
 
     def _build_layout(self):
         layout = QtWidgets.QVBoxLayout(self)
