@@ -85,7 +85,9 @@ ProjectCardWidget:hover {
     background-color: #26262B;
 }
 
-/* Estilização específica para as abas da Workspace se necessário */
+
+
+/* Estilização específica para as abas da Workspace */
 WorkspaceTabWidget {
     background-color: #21252b;
     border: 1px solid #181a1f;
@@ -99,3 +101,23 @@ WorkspaceTabWidget[ativo="true"] {
     color: #61afef;
 }
 
+/* Botão de Fechar da Aba (Mantém o espaço físico para evitar redimensionamento) */
+WorkspaceTabWidget QPushButton#TabCloseButton {
+    background-color: transparent;
+    border: none;
+    color: transparent; /* Oculto visualmente, mas ocupa espaço */
+    font-weight: bold;
+}
+
+/* Exibe o botão de fechar quando a aba está ativa ou com o mouse em cima */
+WorkspaceTabWidget[ativo="true"] QPushButton#TabCloseButton,
+WorkspaceTabWidget:hover QPushButton#TabCloseButton {
+    color: #abb2bf;
+}
+
+/* Efeito ao passar o mouse diretamente no botão "×" */
+WorkspaceTabWidget QPushButton#TabCloseButton:hover {
+    background-color: #e06c75; /* Vermelho suave estilo Atom */
+    color: #ffffff;
+    border-radius: 2px;
+}

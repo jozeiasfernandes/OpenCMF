@@ -17,7 +17,7 @@ class WorkspaceTabWidget(QtWidgets.QFrame):
 
         self.title_label = QtWidgets.QLabel(title)
 
-        # Configuração do botão de fechar sem estilo inline e sem .hide()
+        # Configuração do botão de fechar (visibilidade controlada via QSS)
         self.close_button = QtWidgets.QPushButton("×")
         self.close_button.setFixedSize(16, 16)
         self.close_button.setObjectName("TabCloseButton")
@@ -30,29 +30,22 @@ class WorkspaceTabWidget(QtWidgets.QFrame):
         self._update_style()
 
     def _update_style(self):
-        """Centraliza a lógica de cores para evitar repetição."""
-        if self._is_active:
-            self.setStyleSheet("background-color: #FFFFFF; border-bottom: 2px solid #0078D7; border-radius: 0px;")
-        else:
-            self.setStyleSheet("background-color: #E0E0E0; border: none; border-radius: 4px;")
+        """Atualiza a propriedade dinâmica para estilização via QSS."""
+        self.setProperty("ativo", "true" if self._is_active else "false")
+        self.style().unpolish(self)
+        self.style().polish(self)
 
     def mousePressEvent(self, event):
         self.clicked.emit()
         super().mousePressEvent(event)
 
     def enterEvent(self, event):
-        self.close_button.show()
-        if not self._is_active:
-            self.setStyleSheet("background-color: #D0D0D0; border: none; border-radius: 4px;")
+        # O hover visual é gerenciado pelo QSS (:hover)
         super().enterEvent(event)
 
     def leaveEvent(self, event):
-        if not self._is_active:
-            self.close_button.hide()
-            self._update_style()
         super().leaveEvent(event)
 
     def set_active(self, active: bool):
         self._is_active = active
-        self.close_button.setVisible(True)  # Sempre mostrar se ativa
         self._update_style()
