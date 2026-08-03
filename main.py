@@ -15,7 +15,7 @@ from core.home_page.home_page import Home_page
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 
 # Settings
-from settings.settings_app_manager import settings
+from core.settings.settings_app_manager import settings
 from settings.settings_page import PaginaConfig
 
 from settings.icons.icons_manager import IconManager
@@ -176,7 +176,7 @@ class MainWindow(QtWidgets.QMainWindow):
             tr("main.window_title", settings.get("app_info", "title", "OpenCMF"))
         )
 
-        theme = settings.get("preferencias", "tema", "dark")
+        theme = settings.tema
         self.apply_theme_by_name(theme)
         self.setup_icon()
 
@@ -209,8 +209,8 @@ class MainWindow(QtWidgets.QMainWindow):
             )
 
     def setup_icon(self):
-        theme = settings.get("preferencias", "tema", "dark")
-        color = "#FFFFFF" if theme == "dark" else "#333333"
+        theme = settings.tema
+        color = "#FFFFFF" if theme.lower() in ("dark", "atom") else "#333333"
 
         manager = IconManager.get_instance()
         app_icon = manager.get_icon("cmf", color=color)

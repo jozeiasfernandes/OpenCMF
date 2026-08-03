@@ -21,6 +21,7 @@ class PaginaConfig(QtWidgets.QWidget):
         self.workspace_manager = workspace_manager
         self._setup_ui()
         self._conectar_sinais_internos()
+        self._selecionar_primeira_aba()
 
     def _setup_ui(self):
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -34,7 +35,7 @@ class PaginaConfig(QtWidgets.QWidget):
         self.stack = QtWidgets.QStackedWidget()
         self._adicionar_abas()
 
-        self.btn_voltar = QtWidgets.QPushButton(tr("Exit"))
+        self.btn_voltar = QtWidgets.QPushButton(tr("common.back", "Voltar"))
         self.btn_voltar.clicked.connect(self.voltar_solicitado.emit)
 
         self.tree.expandAll()
@@ -63,6 +64,14 @@ class PaginaConfig(QtWidgets.QWidget):
         child = QtWidgets.QTreeWidgetItem(parent, [nome])
         self.stack.addWidget(widget)
         child.setData(0, QtCore.Qt.UserRole, self.stack.count() - 1)
+
+    def _selecionar_primeira_aba(self):
+        """Garante que a primeira aba filha da árvore seja selecionada ao abrir."""
+        if self.tree.topLevelItemCount() > 0:
+            parent = self.tree.topLevelItem(0)
+            if parent.childCount() > 0:
+                first_child = parent.child(0)
+                self.tree.setCurrentItem(first_child)
 
     def _navegar_entre_abas(self, current):
         if current and current.data(0, QtCore.Qt.UserRole) is not None:

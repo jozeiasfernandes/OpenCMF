@@ -1,6 +1,6 @@
-from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.settings.localization.translator import tr
+from list_paths import ICONS_DIR
 
 
 class SidePanelHeaderTabs(QtWidgets.QWidget):
@@ -17,7 +17,7 @@ class SidePanelHeaderTabs(QtWidgets.QWidget):
         self.workspace_manager = workspace_manager
         self._collapsed = False
 
-        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent.parent / "appearance" / "icons"
+        self.assets_dir = ICONS_DIR
         self.icon_right_path = self.assets_dir / "arrow_right.svg"
         self.icon_left_path = self.assets_dir / "arrow_left.svg"
 
@@ -29,16 +29,6 @@ class SidePanelHeaderTabs(QtWidgets.QWidget):
         layout.setSpacing(6)
 
         self.btn_toggle = QtWidgets.QToolButton(self)
-        self.btn_toggle.setStyleSheet("""
-            QToolButton {
-                border: none;
-                background-color: transparent;
-            }
-            QToolButton:hover {
-                background-color: rgba(255, 255, 255, 20);
-                border-radius: 3px;
-            }
-        """)
         self.btn_toggle.setAutoRaise(True)
         self.btn_toggle.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_toggle.setToolTip(tr("side_panel.toggle", "Recolher / Expandir Painel Lateral"))
@@ -59,16 +49,6 @@ class SidePanelHeaderTabs(QtWidgets.QWidget):
         self.btn_config.setAutoRaise(True)
         self.btn_config.setCursor(QtCore.Qt.PointingHandCursor)
         self.btn_config.setToolTip(tr("side_panel.settings", "Configurações do Painel"))
-        self.btn_config.setStyleSheet("""
-            QToolButton {
-                border: none;
-                background-color: transparent;
-            }
-            QToolButton:hover {
-                background-color: rgba(255, 255, 255, 20);
-                border-radius: 3px;
-            }
-        """)
 
         config_icon_path = self.assets_dir / "config.svg"
         if config_icon_path.exists():

@@ -1,9 +1,6 @@
-/* Paleta Tema Claro (Light Theme) */
-
-* {
-    color: #212529;
-    font-family: "Segoe UI", sans-serif;
-}
+/* =========================================================================
+   Paleta Tema Claro (Light Theme)
+   ========================================================================= */
 
 QWidget {
     background-color: #F8F9FA;
@@ -25,7 +22,7 @@ QLabel[text^="<h3>"], QLabel[text^="<h2>"] {
     margin-bottom: 5px;
 }
 
-/* Painéis laterais e containers */
+/* Painéis laterais e containers (Regras específicas antes das genéricas) */
 QFrame[tipo="sidebar"], QListWidget {
     background-color: #FFFFFF;
     border: 1px solid #E0E0E0;
@@ -156,25 +153,21 @@ QToolButton#botaoHomeWorkspace:pressed {
     background-color: rgba(0, 0, 0, 40);
 }
 
-
-
 QLabel#AppTitleLabel {
     font-weight: bold;
     font-size: 16px;
-    color: #212529; /* Cor escura legível para o tema claro */
+    color: #212529;
     background-color: transparent;
 }
 
 QLabel#AppTitleLabel:hover {
-    color: #3498DB; /* Opcional: destaque ao passar o mouse */
+    color: #3498DB;
 }
-
-
 
 /* --- Estilização Específica para as Abas da Workspace (Tema Claro) --- */
 
 WorkspaceTabWidget {
-    background-color: #CED4DA; /* Tom cinza suave e limpo para abas inativas */
+    background-color: #CED4DA;
     border: 1px solid #ADB5BD;
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
@@ -182,7 +175,6 @@ WorkspaceTabWidget {
     min-height: 32px;
 }
 
-/* Garante que o texto dentro do QLabel da aba herde a cor e seja transparente */
 WorkspaceTabWidget QLabel {
     background-color: transparent;
     color: inherit;
@@ -190,7 +182,7 @@ WorkspaceTabWidget QLabel {
 }
 
 WorkspaceTabWidget[ativo="true"] {
-    background-color: #FFFFFF; /* Fundo branco destacando a aba ativa */
+    background-color: #FFFFFF;
     border-bottom: 2px solid #3498DB;
     color: #3498DB;
     font-weight: bold;
@@ -201,21 +193,19 @@ WorkspaceTabWidget[ativo="true"] {
 WorkspaceTabWidget QPushButton#TabCloseButton {
     background-color: transparent;
     border: none;
-    color: transparent; /* Oculto por padrão para manter o layout limpo */
+    color: transparent;
     font-weight: bold;
     font-size: 14pt;
     margin-right: 4px;
 }
 
-/* Exibe o botão de fechar quando a aba está ativa ou com o mouse em cima */
 WorkspaceTabWidget[ativo="true"] QPushButton#TabCloseButton,
 WorkspaceTabWidget:hover QPushButton#TabCloseButton {
     color: #495057;
 }
 
-/* Efeito ao passar o mouse diretamente no botão "×" no tema claro */
 WorkspaceTabWidget QPushButton#TabCloseButton:hover {
-    background-color: #E03131; /* Vermelho moderno e nítido para fechar */
+    background-color: #E03131;
     color: #FFFFFF;
     border-radius: 2px;
 }

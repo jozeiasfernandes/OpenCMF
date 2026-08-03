@@ -5,7 +5,7 @@ from core.home_page.managers.flow_service_home_page import FlowServiceHomePage
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 
 # Settings
-from settings.settings_app_manager import settings
+from core.settings.settings_app_manager import settings
 
 import logging
 from settings.logs.logger_manager import home_page_logger, HomePageDebugLogger
@@ -241,7 +241,8 @@ class Home_page(QtWidgets.QWidget):
         return panel
 
     def update_icons(self):
-        theme = settings.get("preferencias", "tema", "dark")
+        # Utiliza a propriedade ou método padrão do settings_manager para resgatar o tema
+        theme = settings.tema
         manager = IconManager.get_instance()
         cor_default = manager.get_color(theme, "status", "default")
 

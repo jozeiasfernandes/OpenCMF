@@ -3,7 +3,7 @@ import logging
 from typing import Optional, Any
 from PySide6 import QtWidgets, QtCore
 
-from settings.shortcut.shortcuts import get_shortcuts_by_scope, match_shortcut
+from settings.shortcuts.shortcuts import get_shortcuts_by_scope, match_shortcut
 from core.components.bases.base_central_area import CentralAreaBase
 from core.components.central_area.viewer_3d_central_area import Viewer3D_Widget_CentralArea
 

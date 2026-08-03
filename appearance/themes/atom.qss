@@ -1,9 +1,10 @@
-/* Paleta Atom One Dark:
+/* =========================================================================
+   Paleta Atom One Dark:
    Fundo Principal: #282c34
    Fundo Secundário (Sidebars/Cards): #21252b
    Cor do Texto: #abb2bf
    Destaques: #61afef (Azul), #98c379 (Verde), #c678dd (Roxo), #e5c07b (Amarelo)
-*/
+   ========================================================================= */
 
 QWidget {
     background-color: #282c34;
@@ -38,6 +39,38 @@ QPushButton[tipo="primary"] {
 }
 QPushButton[tipo="primary"]:hover {
     background-color: #528bff;
+}
+
+/* Padrão global para todos os QToolButtons */
+QToolButton {
+    background-color: transparent;
+    border: none;
+    border-radius: 3px;
+    color: #abb2bf;
+    padding: 2px;
+}
+QToolButton:hover {
+    background-color: rgba(255, 255, 255, 20);
+    color: #ffffff;
+}
+QToolButton:pressed {
+    background-color: rgba(255, 255, 255, 40);
+}
+
+/* Estilização Específica para Botões de Ferramentas / Cabeçalho */
+QToolButton#HeaderToolButton,
+QToolButton#botaoHomeWorkspace {
+    background-color: transparent;
+    border: none;
+    border-radius: 4px;
+}
+QToolButton#HeaderToolButton:hover,
+QToolButton#botaoHomeWorkspace:hover {
+    background-color: rgba(100, 100, 100, 40);
+}
+QToolButton#HeaderToolButton:pressed,
+QToolButton#botaoHomeWorkspace:pressed {
+    background-color: rgba(100, 100, 100, 70);
 }
 
 /* Inputs */
@@ -80,43 +113,20 @@ ProjectCardWidget {
     border-radius: 8px;
     background-color: #282c34;
 }
-
 ProjectCardWidget:hover {
     background-color: #26262B;
 }
 
-/* Estilização Específica para Botões de Ferramentas / Cabeçalho */
-QToolButton#HeaderToolButton,
-QToolButton#botaoHomeWorkspace {
-    background-color: transparent;
-    border: none;
-    border-radius: 4px;
-}
-
-QToolButton#HeaderToolButton:hover,
-QToolButton#botaoHomeWorkspace:hover {
-    background-color: rgba(100, 100, 100, 40);
-}
-
-QToolButton#HeaderToolButton:pressed,
-QToolButton#botaoHomeWorkspace:pressed {
-    background-color: rgba(100, 100, 100, 70);
-}
-
-
+/* Labels customizados */
 QLabel#AppTitleLabel {
     font-weight: bold;
     font-size: 16px;
-    color: #FFFFFF; /* Branco para o tema escuro */
+    color: #FFFFFF;
     background-color: transparent;
 }
-
 QLabel#AppTitleLabel:hover {
-    color: #61afef; /* Opcional: destaque ao passar o mouse */
+    color: #61afef;
 }
-
-
-
 
 /* Estilização específica para as abas da Workspace */
 WorkspaceTabWidget {
@@ -126,7 +136,6 @@ WorkspaceTabWidget {
     border-top-right-radius: 4px;
 }
 
-/* Garante que o rótulo do texto acompanhe a cor e o fundo da aba sem caixas extras */
 WorkspaceTabWidget QLabel {
     background-color: transparent;
     color: inherit;
@@ -138,23 +147,21 @@ WorkspaceTabWidget[ativo="true"] {
     color: #61afef;
 }
 
-/* Botão de Fechar da Aba (Mantém o espaço físico para evitar redimensionamento) */
+/* Botão de Fechar da Aba */
 WorkspaceTabWidget QPushButton#TabCloseButton {
     background-color: transparent;
     border: none;
-    color: transparent; /* Oculto visualmente, mas ocupa espaço */
+    color: transparent;
     font-weight: bold;
 }
 
-/* Exibe o botão de fechar quando a aba está ativa ou com o mouse em cima */
 WorkspaceTabWidget[ativo="true"] QPushButton#TabCloseButton,
 WorkspaceTabWidget:hover QPushButton#TabCloseButton {
     color: #abb2bf;
 }
 
-/* Efeito ao passar o mouse diretamente no botão "×" */
 WorkspaceTabWidget QPushButton#TabCloseButton:hover {
-    background-color: #e06c75; /* Vermelho suave estilo Atom */
+    background-color: #e06c75;
     color: #ffffff;
     border-radius: 2px;
 }

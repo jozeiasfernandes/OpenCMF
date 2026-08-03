@@ -19,7 +19,7 @@ ICONS_THEMES_DIR = APPEARANCE_DIR / "icons_themes"
 THEMES_DIR = APPEARANCE_DIR / "themes"
 CONFIG_FILE_PATH = BASE_DIR / "config.json"
 TRANSLATIONS_DIR = BASE_DIR / "core" / "settings" / "localization" / "translations"
-SHORTCUTS_FILE_PATH = BASE_DIR / "core" / "settings" / "shortcut" / "shortcuts.json"
+SHORTCUTS_FILE_PATH = BASE_DIR / "core" / "settings" / "shortcuts" / "shortcuts.json"
 
 # Diretórios do paciente
 PATIENTS_DIR = BASE_DIR / "patients"

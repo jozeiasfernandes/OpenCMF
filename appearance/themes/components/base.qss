@@ -1,0 +1,22 @@
+QWidget {
+    font-family: "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
+    font-size: 10pt;
+}
+
+QLabel {
+    background-color: transparent;
+}
+
+QScrollArea {
+    background-color: transparent;
+    border: none;
+}
+
+QFrame {
+    border: none;
+}
+
+QFrame[tipo="sidebar"], QListWidget {
+    border: 1px solid var(--border-color);
+    background-color: var(--sidebar-bg);
+}

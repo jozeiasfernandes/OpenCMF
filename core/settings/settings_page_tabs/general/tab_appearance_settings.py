@@ -1,6 +1,7 @@
 from PySide6 import QtWidgets, QtCore
-from settings.localization.translator import tr
-from settings.settings_app_manager import settings
+from core.settings.localization.translator import tr
+from core.settings.settings_app_manager import settings
+from core.settings.themes.theme_manager import ThemeManager
 
 from list_paths import THEMES_DIR
 
@@ -8,8 +9,10 @@ from list_paths import THEMES_DIR
 class TabAppearance(QtWidgets.QWidget):
     tema_alterado = QtCore.Signal(str)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        # Inicializa o ThemeManager passando a instância global do app
+        self.theme_manager = ThemeManager(QtWidgets.QApplication.instance())
         self._setup_ui()
         self._carregar_temas()
         self.retranslate_ui()
@@ -29,7 +32,6 @@ class TabAppearance(QtWidgets.QWidget):
         layout.addStretch()
 
     def _carregar_temas(self):
-        # Utiliza o THEMES_DIR centralizado do list_paths
         themes_dir = THEMES_DIR
 
         self.combo_temas.blockSignals(True)
@@ -39,12 +41,13 @@ class TabAppearance(QtWidgets.QWidget):
             return
 
         for qss in themes_dir.glob("*.qss"):
-            self.combo_temas.addItem(qss.stem.replace("_", " ").capitalize(), str(qss))
+            # Salvamos o stem (ex: 'atom', 'claro') como dado para facilitar o uso no ThemeManager
+            self.combo_temas.addItem(qss.stem.replace("_", " ").capitalize(), qss.stem)
 
-        # Sincroniza com a configuração salva
-        current_theme = settings.get("preferencias", "tema", "dark")
+        # Sincroniza com a configuração salva no settings
+        current_theme = settings.get("preferencias", "tema", "atom")
         for i in range(self.combo_temas.count()):
-            if current_theme in self.combo_temas.itemText(i).lower():
+            if current_theme.lower() == self.combo_temas.itemData(i):
                 self.combo_temas.setCurrentIndex(i)
                 break
         self.combo_temas.blockSignals(False)
@@ -53,12 +56,10 @@ class TabAppearance(QtWidgets.QWidget):
         self.lbl_tema.setText(f"{tr('configs.theme_label')}:")
 
     def _on_tema_changed(self):
-        path_qss = self.combo_temas.currentData()
-        if path_qss:
-            # Salva a preferência
-            theme_name = self.combo_temas.currentText().lower()
-            settings.set("preferencias", "tema", theme_name)
-            settings.save()
-
-            # Emite o sinal para que a aplicação principal aplique o novo QSS
-            self.tema_alterado.emit(path_qss)
+        theme_stem = self.combo_temas.currentData()
+        if theme_stem:
+            # Aplica e salva o tema estático utilizando o ThemeManager
+            success = self.theme_manager.apply_static_theme(theme_stem)
+            if success:
+                # Emite o sinal caso algum componente externo precise escutar a mudança
+                self.tema_alterado.emit(theme_stem)

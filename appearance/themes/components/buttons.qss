@@ -1,0 +1,31 @@
+QPushButton {
+    border-radius: 4px;
+    font-weight: bold;
+    padding: 6px 12px;
+    min-height: 20px;
+}
+
+QPushButton[tipo="primary"] {
+    background-color: var(--primary-color);
+    color: var(--primary-text);
+    border: none;
+}
+
+QPushButton[tipo="primary"]:hover {
+    background-color: var(--primary-hover);
+}
+
+/* Ferramentas e Cabeçalho */
+QToolButton, QToolButton#HeaderToolButton, QToolButton#botaoHomeWorkspace {
+    background-color: transparent;
+    border: none;
+    border-radius: 4px;
+}
+
+QToolButton:hover {
+    background-color: var(--tool-hover-bg);
+}
+
+QToolButton:pressed {
+    background-color: var(--tool-pressed-bg);
+}
