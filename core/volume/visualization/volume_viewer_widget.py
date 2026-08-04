@@ -1,16 +1,32 @@
-import vtk
+import sys
 import os
 import json
-from PySide6 import QtWidgets, QtCore
+from pathlib import Path
 from typing import Dict, Optional, Any
 
+from PySide6 import QtWidgets, QtCore
+import vtk
+
+# Components
 from core.components.central_area.viewer_2d_central_area import Viewer2D_Widget_CentralArea
 from core.components.central_area.viewer_3d_dicom_central_area import Viewer3D_Dicom_Widget_CentralArea
-from core.volume.lookup_table.lut_manager import LUTManager
 from core.components.toolbars.volume_viewer_toolbar import VolumeViewerToolbar
-from .viewer_utils.viewer_renderers import ViewerRenderers
+
+# Volume
+from volume.visualization.lut.lut_manager import LUTManager
+from volume.visualization.viewer_utils.viewer_renderers import ViewerRenderers
+
+# Scene
 from core.scene.scene_object import SceneObject
 from core.scene.events.scene_events import SceneEvents
+
+# Settings
+raiz_projeto = Path(__file__).resolve().parent.parent.parent
+if str(raiz_projeto) not in sys.path:
+    sys.path.insert(0, str(raiz_projeto))
+
+from list_paths import ICONS_DIR, PRESETS_DIR
+
 
 
 class VolumeViewerWidget(QtWidgets.QWidget):
@@ -65,9 +81,8 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             self._render_volume(volume)
 
     def _init_paths(self):
-        base = os.path.dirname(os.path.abspath(__file__))
-        self.path_presets = os.path.abspath(os.path.join(base, "..", "presets"))
-        self.path_icones = os.path.abspath(os.path.join(base, "..", "..", "icons"))
+        self.path_presets = str(PRESETS_DIR)
+        self.path_icones = str(ICONS_DIR)
 
     def _setup_ui(self):
         layout = QtWidgets.QVBoxLayout(self)
@@ -94,7 +109,6 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.configurar_layout("4 Quadrantes")
 
     def _create_viewers(self):
-        # Contexto seguro a ser repassado aos filhos (utiliza o context original se houver)
         safe_context = self.context if self.context is not None else self
 
         # 1. Viewers 2D
@@ -131,7 +145,6 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             p3d.presetChanged.connect(self.update_preset)
 
         p3d.maximizeRequested.connect(lambda m: self._handle_maximize("3D", m))
-
         self.vistas["3D"] = p3d
 
     def _render_volume(self, volume: vtk.vtkImageData):
@@ -244,13 +257,6 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             "Superior": (0, 0, 1, 0, -1, 0), "Inferior": (0, 0, -1, 0, 1, 0),
             "Direito": (1, 0, 0, 0, 0, 1), "Esquerdo": (-1, 0, 0, 0, 0, 1)
         }
-    def update_3d_view(self, vista: str):
-        ren = self.vistas["3D"].vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer()
-        maps = {
-            "Frente": (0, -1, 0, 0, 0, 1), "Posterior": (0, 1, 0, 0, 0, 1),
-            "Superior": (0, 0, 1, 0, -1, 0), "Inferior": (0, 0, -1, 0, 1, 0),
-            "Direito": (1, 0, 0, 0, 0, 1), "Esquerdo": (-1, 0, 0, 0, 0, 1)
-        }
         if vista in maps:
             cam = ren.GetActiveCamera()
             cam.SetPosition(maps[vista][:3])
@@ -297,3 +303,45 @@ class VolumeViewerWidget(QtWidgets.QWidget):
             for pane in self.vistas.values():
                 pane.vtkWidget.GetRenderWindow().GetRenderers().GetFirstRenderer().RemoveAllViewProps()
                 pane.vtkWidget.GetRenderWindow().Render()
+
+
+if __name__ == "__main__":
+    class DummyManager:
+        def __getattr__(self, name):
+            return lambda *args, **kwargs: None
+
+
+    class DummyBus:
+        def subscribe(self, event, callback): pass
+
+        def emit(self, event, *args, **kwargs): pass
+
+
+    class MockContext:
+        def __init__(self):
+            self.event_bus = DummyBus()
+            self.scene_manager = DummyManager()
+            self.tool_manager = DummyManager()
+
+
+    class DummyRegistry:
+        pass
+
+
+    app = QtWidgets.QApplication(sys.argv)
+
+    event_bus = DummyBus()
+    registry = DummyRegistry()
+
+    mock_context = MockContext()
+
+    viewer = VolumeViewerWidget(
+        event_bus=event_bus,
+        object_registry=registry,
+        context=mock_context
+    )
+    viewer.resize(1024, 768)
+    viewer.setWindowTitle("Teste - Volume Viewer")
+    viewer.show()
+
+    sys.exit(app.exec())

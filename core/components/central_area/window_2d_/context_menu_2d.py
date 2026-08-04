@@ -1,5 +1,5 @@
-from PySide6 import QtWidgets, QtGui, QtCore
-from core.volume.lookup_table.lut_presets import LUTPresets
+from PySide6 import QtWidgets
+from core.volume.visualization.lut.lut_presets import LUTPresets
 
 MENU_STYLE = """
     QMenu { 

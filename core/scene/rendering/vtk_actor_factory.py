@@ -1,39 +1,3 @@
-'''
-SceneObject
-   ↓
-VTKActorFactory   ← AQUI acontece a conversão
-   ↓
-vtkActor
-   ↓
-ActorRegistry
-   ↓
-VTKSceneRenderer
-
-
-
-SceneObject -> vtkActor
-
-SceneObject → vtkActor (único lugar permitido)
-
-✔ correto
-✔ isolado
-✔ reutilizável
-✔ testável
-
-Separação de responsabilidades interna:
-Geometry
-mesh → mapper → actor
-Transform
-position / rotation / scale
-Properties
-opacity
-color
-visibility
-
-'''
-from typing import Any
-from ..scene_object import SceneObject
-
 from typing import Any
 from core.scene.scene_object import SceneObject
 

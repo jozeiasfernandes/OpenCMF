@@ -1,7 +1,11 @@
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.volume.lookup_table.lut_presets import LUTPresets
+
+from core.volume.visualization.lut.lut_presets import LUTPresets
 from core.components.bases.base_toolbar import BaseToolbar, AppContext
-from list_paths import ICONS_DIR
+
+# Settings
+from core.settings.icons.icons_manager import IconManager
+from core.settings.localization.translator import tr
 
 
 class LUTDelegate(QtWidgets.QStyledItemDelegate):
@@ -22,7 +26,7 @@ class LUTDelegate(QtWidgets.QStyledItemDelegate):
         painter.drawRoundedRect(grad_rect, 3, 3)
         painter.setPen(QtGui.QColor(0, 0, 0, 160))
         painter.drawText(rect.adjusted(1, 1, 1, 1), QtCore.Qt.AlignCenter, name)
-        painter.setPen(QtCore.Qt.white)
+        painter.setPen(QtGui.QColor(0, 0, 0))
         painter.drawText(rect, QtCore.Qt.AlignCenter, name)
         painter.restore()
 
@@ -32,16 +36,16 @@ class LUTDelegate(QtWidgets.QStyledItemDelegate):
 
 class VolumeViewerToolbar(BaseToolbar):
     def __init__(self, app_context: AppContext, parent=None):
-        # Inicializa com o contexto centralizado (a BaseToolbar já executa self.initialize() ao final)
-        super().__init__("Volume Viewer", app_context, parent, is_movable=False)
+        super().__init__(tr("volume_viewer.title", "Volume Viewer"), app_context, parent, is_movable=False)
         self._combo_layout = None
         self._combo_lut = None
 
     def get_icon(self, icon_name: str, fallback=QtWidgets.QStyle.StandardPixmap.SP_FileIcon) -> QtGui.QIcon:
-        """Método helper da classe para carregar ícones com segurança."""
-        path = ICONS_DIR / icon_name
-        if path.exists():
-            return QtGui.QIcon(str(path))
+        """Método helper utilizando o IconManager centralizado."""
+        icon_manager = IconManager.get_instance()
+        icon = icon_manager.get_icon(icon_name)
+        if not icon.isNull():
+            return icon
         return QtWidgets.QApplication.style().standardIcon(fallback)
 
     def setup_ui(self) -> None:
@@ -51,36 +55,50 @@ class VolumeViewerToolbar(BaseToolbar):
         self.layout().setContentsMargins(10, 0, 10, 0)
 
         # 1. Layout Control (Custom widget)
-        self.addWidget(QtWidgets.QLabel("Layout"))
+        self.addWidget(QtWidgets.QLabel(tr("volume_viewer.layout", "Layout")))
         self._combo_layout = QtWidgets.QComboBox()
         self._combo_layout.setFixedWidth(130)
         self._populate_layouts()
-        self._combo_layout.currentTextChanged.connect(self._on_layout_changed)
+        self._combo_layout.currentIndexChanged.connect(self._on_layout_combo_changed)
         self.addWidget(self._combo_layout)
 
         self.add_separator()
 
         # 2. Color Map Control (Custom widget)
-        self.addWidget(QtWidgets.QLabel("Color Map"))
+        self.addWidget(QtWidgets.QLabel(tr("volume_viewer.color_map", "Color Map")))
         self._combo_lut = QtWidgets.QComboBox()
         self._combo_lut.setFixedWidth(130)
         self._combo_lut.setItemDelegate(LUTDelegate(self._combo_lut))
-        self._combo_lut.addItems(list(LUTPresets.PRESETS.keys()))
-        self._combo_lut.currentTextChanged.connect(self._on_lut_changed)
+        self._populate_luts()
+        self._combo_lut.currentIndexChanged.connect(self._on_lut_combo_changed)
         self.addWidget(self._combo_lut)
 
     def _populate_layouts(self):
         opcoes = [
-            ("4 Quadrantes", "4_janelas.png"),
-            ("3D Destacado", "3_1.png"),
-            ("Apenas 3D", "3D.png"),
-            ("Axial", "axial.png"),
-            ("Sagital", "sagital.png"),
-            ("Coronal", "coronal.png"),
+            (tr("volume_viewer.layout.quadrants", "4 Quadrantes"), "4_viewer", "4 Quadrantes"),
+            (tr("volume_viewer.layout.3d_highlight", "3D Destacado"), "3_1_viewer", "3D Destacado"),
+            (tr("volume_viewer.layout.only_3d", "Apenas 3D"), "1_3d_viewer", "Apenas 3D"),
+            (tr("volume_viewer.layout.axial", "Axial"), "axial", "Axial"),
+            (tr("volume_viewer.layout.sagittal", "Sagital"), "sagital", "Sagital"),
+            (tr("volume_viewer.layout.coronal", "Coronal"), "coronal", "Coronal"),
         ]
-        for nome, img in opcoes:
+        for label, img, data_key in opcoes:
             icon = self.get_icon(img)
-            self._combo_layout.addItem(icon, nome)
+            self._combo_layout.addItem(icon, label, data_key)
+
+    def _populate_luts(self):
+        for name in list(LUTPresets.PRESETS.keys()):
+            self._combo_lut.addItem(name, name)
+
+    def _on_layout_combo_changed(self, index: int):
+        data_key = self._combo_layout.itemData(index)
+        if data_key:
+            self._on_layout_changed(data_key)
+
+    def _on_lut_combo_changed(self, index: int):
+        data_key = self._combo_lut.itemData(index)
+        if data_key:
+            self._on_lut_changed(data_key)
 
     def _on_layout_changed(self, name: str):
         layout_tool = self.tool_manager.get_tool("layout_dicom_tool")
@@ -95,13 +113,21 @@ class VolumeViewerToolbar(BaseToolbar):
     def set_lut_text(self, lut_name: str):
         if self._combo_lut:
             self._combo_lut.blockSignals(True)
-            self._combo_lut.setCurrentText(lut_name)
+            index = self._combo_lut.findData(lut_name)
+            if index >= 0:
+                self._combo_lut.setCurrentIndex(index)
+            else:
+                self._combo_lut.setCurrentText(lut_name)
             self._combo_lut.blockSignals(False)
 
     def set_layout_text(self, layout_name: str):
         if self._combo_layout:
             self._combo_layout.blockSignals(True)
-            self._combo_layout.setCurrentText(layout_name)
+            index = self._combo_layout.findData(layout_name)
+            if index >= 0:
+                self._combo_layout.setCurrentIndex(index)
+            else:
+                self._combo_layout.setCurrentText(layout_name)
             self._combo_layout.blockSignals(False)
 
 

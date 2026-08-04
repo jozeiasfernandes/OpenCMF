@@ -9,10 +9,9 @@ from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
 
 from core.components.toolbars.tomography_toolbar import TomographyToolbar
-
-from core.volume.dicom_engine import DicomEngine
-from core.volume.viewer import VolumeViewerWidget
-from core.volume.validator import DicomValidator
+from volume.dicom.engines.dicom_engine import DicomEngine
+from volume.visualization.volume_viewer_widget import VolumeViewerWidget
+from core.volume.dicom.validators.dicom_validator import DicomValidator
 
 from core.scene.events.event_bus import EventBus
 from core.scene.registry.actor_registry import ActorRegistry
@@ -48,9 +47,7 @@ class Modulo(ModuloBase):
                 event_bus=self.event_bus,
                 object_registry=self.object_registry
             )
-
-            if self.viewer.layout() is None:
-                self.viewer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
+            self.viewer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
         return self.viewer
 
@@ -72,14 +69,16 @@ class Modulo(ModuloBase):
         self.pasta_paciente = caminho_paciente
         self._carregar_configs_projeto()
 
+        # Se já tivermos um caminho DICOM configurado, validamos automaticamente
+        if self.caminho_dicom:
+            self._validar_dicom()
+
     def cleanup(self) -> None:
         if self.viewer:
             try:
-                # Tenta chamar deleteLater de forma segura caso o objeto C++ ainda exista
                 if hasattr(self.viewer, "deleteLater"):
                     self.viewer.deleteLater()
             except RuntimeError:
-                # O objeto C++ subjacente já foi deletado pelo Qt
                 pass
             self.viewer = None
 
@@ -102,20 +101,27 @@ class Modulo(ModuloBase):
 
     def _buscar_pasta(self):
         settings = QtCore.QSettings("OpenCMF", "Config")
-        pasta = QtWidgets.QFileDialog.getExistingDirectory(None, "Selecione DICOM", settings.value("ultimo_dir", ""))
+        pasta = QtWidgets.QFileDialog.getExistingDirectory(
+            None, "Selecione DICOM", settings.value("ultimo_dir", "")
+        )
         if pasta:
             settings.setValue("ultimo_dir", pasta)
             self.caminho_dicom = pasta
+            self._validar_dicom()  # Valida imediatamente após selecionar
 
     def _validar_dicom(self):
         if not self.caminho_dicom or not self.pasta_paciente:
             return
-        validador = DicomValidator(self.pasta_paciente)
-        resultado = validador.analisar_caminho(self.caminho_dicom)
 
-        if resultado.get("sucesso") and self.toolbar_handler:
-            if hasattr(self.toolbar_handler, 'set_validation_state'):
-                self.toolbar_handler.set_validation_state(True)
+        try:
+            validador = DicomValidator(self.pasta_paciente)
+            resultado = validador.analisar_caminho(self.caminho_dicom)
+
+            if resultado.get("sucesso") and self.toolbar_handler:
+                if hasattr(self.toolbar_handler, 'set_validation_state'):
+                    self.toolbar_handler.set_validation_state(True)
+        except Exception as e:
+            logger.error(f"Erro durante a validação DICOM: {e}")
 
     def _carregar_dicom(self):
         if not self.caminho_dicom:
@@ -126,17 +132,25 @@ class Modulo(ModuloBase):
         sucesso, msg = self.engine.carregar_pasta(self.caminho_dicom)
         if sucesso and self.viewer:
             self.viewer.set_volume(self.engine.vtk_volume)
+            self._gerar_vti()  # Salva o arquivo VTI otimizado após carregar com sucesso
         else:
             logger.error(f"Falha ao carregar DICOM: {msg}")
 
     def _gerar_vti(self):
         if not self.engine.vtk_volume or not self.pasta_paciente:
             return
-        path_vti = Path(self.pasta_paciente) / "projeto" / "volume.vti"
-        writer = vtk.vtkXMLImageDataWriter()
-        writer.SetFileName(str(path_vti))
-        writer.SetInputData(self.engine.vtk_volume)
-        writer.Write()
+        try:
+            pasta_projeto = Path(self.pasta_paciente) / "projeto"
+            pasta_projeto.mkdir(parents=True, exist_ok=True)
+
+            path_vti = pasta_projeto / "volume.vti"
+            writer = vtk.vtkXMLImageDataWriter()
+            writer.SetFileName(str(path_vti))
+            writer.SetInputData(self.engine.vtk_volume)
+            writer.Write()
+            logger.info(f"Volume VTI gerado com sucesso em: {path_vti}")
+        except Exception as e:
+            logger.error(f"Erro ao gerar arquivo VTI: {e}")
 
     def _wl_manual(self, window, level):
         if self.viewer:
@@ -163,6 +177,7 @@ if __name__ == "__main__":
 
     class MockSettings:
         def get(self, key, default=None): return default
+
         def set(self, key, value): pass
 
 

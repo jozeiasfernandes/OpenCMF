@@ -9,12 +9,11 @@ class ViewerRenderers:
                               opacity_func: vtk.vtkPiecewiseFunction,
                               actor_name: str = "volume_principal") -> vtk.vtkVolume:
 
-        for actor in renderer.GetActors():
-            renderer.RemoveActor(actor)
+        # Remove volumes anteriores de forma segura para evitar sobreposição na cena
+        renderer.RemoveAllViewProps()
 
         mapper = vtk.vtkSmartVolumeMapper()
         mapper.SetInputData(volume_data)
-
         mapper.SetRequestedRenderModeToDefault()
 
         prop = vtk.vtkVolumeProperty()
@@ -27,7 +26,7 @@ class ViewerRenderers:
         volume_actor.SetMapper(mapper)
         volume_actor.SetProperty(prop)
 
-        renderer.AddActor(volume_actor)
+        renderer.AddVolume(volume_actor)
         return volume_actor
 
     @staticmethod

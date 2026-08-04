@@ -27,3 +27,6 @@ FLOWS_DIR = BASE_DIR / "flows"
 DEFAULT_FLOW_PATH = FLOWS_DIR / "default_flow.json"
 REGISTRATION_FLOW_NAME = "new_patient_registration.json"
 REGISTRATION_FLOW_PATH = FLOWS_DIR / REGISTRATION_FLOW_NAME
+
+# Volume
+PRESETS_DIR = BASE_DIR / "core" / "volume" / "visualization" / "presets"

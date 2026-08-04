@@ -3,9 +3,12 @@ from typing import Dict, Optional, Any
 from PySide6 import QtWidgets
 
 from modules.base_module.base_module import ModuloBase
+
 from core.scene.events.scene_events import SceneEvents
 from core.scene.utils.factory import SceneObjectFactory
-from core.volume.segmentation_engine import SegmentacaoEngine
+
+from core.volume.segmentation.engines.threshold_segmentation_engine import ThresholdSegmentationEngine as SegmentacaoEngine
+
 from core.components.side_panel.segmentation_sidepanel import Segmentation_SidePanel
 from core.components.central_area.viewer_3d_dicom_central_area import Viewer3D_Dicom_Widget_CentralArea
 

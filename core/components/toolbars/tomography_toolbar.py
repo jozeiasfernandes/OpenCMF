@@ -1,17 +1,10 @@
 import sys
 from PySide6 import QtWidgets, QtCore
 
-from core.components.bases.base_toolbar import BaseToolbar, ToolData, AppContext
-from core.scene.scene_manager import SceneManager
+from core.components.bases.base_toolbar import BaseToolbar, AppContext
 
 # Ferramentas
-from core.components.tools.open_dicom_tool import OpenDicomTool
-from core.components.tools.reset_dicom_tool import ResetDicomTool
-from core.components.tools.save_vti_tool import SaveVtiTool
-from core.components.tools.validate_dicom_tool import ValidateDicomTool
-from core.components.tools.layout_dicom_tool import LayoutDicomTool
-from core.components.tools.color_map_tool import ColorMapTool
-from core.volume.lookup_table.lut_presets import LUTPresets
+from core.volume.visualization.lut.lut_presets import LUTPresets
 
 
 class TomographyToolbar(BaseToolbar):
