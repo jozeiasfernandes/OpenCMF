@@ -7,7 +7,6 @@ import hashlib
 from pathlib import Path
 from typing import Any, Optional
 from core.components.bases.base_component import BaseComponent
-from core.components.registry import ComponentRegistry
 
 logger = logging.getLogger("ComponentLoader")
 

@@ -3,8 +3,8 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.components.bases.base_toolbar.base_toolbar import BaseToolbar
 from core.components.bases.base_tool.tool_manager import ToolManager
-from core.components.tools.add_point_registration_tool import AddPointRegistrationTool
-from core.components.tools.select_tool import SelectTool
+from tools.registration.add_point_registration_tool import AddPointRegistrationTool
+from tools.scene.select_tool import SelectTool
 
 from settings.localization.translator import tr
 from list_paths import ICONS_DIR

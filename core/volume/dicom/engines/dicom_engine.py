@@ -98,7 +98,12 @@ class DicomEngine:
         result = []
         for f in arquivos:
             try:
-                # Leitura única otimizada com pydicom garantindo que possui pixel_array
+                # Otimização: Valida o cabeçalho DICM antes de carregar o arquivo inteiro
+                with open(f, 'rb') as file_obj:
+                    file_obj.seek(128)
+                    if file_obj.read(4) != b"DICM":
+                        continue
+
                 ds = pydicom.dcmread(str(f))
                 if hasattr(ds, "pixel_array") and hasattr(ds, "ImagePositionPatient"):
                     result.append(ds)

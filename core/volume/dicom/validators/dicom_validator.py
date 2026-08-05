@@ -42,11 +42,23 @@ class DicomValidator:
                 # Lê apenas os metadados sem carregar a matriz de pixels para poupar memória
                 ds = pydicom.dcmread(arquivo, stop_before_pixels=True, force=True)
 
-                # Filtra modalidades e localizadores (caso queira flexibilizar futuramente, remova a checagem de CT)
-                modalidade = getattr(ds, "Modality", "")
+                # Flexibilizado para aceitar CT convencional, exames de tomografia odontológica/CBCT
+                # e outras variações comuns de tomografia, evitando rejeitar exames legítimos de CTBMF.
+                modalidade = str(getattr(ds, "Modality", "")).upper()
                 image_type = getattr(ds, "ImageType", [])
+                if isinstance(image_type, str):
+                    image_type = [image_type]
+                image_type_str = " ".join([str(t) for t in image_type]).upper()
 
-                if modalidade != "CT" or "LOCALIZER" in image_type:
+                # Modalidades aceitas para reconstrução volumétrica (CT e PT/CBCT comuns na área)
+                modalidades_validas = {"CT", "PT", "MR"}
+
+                # Se a modalidade estiver vazia, permitimos passar para conferir se tem dados espaciais,
+                # mas se houver uma modalidade explícita inválida, filtramos.
+                if modalidade and modalidade not in modalidades_validas:
+                    continue
+
+                if "LOCALIZER" in image_type_str or "SCOUT" in image_type_str:
                     continue
 
                 geo_key = f"{getattr(ds, 'SeriesInstanceUID', 'unknown')}_{getattr(ds, 'Rows', 0)}x{getattr(ds, 'Columns', 0)}"
@@ -62,7 +74,7 @@ class DicomValidator:
 
         if not series_map:
             if self.event_bus:
-                self.event_bus.emit(SceneEvents.ERROR_OCCURRED, message="Nenhuma série CT válida encontrada.")
-            return {"sucesso": False, "erro": "Nenhuma série CT válida encontrada."}
+                self.event_bus.emit(SceneEvents.ERROR_OCCURRED, message="Nenhuma série tomográfica válida encontrada.")
+            return {"sucesso": False, "erro": "Nenhuma série tomográfica válida encontrada."}
 
         return {"sucesso": True, "series": dict(series_map)}

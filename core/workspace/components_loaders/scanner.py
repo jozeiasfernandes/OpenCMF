@@ -2,8 +2,8 @@ import inspect
 import importlib.util
 import sys
 from pathlib import Path
-from typing import Optional, Type
-from core.components.registry import ComponentRegistry, ComponentMetadata, ComponentType
+from typing import Optional
+from components_loaders.registry import ComponentRegistry, ComponentMetadata, ComponentType
 from core.components.bases.base_component import BaseComponent
 
 

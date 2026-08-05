@@ -110,6 +110,8 @@ DEFAULT_FLOW_FILE = FLOWS_DIR / "default_flow.json"
 
 REGISTRATION_FLOW_FILE = FLOWS_DIR / "new_patient_registration.json"
 
+REGISTRATION_FLOW_NAME = REGISTRATION_FLOW_FILE.name
+
 
 # ==============================================================================
 # APPEARANCE

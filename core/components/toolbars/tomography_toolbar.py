@@ -15,7 +15,6 @@ class TomographyToolbar(BaseToolbar):
         super().__init__("Tomografia", app_context, parent)
 
         self._validation_state = False
-        # Removido self.initialize() daqui, pois a BaseToolbar já faz a auto-inicialização no __init__
 
     def setup_ui(self):
         tool_keys = ["open", "validate", "save", "reset"]
@@ -86,7 +85,6 @@ if __name__ == "__main__":
     window.resize(600, 100)
 
     toolbar = TomographyToolbar(app_context=my_context)
-    # Removido toolbar.initialize() daqui, pois a toolbar já nasce inicializada.
     window.addToolBar(toolbar)
 
     window.show()
