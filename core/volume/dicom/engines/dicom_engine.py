@@ -6,20 +6,24 @@ from typing import Optional, List, Dict, Any
 from vtkmodules.util import numpy_support
 
 
+from core.volume.models.volume_model import Volume
+
+
 class DicomEngine:
     def __init__(self):
-        self._vtk_volume: Optional[vtk.vtkImageData] = None
+        self._current_volume: Optional[Volume] = None
         self.last_spacing = (1.0, 1.0, 1.0)
         self.last_origin = (0.0, 0.0, 0.0)
 
     def processar_para_scene_object(self, caminho_pasta: str) -> Optional[Dict[str, Any]]:
-        vtk_volume = self.carregar_volume(caminho_pasta)
-        if not vtk_volume:
+        volume_model = self.carregar_volume(caminho_pasta)
+        if not volume_model or not volume_model.is_valid:
             return None
 
         return {
             "metadata": {
-                "mesh_data": vtk_volume,
+                "mesh_data": volume_model.vtk_data,  # Mantém compatibilidade com o visualizador VTK atual
+                "volume_model": volume_model,  # Injeta o novo modelo completo na cena
                 "source_path": caminho_pasta
             },
             "transforms": {
@@ -28,7 +32,7 @@ class DicomEngine:
             }
         }
 
-    def carregar_volume(self, caminho_pasta: str) -> Optional[vtk.vtkImageData]:
+    def carregar_volume(self, caminho_pasta: str) -> Optional[Volume]:
         arquivos = self._listar_arquivos(caminho_pasta)
         dataset = self._ler_metadados(arquivos)
 
@@ -45,9 +49,17 @@ class DicomEngine:
         self._configurar_geometria(dataset)
         volume_data = self._processar_pixels(dataset)
 
-        # Converte e armazena corretamente no estado interno da engine
-        self._vtk_volume = self._numpy_to_vtk(volume_data)
-        return self._vtk_volume
+        # Converte para vtkImageData
+        vtk_img = self._numpy_to_vtk(volume_data)
+
+        # Cria e encapsula no novo modelo Volume
+        self._current_volume = Volume(
+            vtk_data=vtk_img,
+            source_path=caminho_pasta,
+            name="Exame DICOM / TC"
+        )
+
+        return self._current_volume
 
     def _configurar_geometria(self, fatias: List[pydicom.dataset.FileDataset]):
         ds0 = fatias[0]
@@ -74,13 +86,11 @@ class DicomEngine:
         return volume
 
     def _numpy_to_vtk(self, nparray: np.ndarray) -> vtk.vtkImageData:
-        # Achatamento compatível com a ordem C do numpy (Z, Y, X)
         vtk_array = numpy_support.numpy_to_vtk(
             nparray.ravel(order='C'), deep=True, array_type=vtk.VTK_FLOAT
         )
 
         img_data = vtk.vtkImageData()
-        # Dimensões no VTK: (Columns, Rows, Slices) -> (X, Y, Z)
         img_data.SetDimensions(nparray.shape[2], nparray.shape[1], nparray.shape[0])
         img_data.SetSpacing(self.last_spacing)
         img_data.SetOrigin(self.last_origin)
@@ -88,7 +98,6 @@ class DicomEngine:
         return img_data
 
     def _listar_arquivos(self, caminho: str) -> List[Path]:
-        # Alterado para rglob para suportar estruturas de pastas aninhadas em exames DICOM
         return [
             f for f in Path(caminho).rglob("*")
             if f.is_file() and not f.name.startswith('.')
@@ -98,7 +107,6 @@ class DicomEngine:
         result = []
         for f in arquivos:
             try:
-                # Otimização: Valida o cabeçalho DICM antes de carregar o arquivo inteiro
                 with open(f, 'rb') as file_obj:
                     file_obj.seek(128)
                     if file_obj.read(4) != b"DICM":
@@ -125,10 +133,9 @@ class DicomEngine:
         if not grupos:
             return []
 
-        # Seleciona a série que possui o maior número de fatias (exame completo)
         chave_principal = max(grupos, key=lambda k: len(grupos[k]))
         return grupos[chave_principal]
 
     @property
-    def vtk_volume(self) -> Optional[vtk.vtkImageData]:
-        return self._vtk_volume
+    def current_volume(self) -> Optional[Volume]:
+        return self._current_volume

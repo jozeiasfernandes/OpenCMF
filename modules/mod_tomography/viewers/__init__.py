@@ -8,7 +8,7 @@
 # Quando formos implementar o MIP (Maximum Intensity Projection), o código ficará restrito
 # a este arquivo, sem poluir o resto.
 #
-# volume.py (O especialista 3D)
+# volume_model.py (O especialista 3D)
 # Herda de CentralAreaBase. Aqui moram as funções de GPUVolumeRayCast, Threshold e,
 # futuramente, os botões de Face de Orientação e Sombreamento.
 #

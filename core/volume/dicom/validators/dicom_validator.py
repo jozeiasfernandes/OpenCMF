@@ -16,8 +16,6 @@ class DicomValidator:
 
         series_map = defaultdict(list)
 
-        # Filtra apenas arquivos que parecem ser DICOM ou estão em estruturas comuns,
-        # ignorando arquivos ocultos e extensões óbvias de sistema/texto
         extensoes_ignoradas = {".txt", ".pdf", ".docx", ".png", ".jpg", ".ini", ".json"}
         arquivos = [
             f for f in caminho_origem.rglob("*")
@@ -34,42 +32,43 @@ class DicomValidator:
 
             try:
                 with open(arquivo, 'rb') as f:
-                    # Verifica o preâmbulo DICOM padrão (128 bytes ignorados + 4 bytes "DICM")
                     f.seek(128)
                     if f.read(4) != b"DICM":
                         continue
 
-                # Lê apenas os metadados sem carregar a matriz de pixels para poupar memória
                 ds = pydicom.dcmread(arquivo, stop_before_pixels=True, force=True)
 
-                # Flexibilizado para aceitar CT convencional, exames de tomografia odontológica/CBCT
-                # e outras variações comuns de tomografia, evitando rejeitar exames legítimos de CTBMF.
                 modalidade = str(getattr(ds, "Modality", "")).upper()
                 image_type = getattr(ds, "ImageType", [])
                 if isinstance(image_type, str):
                     image_type = [image_type]
                 image_type_str = " ".join([str(t) for t in image_type]).upper()
 
-                # Modalidades aceitas para reconstrução volumétrica (CT e PT/CBCT comuns na área)
                 modalidades_validas = {"CT", "PT", "MR"}
 
-                # Se a modalidade estiver vazia, permitimos passar para conferir se tem dados espaciais,
-                # mas se houver uma modalidade explícita inválida, filtramos.
                 if modalidade and modalidade not in modalidades_validas:
                     continue
 
                 if "LOCALIZER" in image_type_str or "SCOUT" in image_type_str:
                     continue
 
-                geo_key = f"{getattr(ds, 'SeriesInstanceUID', 'unknown')}_{getattr(ds, 'Rows', 0)}x{getattr(ds, 'Columns', 0)}"
+                series_uid = getattr(ds, 'SeriesInstanceUID', 'unknown')
+                rows = getattr(ds, 'Rows', 0)
+                columns = getattr(ds, 'Columns', 0)
+                geo_key = f"{series_uid}_{rows}x{columns}"
+
+                series_desc = getattr(ds, 'SeriesDescription', 'Série s/ nome')
+                instance_number = int(getattr(ds, "InstanceNumber", 0))
 
                 series_map[geo_key].append({
                     "path": str(arquivo),
-                    "desc": f"{ds.get('SeriesDescription', 'Série s/ nome')} ({ds.Rows}x{ds.Columns})",
-                    "instancia": int(ds.get("InstanceNumber", 0))
+                    "description": series_desc,
+                    "instance_number": instance_number,
+                    "rows": rows,
+                    "columns": columns,
+                    "series_uid": series_uid
                 })
             except Exception:
-                # Ignora arquivos corrompidos ou que falharam na leitura do pydicom
                 continue
 
         if not series_map:
