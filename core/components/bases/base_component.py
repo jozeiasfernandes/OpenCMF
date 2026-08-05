@@ -110,6 +110,12 @@ class BaseComponent(QtCore.QObject):
     def event_bus(self) -> Optional[EventBusProtocol]:
         return self._safe_get_attr("event_bus")
 
+    @event_bus.setter
+    def event_bus(self, value: EventBusProtocol) -> None:
+        ctx = self.target_context
+        if ctx is not None and hasattr(ctx, "event_bus"):
+            ctx.event_bus = value
+
     def set_context(self, context: Any) -> None:
         """Define contexto com validação completa."""
         self._ensure_not_disposed()

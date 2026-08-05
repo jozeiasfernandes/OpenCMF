@@ -1,7 +1,8 @@
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.volume.visualization.lut.lut_presets import LUTPresets
-from core.components.bases.base_toolbar import BaseToolbar, AppContext
+
+from core.components.bases.base_toolbar.base_toolbar import BaseToolbar, AppContext
 
 # Settings
 from core.settings.icons.icons_manager import IconManager

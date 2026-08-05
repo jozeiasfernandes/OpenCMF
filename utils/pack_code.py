@@ -54,8 +54,6 @@ class PackWorker(QThread):
                                 f.write("\n\n")
                             except Exception as e:
                                 f.write(f"# Erro ao ler arquivo: {e}\n\n")
-
-            self.finished.emit(True, f"✅ Projeto empacotado com sucesso!\nArquivo: {self.output_file}")
         except Exception as e:
             self.finished.emit(False, f"Erro: {str(e)}")
 
@@ -182,8 +180,6 @@ class PackProjectGUI(QMainWindow):
             }
             with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=4, ensure_ascii=False)
-            self.append_log("💾 Configurações salvas com sucesso!")
-            QMessageBox.information(self, "Sucesso", "Configurações salvas em pack_config.json")
         except Exception as e:
             QMessageBox.warning(self, "Erro", f"Não foi possível salvar: {e}")
 

@@ -14,13 +14,11 @@ class ViewportInteractionController:
         self.vtk_widget = vtk_widget
         self.tool_manager = tool_manager
 
-        self.interactor = (
-            vtk_widget
-            .GetRenderWindow()
-            .GetInteractor()
-        )
+        render_window = vtk_widget.GetRenderWindow()
+        self.interactor = render_window.GetInteractor() if render_window else None
 
-        self._bind_events()
+        if self.interactor:
+            self._bind_events()
 
     def _bind_events(self) -> None:
         self.interactor.AddObserver(
@@ -59,6 +57,8 @@ class ViewportInteractionController:
         )
 
     def _get_mouse_position(self):
+        if not self.interactor:
+            return (0, 0)
         return self.interactor.GetEventPosition()
 
     @staticmethod
@@ -128,6 +128,8 @@ class ViewportInteractionController:
             obj.OnMouseWheelBackward()
 
     def _on_key_press(self, obj, event):
+        if not self.interactor:
+            return
         key = self.interactor.GetKeySym()
 
         handled = self.tool_manager.key_press(
@@ -139,6 +141,8 @@ class ViewportInteractionController:
             obj.OnKeyPress()
 
     def _on_key_release(self, obj, event):
+        if not self.interactor:
+            return
         key = self.interactor.GetKeySym()
 
         handled = self.tool_manager.key_release(

@@ -1,14 +1,3 @@
-'''
-
-UI / VTK / Tools
-        ↓
-SceneManager
-        ↓
-EventBus
-        ↓
-Observers (Renderer / Registry / UI adapters)
-'''
-
 import logging
 from collections import defaultdict
 from typing import Callable, Any, Dict, List, Optional

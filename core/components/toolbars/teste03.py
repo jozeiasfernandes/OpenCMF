@@ -6,7 +6,8 @@ import logging
 import traceback
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
-from core.components.bases.base_tool.base_tool import BaseTool
+
+from core.components.bases.base_toolbar.base_toolbar import BaseToolbar
 from core.components.bases.base_component import AppContext
 
 if TYPE_CHECKING:

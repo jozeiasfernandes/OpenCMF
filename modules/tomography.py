@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 import os
 import logging
@@ -9,13 +11,23 @@ from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
 
 from core.components.toolbars.tomography_toolbar import TomographyToolbar
-from volume.dicom.engines.dicom_engine import DicomEngine
-from volume.visualization.volume_viewer_widget import VolumeViewerWidget
+from core.volume.dicom.engines.dicom_engine import DicomEngine
+from core.volume.visualization.volume_viewer_widget import VolumeViewerWidget
 from core.volume.dicom.validators.dicom_validator import DicomValidator
 
 from core.scene.events.event_bus import EventBus
 from core.scene.registry.actor_registry import ActorRegistry
 from modules.base_module.base_module import ModuloBase
+
+# Importações atualizadas considerando que list_paths fica na raiz do projeto
+from list_paths import (
+    PATIENTS_DIR,
+    VOLUME_DIR,
+    DICOM_DIR,
+    DICOM_ENGINES_DIR,
+    DICOM_VALIDATORS_DIR,
+    VISUALIZATION_DIR,
+)
 
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
@@ -90,6 +102,7 @@ class Modulo(ModuloBase):
     def _carregar_configs_projeto(self):
         if not self.pasta_paciente:
             return
+
         path_info = Path(self.pasta_paciente) / "projeto" / "info.json"
         if path_info.exists():
             try:

@@ -1,7 +1,7 @@
 from typing import Optional, TYPE_CHECKING
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from core.components.bases.base_toolbar import BaseToolbar
+from core.components.bases.base_toolbar.base_toolbar import BaseToolbar
 from core.components.bases.base_tool.tool_manager import ToolManager
 from core.components.tools.add_point_registration_tool import AddPointRegistrationTool
 from core.components.tools.select_tool import SelectTool
