@@ -1,5 +1,5 @@
 from PySide6 import QtWidgets
-from core.volume.visualization.lut.lut_presets import LUTPresets
+from domain.volume.visualization.lut.lut_presets import LUTPresets
 
 MENU_STYLE = """
     QMenu { 

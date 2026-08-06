@@ -11,23 +11,15 @@ from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
 
 from core.components.toolbars.tomography_toolbar import TomographyToolbar
-from core.volume.dicom.engines.dicom_engine import DicomEngine
-from core.volume.visualization.volume_viewer_widget import VolumeViewerWidget
-from core.volume.dicom.validators.dicom_validator import DicomValidator
+from domain.volume.dicom.engines.dicom_engine import DicomEngine
+from domain.volume.visualization.volume_viewer_widget import VolumeViewerWidget
+from domain.volume.dicom.validators.dicom_validator import DicomValidator
 
 from core.scene.events.event_bus import EventBus
 from core.scene.registry.actor_registry import ActorRegistry
 from modules.base_module.base_module import ModuloBase
 
 # Importações atualizadas considerando que list_paths fica na raiz do projeto
-from list_paths import (
-    PATIENTS_DIR,
-    VOLUME_DIR,
-    DICOM_DIR,
-    DICOM_ENGINES_DIR,
-    DICOM_VALIDATORS_DIR,
-    VISUALIZATION_DIR,
-)
 
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 

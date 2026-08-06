@@ -16,7 +16,7 @@ from core.home_page.home_page import Home_page
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 
 # Patient Manager
-from core.patient.patient_manager import PatientManager
+from application.patient.patient_manager import PatientManager
 
 # Settings
 from core.settings.settings_app_manager import settings
@@ -25,7 +25,7 @@ from settings.settings_page import PaginaConfig
 from settings.icons.icons_manager import IconManager
 from settings.localization.translator import tr
 
-from list_paths import BASE_DIR, PATIENTS_DIR, THEMES_DIR, ICONS_DIR
+from settings.paths.list_paths import BASE_DIR, PATIENTS_DIR, THEMES_DIR, ICONS_DIR
 
 from settings.logs.logger_manager import Main_Logger, main_logger
 

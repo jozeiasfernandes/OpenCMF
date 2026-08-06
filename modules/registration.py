@@ -17,7 +17,7 @@ from core.scene.io.importer import ObjectImporter
 from core.scene.scene_object import SceneObject
 
 # Components
-from core.components.bases.base_toolbar import AppContext
+from core.components.bases.base_component import AppContext
 from core.components.central_area.viewer_registration_central_area import ViewerRegistration_Widget_CentralArea
 from core.components.side_panel.object_manager_sidepanel import ObjectManager_SidePanel
 from core.components.side_panel.objetct_properties_sidepanel import ObjectProperties_SidePanel

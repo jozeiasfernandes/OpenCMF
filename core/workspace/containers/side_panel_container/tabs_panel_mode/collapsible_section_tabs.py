@@ -1,7 +1,6 @@
-from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from list_paths import ICONS_DIR
+from settings.paths.list_paths import ICONS_DIR
 
 
 class CollapsibleSectionTabs(QtWidgets.QWidget):

@@ -7,7 +7,7 @@ from modules.base_module.base_module import ModuloBase
 from core.scene.events.scene_events import SceneEvents
 from core.scene.utils.factory import SceneObjectFactory
 
-from core.volume.segmentation.engines.threshold_segmentation_engine import ThresholdSegmentationEngine as SegmentacaoEngine
+from domain.volume.segmentation.engines.threshold_segmentation_engine import ThresholdSegmentationEngine
 
 from core.components.side_panel.segmentation_sidepanel import Segmentation_SidePanel
 from core.components.central_area.viewer_3d_dicom_central_area import Viewer3D_Dicom_Widget_CentralArea
@@ -35,7 +35,7 @@ class Modulo(ModuloBase):
         else:
             self.viewer_registry = viewer_registry
 
-        self.engine_seg = SegmentacaoEngine()
+        self.engine_seg = ThresholdSegmentationEngine()
 
         self.widget_seg = Segmentation_SidePanel(context=context)
 
@@ -109,7 +109,7 @@ class Modulo(ModuloBase):
 if __name__ == "__main__":
     import sys
     from unittest.mock import MagicMock
-    from core.components.bases.base_toolbar import AppContext
+    from core.components.bases.base_component import AppContext
     from core.components.bases.base_tool.tool_manager import ToolManager
     from core.scene.events.event_bus import EventBus
     from core.workspace.workspace_manager import WorkspaceManager

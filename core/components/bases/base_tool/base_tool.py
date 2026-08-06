@@ -5,7 +5,7 @@ from enum import Enum, auto
 import vtk
 from PySide6 import QtGui, QtWidgets
 
-from list_paths import ICONS_DIR
+from settings.paths.list_paths import ICONS_DIR
 from core.scene.scene_manager import SceneManager
 
 #   category = ToolCategory.SELECTION

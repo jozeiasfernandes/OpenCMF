@@ -7,7 +7,7 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import QApplication
 
-from list_paths import ICONS_DIR, ICONS_THEMES_DIR
+from settings.paths.list_paths import ICONS_DIR, ICONS_THEMES_DIR
 
 
 class IconManager:

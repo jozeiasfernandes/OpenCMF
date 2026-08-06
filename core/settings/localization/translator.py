@@ -4,7 +4,7 @@ from functools import lru_cache
 from typing import Any, Optional
 from settings.settings_app_manager import settings
 
-from list_paths import TRANSLATIONS_DIR
+from settings.paths.list_paths import TRANSLATIONS_DIR
 
 
 class Translator:

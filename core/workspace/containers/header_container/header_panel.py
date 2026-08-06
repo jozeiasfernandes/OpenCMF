@@ -1,12 +1,10 @@
-from pathlib import Path
 from typing import Optional
 
-from PySide6 import QtWidgets, QtCore, QtGui
+from PySide6 import QtWidgets, QtCore
 
 from core.workspace.containers.header_container.btn_home import HomeButton
 
 # Settings
-from list_paths import ICONS_DIR
 from core.settings.help.help_page import HelpPage
 from settings.settings_page import PaginaConfig
 from settings.icons.icons_manager import IconManager

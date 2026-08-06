@@ -3,7 +3,7 @@ from core.settings.localization.translator import tr
 from core.settings.settings_app_manager import settings
 from core.settings.themes.theme_manager import ThemeManager
 
-from list_paths import THEMES_DIR
+from settings.paths.list_paths import THEMES_DIR
 
 
 class TabAppearance(QtWidgets.QWidget):

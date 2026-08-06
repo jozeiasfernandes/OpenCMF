@@ -6,8 +6,8 @@ from core.components.bases.base_tool.tool_manager import ToolManager
 from tools.registration.add_point_registration_tool import AddPointRegistrationTool
 from tools.scene.select_tool import SelectTool
 
-from settings.localization.translator import tr
-from list_paths import ICONS_DIR
+from core.settings.localization.translator import tr
+from core.settings.paths.list_paths import ICONS_DIR
 from core.scene.events.scene_events import RegistrationEvents
 
 if TYPE_CHECKING:
@@ -81,7 +81,7 @@ class RegistrationToolbar(BaseToolbar):
 
 if __name__ == "__main__":
     import sys
-    from core.components.bases.base_toolbar import AppContext
+    from core.components.bases.base_component import AppContext
 
     app_context = AppContext(
         tool_manager=ToolManager(),

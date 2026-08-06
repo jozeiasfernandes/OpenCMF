@@ -10,11 +10,11 @@ from modules.mod_patients_02.tabs.photo_tab import PhotoTab
 from modules.mod_patients_02.tabs.project_tab import ProjectTab
 
 # Patient
-from core.patient.patient_manager import PatientManager
+from application.patient.patient_manager import PatientManager
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
 
 # Settings
-from list_paths import PATIENTS_DIR
+from settings.paths.list_paths import PATIENTS_DIR
 
 
 class ModuloBase(QtWidgets.QWidget):

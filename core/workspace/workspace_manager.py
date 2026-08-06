@@ -5,9 +5,9 @@ from PySide6 import QtCore, QtWidgets
 
 # Patient
 from core.workspace.patient.state import WorkspaceState
-from core.patient.patient_manager import PatientManager
+from application.patient.patient_manager import PatientManager
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
-from list_paths import PATIENTS_DIR
+from settings.paths.list_paths import PATIENTS_DIR
 
 # Settings
 from settings.settings_app_manager import settings

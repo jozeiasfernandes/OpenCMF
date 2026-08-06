@@ -5,7 +5,7 @@ from PySide6 import QtCore
 
 from core.scene.scene_object import SceneObject
 from core.scene.utils.factory import SceneObjectFactory
-from list_paths import PATIENTS_DIR
+from settings.paths.list_paths import PATIENTS_DIR
 from core.settings.logs.logger_manager import scene_logger
 
 

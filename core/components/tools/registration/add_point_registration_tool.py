@@ -1,7 +1,7 @@
 import vtk
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
-from list_paths import ICONS_DIR
+from settings.paths.list_paths import ICONS_DIR
 from core.scene.events.scene_events import RegistrationEvents
 
 class AddPointRegistrationTool(BaseTool):

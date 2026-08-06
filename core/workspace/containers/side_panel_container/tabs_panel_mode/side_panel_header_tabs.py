@@ -1,6 +1,6 @@
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.settings.localization.translator import tr
-from list_paths import ICONS_DIR
+from settings.paths.list_paths import ICONS_DIR
 
 
 class SidePanelHeaderTabs(QtWidgets.QWidget):

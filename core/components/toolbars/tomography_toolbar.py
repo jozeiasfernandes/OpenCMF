@@ -4,7 +4,7 @@ from PySide6 import QtWidgets, QtCore
 from core.components.bases.base_toolbar.base_toolbar import BaseToolbar, AppContext
 
 # Ferramentas
-from core.volume.visualization.lut.lut_presets import LUTPresets
+from domain.volume.visualization.lut.lut_presets import LUTPresets
 
 
 class TomographyToolbar(BaseToolbar):

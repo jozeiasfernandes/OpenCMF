@@ -2,7 +2,7 @@ import json
 import logging
 from typing import Any, Dict, Optional
 
-from list_paths import CONFIG_FILE_PATH
+from settings.paths.list_paths import CONFIG_FILE_PATH
 
 
 class SettingsManager:

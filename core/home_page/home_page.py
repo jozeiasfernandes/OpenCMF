@@ -3,7 +3,7 @@ from PySide6 import QtCore, QtWidgets
 # Project
 from core.home_page.managers.flow_service_home_page import FlowServiceHomePage
 from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
-from core.patient.patient_manager import PatientManager
+from application.patient.patient_manager import PatientManager
 
 # Settings
 from core.settings.settings_app_manager import settings
@@ -12,7 +12,7 @@ import logging
 from settings.logs.logger_manager import home_page_logger, HomePageDebugLogger, Patient_Logger
 logger = logging.getLogger("OpenCMF.HomePage")
 
-from list_paths import PATIENTS_DIR, FLOWS_DIR, REGISTRATION_FLOW_NAME
+from settings.paths.list_paths import PATIENTS_DIR, FLOWS_DIR, REGISTRATION_FLOW_NAME
 from settings.icons.icons_manager import IconManager
 from settings.localization.translator import tr
 

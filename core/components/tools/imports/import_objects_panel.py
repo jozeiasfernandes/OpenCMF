@@ -35,7 +35,7 @@ from PySide6.QtCore import Qt, Signal, QPoint, QSize, QEvent
 from PySide6.QtGui import QIcon
 from settings.localization.translator import tr
 from core.scene.rendering.vtk_actor_factory import VTKActorFactory
-from list_paths import ICONS_DIR
+from settings.paths.list_paths import ICONS_DIR
 
 # Centralização de cores e estilos para fácil manutenção
 COLORS = {

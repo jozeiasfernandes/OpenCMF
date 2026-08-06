@@ -1,7 +1,7 @@
 import json
 from PySide6 import QtWidgets, QtGui
 
-from list_paths import SHORTCUTS_FILE_PATH
+from settings.paths.list_paths import SHORTCUTS_FILE_PATH
 
 
 class TabKeyboard(QtWidgets.QWidget):

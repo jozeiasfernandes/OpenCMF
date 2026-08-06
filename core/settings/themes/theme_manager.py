@@ -1,6 +1,5 @@
-from pathlib import Path
 from PySide6 import QtWidgets
-from list_paths import THEMES_DIR
+from settings.paths.list_paths import THEMES_DIR
 from core.settings.settings_app_manager import settings
 
 

@@ -3,7 +3,7 @@ from PySide6 import QtWidgets, QtCore
 from core.settings.localization.translator import tr
 from settings.settings_app_manager import settings
 
-from list_paths import TRANSLATIONS_DIR
+from settings.paths.list_paths import TRANSLATIONS_DIR
 
 
 class TabLanguage(QtWidgets.QWidget):
