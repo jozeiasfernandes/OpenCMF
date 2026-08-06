@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import List, Optional
 
-from application.commands.base.command import Command
+from commands.base.command import Command
 from core.scene.selection.selection_manager import (
     SelectionManager,
 )

@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import json
 import logging
 from typing import Any, Dict, Optional
 
-from settings.paths.list_paths import CONFIG_FILE_PATH
+from core.settings.paths.list_paths import CONFIG_FILE_PATH
 
 
 class SettingsManager:

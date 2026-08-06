@@ -69,13 +69,13 @@ def ensure_runtime_directories() -> None:
 # SETTINGS
 # ==============================================================================
 
-CONFIG_FILE = BASE_DIR / "config.json"
-
-CONFIG_FILE_PATH = CONFIG_FILE
-
 CORE_DIR = BASE_DIR / "core"
 
 SETTINGS_DIR = BASE_DIR / "core" / "settings"
+
+CONFIG_FILE = SETTINGS_DIR / "config.json"
+
+CONFIG_FILE_PATH = CONFIG_FILE
 
 TRANSLATIONS_DIR = SETTINGS_DIR / "localization" / "translations"
 

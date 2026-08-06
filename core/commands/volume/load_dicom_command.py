@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-from application.commands.base.command import Command
+from commands.base.command import Command
 from domain.volume.dicom.engines.dicom_engine import DicomEngine
 
 
