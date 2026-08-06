@@ -44,6 +44,32 @@
         "side_panel": "Side Panel"
     },
     "import": {
+        "panels": {
+            "categories": "Categories",
+            "source": "Source",
+            "content": "Browser / Gallery",
+            "preview": "Preview"
+        },
+        "categories": {
+            "volume": "Tomography / Exams",
+            "radiography": "Radiography",
+            "scan": "Scans (Face/Arch)",
+            "photo": "Clinical Photographs",
+            "mesh": "3D Meshes",
+            "library": "Object Library",
+            "facial_implant": "Facial Implants",
+            "dental_implant": "Dental Implants"
+        },
+        "sources": {
+            "project": {
+                "name": "Project",
+                "description": "Import existing objects from the current project."
+            },
+            "file": {
+                "name": "File",
+                "description": "Import files or folders from your computer."
+            }
+        },
         "secao": {
             "superficies": "Surfaces",
             "fotografias": "Photographs",

@@ -44,6 +44,32 @@
         "side_panel": "Painel Lateral"
     },
     "import": {
+        "panels": {
+            "categories": "Categorias",
+            "source": "Origem",
+            "content": "Browser / Galeria",
+            "preview": "Pré-visualização"
+        },
+        "categories": {
+            "volume": "Tomografias / Exames",
+            "radiography": "Radiografias",
+            "scan": "Escaneamentos (Face/Arcada)",
+            "photo": "Fotografias Clínicas",
+            "mesh": "Malhas 3D",
+            "library": "Biblioteca de Objetos",
+            "facial_implant": "Implantes Faciais",
+            "dental_implant": "Implantes Dentários"
+        },
+        "sources": {
+            "project": {
+                "name": "Projeto",
+                "description": "Importar objetos já existentes no projeto atual."
+            },
+            "file": {
+                "name": "Arquivo",
+                "description": "Importar arquivos ou pastas do computador."
+            }
+        },
         "secao": {
             "superficies": "Superfícies",
             "fotografias": "Fotografias",
@@ -74,7 +100,7 @@
         "tab_all": "Todos os Logs",
         "tab_main": "Principal",
         "tab_home": "Página Inicial",
-        "tab_patient": "Patiente",
+        "tab_patient": "Paciente",
         "tab_containers": "Containers",
         "tab_module": "Módulo",
         "tab_components": "Componentes",
