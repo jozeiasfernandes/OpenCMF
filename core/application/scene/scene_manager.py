@@ -1,7 +1,9 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from typing import Optional, Any, List
+from typing import Optional, Any, List, Union
+from pathlib import Path
+
 from .scene_object import SceneObject
 from .scene_state import SceneState
 from .events.event_bus import EventBus
@@ -20,7 +22,7 @@ class SceneManager:
             object_registry: ObjectRegistry,
             actor_registry: ActorRegistry,
             selection_manager: SelectionManager,
-            importer: ObjectImporter,
+            importer: Optional[ObjectImporter] = None,
             transform_manager: Any = None
     ):
         self.state = state
@@ -50,7 +52,7 @@ class SceneManager:
         self.actors.unregister(obj_id)
         self.selection.deselect(obj_id)
 
-        if hasattr(obj, 'file_path') and obj.file_path:
+        if self.importer and hasattr(obj, 'file_path') and obj.file_path:
             self.importer.delete_physical_file(obj.file_path)
 
         self.events.emit(SceneEvents.OBJECT_REMOVED, object_id=obj_id)
@@ -73,9 +75,13 @@ class SceneManager:
 
     # ==================== Importação ====================
 
-    def import_and_add(self, file_path: str, category: str) -> Optional[SceneObject]:
-        """Importa um arquivo e adiciona à cena."""
-        obj = self.importer.import_external_file(file_path, category)
+    def import_and_add(self, file_path: Union[str, Path], category: str) -> Optional[SceneObject]:
+        """Importa um arquivo utilizando o importer legado ou injetado e adiciona à cena."""
+        if not self.importer:
+            logger.error("Nenhum ObjectImporter configurado no SceneManager.")
+            return None
+
+        obj = self.importer.import_external_file(str(file_path), category)
         if obj:
             self.add_object(obj)
             return obj
@@ -96,7 +102,7 @@ class SceneManager:
         obj = self.objects.get(obj_id)
         if not obj:
             return
-        obj.opacity = max(0.0, min(1.0, opacity))  # Clamp entre 0 e 1
+        obj.opacity = max(0.0, min(1.0, opacity))
         self.events.emit(SceneEvents.OBJECT_UPDATED, object_id=obj_id, property="opacity", value=obj.opacity)
 
     def update_color(self, obj_id: str, color: tuple) -> None:
@@ -104,11 +110,7 @@ class SceneManager:
         obj = self.objects.get(obj_id)
         if not obj:
             return
-        # Garantir que a cor é uma tupla de 3 floats
-        if len(color) == 3:
-            obj.color = (float(color[0]), float(color[1]), float(color[2]))
-        elif len(color) == 4:
-            # Se for RGBA, ignorar o alpha
+        if len(color) >= 3:
             obj.color = (float(color[0]), float(color[1]), float(color[2]))
         self.events.emit(SceneEvents.OBJECT_UPDATED, object_id=obj_id, property="colors", value=obj.color)
 
@@ -191,8 +193,8 @@ class SceneManager:
     # ==================== Utilitários ====================
 
     def clear(self) -> None:
-        """Remove todos os objetos da cena."""
-        for obj in self.objects.all():
+        """Remove todos os objetos da cena da memória."""
+        for obj in list(self.objects.all()):
             self.remove_object(obj.id)
 
     def get_objects_by_type(self, obj_type: str) -> List[SceneObject]:

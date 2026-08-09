@@ -14,24 +14,6 @@ vtk.vtkObject.GlobalWarningDisplayOff()
 from core.application.patient.patient_manager import PatientManager
 from core.settings.paths.list_paths import BASE_DIR, PATIENTS_DIR
 
-# Home page
-from core.application.home_page.flows_manager.flows_editor.flow_editor import PaginaEditorFluxo
-from core.application.home_page.home_page import Home_page
-from core.application.home_page.project_manager.project_service_home_page import ProjectServiceHomePage
-
-# Settings
-from core.settings.settings_app_manager import settings
-from core.settings.settings_page import PaginaConfig
-
-from core.settings.icons_manager.icon_manager import IconManager
-from core.settings.localization.translator import tr
-from core.settings.paths.list_paths import THEMES_DIR, ICONS_DIR
-from core.settings.logs.logger_manager import Main_Logger, main_logger
-
-from core.settings.themes_manager.theme_manager import ThemeManager
-
-Main_Logger.setup_redirect()
-
 # Scene
 from core.application.scene.events.event_bus import EventBus
 from core.application.scene.io.importer import ObjectImporter
@@ -40,6 +22,34 @@ from core.application.scene.registry.object_registry import ObjectRegistry
 from core.application.scene.scene_manager import SceneManager
 from core.application.scene.scene_state import SceneState
 from core.application.scene.selection.selection_manager import SelectionManager
+
+# Home page
+from core.application.home_page.flows_manager.flows_editor.flow_editor import PaginaEditorFluxo
+from core.application.home_page.home_page import Home_page
+from core.application.home_page.project_manager.project_service_home_page import ProjectServiceHomePage
+
+# Import Window
+from core.application.imports.import_window.import_window import ImportWindow
+
+# Settings
+from core.settings.settings_app_manager import settings
+from core.settings.settings_page import PaginaConfig
+
+# Icons
+from core.settings.icons_manager.icon_manager import IconManager
+from core.settings.paths.list_paths import ICONS_DIR
+
+# Themes
+from core.settings.themes_manager.theme_manager import ThemeManager
+from core.settings.paths.list_paths import THEMES_DIR
+
+# Localization
+from core.settings.localization.translator import tr
+
+# Logger
+from core.settings.logs.logger_manager import Main_Logger, main_logger
+Main_Logger.setup_redirect()
+
 
 # Components
 from core.components.bases.base_tool.tool_manager import ToolManager
@@ -62,6 +72,7 @@ class ApplicationContext:
             tool_manager: Any = None,
             workspace_manager: Optional[WorkspaceManager] = None,
             patient_manager: Optional[PatientManager] = None,
+            main_window: Optional[Any] = None,
     ):
         self.scene_manager = scene_manager
         self.project_service = project_service
@@ -70,6 +81,12 @@ class ApplicationContext:
         self.tool_manager = tool_manager
         self.workspace_manager = workspace_manager
         self.patient_manager = patient_manager
+        self.main_window = main_window
+
+    def open_import_window(self):
+        """Método de utilidade no contexto para disparar a janela de importação."""
+        if self.main_window and hasattr(self.main_window, 'open_import_window'):
+            self.main_window.open_import_window()
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -83,6 +100,7 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             self.base_dir = BASE_DIR
             self.workflow = None
+            self.import_window_instance: Optional[ImportWindow] = None
 
             IconManager.get_instance().set_base_path(ICONS_DIR)
 
@@ -155,6 +173,7 @@ class MainWindow(QtWidgets.QMainWindow):
             tool_manager=self.tool_manager,
             workspace_manager=self.workspace,
             patient_manager=self.patient_manager,
+            main_window=self,
         )
 
         if hasattr(self.workspace, 'set_context'):
@@ -166,9 +185,25 @@ class MainWindow(QtWidgets.QMainWindow):
         if debug_instance:
             debug_instance.set_context(self.context)
 
+    def open_import_window(self):
+        """Abre a janela avançada de importação com suporte ao SceneManager."""
+        if not self.patient_manager.current_path:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Aviso",
+                "Por favor, selecione ou crie um paciente antes de abrir o gerenciador de importações."
+            )
+            return
+
+        if self.import_window_instance is None:
+            self.import_window_instance = ImportWindow(scene_manager=self.scene_manager)
+
+        self.import_window_instance.show()
+        self.import_window_instance.raise_()
+        self.import_window_instance.activateWindow()
+
     def _setup_signals(self):
         """Conecta todos os sinais da aplicação."""
-        # Conectado apenas ao sinal unificado de fluxo escolhido da Home_page
         self.home.fluxo_escolhido.connect(self.start_workflow)
         self.home.editor_solicitado.connect(
             lambda: self.stack.setCurrentWidget(self.flow_editor)
@@ -191,28 +226,21 @@ class MainWindow(QtWidgets.QMainWindow):
         )
 
         theme = settings.tema
-        self.apply_theme(theme)  # Usa o método centralizado que valida e aplica
+        self.apply_theme(theme)
         self.setup_icon()
         self.showMaximized()
 
     def apply_theme(self, theme_input: str):
-        """
-        Aceita tanto o nome direto do tema ('dark') quanto um caminho de arquivo.
-        """
         path = Path(theme_input)
         theme_name = path.stem if path.is_file() else theme_input
 
         try:
-            # Delega a aplicação para o ThemeManager centralizado
             success = self.theme_manager.apply_static_theme(theme_name)
             if not success:
-                # Tenta aplicar como tema customizado caso o estático não exista
                 success = self.theme_manager.apply_custom_theme()
 
             if success:
-                # O setter do settings já cuida de salvar automaticamente
                 settings.tema = theme_name
-
                 IconManager.get_instance().clear_cache()
                 main_logger.info(f"Tema alterado para: {theme_name}")
             else:
@@ -246,7 +274,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stack.setCurrentWidget(self.home)
 
     def _on_patient_path_changed(self, new_path: str):
-        """Reage à mudança do caminho do paciente propagando para dependências globais."""
         if new_path and hasattr(self, 'importer'):
             self.importer.patient_path = Path(new_path)
 

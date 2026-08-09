@@ -113,7 +113,7 @@
         "contributions": "Contributions: No contributions yet",
         "thanks": "Acknowledgements: No acknowledgements yet",
         "community": "Community:",
-        "github_label": "GitHub / OpenCMF"
+        "github_label": "GitHub / OpenCFM"
     },
     "file_browser": {
         "home": "Home",
@@ -124,6 +124,39 @@
         "music": "Music",
         "movies": "Movies",
         "root": "Root (/)",
-        "bytes": "bytes"
+        "bytes": "bytes",
+        "current_directory_placeholder": "Current directory...",
+        "add_favorite": "Add to favorites",
+        "new_folder": "New folder",
+        "browse": "Browse...",
+        "favorites_title": "FAVORITES",
+        "select_directory_title": "Select directory",
+        "invalid_folder_warning": "Please select a valid folder to favorite.",
+        "success_title": "Success",
+        "favorite_added_msg": "Folder '{folder_name}' added to favorites!",
+        "new_folder_title": "New Folder",
+        "new_folder_prompt": "Enter the name of the new folder:",
+        "create_folder_error": "Could not create the folder."
+    },
+    "dialogs": {
+        "filter": {
+            "supported": "Supported Files",
+            "meshes": "3D Meshes",
+            "dicom": "DICOM / Tomography",
+            "all": "All Files"
+        },
+        "import": {
+            "title": "Import File"
+        },
+        "error": {
+            "title": "Import Error",
+            "message": "Could not import the file:"
+        }
+    },
+    "tools": {
+        "import": {
+            "display_name": "Import",
+            "tooltip": "Import file into the scene (STL, VTK, DICOM, etc.)"
+        }
     }
 }

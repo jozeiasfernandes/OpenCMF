@@ -165,5 +165,26 @@
         "new_folder_title": "Nova Pasta",
         "new_folder_prompt": "Digite o nome da nova pasta:",
         "create_folder_error": "Não foi possível criar a pasta."
+    },
+    "dialogs": {
+        "filter": {
+            "supported": "Arquivos Suportados",
+            "meshes": "Malhas 3D",
+            "dicom": "DICOM / Tomografia",
+            "all": "Todos os Arquivos"
+        },
+        "import": {
+            "title": "Importar Arquivo"
+        },
+        "error": {
+            "title": "Erro de Importação",
+            "message": "Não foi possível importar o arquivo:"
+        }
+    },
+    "tools": {
+        "import": {
+            "display_name": "Importar",
+            "tooltip": "Importar arquivo para a cena (STL, VTK, DICOM, etc.)"
+        }
     }
 }

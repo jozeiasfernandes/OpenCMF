@@ -1,6 +1,9 @@
 from __future__ import annotations
 from pathlib import Path
 from PySide6 import QtWidgets
+
+
+from core.application.scene.events.scene_events import RegistrationEvents
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
 
 
@@ -42,9 +45,6 @@ class ImportObjectTool(BaseTool):
         if not file_path or not self.context or not hasattr(self.context, 'event_bus'):
             return
 
-        # Importação local para evitar ciclo de dependência
-        from application.scene import RegistrationEvents
-
         category = self._get_category_from_ext(file_path)
 
         self.context.event_bus.emit(
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     import sys
     from types import SimpleNamespace
     from unittest.mock import MagicMock
-    from application.scene import RegistrationEvents
+
 
     app = QApplication(sys.argv)
 

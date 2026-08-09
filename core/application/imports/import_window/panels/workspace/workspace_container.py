@@ -1,22 +1,37 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QLabel,
     QStackedWidget,
     QVBoxLayout,
+    QHBoxLayout,
     QWidget,
     QSplitter,
     QListView,
+    QPushButton,
 )
 
 # Importações dos componentes específicos
-from core.application.imports.import_window.panels.workspace.file_browser_view import FileBrowserView
+from core.application.file_browser.file_browser_view import FileBrowserView
 from core.application.imports.import_window.panels.workspace.preview_panel import PreviewPanel
 
 
 class WorkspaceContainer(QWidget):
     """Painel 3: Container dinâmico responsável por renderizar o workspace conforme a categoria e origem."""
+
+    # Sinal emitido quando o usuário clica em importar com um arquivo válido
+    import_requested = Signal(str)
+
+    # Mapeamento de filtros de extensão por ID de categoria
+    CATEGORY_FILTERS = {
+        "volume": ["*.dcm", "*.vti", "*.vtk", "*.nrrd", "*.nii", "*.nii.gz", "*.mhd", "*.mha"],
+        "dicom": ["*.dcm", "DICOMDIR"],
+        "photo": ["*.jpg", "*.jpeg", "*.png", "*.bmp", "*.tif", "*.tiff"],
+        "mesh": ["*.stl", "*.obj", "*.ply", "*.off", "*.vtp", "*.vtk"],
+        "implant": ["*.stl", "*.obj", "*.ply", "*.step", "*.stp", "*.iges", "*.igs"],
+        "scan": ["*.stl", "*.obj", "*.ply", "*.vtp"],
+    }
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -58,7 +73,7 @@ class WorkspaceContainer(QWidget):
             self.stack.setCurrentWidget(self.placeholder)
 
     def _create_view_for_context(self, category_id: str, source_id: str):
-        """Fábrica modular para instanciar o layout correto do Painel 3 unindo FileBrowser e PreviewPanel."""
+        """Fábrica modular para instanciar o layout correto do Painel 3 unindo FileBrowser, PreviewPanel e Botão Importar."""
 
         container = QWidget()
         layout = QVBoxLayout(container)
@@ -74,27 +89,55 @@ class WorkspaceContainer(QWidget):
         # Instancia o PreviewPanel que ficará na parte inferior
         preview_panel = PreviewPanel(self)
 
-        if source_id == "source_file":
-            # Instancia o FileBrowserView completo
-            file_browser = FileBrowserView(category_id=category_id, parent=self)
+        # Referência para armazenar o browser ativo no escopo da função
+        file_browser = None
 
-            # CONEXÃO CHAVE: Conecta a seleção de arquivo do browser ao painel de preview inferior
+        if source_id == "source_file":
+            category_lower = category_id.strip().lower()
+            filters = []
+            for key, ext_list in self.CATEGORY_FILTERS.items():
+                if key in category_lower:
+                    filters = ext_list
+                    break
+
+            file_browser = FileBrowserView(name_filters=filters, parent=self)
             file_browser.file_selected.connect(preview_panel.update_preview)
 
             top_layout.addWidget(file_browser)
         else:
-            # Origem "Do Projeto"
             project_label = QLabel(f"Itens salvos no projeto para [{category_id}]:", self)
             top_layout.addWidget(project_label)
             project_list = QListView(self)
             top_layout.addWidget(project_list)
+
+        # Barra de Ações Inferior contendo o Botão Importar
+        action_layout = QHBoxLayout()
+        action_layout.setContentsMargins(0, 5, 0, 0)
+
+        btn_import = QPushButton("Importar", self)
+        btn_import.setCursor(Qt.CursorShape.PointingHandCursor)
+        # Estilização opcional para destacar o botão principal de ação
+        btn_import.setStyleSheet("font-weight: bold; padding: 6px 16px;")
+
+        # Conexão do botão de importação
+        def on_import_clicked():
+            if file_browser:
+                selected_path = file_browser.selected_file()
+                if selected_path:
+                    self.import_requested.emit(selected_path)
+                    print(f"[Importação Acionada]: {selected_path}")
+
+        btn_import.clicked.connect(on_import_clicked)
+
+        action_layout.addStretch()
+        action_layout.addWidget(btn_import)
+        top_layout.addLayout(action_layout)
 
         splitter.addWidget(top_widget)
 
         # 2. Seção Inferior (PreviewPanel integrado)
         splitter.addWidget(preview_panel)
 
-        # Proporção de tamanho entre o explorador superior e o preview inferior
         splitter.setSizes([380, 120])
         layout.addWidget(splitter)
 

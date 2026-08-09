@@ -3,8 +3,9 @@ from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.components.bases.base_toolbar.base_toolbar import BaseToolbar
 from core.components.bases.base_tool.tool_manager import ToolManager
-from tools.registration.add_point_registration_tool import AddPointRegistrationTool
-from tools.scene.select_tool import SelectTool
+from core.components.tools.registration.add_point_registration_tool import AddPointRegistrationTool
+from core.components.tools.scene.select_tool import SelectTool
+from core.components.tools.imports.import_tool import ImportTool
 
 from core.settings.localization.translator import tr
 from core.settings.paths.list_paths import ICONS_DIR
@@ -27,9 +28,15 @@ class RegistrationToolbar(BaseToolbar):
 
     def setup_ui(self) -> None:
         """Configura a interface da toolbar de registro."""
-        # 1. Registro de ferramentas (BaseToolbar gerencia o registro no ToolManager)
+
+        # 1. Import objetcs
+        import_tool = ImportTool(context=self.app)
+        self.register_tool(import_tool)
+        # 2. Registro de ferramentas (BaseToolbar gerencia o registro no ToolManager)
         self.register_tool(SelectTool())
         self.register_tool(AddPointRegistrationTool())
+
+
 
         self.add_separator()
 

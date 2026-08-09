@@ -72,14 +72,14 @@ class FileBrowserView(QWidget):
     def _setup_ui(self) -> None:
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(5)
+        layout.setSpacing(3)
 
         # --------------------------------------------------------------
         # 1. Barra superior: Caminho, Botão Favoritos, Nova Pasta e Procurar
         # --------------------------------------------------------------
         path_layout = QHBoxLayout()
         path_layout.setContentsMargins(0, 0, 0, 0)
-        path_layout.setSpacing(5)
+        path_layout.setSpacing(3)
 
         self.path_input = QLineEdit(self)
         self.path_input.setReadOnly(True)

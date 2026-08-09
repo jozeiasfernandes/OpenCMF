@@ -82,15 +82,6 @@ class SettingsManager:
         self.save()
 
     @property
-    def side_panel_width(self) -> int:
-        return self.get("side_panel", "width", 250)
-
-    @side_panel_width.setter
-    def side_panel_width(self, value: int):
-        self.set("side_panel", "width", value)
-        self.save()
-
-    @property
     def side_panel_mode(self) -> str:
         return self.get("side_panel", "mode", "settings_page_tabs")
 
