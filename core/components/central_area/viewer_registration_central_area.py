@@ -3,17 +3,17 @@ import logging
 from typing import Optional, Any
 from PySide6 import QtWidgets, QtCore
 
-from settings.shortcuts.shortcuts import get_shortcuts_by_scope, match_shortcut
+from settings.shortcuts.shortcut_manager import get_shortcuts_by_scope, match_shortcut
 from core.components.bases.base_central_area import CentralAreaBase
 from core.components.central_area.viewer_3d_central_area import Viewer3D_Widget_CentralArea
 
-from core.scene.scene_manager import SceneManager
-from core.scene.selection.selection_manager import SelectionManager
-from core.scene.events.scene_events import SceneEvents, RegistrationEvents
-from core.scene.registry.object_registry import ObjectRegistry
-from core.scene.registry.actor_registry import ActorRegistry
-from core.scene.scene_state import SceneState
-from core.scene.events.event_bus import EventBus
+from application.scene.scene_manager import SceneManager
+from application.scene.selection.selection_manager import SelectionManager
+from application.scene.events.scene_events import SceneEvents, RegistrationEvents
+from application.scene.registry.object_registry import ObjectRegistry
+from application.scene.registry.actor_registry import ActorRegistry
+from application.scene.scene_state import SceneState
+from application.scene.events.event_bus import EventBus
 
 
 logger = logging.getLogger("OpenCMF.ViewerRegistration_Widget_CentralArea")

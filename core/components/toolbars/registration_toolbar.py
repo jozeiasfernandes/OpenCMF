@@ -8,7 +8,7 @@ from tools.scene.select_tool import SelectTool
 
 from core.settings.localization.translator import tr
 from core.settings.paths.list_paths import ICONS_DIR
-from core.scene.events.scene_events import RegistrationEvents
+from application.scene.events.scene_events import RegistrationEvents
 
 if TYPE_CHECKING:
     pass

@@ -4,7 +4,7 @@ class ScaleTool(BaseTool):
     name = "scale"
     display_name = "Escalar Objeto"
     category = ToolCategory.TRANSFORMATION
-    icon = ":/icons/scale.png"
+    icon = ":/icons_manager/scale.png"
     tool_tip = "Clique e arraste para alterar a escala do objeto."
 
     def __init__(self):

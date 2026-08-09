@@ -43,7 +43,7 @@ class ModuloTemplate:
 
         # Área de conteúdo
         self.view_area = QtWidgets.QFrame()
-        self.view_area.setStyleSheet("background-color: #1e1e1e;")
+        self.view_area.setStyleSheet("background-colors: #1e1e1e;")
         layout.addWidget(self.view_area, stretch=1)
 
         return container

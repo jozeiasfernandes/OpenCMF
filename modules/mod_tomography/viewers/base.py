@@ -20,12 +20,12 @@ class JanelaBase(QtWidgets.QWidget):
 
         # 2. Criação do widget VTK
         self.vtkWidget = QVTKRenderWindowInteractor(self)
-        self.vtkWidget.setStyleSheet("background-color: black; border: 1px solid #222;")
+        self.vtkWidget.setStyleSheet("background-colors: black; border: 1px solid #222;")
 
         # 3. Criação do INDICADOR (O que causou o erro anterior)
         self.indicator = QtWidgets.QLabel(self.nome, self.vtkWidget)
         self.indicator.setStyleSheet("""
-            color: #3ea6fa; 
+            colors: #3ea6fa; 
             background: rgba(0,0,0,150); 
             font-weight: bold; 
             padding: 4px;

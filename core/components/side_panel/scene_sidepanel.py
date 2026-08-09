@@ -1,11 +1,11 @@
 import sys
 import os
-from typing import Any, List, Optional, Tuple
+from typing import Any, List
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from core.scene.events.scene_events import SceneEvents
+from application.scene.events.scene_events import SceneEvents
 from core.components.bases.base_sidepanel import BaseSidePanel
-from core.components.bases.base_toolbar import AppContext  # Import necessário para criar o contexto completo
+from core.components.bases.base_toolbar.base_toolbar import AppContext  # Import necessário para criar o contexto completo
 from core.components.bases.base_tool.tool_manager import ToolManager  # Import do ToolManager
 
 _TIPO_EXIBICAO = {
@@ -31,7 +31,7 @@ class SceneMonitor_SidePanel(BaseSidePanel):
         self.layout.setSpacing(10)
 
         self._lbl_status = QtWidgets.QLabel("")
-        self._lbl_status.setStyleSheet("color: #aaa; font-size: 11px;")
+        self._lbl_status.setStyleSheet("colors: #aaa; font-size: 11px;")
         self.layout.addWidget(self._lbl_status)
 
         self.tree = QtWidgets.QTreeWidget()
@@ -135,14 +135,13 @@ def _obter_local_exato(obj: Any) -> str:
 
 
 if __name__ == "__main__":
-    from core.scene.scene_object import SceneObject
-    from core.scene.scene_state import SceneState
-    from core.scene.scene_manager import SceneManager
-    from core.scene.events.event_bus import EventBus
-    from core.scene.registry.object_registry import ObjectRegistry
-    from core.scene.registry.actor_registry import ActorRegistry
-    from core.scene.selection.selection_manager import SelectionManager
-    from core.scene.io.importer import ObjectImporter
+    from application.scene import SceneState
+    from application.scene import SceneManager
+    from application.scene.events import EventBus
+    from application.scene import ObjectRegistry
+    from application.scene.registry.actor_registry import ActorRegistry
+    from application.scene import SelectionManager
+    from application.scene import ObjectImporter
 
     app = QtWidgets.QApplication(sys.argv)
     bus = EventBus()

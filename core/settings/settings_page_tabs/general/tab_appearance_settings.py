@@ -1,7 +1,7 @@
 from PySide6 import QtWidgets, QtCore
 from core.settings.localization.translator import tr
 from core.settings.settings_app_manager import settings
-from core.settings.themes.theme_manager import ThemeManager
+from core.settings.themes_manager.theme_manager import ThemeManager
 
 from settings.paths.list_paths import THEMES_DIR
 

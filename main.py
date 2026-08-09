@@ -10,35 +10,36 @@ import vtk
 
 vtk.vtkObject.GlobalWarningDisplayOff()
 
-# Home page
-from core.home_page.flow.flow_editor import PaginaEditorFluxo
-from core.home_page.home_page import Home_page
-from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
-
 # Patient Manager
-from application.patient.patient_manager import PatientManager
+from core.application.patient.patient_manager import PatientManager
+from core.settings.paths.list_paths import BASE_DIR, PATIENTS_DIR
+
+# Home page
+from core.application.home_page.flows_manager.flows_editor.flow_editor import PaginaEditorFluxo
+from core.application.home_page.home_page import Home_page
+from core.application.home_page.project_manager.project_service_home_page import ProjectServiceHomePage
 
 # Settings
 from core.settings.settings_app_manager import settings
-from settings.settings_page import PaginaConfig
+from core.settings.settings_page import PaginaConfig
 
-from settings.icons.icons_manager import IconManager
-from settings.localization.translator import tr
+from core.settings.icons_manager.icon_manager import IconManager
+from core.settings.localization.translator import tr
+from core.settings.paths.list_paths import THEMES_DIR, ICONS_DIR
+from core.settings.logs.logger_manager import Main_Logger, main_logger
 
-from settings.paths.list_paths import BASE_DIR, PATIENTS_DIR, THEMES_DIR, ICONS_DIR
-
-from settings.logs.logger_manager import Main_Logger, main_logger
+from core.settings.themes_manager.theme_manager import ThemeManager
 
 Main_Logger.setup_redirect()
 
 # Scene
-from core.scene.events.event_bus import EventBus
-from core.scene.io.importer import ObjectImporter
-from core.scene.registry.actor_registry import ActorRegistry
-from core.scene.registry.object_registry import ObjectRegistry
-from core.scene.scene_manager import SceneManager
-from core.scene.scene_state import SceneState
-from core.scene.selection.selection_manager import SelectionManager
+from core.application.scene.events.event_bus import EventBus
+from core.application.scene.io.importer import ObjectImporter
+from core.application.scene.registry.actor_registry import ActorRegistry
+from core.application.scene.registry.object_registry import ObjectRegistry
+from core.application.scene.scene_manager import SceneManager
+from core.application.scene.scene_state import SceneState
+from core.application.scene.selection.selection_manager import SelectionManager
 
 # Components
 from core.components.bases.base_tool.tool_manager import ToolManager
@@ -84,6 +85,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.workflow = None
 
             IconManager.get_instance().set_base_path(ICONS_DIR)
+
+            self.theme_manager = ThemeManager(QtWidgets.QApplication.instance())
 
             # Inicializa serviços principais antes dos componentes de cena/contexto
             self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
@@ -183,30 +186,40 @@ class MainWindow(QtWidgets.QMainWindow):
         self.patient_manager.patient_changed.connect(self._on_patient_path_changed)
 
     def _setup_appearance(self):
-        """Configura aparência inicial da janela."""
         self.setWindowTitle(
             tr("main.window_title", settings.get("app_info", "title", "OpenCMF"))
         )
 
         theme = settings.tema
-        self.apply_theme_by_name(theme)
+        self.apply_theme(theme)  # Usa o método centralizado que valida e aplica
         self.setup_icon()
-
         self.showMaximized()
 
-    def apply_theme(self, qss_path_str: str):
-        qss_path = Path(qss_path_str)
-        if not qss_path.exists():
-            return
+    def apply_theme(self, theme_input: str):
+        """
+        Aceita tanto o nome direto do tema ('dark') quanto um caminho de arquivo.
+        """
+        path = Path(theme_input)
+        theme_name = path.stem if path.is_file() else theme_input
 
-        theme_name = qss_path.stem
         try:
-            self.apply_theme_by_name(theme_name)
-            settings.set("preferencias", "tema", theme_name)
-            settings.save()
-            main_logger.info(f"Tema alterado para: {theme_name}")
+            # Delega a aplicação para o ThemeManager centralizado
+            success = self.theme_manager.apply_static_theme(theme_name)
+            if not success:
+                # Tenta aplicar como tema customizado caso o estático não exista
+                success = self.theme_manager.apply_custom_theme()
+
+            if success:
+                # O setter do settings já cuida de salvar automaticamente
+                settings.tema = theme_name
+
+                IconManager.get_instance().clear_cache()
+                main_logger.info(f"Tema alterado para: {theme_name}")
+            else:
+                main_logger.warning(f"Falha ao aplicar o tema: {theme_name}")
+
         except Exception as e:
-            main_logger.error(f"Erro ao aplicar tema: {e}")
+            main_logger.error(f"Erro ao aplicar tema '{theme_name}': {e}", exc_info=True)
 
         self.setup_icon()
         self.theme_changed.emit()

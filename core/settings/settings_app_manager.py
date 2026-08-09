@@ -39,8 +39,8 @@ class SettingsManager:
             },
             "diretorios": {
                 "patients": "patients",
-                "flows": "flows",
-                "icons": "icons"
+                "flows_manager": "flows_manager",
+                "icons_manager": "icons_manager"
             },
             "side_panel": {
                 "show_by_default": True,

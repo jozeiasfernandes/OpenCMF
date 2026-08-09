@@ -3,7 +3,7 @@ from pathlib import Path
 from collections import defaultdict
 from typing import Dict, Any, Callable, Optional
 
-from core.scene.events.scene_events import SceneEvents
+from application.scene.events.scene_events import SceneEvents
 
 
 class DicomValidator:

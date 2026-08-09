@@ -17,8 +17,6 @@ def get_project_root() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys._MEIPASS)
 
-    # Como o arquivo está em core/settings/paths/list_paths.py,
-    # precisamos subir 4 níveis para chegar na raiz (OpenCMF/).
     return Path(__file__).resolve().parent.parent.parent.parent
 
 
@@ -47,7 +45,7 @@ def resource(*parts: str) -> Path:
     Retorna um caminho relativo à raiz do projeto.
 
     Exemplo:
-        resource("core", "settings", "icons", "icons", "save.svg")
+        resource("core", "settings", "icons_manager", "icons_manager", "save.svg")
     """
     return BASE_DIR.joinpath(*parts)
 
@@ -77,17 +75,21 @@ CONFIG_FILE = SETTINGS_DIR / "config.json"
 
 CONFIG_FILE_PATH = CONFIG_FILE
 
+
 TRANSLATIONS_DIR = SETTINGS_DIR / "localization" / "translations"
+
+
+SETTINGS_SHORTCUTS_DIR = SETTINGS_DIR / "shortcuts"
 
 SHORTCUTS_FILE = SETTINGS_DIR / "shortcuts" / "shortcuts.json"
 
 SHORTCUTS_FILE_PATH = SHORTCUTS_FILE
 
+
 SETTINGS_HELP_DIR = SETTINGS_DIR / "help"
 
-SETTINGS_ICONS_DIR = SETTINGS_DIR / "icons"
 
-SETTINGS_LOCALIZATION_DIR = SETTINGS_DIR / "localization"
+SETTINGS_LOCALIZATION_DIR = SETTINGS_DIR / "localization" / "translations"
 
 SETTINGS_LOGS_DIR = SETTINGS_DIR / "logs"
 
@@ -95,18 +97,20 @@ SETTINGS_LOGS_ARCHIVES_DIR = SETTINGS_LOGS_DIR / "archives"
 
 SETTINGS_PAGE_TABS_DIR = SETTINGS_DIR / "settings_page_tabs"
 
-SETTINGS_SHORTCUTS_DIR = SETTINGS_DIR / "shortcuts"
-
-SETTINGS_THEMES_DIR = SETTINGS_DIR / "themes"
-
 
 # ==============================================================================
-# APPLICATION / FLOWS
+# APPLICATION
 # ==============================================================================
 
-APPLICATION_DIR = BASE_DIR / "application"
+APPLICATION_DIR = CORE_DIR / "application"
 
-FLOWS_DIR = APPLICATION_DIR / "flows"
+FAVORITE_FOLDERS_FILE = BASE_DIR / "core" / "application" / "file_browser" / "favorite_folders.json"
+
+# ==============================================================================
+# FLOWS
+# ==============================================================================
+
+FLOWS_DIR = BASE_DIR / "core" / "application" / "home_page" / "flows_manager" / "flows"
 
 DEFAULT_FLOW_FILE = FLOWS_DIR / "default_flow.json"
 
@@ -116,16 +120,19 @@ REGISTRATION_FLOW_NAME = REGISTRATION_FLOW_FILE.name
 
 
 # ==============================================================================
-# APPEARANCE (Atualizado para a nova estrutura interna em core/settings)
+# APPEARANCE
 # ==============================================================================
 
 APPEARANCE_DIR = SETTINGS_DIR
 
-ICONS_DIR = SETTINGS_DIR / "icons" / "icons"
+SETTINGS_ICONS_DIR = SETTINGS_DIR / "icons_manager"
 
-ICONS_THEMES_DIR = APPEARANCE_DIR / "icons_themes"
+ICONS_DIR = SETTINGS_DIR / "icons_manager" / "icons"
 
-THEMES_DIR = SETTINGS_DIR / "themes" / "themes"
+SETTINGS_THEMES_DIR = SETTINGS_DIR / "themes_manager"
+
+THEMES_DIR = SETTINGS_DIR / "themes_manager" / "themes"
+
 
 
 # ==============================================================================

@@ -6,7 +6,7 @@ from domain.volume.processing.surface_extraction import SurfaceExtraction
 from domain.volume.exporters.mesh_exporters import MeshExporter
 
 try:
-    from core.scene.events.scene_events import SceneEvents
+    from application.scene import SceneEvents
 except ImportError:
     SceneEvents = None
 

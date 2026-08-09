@@ -6,7 +6,7 @@ import vtk
 from PySide6 import QtGui, QtWidgets
 
 from settings.paths.list_paths import ICONS_DIR
-from core.scene.scene_manager import SceneManager
+from application.scene.scene_manager import SceneManager
 
 #   category = ToolCategory.SELECTION
 #   category = ToolCategory.TRANSFORMATION

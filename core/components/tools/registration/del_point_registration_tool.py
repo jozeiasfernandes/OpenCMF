@@ -1,5 +1,5 @@
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
-from core.scene.events.scene_events import RegistrationEvents
+from application.scene import RegistrationEvents
 
 class DelPointRegistrationTool(BaseTool):
     name = "del_point"

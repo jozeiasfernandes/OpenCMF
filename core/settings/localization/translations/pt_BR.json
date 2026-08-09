@@ -51,17 +51,17 @@
             "preview": "Pré-visualização"
         },
         "categories": {
-            "volume": "Tomografias / Exames",
-            "radiography": "Radiografias",
-            "scan": "Escaneamentos (Face/Arcada)",
-            "photo": "Fotografias Clínicas",
-            "mesh": "Malhas 3D",
-            "library": "Biblioteca de Objetos",
-            "facial_implant": "Implantes Faciais",
-            "dental_implant": "Implantes Dentários"
+            "volume": "TOMOGRAFIAS",
+            "radiography": "RADIOGRAFIAS",
+            "scan": "ESCANEAMENTOS",
+            "photo": "FOTOGRAFIAS",
+            "mesh": "MALHAS 3D",
+            "library": "BIBLIOTECA DE OBJETOS",
+            "facial_implant": "IMPLANTES FACIAIS",
+            "dental_implant": "IMPLANTES DENTÁRIOS"
         },
         "sources": {
-            "project": {
+            "project_manager": {
                 "name": "Projeto",
                 "description": "Importar objetos já existentes no projeto atual."
             },
@@ -70,26 +70,54 @@
                 "description": "Importar arquivos ou pastas do computador."
             }
         },
-        "secao": {
-            "superficies": "Superfícies",
-            "fotografias": "Fotografias",
+        "section": {
+            "surfaces": "Superfícies",
+            "photographs": "Fotografias",
             "volume": "Volume"
         },
-        "superficies": {
+        "volumes": {
+            "dicom": "DICOM",
+            "vti": "VTI",
+            "vtk_nrrd_nifti": "Vtk, nrrd, nifti"
+        },
+        "radiographies": {
+            "panoramic": "Radiografia Panorâmica",
+            "teleradiography": "Teleradiografias",
+            "intrabuccal": "Radiografias intrabucais",
+            "reconstructed_panoramic": "Reconstrução panorâmica",
+            "reconstructed_teleradiography": "Reconstrução telerradiográfica"
+        },
+        "scans": {
+            "face": "Scan de face",
+            "dental_arches": "Scan de arcadas",
+            "photogrammetry": "Fotogrametria de face"
+        },
+        "photographs": {
+            "front": "Fotografias da face",
+            "profile": "Fotografias intrabucais",
+            "intrabuccal": "intrabucal",
+            "others": "outros"
+        },
+        "mesh_items": {
+            "objects_3d": "Objetos 3d",
+            "objects_3d_online": "Objetos 3d (online)"
+        },
+        "dental_implant_items": {
+            "dental_implants": "Implantes dentários",
+            "resources": "Recursos"
+        },
+        "facial_implant_items": {
+            "mandibular_angle": "Ângulo mandibular",
+            "zygomatic": "Zigomático",
+            "paranasal": "Paranasal",
+            "mento": "Mento"
+        },
+        "surfaces": {
             "cranio": "Crânio",
             "maxila": "Maxila",
             "mandibula": "Mandíbula",
             "pele": "Pele",
             "outros": "Outros"
-        },
-        "fotografias": {
-            "frente": "Frente",
-            "perfil": "Perfil",
-            "intrabucal": "Intrabucal",
-            "outros": "Outros"
-        },
-        "volumes": {
-            "volume_vti": "Volume .vti"
         },
         "btn": {
             "import_objects": "Importar Objetos"
@@ -106,5 +134,36 @@
         "tab_components": "Componentes",
         "tab_scene": "Cena",
         "btn_copy": "Copiar"
+    },
+    "credits": {
+        "window_title": "Créditos - OpenCFM",
+        "created_by": "Criado por Jozeias Fernandes",
+        "contributions": "Contribuições: Sem contribuições ainda",
+        "thanks": "Agradecimentos: Sem agradecimentos ainda",
+        "community": "Comunidade:",
+        "github_label": "GitHub / OpenCFM"
+    },
+    "file_browser": {
+        "home": "Início",
+        "documents": "Documentos",
+        "downloads": "Downloads",
+        "pictures": "Imagens",
+        "desktop": "Área de Trabalho",
+        "music": "Músicas",
+        "movies": "Vídeos",
+        "root": "Raiz (/)",
+        "bytes": "bytes",
+        "current_directory_placeholder": "Diretório atual...",
+        "add_favorite": "Adicionar aos favoritos",
+        "new_folder": "Nova pasta",
+        "browse": "Procurar...",
+        "favorites_title": "FAVORITOS",
+        "select_directory_title": "Selecionar diretório",
+        "invalid_folder_warning": "Selecione uma pasta válida para favoritar.",
+        "success_title": "Sucesso",
+        "favorite_added_msg": "Pasta '{folder_name}' adicionada aos favoritos!",
+        "new_folder_title": "Nova Pasta",
+        "new_folder_prompt": "Digite o nome da nova pasta:",
+        "create_folder_error": "Não foi possível criar a pasta."
     }
 }

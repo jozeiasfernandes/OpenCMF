@@ -6,7 +6,7 @@ from core.workspace.containers.side_panel_container.base.base_side_panel_contain
 from core.workspace.containers.side_panel_container.floating_panel_mode.collapsible_section_floating import \
     CollapsibleSectionFloating
 from settings.settings_app_manager import settings
-from core.settings.icons.icons_manager import IconManager
+from core.settings.icons_manager.icon_manager import IconManager
 
 
 class FloatingSidePanelMode(BaseSidePanelMode, QFrame):

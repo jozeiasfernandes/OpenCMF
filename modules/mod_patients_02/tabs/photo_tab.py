@@ -36,7 +36,7 @@ class PhotoCard(QtWidgets.QWidget):
         layout.addWidget(self.btn, alignment=QtCore.Qt.AlignCenter)
 
     def _set_placeholder(self):
-        icon_path = Path("resources/icons/photo.svg")
+        icon_path = Path("resources/icons_manager/photo.svg")
         if icon_path.exists():
             pix = QtGui.QPixmap(str(icon_path))
             self.preview.setPixmap(

@@ -11,7 +11,7 @@ from core.components.bases.base_tool.base_tool import BaseTool
 from core.components.bases.base_tool.tool_manager import ToolManager
 
 if TYPE_CHECKING:
-    from core.scene.scene_manager import SceneManager
+    from application.scene import SceneManager
 
 logger = logging.getLogger("ToolbarLoader")
 

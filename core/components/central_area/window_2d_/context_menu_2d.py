@@ -3,8 +3,8 @@ from domain.volume.visualization.lut.lut_presets import LUTPresets
 
 MENU_STYLE = """
     QMenu { 
-        background-color: #2D2D2D; 
-        color: white; 
+        background-colors: #2D2D2D; 
+        colors: white; 
         border: 1px solid #555; 
     }
     QMenu#LUT_SUBMENU {
@@ -16,7 +16,7 @@ MENU_STYLE = """
         background: transparent;
     }
     QMenu::item:selected { 
-        background-color: #3EA6FA; 
+        background-colors: #3EA6FA; 
     }
     QMenu#LUT_SUBMENU::icon {
         position: absolute;
@@ -90,7 +90,7 @@ class ContextMenu2D(QtWidgets.QMenu):
             # Estilo para o item reagir ao mouse (hover) como um menu normal
             label.setStyleSheet("""
                 QLabel { padding: 1px; background: transparent; }
-                QLabel:hover { background-color: #3EA6FA; }
+                QLabel:hover { background-colors: #3EA6FA; }
             """)
 
             # Definimos o widget na ação

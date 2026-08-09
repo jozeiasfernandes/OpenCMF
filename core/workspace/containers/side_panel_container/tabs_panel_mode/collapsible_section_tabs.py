@@ -44,10 +44,10 @@ class CollapsibleSectionTabs(QtWidgets.QWidget):
         self.toggle_button.setStyleSheet("""
             QToolButton {
                 border: none;
-                background-color: transparent;
+                background-colors: transparent;
             }
             QToolButton:hover {
-                background-color: rgba(255, 255, 255, 20);
+                background-colors: rgba(255, 255, 255, 20);
                 border-radius: 3px;
             }
         """)

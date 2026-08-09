@@ -18,7 +18,7 @@ class ProjectTab(QtWidgets.QWidget):
     def _init_ui(self):
         self.label_status = QtWidgets.QLabel("Gerenciamento de Pacotes e Arquivos")
         self.label_status.setAlignment(QtCore.Qt.AlignCenter)
-        self.label_status.setStyleSheet("font-weight: bold; color: #555; font-size: 14px;")
+        self.label_status.setStyleSheet("font-weight: bold; colors: #555; font-size: 14px;")
 
         self.btn_abrir_pasta = QtWidgets.QPushButton("Abrir Pasta do Projeto")
         self.btn_abrir_pasta.setMinimumHeight(40)

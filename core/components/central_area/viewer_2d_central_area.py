@@ -30,7 +30,7 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
 
     def _setup_specific_ui(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.path_icons = os.path.abspath(os.path.join(base_dir, "", "..", "..", "icons"))
+        self.path_icons = os.path.abspath(os.path.join(base_dir, "", "..", "..", "icons_manager"))
 
         self.combo_proj = QtWidgets.QComboBox()
         self.combo_proj.addItems(["Axial", "Coronal", "Sagittal"])

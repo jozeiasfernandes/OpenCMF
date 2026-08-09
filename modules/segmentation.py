@@ -4,8 +4,8 @@ from PySide6 import QtWidgets
 
 from modules.base_module.base_module import ModuloBase
 
-from core.scene.events.scene_events import SceneEvents
-from core.scene.utils.factory import SceneObjectFactory
+from application.scene.events.scene_events import SceneEvents
+from application.scene.utils.factory import SceneObjectFactory
 
 from domain.volume.segmentation.engines.threshold_segmentation_engine import ThresholdSegmentationEngine
 
@@ -111,7 +111,7 @@ if __name__ == "__main__":
     from unittest.mock import MagicMock
     from core.components.bases.base_component import AppContext
     from core.components.bases.base_tool.tool_manager import ToolManager
-    from core.scene.events.event_bus import EventBus
+    from application.scene.events import EventBus
     from core.workspace.workspace_manager import WorkspaceManager
     from models.module_factory import ModuleFactory
     from layout.layout import ModuleDistributor

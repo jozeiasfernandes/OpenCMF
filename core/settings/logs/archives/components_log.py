@@ -27,7 +27,7 @@ class Component(BaseSidePanel):
         self.text_log = QtWidgets.QTextEdit()
         self.text_log.setReadOnly(True)
         self.text_log.setStyleSheet(
-            "background-color: #1e1e1e; color: #d4d4d4; font-family: Consolas, monospace; font-size: 10pt;"
+            "background-colors: #1e1e1e; colors: #d4d4d4; font-family: Consolas, monospace; font-size: 10pt;"
         )
         self.layout.addWidget(self.text_log)
 
@@ -68,9 +68,9 @@ if __name__ == "__main__":
     import sys
     from core.components.bases.base_toolbar import AppContext
     from core.components.bases.base_tool.tool_manager import ToolManager
-    from core.scene.scene_manager import SceneManager
-    from core.scene.scene_state import SceneState
-    from core.scene.events.event_bus import EventBus
+    from application.scene import SceneManager
+    from application.scene import SceneState
+    from application.scene.events import EventBus
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")

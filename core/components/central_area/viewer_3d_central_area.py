@@ -3,9 +3,9 @@ import sys
 import vtk
 from PySide6 import QtCore, QtWidgets
 
-from core.scene.rendering.vtk_scene_renderer import VTKSceneRenderer
-from core.scene.events.scene_events import SceneEvents
-from settings.shortcuts.shortcuts import get_shortcuts_by_scope
+from application.scene.rendering.vtk_scene_renderer import VTKSceneRenderer
+from application.scene.events.scene_events import SceneEvents
+from settings.shortcuts.shortcut_manager import get_shortcuts_by_scope
 from core.components.bases.base_central_area import CentralAreaBase
 
 os.environ["QT_API"] = "pyside6"
@@ -46,7 +46,7 @@ class Viewer3D_Widget_CentralArea(CentralAreaBase):
         self.render()
 
     def _setup_specific_ui(self):
-        self.setStyleSheet(f"background-color: {self.cor_borda};")
+        self.setStyleSheet(f"background-colors: {self.cor_borda};")
 
         self.btn_maximize = QtWidgets.QPushButton()
         self.btn_maximize.setFixedSize(24, 24)
@@ -69,7 +69,7 @@ class Viewer3D_Widget_CentralArea(CentralAreaBase):
     def _update_maximize_icon(self):
         self.btn_maximize.setText("🗖" if not self.is_maximized else "🗗")
         self.btn_maximize.setStyleSheet("""
-            QPushButton { border: none; background: transparent; color: white; font-weight: bold; } 
+            QPushButton { border: none; background: transparent; colors: white; font-weight: bold; } 
             QPushButton:hover { background: #444; border-radius: 3px; }
         """)
 
@@ -108,15 +108,15 @@ class Viewer3D_Widget_CentralArea(CentralAreaBase):
 
 
 if __name__ == "__main__":
-    from core.scene.scene_manager import SceneManager
-    from core.scene.scene_state import SceneState
-    from core.scene.events.event_bus import EventBus
-    from core.scene.registry.object_registry import ObjectRegistry
-    from core.scene.registry.actor_registry import ActorRegistry
-    from core.scene.selection.selection_manager import SelectionManager
-    from core.scene.rendering.vtk_actor_factory import VTKActorFactory
-    from core.scene.rendering.scene_bridge import SceneBridge
-    from core.scene.io.importer import ObjectImporter
+    from application.scene import SceneManager
+    from application.scene import SceneState
+    from application.scene.events import EventBus
+    from application.scene import ObjectRegistry
+    from application.scene.registry.actor_registry import ActorRegistry
+    from application.scene import SelectionManager
+    from application.scene import VTKActorFactory
+    from application.scene import SceneBridge
+    from application.scene import ObjectImporter
     import tempfile
 
     app = QtWidgets.QApplication(sys.argv)

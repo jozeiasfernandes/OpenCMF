@@ -28,7 +28,7 @@ class ToolsTab(QtWidgets.QWidget):
         btn_new.clicked.connect(self._create_new_toolbar)
 
         btn_delete = QtWidgets.QPushButton(tr("Excluir Toolbar"))
-        btn_delete.setStyleSheet("color: red;")
+        btn_delete.setStyleSheet("colors: red;")
         btn_delete.clicked.connect(self._delete_current_toolbar)
 
         top_layout.addWidget(QtWidgets.QLabel(tr("Toolbar:")))
@@ -62,7 +62,7 @@ class ToolsTab(QtWidgets.QWidget):
         btn_remove_all.clicked.connect(self._remove_all_tools)
 
         btn_save = QtWidgets.QPushButton(tr("Salvar Alterações"))
-        btn_save.setStyleSheet("background-color: #27ae60; color: white;")
+        btn_save.setStyleSheet("background-colors: #27ae60; colors: white;")
         btn_save.clicked.connect(self._save_state)
 
         right_container.addWidget(self.list_selected)

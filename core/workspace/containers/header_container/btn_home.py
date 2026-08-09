@@ -1,6 +1,6 @@
 from PySide6 import QtWidgets, QtCore, QtGui
 
-from settings.icons.icons_manager import IconManager
+from settings.icons_manager.icon_manager import IconManager
 from settings.settings_app_manager import settings
 
 

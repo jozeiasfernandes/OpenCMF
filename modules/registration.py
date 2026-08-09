@@ -7,14 +7,14 @@ from PySide6 import QtWidgets
 from modules.base_module.base_module import ModuloBase
 
 # Scene
-from core.scene.scene_manager import SceneManager
-from core.scene.scene_state import SceneState
-from core.scene.events.event_bus import EventBus
-from core.scene.registry.object_registry import ObjectRegistry
-from core.scene.registry.actor_registry import ActorRegistry
-from core.scene.selection.selection_manager import SelectionManager
-from core.scene.io.importer import ObjectImporter
-from core.scene.scene_object import SceneObject
+from application.scene.scene_manager import SceneManager
+from application.scene.scene_state import SceneState
+from application.scene.events.event_bus import EventBus
+from application.scene.registry.object_registry import ObjectRegistry
+from application.scene.registry.actor_registry import ActorRegistry
+from application.scene.selection.selection_manager import SelectionManager
+from application.scene.io.importer import ObjectImporter
+from application.scene.scene_object import SceneObject
 
 # Components
 from core.components.bases.base_component import AppContext

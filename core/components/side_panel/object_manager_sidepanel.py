@@ -1,10 +1,12 @@
 from typing import Dict, Optional, Any
 import logging
 import uuid
-from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
-from core.scene.scene_object import SceneObject
-from core.scene.scene_manager import SceneManager
+
+# Sce
+from application.scene.scene_object import SceneObject
+from application.scene.scene_manager import SceneManager
+
 from core.components.bases.base_sidepanel import BaseSidePanel
 
 logger = logging.getLogger("ObjectManagerWidget")
@@ -145,7 +147,7 @@ class ObjectManager_SidePanel(BaseSidePanel):
             visivel = item.checkState(0) == QtCore.Qt.Checked
             obj.visible = visivel
 
-            from core.scene.events.scene_events import SceneEvents
+            from application.scene import SceneEvents
             self.scene_manager.events.emit(
                 SceneEvents.VISIBILITY_CHANGED,
                 object_id=oid,
@@ -221,14 +223,14 @@ class ObjectManager_SidePanel(BaseSidePanel):
 if __name__ == "__main__":
     import sys
     from pathlib import Path
-    from core.scene.scene_state import SceneState
-    from core.scene.events.event_bus import EventBus
-    from core.scene.registry.object_registry import ObjectRegistry
-    from core.scene.registry.actor_registry import ActorRegistry
-    from core.scene.selection.selection_manager import SelectionManager
-    from core.scene.io.importer import ObjectImporter
-    from core.scene.utils.factory import SceneObjectFactory
-    from core.components.bases.base_toolbar import AppContext
+    from application.scene.scene_state import SceneState
+    from application.scene.events.event_bus import EventBus
+    from application.scene.registry.object_registry import ObjectRegistry
+    from application.scene.registry.actor_registry import ActorRegistry
+    from application.scene.selection.selection_manager import SelectionManager
+    from application.scene.io.importer import ObjectImporter
+    from application.scene.utils.factory import SceneObjectFactory
+    from core.components.bases.base_toolbar.base_toolbar import AppContext
     from core.components.bases.base_tool.tool_manager import ToolManager
 
     app = QtWidgets.QApplication(sys.argv)

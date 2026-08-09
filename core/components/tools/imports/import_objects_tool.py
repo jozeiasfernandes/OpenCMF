@@ -43,7 +43,7 @@ class ImportObjectTool(BaseTool):
             return
 
         # Importação local para evitar ciclo de dependência
-        from core.scene.events.scene_events import RegistrationEvents
+        from application.scene import RegistrationEvents
 
         category = self._get_category_from_ext(file_path)
 
@@ -59,7 +59,7 @@ if __name__ == "__main__":
     import sys
     from types import SimpleNamespace
     from unittest.mock import MagicMock
-    from core.scene.events.scene_events import RegistrationEvents
+    from application.scene import RegistrationEvents
 
     app = QApplication(sys.argv)
 

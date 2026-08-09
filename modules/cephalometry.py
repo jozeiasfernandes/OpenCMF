@@ -27,7 +27,7 @@ class Modulo(ModuloBase):
 
             label = QtWidgets.QLabel("ÁREA DE TRAÇADO CEFALOMÉTRICO 2D/3D")
             label.setAlignment(QtCore.Qt.AlignCenter)
-            label.setStyleSheet("font-size: 16px; font-weight: bold; color: #fff;")
+            label.setStyleSheet("font-size: 16px; font-weight: bold; colors: #fff;")
 
             layout.addWidget(label)
 

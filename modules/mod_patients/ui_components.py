@@ -17,8 +17,8 @@ class SecaoRetratil(QtWidgets.QWidget):
                 text-align: left; 
                 padding: 8px; 
                 font-weight: bold;
-                background-color: #2c3e50; 
-                color: white; 
+                background-colors: #2c3e50; 
+                colors: white; 
                 border: 1px solid #34495e; 
                 border-radius: 4px;
             }
@@ -27,7 +27,7 @@ class SecaoRetratil(QtWidgets.QWidget):
                 border-bottom-right-radius: 0px; 
             }
             QPushButton:hover {
-                background-color: #34495e;
+                background-colors: #34495e;
             }
         """)
 

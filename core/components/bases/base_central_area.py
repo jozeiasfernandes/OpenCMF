@@ -1,7 +1,7 @@
 import vtk
 from PySide6 import QtWidgets, QtCore
 from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
-from core.scene.events.scene_events import SceneEvents
+from application.scene.events.scene_events import SceneEvents
 from core.components.bases.base_component import BaseComponent
 from core.components.bases.base_tool.viewport_interaction_controller import ViewportInteractionController
 
@@ -103,7 +103,7 @@ class CentralAreaBase(QtWidgets.QWidget):
 
             self.indicator = QtWidgets.QLabel(self.title, self.vtkWidget)
             self.indicator.setAttribute(QtCore.Qt.WA_TransparentForMouseEvents)
-            self.indicator.setStyleSheet("color: white; background-color: rgba(0,0,0,0.5); padding: 5px;")
+            self.indicator.setStyleSheet("colors: white; background-colors: rgba(0,0,0,0.5); padding: 5px;")
 
             self.layout_principal.addWidget(self.vtkWidget, stretch=1)
 

@@ -55,7 +55,7 @@ class TomographyToolbar(BaseToolbar):
         self.layoutChanged.emit(text)
 
     def _on_lut_changed(self, text):
-        tool = self.tool_manager.get_tool("color")
+        tool = self.tool_manager.get_tool("colors")
         if tool:
             tool.apply_lut(text)
         self.lutChanged.emit(text)

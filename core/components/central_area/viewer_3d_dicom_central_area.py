@@ -2,7 +2,7 @@ import os
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.components.bases.base_central_area import CentralAreaBase
-from core.scene.events.scene_events import SceneEvents
+from application.scene.events.scene_events import SceneEvents
 
 
 class Viewer3D_Dicom_Widget_CentralArea(CentralAreaBase):
@@ -30,7 +30,7 @@ class Viewer3D_Dicom_Widget_CentralArea(CentralAreaBase):
 
         from pathlib import Path
         base_dir = Path(__file__).resolve().parent
-        self.path_icons = base_dir.parent.parent.parent / "icons"
+        self.path_icons = base_dir.parent.parent.parent / "icons_manager"
 
         self.setup_component()
 

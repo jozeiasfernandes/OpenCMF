@@ -11,8 +11,8 @@ class CollapsibleSectionFloating(QtWidgets.QWidget):
     def __init__(self, title: str, content_widget: QtWidgets.QWidget, parent=None):
         super().__init__(parent)
 
-        # Caminho absoluto para a pasta de ícones (C:\OpenCMF\appearance\icons)
-        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "appearance" / "icons"
+        # Caminho absoluto para a pasta de ícones (C:\OpenCMF\appearance\icons_manager)
+        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "appearance" / "icons_manager"
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
@@ -37,10 +37,10 @@ class CollapsibleSectionFloating(QtWidgets.QWidget):
                 )
             else:
                 self.btn_grip.setText("⋮⋮")
-                self.btn_grip.setStyleSheet("color: #888; font-weight: bold; font-size: 11px;")
+                self.btn_grip.setStyleSheet("colors: #888; font-weight: bold; font-size: 11px;")
         else:
             self.btn_grip.setText("⋮⋮")
-            self.btn_grip.setStyleSheet("color: #888; font-weight: bold; font-size: 11px;")
+            self.btn_grip.setStyleSheet("colors: #888; font-weight: bold; font-size: 11px;")
 
         # Título da Seção
         self.lbl_title = QtWidgets.QLabel(title, self)
@@ -51,10 +51,10 @@ class CollapsibleSectionFloating(QtWidgets.QWidget):
         self.toggle_button.setStyleSheet("""
             QToolButton {
                 border: none;
-                background-color: transparent;
+                background-colors: transparent;
             }
             QToolButton:hover {
-                background-color: rgba(255, 255, 255, 20);
+                background-colors: rgba(255, 255, 255, 20);
                 border-radius: 3px;
             }
         """)

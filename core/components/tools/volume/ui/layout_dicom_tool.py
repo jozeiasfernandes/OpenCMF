@@ -1,6 +1,6 @@
 from __future__ import annotations
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
-from core.scene.events.scene_events import SceneEvents
+from application.scene import SceneEvents
 
 class LayoutDicomTool(BaseTool):
     name: str = "layout_dicom_tool"

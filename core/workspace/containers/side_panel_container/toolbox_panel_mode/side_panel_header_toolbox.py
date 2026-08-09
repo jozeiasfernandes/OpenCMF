@@ -17,8 +17,8 @@ class SidePanelHeaderToolbox(QtWidgets.QWidget):
         self.workspace_manager = workspace_manager
         self._collapsed = False
 
-        # Define o diretório de assets com base na estrutura padrão (C:\OpenCMF\appearance\icons)
-        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "appearance" / "icons"
+        # Define o diretório de assets com base na estrutura padrão (C:\OpenCMF\appearance\icons_manager)
+        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "appearance" / "icons_manager"
         self.icon_right_path = self.assets_dir / "arrow_right.svg"
         self.icon_left_path = self.assets_dir / "arrow_left.svg"
 
@@ -33,10 +33,10 @@ class SidePanelHeaderToolbox(QtWidgets.QWidget):
         self.btn_toggle.setStyleSheet("""
             QToolButton {
                 border: none;
-                background-color: transparent;
+                background-colors: transparent;
             }
             QToolButton:hover {
-                background-color: rgba(255, 255, 255, 20);
+                background-colors: rgba(255, 255, 255, 20);
                 border-radius: 3px;
             }
         """)
@@ -63,10 +63,10 @@ class SidePanelHeaderToolbox(QtWidgets.QWidget):
         self.btn_config.setStyleSheet("""
             QToolButton {
                 border: none;
-                background-color: transparent;
+                background-colors: transparent;
             }
             QToolButton:hover {
-                background-color: rgba(255, 255, 255, 20);
+                background-colors: rgba(255, 255, 255, 20);
                 border-radius: 3px;
             }
         """)

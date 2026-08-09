@@ -5,7 +5,7 @@ from domain.volume.visualization.lut.lut_presets import LUTPresets
 from core.components.bases.base_toolbar.base_toolbar import BaseToolbar, AppContext
 
 # Settings
-from core.settings.icons.icons_manager import IconManager
+from core.settings.icons_manager.icon_manager import IconManager
 from core.settings.localization.translator import tr
 
 

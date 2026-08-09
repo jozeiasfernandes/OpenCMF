@@ -1,7 +1,7 @@
 from PySide6 import QtWidgets, QtCore
 from typing import Optional, Any
-from core.scene.scene_manager import SceneManager
-from core.scene.events.scene_events import SceneEvents, RegistrationEvents
+from application.scene.scene_manager import SceneManager
+from application.scene.events.scene_events import SceneEvents
 from core.components.bases.base_sidepanel import BaseSidePanel
 
 

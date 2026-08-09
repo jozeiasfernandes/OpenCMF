@@ -5,14 +5,14 @@ from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
 
 from modules.base_module.base_module import ModuloBase
-from core.home_page.managers.project_service_home_page import ProjectServiceHomePage
+from project_manager.project_service_home_page import ProjectServiceHomePage
 
 from application.patient.patient_manager import PatientManager
 
 from modules.mod_patients.ui_components import SecaoRetratil, criar_linha_arquivo
 from modules.mod_patients.logic import buscar_cep_online, formatar_nome_diretorio
 
-from settings.paths.list_paths import PATIENTS_DIR
+from core.settings.paths.list_paths import PATIENTS_DIR
 
 
 class Modulo(ModuloBase):

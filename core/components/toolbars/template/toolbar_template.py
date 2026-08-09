@@ -1,9 +1,8 @@
-from typing import Optional, TYPE_CHECKING, Any
+from typing import Optional, TYPE_CHECKING
 import json
 import importlib.util
 import inspect
 import logging
-import traceback
 from pathlib import Path
 from PySide6 import QtWidgets, QtCore
 from core.components.bases.base_tool.base_tool import BaseTool
@@ -11,8 +10,7 @@ from core.components.bases.base_component import AppContext
 from core.components.toolbars.base_toolbar import BaseToolbar
 
 if TYPE_CHECKING:
-    from core.scene.scene_manager import SceneManager
-    from core.components.bases.base_tool.tool_manager import ToolManager
+    pass
 
 logger = logging.getLogger("ToolbarLoader")
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
-from domain.volume.visualization.lut.lut_presets import LUTPresets
+from domain.volume import LUTPresets
 
 class ColorMapTool(BaseTool):
     name: str = "color_map_tool"

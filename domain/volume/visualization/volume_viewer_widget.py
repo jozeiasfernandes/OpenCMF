@@ -17,15 +17,15 @@ from domain.volume.visualization.lut.lut_manager import LUTManager
 from domain.volume.visualization.viewer_utils.viewer_renderers import ViewerRenderers
 
 # Scene
-from core.scene.scene_object import SceneObject
-from core.scene.events.scene_events import SceneEvents
+from application.scene.scene_object import SceneObject
+from application.scene.events.scene_events import SceneEvents
 
 # Settings
 raiz_projeto = Path(__file__).resolve().parent.parent.parent
 if str(raiz_projeto) not in sys.path:
     sys.path.insert(0, str(raiz_projeto))
 
-from settings.paths.list_paths import ICONS_DIR, PRESETS_DIR
+from core.settings.paths.list_paths import ICONS_DIR, PRESETS_DIR
 
 
 

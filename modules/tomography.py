@@ -15,8 +15,8 @@ from domain.volume.dicom.engines.dicom_engine import DicomEngine
 from domain.volume.visualization.volume_viewer_widget import VolumeViewerWidget
 from domain.volume.dicom.validators.dicom_validator import DicomValidator
 
-from core.scene.events.event_bus import EventBus
-from core.scene.registry.actor_registry import ActorRegistry
+from application.scene.events.event_bus import EventBus
+from application.scene.registry.actor_registry import ActorRegistry
 from modules.base_module.base_module import ModuloBase
 
 # Importações atualizadas considerando que list_paths fica na raiz do projeto

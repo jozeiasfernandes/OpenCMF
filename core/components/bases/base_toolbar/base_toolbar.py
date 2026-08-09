@@ -1,12 +1,10 @@
-from typing import Optional, Callable, Any, Protocol, TYPE_CHECKING
+from typing import Optional, Callable, Any, TYPE_CHECKING
 from dataclasses import dataclass
 from PySide6 import QtWidgets, QtCore, QtGui
 
 from core.components.bases.base_component import AppContext
 
 if TYPE_CHECKING:
-    from core.components.bases.base_tool.tool_manager import ToolManager
-    from core.scene.scene_manager import SceneManager
     from core.components.bases.base_tool.base_tool import BaseTool
 
 

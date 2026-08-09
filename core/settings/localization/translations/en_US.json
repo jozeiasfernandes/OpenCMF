@@ -61,7 +61,7 @@
             "dental_implant": "Dental Implants"
         },
         "sources": {
-            "project": {
+            "project_manager": {
                 "name": "Project",
                 "description": "Import existing objects from the current project."
             },
@@ -70,23 +70,23 @@
                 "description": "Import files or folders from your computer."
             }
         },
-        "secao": {
-            "superficies": "Surfaces",
-            "fotografias": "Photographs",
+        "section": {
+            "surfaces": "Surfaces",
+            "photographs": "Photographs",
             "volume": "Volume"
         },
-        "superficies": {
-            "cranio": "Cranium",
-            "maxila": "Maxilla",
-            "mandibula": "Mandible",
-            "pele": "Skin",
-            "outros": "Others"
+        "surfaces": {
+            "cranium": "Cranium",
+            "maxilla": "Maxilla",
+            "mandible": "Mandible",
+            "skin": "Skin",
+            "others": "Others"
         },
-        "fotografias": {
-            "frente": "Front",
-            "perfil": "Profile",
-            "intrabucal": "Intrabuccal",
-            "outros": "Others"
+        "photographs": {
+            "front": "Front",
+            "profile": "Profile",
+            "intrabuccal": "Intrabuccal",
+            "others": "Others"
         },
         "volumes": {
             "volume_vti": "Volume .vti"
@@ -106,5 +106,24 @@
         "tab_components": "Components",
         "tab_scene": "Scene",
         "btn_copy": "Copy"
+    },
+    "credits": {
+        "window_title": "Credits - OpenCFM",
+        "created_by": "Created by Jozeias Fernandes",
+        "contributions": "Contributions: No contributions yet",
+        "thanks": "Acknowledgements: No acknowledgements yet",
+        "community": "Community:",
+        "github_label": "GitHub / OpenCMF"
+    },
+    "file_browser": {
+        "home": "Home",
+        "documents": "Documents",
+        "downloads": "Downloads",
+        "pictures": "Pictures",
+        "desktop": "Desktop",
+        "music": "Music",
+        "movies": "Movies",
+        "root": "Root (/)",
+        "bytes": "bytes"
     }
 }

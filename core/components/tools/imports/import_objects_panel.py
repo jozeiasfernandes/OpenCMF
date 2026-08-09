@@ -25,8 +25,8 @@ Camada Gráfica: VTKActorFactory
 '''
 import sys
 from typing import Optional, Callable, List, Tuple
-from core.scene.io.importer import ObjectImporter
-from core.scene.registry import ObjectRegistry
+from application.scene import ObjectImporter
+from application.scene import ObjectRegistry
 from PySide6.QtWidgets import (
     QWidget, QPushButton, QLabel, QFrame,
     QVBoxLayout, QGridLayout, QApplication, QFileDialog
@@ -34,7 +34,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QPoint, QSize, QEvent
 from PySide6.QtGui import QIcon
 from settings.localization.translator import tr
-from core.scene.rendering.vtk_actor_factory import VTKActorFactory
+from application.scene import VTKActorFactory
 from settings.paths.list_paths import ICONS_DIR
 
 # Centralização de cores e estilos para fácil manutenção
@@ -64,16 +64,16 @@ class ImportCard(QPushButton):
         color = COLORS.get(category_key, "#cccccc")
         self.setStyleSheet(f"""
             QPushButton {{
-                background-color: {color};
+                background-colors: {color};
                 border-radius: 4px;
-                color: black;
+                colors: black;
                 font-weight: bold;
                 border: none;
                 font-size: 11px;
                 text-align: left;
                 padding-left: 10px;
             }}
-            QPushButton:hover {{ background-color: {COLORS['hover']}; }}
+            QPushButton:hover {{ background-colors: {COLORS['hover']}; }}
         """)
 
 
@@ -86,7 +86,7 @@ class ImportSection(QFrame):
         layout.setSpacing(8)
 
         label = QLabel(title.upper())
-        label.setStyleSheet("color: #888; font-size: 11px; font-weight: bold; letter-spacing: 1px;")
+        label.setStyleSheet("colors: #888; font-size: 11px; font-weight: bold; letter-spacing: 1px;")
         layout.addWidget(label)
 
         grid = QGridLayout()
@@ -138,7 +138,7 @@ class ImportObjectsPanel(QFrame):
 
         self.setStyleSheet("""
             QFrame#ImportPanel {
-                background-color: #2b2b2b;
+                background-colors: #2b2b2b;
                 border: 1px solid #444;
                 border-radius: 6px;
             }
@@ -203,12 +203,12 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     test_window = QWidget()
     test_window.setMinimumSize(800, 600)
-    test_window.setStyleSheet("background-color: #1e1e1e;")
+    test_window.setStyleSheet("background-colors: #1e1e1e;")
 
     btn = QPushButton(tr("import.btn.import_objects", "Import Objects"), test_window)
     btn.setFixedSize(130, 30)
     btn.move(50, 50)
-    btn.setStyleSheet("background-color: #444; color: white;")
+    btn.setStyleSheet("background-colors: #444; colors: white;")
 
     panel = ImportObjectsPanel(test_window)
     btn.clicked.connect(lambda: panel.show_under(btn))

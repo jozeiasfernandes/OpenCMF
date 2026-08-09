@@ -4,8 +4,8 @@ from typing import Optional
 from PySide6 import QtWidgets, QtCore
 
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
-from domain.volume.dicom.validators.dicom_validator import DicomValidator
-from commands.volume.load_dicom_command import LoadDicomCommand
+from domain.volume import DicomValidator
+from application.commands import LoadDicomCommand
 
 
 class LoadDicomTool(BaseTool):

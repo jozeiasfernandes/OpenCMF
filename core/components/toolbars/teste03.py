@@ -1,4 +1,4 @@
-from typing import Optional, TYPE_CHECKING, Any
+from typing import Optional, TYPE_CHECKING
 import json
 import importlib.util
 import inspect
@@ -11,8 +11,7 @@ from core.components.bases.base_toolbar.base_toolbar import BaseToolbar
 from core.components.bases.base_component import AppContext
 
 if TYPE_CHECKING:
-    from core.scene.scene_manager import SceneManager
-    from core.components.bases.base_tool.tool_manager import ToolManager
+    pass
 
 logger = logging.getLogger("ToolbarLoader")
 

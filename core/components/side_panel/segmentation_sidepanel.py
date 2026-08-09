@@ -81,17 +81,17 @@ class Segmentation_SidePanel(BaseSidePanel):
         self.btn_stl.setMinimumHeight(45)
         self.btn_stl.setStyleSheet("""
             QPushButton {
-                background-color: #2d5a27; 
-                color: white; 
+                background-colors: #2d5a27; 
+                colors: white; 
                 font-weight: bold; 
                 font-size: 13px;
                 border-radius: 4px;
             }
             QPushButton:hover {
-                background-color: #3a7532;
+                background-colors: #3a7532;
             }
             QPushButton:pressed {
-                background-color: #1e3d1a;
+                background-colors: #1e3d1a;
             }
         """)
         self.btn_stl.clicked.connect(self.solicitarExportarSTL.emit)
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     from unittest.mock import MagicMock
     from core.components.bases.base_toolbar import AppContext
     from core.components.bases.base_tool.tool_manager import ToolManager
-    from core.scene.events.event_bus import EventBus
+    from application.scene.events import EventBus
 
     app = QtWidgets.QApplication(sys.argv)
     app.setStyle("Fusion")

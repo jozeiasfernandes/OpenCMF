@@ -3,8 +3,8 @@ import sys
 import json
 import logging
 from pathlib import Path
-from PySide6 import QtWidgets, QtCore, QtGui
-from core.color import ColorPickerWidget
+from PySide6 import QtWidgets, QtCore
+from application.colors import ColorPickerWidget
 from core.components.bases.base_sidepanel import BaseSidePanel
 
 logger = logging.getLogger(__name__)
@@ -49,7 +49,7 @@ class ObjectProperties_SidePanel(BaseSidePanel):
         lay_a = QtWidgets.QFormLayout(group_a)
 
         self.color_picker = ColorPickerWidget()
-        self.color_picker.colorChanged.connect(lambda c: self._dispatch("color", c))
+        self.color_picker.colorChanged.connect(lambda c: self._dispatch("colors", c))
         lay_a.addRow("Cor:", self.color_picker)
 
         self.row_opacity = AxisSliderRow("Opacidade", 0.0, 1.0, 1.0)
@@ -114,7 +114,7 @@ class ObjectProperties_SidePanel(BaseSidePanel):
             self.vec_rot.set_values(t.get("rotation", [0, 0, 0]))
             self.vec_scl.set_values(t.get("scale", [1, 1, 1]))
 
-            self.color_picker.set_rgb(r.get("color", [1.0, 1.0, 1.0]))
+            self.color_picker.set_rgb(r.get("colors", [1.0, 1.0, 1.0]))
             self.row_opacity.set_value(getattr(props, "opacity", 1.0))
 
             repr_val = r.get("representation", "surface")
@@ -198,7 +198,7 @@ class AxisSliderRow(QtWidgets.QWidget):
 
         lbl_widget = QtWidgets.QLabel(label)
         if color:
-            lbl_widget.setStyleSheet(f"color: {color}; font-weight: bold;")
+            lbl_widget.setStyleSheet(f"colors: {color}; font-weight: bold;")
 
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.spinbox = QtWidgets.QDoubleSpinBox()
@@ -255,7 +255,7 @@ if __name__ == "__main__":
             "scale": [1.0, 1.0, 1.0],
         })
         render: dict = field(default_factory=lambda: {
-            "color": [0.2, 0.6, 1.0],
+            "colors": [0.2, 0.6, 1.0],
             "representation": "surface",
             "ambient": 0.2,
             "diffuse": 0.8,

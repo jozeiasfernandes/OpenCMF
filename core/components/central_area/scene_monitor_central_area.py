@@ -100,12 +100,12 @@ class SceneMonitorArea(CentralAreaBase):
         # Árvore de Objetos
         self.tree = QtWidgets.QTreeWidget()
         self.tree.setHeaderLabels(["Nome", "Tipo", "Status", "Actors", "Memória", "Local"])
-        self.tree.setStyleSheet("background: #2b2b2b; color: #eee; border: none;")
+        self.tree.setStyleSheet("background: #2b2b2b; colors: #eee; border: none;")
 
         # Inspector
         self.inspector = QtWidgets.QTreeWidget()
         self.inspector.setHeaderLabels(["Propriedade", "Valor"])
-        self.inspector.setStyleSheet("background: #252526; color: #eee; border: none;")
+        self.inspector.setStyleSheet("background: #252526; colors: #eee; border: none;")
 
         self.container.addWidget(self.tree)
         self.container.addWidget(self.inspector)
@@ -326,17 +326,17 @@ class Component(SceneMonitorCenter):
 
 
 if __name__ == "__main__":
-    from core.scene.scene_object import SceneObject
-    from core.scene.scene_state import SceneState
-    from core.scene.scene_manager import SceneManager
-    from core.scene.events.event_bus import EventBus
-    from core.scene.registry.object_registry import (
+    from application.scene import SceneObject
+    from application.scene import SceneState
+    from application.scene import SceneManager
+    from application.scene.events import EventBus
+    from application.scene import (
         ObjectRegistry
     )
-    from core.scene.registry.actor_registry import (
+    from application.scene.registry.actor_registry import (
         ActorRegistry
     )
-    from core.scene.selection.selection_manager import (
+    from application.scene import (
         SelectionManager
     )
 

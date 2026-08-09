@@ -17,7 +17,7 @@ class ComponentCard(QtWidgets.QFrame):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
         self.setStyleSheet("""
             ComponentCard {
-                background-color: transparent;
+                background-colors: transparent;
                 border-radius: 4px;
                 border: 1px solid #D0D0D0;
             }
@@ -40,7 +40,7 @@ class ComponentCard(QtWidgets.QFrame):
 
         self.preview = QtWidgets.QLabel()
         self.preview.setFixedHeight(32)
-        self.preview.setStyleSheet("background-color: #8c8c8c; border-radius: 2px;")
+        self.preview.setStyleSheet("background-colors: #8c8c8c; border-radius: 2px;")
 
         if self.thumb_path.exists():
             pix = QtGui.QPixmap(str(self.thumb_path))
