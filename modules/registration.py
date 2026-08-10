@@ -123,16 +123,16 @@ class Modulo(ModuloBase):
         context = AppContext(
             tool_manager=manager,
             scene_manager=self.scene_manager,
-            settings=None
+            settings=getattr(self.context, "settings", None) if self.context else None
         )
 
-        toolbar = RegistrationToolbar(
+        # Armazena como atributo da classe para evitar coleta de lixo prematura pelo Python
+        self._registration_toolbar = RegistrationToolbar(
             app_context=context,
-            parent=None
+            parent=self  # Passa o container/janela atual como parent para manter a árvore de objetos correta
         )
 
-        toolbar.initialize()
-        return toolbar
+        return self._registration_toolbar
 
     def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         return {

@@ -1,6 +1,7 @@
 from typing import Dict, Optional, Any
 import logging
 import uuid
+from pathlib import Path
 from PySide6 import QtWidgets, QtCore, QtGui
 
 # Sce

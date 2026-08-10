@@ -23,12 +23,13 @@ from core.application.scene.scene_manager import SceneManager
 class ImportWindow(QMainWindow):
     """Janela principal de importação integrando os três painéis lado a lado."""
 
-    def __init__(self, scene_manager: Optional[SceneManager] = None) -> None:
-        super().__init__()
+    def __init__(self, scene_manager: Optional[SceneManager] = None,
+                 parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
         self.setWindowTitle("Gerenciador de Importações")
         self.resize(1200, 600)
 
-        # Gerenciadores de Cena e Importação
+        # Gerenciadores de Cena e Importação (Removida a atribuição duplicada)
         self.scene_manager = scene_manager
         self.import_manager = ImportManager(ImporterRegistry())
 
@@ -107,7 +108,7 @@ class ImportWindow(QMainWindow):
         if cat_id and src_id and current_cat and current_cat.parent() is not None:
             self.workspace_container.update_context(cat_id, src_id)
 
-    def _handle_import_action(self, selected_file_path: str) -> None:
+    def _handle_import_action(self, selected_file_path: str | Path) -> None:
         """Executa a importação utilizando o PatientManager, o ImportManager e o SceneManager."""
         patient_mgr = PatientManager.get_instance()
         if not patient_mgr.current_path:
@@ -119,6 +120,7 @@ class ImportWindow(QMainWindow):
             return
 
         try:
+            # Assegura que o caminho seja processado corretamente seja string ou Path
             file_path = Path(selected_file_path)
 
             # 1. Processa os dados brutos gerando o SceneObject através do ImportManager
@@ -133,11 +135,13 @@ class ImportWindow(QMainWindow):
             if "imports" not in patient_data:
                 patient_data["imports"] = {}
 
-            category_id = self.workspace_container.current_category or "general"
+            category_id = getattr(self.workspace_container, "current_category", None) or "general"
             if category_id not in patient_data["imports"]:
                 patient_data["imports"][category_id] = []
 
-            patient_data["imports"][category_id].append(str(file_path))
+            file_str = str(file_path)
+            if file_str not in patient_data["imports"][category_id]:
+                patient_data["imports"][category_id].append(file_str)
 
             # 4. Persiste as alterações no disco
             patient_mgr.save_current_data()
@@ -145,7 +149,7 @@ class ImportWindow(QMainWindow):
             QMessageBox.information(
                 self,
                 "Sucesso",
-                f"Arquivo importado e adicionado à cena com sucesso!"
+                "Arquivo importado e adicionado à cena com sucesso!"
             )
         except Exception as e:
             QMessageBox.critical(

@@ -29,18 +29,28 @@ class RegistrationToolbar(BaseToolbar):
     def setup_ui(self) -> None:
         """Configura a interface da toolbar de registro."""
 
-        # 1. Import objetcs
-        import_tool = ImportTool(context=self.app)
-        self.register_tool(import_tool)
-        # 2. Registro de ferramentas (BaseToolbar gerencia o registro no ToolManager)
+        # 1. Import objects (Armazenado em self.import_tool para evitar coleta de lixo pelo Python)
+        self.import_tool = ImportTool(context=self.app)
+
+        # Utiliza o método create_action da tool (ou add_action_button referenciando self.import_tool)
+        if hasattr(self.import_tool, "create_action"):
+            self.addAction(self.import_tool.create_action(self))
+        else:
+            self.add_action_button(
+                text="",
+                callback=self.import_tool.execute_import,
+                icon=self.import_tool.get_qicon() if hasattr(self.import_tool, "get_qicon") else self.get_icon(
+                    "import.svg", QtWidgets.QStyle.StandardPixmap.SP_FileIcon),
+                tooltip=getattr(self.import_tool, "tool_tip", "Importar Objetos")
+            )
+
+        # 2. Registro de ferramentas de manipulação de cena (BaseToolbar gerencia o registro no ToolManager)
         self.register_tool(SelectTool())
         self.register_tool(AddPointRegistrationTool())
 
-
-
         self.add_separator()
 
-        # 2. Botão de remover ponto
+        # 3. Botão de remover ponto
         self.add_action_button(
             text="",
             callback=self._on_delete_point,
@@ -48,7 +58,7 @@ class RegistrationToolbar(BaseToolbar):
             tooltip=tr("toolbar_container.del_point", "Remover Último Ponto")
         )
 
-        # 3. Botão de resetar vista
+        # 4. Botão de resetar vista
         self.add_action_button(
             text="",
             callback=self._on_reset_view,
@@ -58,7 +68,7 @@ class RegistrationToolbar(BaseToolbar):
 
         self.add_separator()
 
-        # 4. Slider de tamanho
+        # 5. Slider de tamanho
         self.addWidget(QtWidgets.QLabel(tr("toolbar_container.point_size", " Tamanho: ")))
         self.slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
         self.slider.setRange(5, 50)
@@ -70,18 +80,18 @@ class RegistrationToolbar(BaseToolbar):
     def _on_delete_point(self):
         """Remove o último marcador."""
         if self.scene_manager and hasattr(self.scene_manager, 'events'):
-            self.scene_manager.events.emit(RegistrationEvents.REGISTRATION_DELETE_LAST_MARKER)
+            self.scene_manager.events.emit(RegistrationEvents.DELETE_LAST_MARKER)
 
     def _on_reset_view(self):
         """Reseta a visualização."""
         if self.scene_manager and hasattr(self.scene_manager, 'events'):
-            self.scene_manager.events.emit(RegistrationEvents.REGISTRATION_RESET_LAYOUT)
+            self.scene_manager.events.emit(RegistrationEvents.RESET_LAYOUT)
 
     def _on_point_size_changed(self, value: int):
         """Altera o tamanho dos pontos."""
         if self.scene_manager and hasattr(self.scene_manager, 'events'):
             self.scene_manager.events.emit(
-                RegistrationEvents.REGISTRATION_POINT_SIZE_CHANGED,
+                RegistrationEvents.POINT_SIZE_CHANGED,
                 size=value / 10.0
             )
 
@@ -90,9 +100,17 @@ if __name__ == "__main__":
     import sys
     from core.components.bases.base_component import AppContext
 
+    class MockEventBus:
+        def emit(self, event, **kwargs):
+            print(f"[MockEventBus] Evento emitido: {event} | Payload: {kwargs}")
+
+    class MockSceneManager:
+        def __init__(self):
+            self.events = MockEventBus()
+
     app_context = AppContext(
         tool_manager=ToolManager(),
-        scene_manager=None,
+        scene_manager=MockSceneManager(),
         settings=None
     )
 

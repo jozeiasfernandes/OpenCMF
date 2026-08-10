@@ -14,6 +14,22 @@ Define as classes de alto nível que herdam ou encapsulam as malhas geométricas
 * dental_model.py: Trata das arcadas dentárias, essenciais para o encaixe oclusal e simulação da oclusão final do paciente.
 * surgical_guide.py: Modela e prepara os dispositivos de transferência cirúrgica que serão fabricados por impressão 3D.
 
+┌──────────────────────────────┐
+│           Anatomy            │
+│ conhecimento anatômico       │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│         Simulation           │
+│ transformação/predição       │
+└──────────────┬───────────────┘
+               │
+               ▼
+┌──────────────────────────────┐
+│            Avatar            │
+│ representação visual humana  │
+└──────────────────────────────┘
 
 ## 2. behaviors/ (Comportamentos e Lógica Clínica)
 

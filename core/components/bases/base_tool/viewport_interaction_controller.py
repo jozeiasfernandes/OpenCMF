@@ -65,6 +65,13 @@ class ViewportInteractionController:
     def _get_modifiers():
         return QtWidgets.QApplication.keyboardModifiers()
 
+    def _delegate_to_style(self, interactor, method_name: str) -> None:
+        """Delega a chamada de forma segura para o estilo de interação atual do VTK."""
+        if hasattr(interactor, "GetInteractorStyle"):
+            style = interactor.GetInteractorStyle()
+            if style and hasattr(style, method_name):
+                getattr(style, method_name)()
+
     def _on_left_press(self, obj, event):
         x, y = self._get_mouse_position()
 
@@ -76,7 +83,7 @@ class ViewportInteractionController:
         )
 
         if not handled:
-            obj.OnLeftButtonDown()
+            self._delegate_to_style(obj, "OnLeftButtonDown")
 
     def _on_left_release(self, obj, event):
         x, y = self._get_mouse_position()
@@ -89,7 +96,7 @@ class ViewportInteractionController:
         )
 
         if not handled:
-            obj.OnLeftButtonUp()
+            self._delegate_to_style(obj, "OnLeftButtonUp")
 
     def _on_mouse_move(self, obj, event):
         x, y = self._get_mouse_position()
@@ -101,7 +108,7 @@ class ViewportInteractionController:
         )
 
         if not handled:
-            obj.OnMouseMove()
+            self._delegate_to_style(obj, "OnMouseMove")
 
     def _on_wheel_forward(self, obj, event):
         x, y = self._get_mouse_position()
@@ -113,7 +120,7 @@ class ViewportInteractionController:
         )
 
         if not handled:
-            obj.OnMouseWheelForward()
+            self._delegate_to_style(obj, "OnMouseWheelForward")
 
     def _on_wheel_backward(self, obj, event):
         x, y = self._get_mouse_position()
@@ -125,7 +132,7 @@ class ViewportInteractionController:
         )
 
         if not handled:
-            obj.OnMouseWheelBackward()
+            self._delegate_to_style(obj, "OnMouseWheelBackward")
 
     def _on_key_press(self, obj, event):
         if not self.interactor:
@@ -138,7 +145,7 @@ class ViewportInteractionController:
         )
 
         if not handled:
-            obj.OnKeyPress()
+            self._delegate_to_style(obj, "OnKeyPress")
 
     def _on_key_release(self, obj, event):
         if not self.interactor:
@@ -151,4 +158,4 @@ class ViewportInteractionController:
         )
 
         if not handled:
-            obj.OnKeyRelease()
+            self._delegate_to_style(obj, "OnKeyRelease")
