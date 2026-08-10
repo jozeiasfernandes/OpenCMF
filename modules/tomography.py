@@ -61,21 +61,21 @@ class Modulo(ModuloBase):
             self.toolbar_handler.initialize()
 
             if hasattr(self.toolbar_handler, 'btn_load'):
-                self.toolbar_handler.btn_load.clicked.connect(self._carregar_dicom)
+                self.toolbar_handler.btn_load.clicked.connect(self._load_dicom)
 
         return self.toolbar_handler
 
     def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         return {}
 
-    def configurar_recursos(self, caminho_paciente: str) -> None:
+    def configure_resources(self, caminho_paciente: str) -> None:
         """Método chamado pelo ModuloBase.inicializar() do Workspace."""
         self.pasta_paciente = caminho_paciente
-        self._carregar_configs_projeto()
+        self._load_project_configs()
 
         # Se já tivermos um caminho DICOM configurado, validamos automaticamente
         if self.caminho_dicom:
-            self._validar_dicom()
+            self._validate_dicom()
 
     def cleanup(self) -> None:
         if self.viewer:
@@ -91,7 +91,7 @@ class Modulo(ModuloBase):
         logger.info(f"Cleanup do módulo {self.nome} executado com sucesso.")
 
     # --- Lógica Interna ---
-    def _carregar_configs_projeto(self):
+    def _load_project_configs(self):
         if not self.pasta_paciente:
             return
 
@@ -104,7 +104,7 @@ class Modulo(ModuloBase):
             except Exception as e:
                 logger.error(f"Erro ao carregar info.json: {e}")
 
-    def _buscar_pasta(self):
+    def _browse_folder(self):
         settings = QtCore.QSettings("OpenCMF", "Config")
         pasta = QtWidgets.QFileDialog.getExistingDirectory(
             None, "Selecione DICOM", settings.value("ultimo_dir", "")
@@ -112,15 +112,18 @@ class Modulo(ModuloBase):
         if pasta:
             settings.setValue("ultimo_dir", pasta)
             self.caminho_dicom = pasta
-            self._validar_dicom()  # Valida imediatamente após selecionar
+            self._validate_dicom()  # Valida imediatamente após selecionar
 
-    def _validar_dicom(self):
+    def _validate_dicom(self):
         if not self.caminho_dicom or not self.pasta_paciente:
             return
 
         try:
-            validador = DicomValidator(self.pasta_paciente)
-            resultado = validador.analisar_caminho(self.caminho_dicom)
+            # Passa o event_bus se necessário ou inicializa conforme o construtor do DicomValidator
+            validador = DicomValidator(event_bus=getattr(self, 'event_bus', None))
+
+            # Correção: O método correto em inglês é validate_directory (e não analisar_caminho)
+            resultado = validador.validate_directory(Path(self.caminho_dicom))
 
             if resultado.get("sucesso") and self.toolbar_handler:
                 if hasattr(self.toolbar_handler, 'set_validation_state'):
@@ -128,20 +131,21 @@ class Modulo(ModuloBase):
         except Exception as e:
             logger.error(f"Erro durante a validação DICOM: {e}")
 
-    def _carregar_dicom(self):
+    def _load_dicom(self):
         if not self.caminho_dicom:
-            self._buscar_pasta()
+            self._browse_folder()
             if not self.caminho_dicom:
                 return
 
-        sucesso, msg = self.engine.carregar_pasta(self.caminho_dicom)
+        sucesso, resultado = self.engine.load_folder(self.caminho_dicom)
         if sucesso and self.viewer:
-            self.viewer.set_volume(self.engine.vtk_volume)
-            self._gerar_vti()  # Salva o arquivo VTI otimizado após carregar com sucesso
+            # Utiliza image_data em vez de vtk_data
+            self.viewer.set_volume(resultado.image_data)
+            self._generate_vti()
         else:
-            logger.error(f"Falha ao carregar DICOM: {msg}")
+            logger.error(f"Falha ao carregar DICOM: {resultado}")
 
-    def _gerar_vti(self):
+    def _generate_vti(self):
         if not self.engine.vtk_volume or not self.pasta_paciente:
             return
         try:

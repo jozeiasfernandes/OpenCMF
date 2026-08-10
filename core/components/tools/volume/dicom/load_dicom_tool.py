@@ -4,8 +4,9 @@ from typing import Optional
 from PySide6 import QtWidgets, QtCore
 
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
-from domain.volume import DicomValidator
-from application.commands import LoadDicomCommand
+from domain.volume.dicom.validators.dicom_validator import DicomValidator
+from core.application.commands.volume.load_dicom_command import LoadDicomCommand
+from domain.volume.windows.dicom_import_window import DicomImportWindow
 
 
 class LoadDicomTool(BaseTool):
@@ -41,16 +42,44 @@ class LoadDicomTool(BaseTool):
         caminho_pasta = Path(directory)
 
         # 1. Validação prévia da pasta usando o DicomValidator
-        resultado_validacao = self.validator.validar_diretorio(caminho_pasta)
+        resultado_validacao = self.validator.validate_directory(caminho_pasta)
         if not resultado_validacao.get("sucesso", False):
             erro_msg = resultado_validacao.get("erro", "Erro desconhecido ao validar diretório.")
             QtWidgets.QMessageBox.warning(parent_window, "Aviso de Importação", erro_msg)
             return
 
-        # 2. Execução segura encapsulada no Command Pattern via SceneManager
+        # Recupera as séries encontradas pelo validador
+        series_disponiveis = resultado_validacao.get("series", [])
+
+        # Fallback de segurança caso a estrutura retorne sucesso genérico sem lista detalhada
+        if not series_disponiveis:
+            series_disponiveis = [{
+                "number": 1,
+                "description": caminho_pasta.name,
+                "modality": "CT",
+                "path": str(caminho_pasta)
+            }]
+
+        # 2. Exibe a janela de importação/seleção de séries ao usuário
+        import_dialog = DicomImportWindow(series_list=series_disponiveis, parent=parent_window)
+        if import_dialog.exec() != QtWidgets.QDialog.Accepted:
+            return
+
+        selected_series = import_dialog.get_selected_series()
+        sampling_factors = import_dialog.get_sampling_factors()  # (X, Y, Z)
+
+        if not selected_series:
+            return
+
+        # Define o caminho alvo (diretório específico da série selecionada ou a raiz)
+        target_path = Path(selected_series.get("path", caminho_pasta))
+
+        # 3. Execução segura encapsulada no Command Pattern via SceneManager
         try:
             if self.scene and hasattr(self.scene, "command_manager"):
-                command = LoadDicomCommand(caminho_pasta, self.scene)
+                # Repassa os fatores de amostragem e a série escolhida para o comando
+                command = LoadDicomCommand(target_path, self.scene, series_info=selected_series,
+                                           sampling_factors=sampling_factors)
                 success = self.scene.command_manager.execute(command)
 
                 if not success:
@@ -69,7 +98,7 @@ class LoadDicomTool(BaseTool):
                 return
 
             if self.events and hasattr(self.events, "emit"):
-                self.events.emit("DICOM_LOADED", path=str(caminho_pasta))
+                self.events.emit("DICOM_LOADED", path=str(target_path), factors=sampling_factors)
 
         except Exception as e:
             QtWidgets.QMessageBox.critical(
@@ -84,6 +113,7 @@ class LoadDicomTool(BaseTool):
 
 if __name__ == "__main__":
     import sys
+
     app = QtWidgets.QApplication(sys.argv)
 
     tool = LoadDicomTool()

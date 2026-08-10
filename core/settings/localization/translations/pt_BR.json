@@ -21,7 +21,7 @@
         "available_flows_title": "Fluxos Disponíveis",
         "new_flow_button": "Novo Fluxo",
         "unknown_patient": "Paciente Desconhecido",
-        "delete_flow_msg": "Tem certeza de que deseja excluir o fluxo",
+        "delete_flow_msg": "Tem certeza de que deseja excluir o fluxo?",
         "delete_folder_error": "Falha ao remover a pasta do projeto."
     },
     "configs": {
@@ -51,14 +51,14 @@
             "preview": "Pré-visualização"
         },
         "categories": {
-            "volume": "TOMOGRAFIAS",
-            "radiography": "RADIOGRAFIAS",
-            "scan": "ESCANEAMENTOS",
-            "photo": "FOTOGRAFIAS",
-            "mesh": "MALHAS 3D",
-            "library": "BIBLIOTECA DE OBJETOS",
-            "facial_implant": "IMPLANTES FACIAIS",
-            "dental_implant": "IMPLANTES DENTÁRIOS"
+            "volume": "Tomografias",
+            "radiography": "Radiografias",
+            "scan": "Escaneamentos",
+            "photo": "Fotografias",
+            "mesh": "Malhas 3D",
+            "library": "Biblioteca de Objetos",
+            "facial_implant": "Implantes Faciais",
+            "dental_implant": "Implantes Dentários"
         },
         "sources": {
             "project_manager": {
@@ -78,36 +78,37 @@
         "volumes": {
             "dicom": "DICOM",
             "vti": "VTI",
-            "vtk_nrrd_nifti": "Vtk, nrrd, nifti"
+            "vtk_nrrd_nifti": "VTK, NRRD, NIfTI",
+            "volume_vti": "Volume .vti"
         },
         "radiographies": {
             "panoramic": "Radiografia Panorâmica",
-            "teleradiography": "Teleradiografias",
-            "intrabuccal": "Radiografias intrabucais",
-            "reconstructed_panoramic": "Reconstrução panorâmica",
-            "reconstructed_teleradiography": "Reconstrução telerradiográfica"
+            "teleradiography": "Telerradiografias",
+            "intrabuccal": "Radiografias Intrabucais",
+            "reconstructed_panoramic": "Reconstrução Panorâmica",
+            "reconstructed_teleradiography": "Reconstrução Telerradiográfica"
         },
         "scans": {
-            "face": "Scan de face",
-            "dental_arches": "Scan de arcadas",
-            "photogrammetry": "Fotogrametria de face"
+            "face": "Scan de Face",
+            "dental_arches": "Scan de Arcadas",
+            "photogrammetry": "Fotogrametria de Face"
         },
         "photographs": {
-            "front": "Fotografias da face",
-            "profile": "Fotografias intrabucais",
-            "intrabuccal": "intrabucal",
-            "others": "outros"
+            "front": "Fotografias da Face",
+            "profile": "Fotografias de Perfil",
+            "intrabuccal": "Intrabucal",
+            "others": "Outros"
         },
         "mesh_items": {
-            "objects_3d": "Objetos 3d",
-            "objects_3d_online": "Objetos 3d (online)"
+            "objects_3d": "Objetos 3D",
+            "objects_3d_online": "Objetos 3D (Online)"
         },
         "dental_implant_items": {
-            "dental_implants": "Implantes dentários",
+            "dental_implants": "Implantes Dentários",
             "resources": "Recursos"
         },
         "facial_implant_items": {
-            "mandibular_angle": "Ângulo mandibular",
+            "mandibular_angle": "Ângulo Mandibular",
             "zygomatic": "Zigomático",
             "paranasal": "Paranasal",
             "mento": "Mento"
@@ -136,12 +137,12 @@
         "btn_copy": "Copiar"
     },
     "credits": {
-        "window_title": "Créditos - OpenCFM",
+        "window_title": "Créditos - OpenCMF",
         "created_by": "Criado por Jozeias Fernandes",
         "contributions": "Contribuições: Sem contribuições ainda",
         "thanks": "Agradecimentos: Sem agradecimentos ainda",
         "community": "Comunidade:",
-        "github_label": "GitHub / OpenCFM"
+        "github_label": "GitHub / OpenCMF"
     },
     "file_browser": {
         "home": "Início",

@@ -1,13 +1,15 @@
 from __future__ import annotations
-import vtk
+from pathlib import Path
 from PySide6 import QtWidgets
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
+from domain.volume.exporters.vti_exporter import VtiExporter
 
 
 class SaveVtiTool(BaseTool):
     name: str = "save_vti"
     display_name: str = "Salvar VTI"
     category: ToolCategory = ToolCategory.TOMOGRAPHY
+    icon: str = "vti.svg"  # Definição do ícone da ferramenta
 
     def on_activate(self) -> None:
         self.execute_export()
@@ -36,16 +38,11 @@ class SaveVtiTool(BaseTool):
             print("Erro: Nenhum volume ativo encontrado para exportar.")
             return
 
-        try:
-            writer = vtk.vtkXMLImageDataWriter()
-            writer.SetFileName(file_path)
-            writer.SetInputData(volume_data)
-            writer.SetDataModeToBinary()
-            writer.SetCompressorTypeToZLib()
-            writer.Write()
+        success = VtiExporter.save_to_vti(volume_data, Path(file_path))
+        if success:
             print(f"Volume exportado com sucesso para: {file_path}")
-        except Exception as e:
-            print(f"Erro ao salvar arquivo VTI: {e}")
+        else:
+            print("Erro ao salvar arquivo VTI.")
 
     def on_deactivate(self) -> None:
         pass

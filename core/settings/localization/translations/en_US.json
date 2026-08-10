@@ -89,7 +89,36 @@
             "others": "Others"
         },
         "volumes": {
+            "dicom": "DICOM",
+            "vti": "VTI",
+            "vtk_nrrd_nifti": "VTK, NRRD, NIfTI",
             "volume_vti": "Volume .vti"
+        },
+        "radiographies": {
+            "panoramic": "Panoramic Radiography",
+            "teleradiography": "Teleradiography",
+            "intrabuccal": "Intrabuccal Radiographs",
+            "reconstructed_panoramic": "Reconstructed Panoramic",
+            "reconstructed_teleradiography": "Reconstructed Teleradiography"
+        },
+        "scans": {
+            "face": "Face Scan",
+            "dental_arches": "Dental Arches Scan",
+            "photogrammetry": "Facial Photogrammetry"
+        },
+        "mesh_items": {
+            "objects_3d": "3D Objects",
+            "objects_3d_online": "3D Objects (Online)"
+        },
+        "dental_implant_items": {
+            "dental_implants": "Dental Implants",
+            "resources": "Resources"
+        },
+        "facial_implant_items": {
+            "mandibular_angle": "Mandibular Angle",
+            "zygomatic": "Zygomatic",
+            "paranasal": "Paranasal",
+            "mento": "Mento"
         },
         "btn": {
             "import_objects": "Import Objects"
@@ -108,12 +137,12 @@
         "btn_copy": "Copy"
     },
     "credits": {
-        "window_title": "Credits - OpenCFM",
+        "window_title": "Credits - OpenCMF",
         "created_by": "Created by Jozeias Fernandes",
         "contributions": "Contributions: No contributions yet",
         "thanks": "Acknowledgements: No acknowledgements yet",
         "community": "Community:",
-        "github_label": "GitHub / OpenCFM"
+        "github_label": "GitHub / OpenCMF"
     },
     "file_browser": {
         "home": "Home",

@@ -6,13 +6,13 @@ QPushButton {
 }
 
 QPushButton[tipo="primary"] {
-    background-color: var(--primary-color);
-    color: var(--primary-text);
+    background-color: #61afef; /* Substituído var(--primary-color) */
+    color: #282c34;          /* Substituído var(--primary-text) */
     border: none;
 }
 
 QPushButton[tipo="primary"]:hover {
-    background-color: var(--primary-hover);
+    background-color: #528bff; /* Substituído var(--primary-hover) */
 }
 
 /* Ferramentas e Cabeçalho */
@@ -23,9 +23,9 @@ QToolButton, QToolButton#HeaderToolButton, QToolButton#botaoHomeWorkspace {
 }
 
 QToolButton:hover {
-    background-color: var(--tool-hover-bg);
+    background-color: #3e4451; /* Substituído var(--tool-hover-bg) */
 }
 
 QToolButton:pressed {
-    background-color: var(--tool-pressed-bg);
+    background-color: #2c313c; /* Substituído var(--tool-pressed-bg) */
 }

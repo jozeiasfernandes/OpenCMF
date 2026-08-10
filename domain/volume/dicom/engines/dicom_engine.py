@@ -1,29 +1,31 @@
 import pydicom
 import numpy as np
 import vtk
-from pathlib import Path
-from typing import Optional, List, Dict, Any
 from vtkmodules.util import numpy_support
 
+from pathlib import Path
+from typing import Optional, List, Dict, Any
 
 from domain.volume.models.volume_model import Volume
+from domain.volume.dicom.validators.dicom_validator import DicomValidator
 
 
 class DicomEngine:
-    def __init__(self):
+    def __init__(self, event_bus: Optional[Any] = None):
         self._current_volume: Optional[Volume] = None
         self.last_spacing = (1.0, 1.0, 1.0)
         self.last_origin = (0.0, 0.0, 0.0)
+        self.validator = DicomValidator(event_bus=event_bus)
 
-    def processar_para_scene_object(self, caminho_pasta: str) -> Optional[Dict[str, Any]]:
-        volume_model = self.carregar_volume(caminho_pasta)
+    def process_to_scene_object(self, caminho_pasta: str) -> Optional[Dict[str, Any]]:
+        volume_model = self.load_volume(caminho_pasta)
         if not volume_model or not volume_model.is_valid:
             return None
 
         return {
             "metadata": {
-                "mesh_data": volume_model.vtk_data,  # Mantém compatibilidade com o visualizador VTK atual
-                "volume_model": volume_model,  # Injeta o novo modelo completo na cena
+                "mesh_data": volume_model.vtk_data,
+                "volume_model": volume_model,
                 "source_path": caminho_pasta
             },
             "transforms": {
@@ -32,47 +34,80 @@ class DicomEngine:
             }
         }
 
-    def carregar_volume(self, caminho_pasta: str) -> Optional[Volume]:
-        arquivos = self._listar_arquivos(caminho_pasta)
-        dataset = self._ler_metadados(arquivos)
+    def load_volume(self, caminho_pasta: str) -> Optional[Volume]:
+        path_obj = Path(caminho_pasta)
+
+        # 1. Validação prévia com o DicomValidator
+        validacao = self.validator.validate_directory(path_obj)
+        if not validacao.get("sucesso", False):
+            return None
+
+        arquivos = self._list_files(caminho_pasta)
+        dataset = self._read_metadata(arquivos)
 
         if not dataset:
             return None
 
-        dataset = self._selecionar_melhor_serie(dataset)
+        dataset = self._select_best_series(dataset)
         if not dataset:
+            return None
+
+        # Validação preventiva de atributos DICOM essenciais
+        if not self._validate_dicom_attributes(dataset):
             return None
 
         # Ordena pelas coordenadas espaciais Z (ImagePositionPatient[2])
         dataset.sort(key=lambda x: float(x.ImagePositionPatient[2]))
 
-        self._configurar_geometria(dataset)
-        volume_data = self._processar_pixels(dataset)
+        self._configure_geometry(dataset)
+        volume_data = self._process_pixels(dataset)
 
         # Converte para vtkImageData
         vtk_img = self._numpy_to_vtk(volume_data)
 
-        # Cria e encapsula no novo modelo Volume
-        self._current_volume = Volume(
-            vtk_data=vtk_img,
-            source_path=caminho_pasta,
-            name="Exame DICOM / TC"
-        )
+        # 2. Criação correta do modelo Volume usando image_data
+        self._current_volume = Volume(image_data=vtk_img)
+        self._current_volume.source_path = caminho_pasta
+        self._current_volume.name = "Exame DICOM / TC"
 
         return self._current_volume
 
-    def _configurar_geometria(self, fatias: List[pydicom.dataset.FileDataset]):
+    def _validate_dicom_attributes(self, dataset: List[pydicom.dataset.FileDataset]) -> bool:
+        """Valida se os atributos DICOM essenciais estão presentes nas fatias iniciais."""
+        required_attrs = ['ImagePositionPatient', 'PixelSpacing', 'Rows', 'Columns']
+        for ds in dataset[:min(3, len(dataset))]:
+            for attr in required_attrs:
+                if not hasattr(ds, attr):
+                    return False
+        return True
+
+    def _configure_geometry(self, fatias: List[pydicom.dataset.FileDataset]):
         ds0 = fatias[0]
-        ps = ds0.PixelSpacing
 
-        z_spacing = abs(
-            float(fatias[1].ImagePositionPatient[2]) - float(ds0.ImagePositionPatient[2])
-        ) if len(fatias) > 1 else float(getattr(ds0, 'SliceThickness', 1.0))
+        if not hasattr(ds0, 'PixelSpacing'):
+            self.last_spacing = (1.0, 1.0, 1.0)
+        else:
+            ps = ds0.PixelSpacing
+            self.last_spacing = (float(ps[0]), float(ps[1]), 1.0)
 
-        self.last_spacing = (float(ps[0]), float(ps[1]), float(z_spacing))
-        self.last_origin = tuple(float(x) for x in ds0.ImagePositionPatient)
+        if len(fatias) > 1:
+            try:
+                z1 = float(fatias[0].ImagePositionPatient[2])
+                z2 = float(fatias[1].ImagePositionPatient[2])
+                z_spacing = abs(z2 - z1)
+            except (AttributeError, IndexError):
+                z_spacing = float(getattr(ds0, 'SliceThickness', 1.0))
+        else:
+            z_spacing = float(getattr(ds0, 'SliceThickness', 1.0))
 
-    def _processar_pixels(self, fatias: List[pydicom.dataset.FileDataset]) -> np.ndarray:
+        self.last_spacing = (self.last_spacing[0], self.last_spacing[1], z_spacing)
+
+        try:
+            self.last_origin = tuple(float(x) for x in ds0.ImagePositionPatient)
+        except (AttributeError, TypeError):
+            self.last_origin = (0.0, 0.0, 0.0)
+
+    def _process_pixels(self, fatias: List[pydicom.dataset.FileDataset]) -> np.ndarray:
         shape = (len(fatias), fatias[0].Rows, fatias[0].Columns)
         volume = np.zeros(shape, dtype=np.float32)
 
@@ -97,13 +132,13 @@ class DicomEngine:
         img_data.GetPointData().SetScalars(vtk_array)
         return img_data
 
-    def _listar_arquivos(self, caminho: str) -> List[Path]:
+    def _list_files(self, caminho: str) -> List[Path]:
         return [
             f for f in Path(caminho).rglob("*")
             if f.is_file() and not f.name.startswith('.')
         ]
 
-    def _ler_metadados(self, arquivos: List[Path]) -> List[pydicom.dataset.FileDataset]:
+    def _read_metadata(self, arquivos: List[Path]) -> List[pydicom.dataset.FileDataset]:
         result = []
         for f in arquivos:
             try:
@@ -119,7 +154,7 @@ class DicomEngine:
                 continue
         return result
 
-    def _selecionar_melhor_serie(self, datasets: List[pydicom.dataset.FileDataset]) -> List[
+    def _select_best_series(self, datasets: List[pydicom.dataset.FileDataset]) -> List[
         pydicom.dataset.FileDataset]:
         if not datasets:
             return []
@@ -139,3 +174,13 @@ class DicomEngine:
     @property
     def current_volume(self) -> Optional[Volume]:
         return self._current_volume
+
+    def load_folder(self, caminho_pasta: str):
+        """Carrega a pasta DICOM e retorna o status de sucesso e o volume ou mensagem de erro."""
+        try:
+            volume = self.load_volume(caminho_pasta)
+            if volume and getattr(volume, "is_valid", True):
+                return True, volume
+            return False, "Falha ao carregar ou validar o volume DICOM."
+        except Exception as e:
+            return False, str(e)

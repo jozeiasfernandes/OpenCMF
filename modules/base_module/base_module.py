@@ -40,14 +40,14 @@ class ModuloBase(QtWidgets.QWidget):
 
     def inicializar(self, caminho_paciente: str) -> None:
         """Chamado pela orquestração do sistema."""
-        self.configurar_recursos(caminho_paciente)
+        self.configure_resources(caminho_paciente)
         self.module_logger.log_full_state()
 
     def cleanup(self) -> None:
         """Deve ser sobrescrito para limpar referências de componentes filhos."""
         pass
 
-    def configurar_recursos(self, caminho_paciente: str) -> None:
+    def configure_resources(self, caminho_paciente: str) -> None:
         """Deve ser implementado pelas subclasses."""
         pass
 

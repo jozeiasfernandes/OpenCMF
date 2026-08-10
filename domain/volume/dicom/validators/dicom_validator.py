@@ -5,14 +5,17 @@ from typing import Dict, Any, Callable, Optional
 
 from application.scene.events.scene_events import SceneEvents
 
+# Settings
+from core.settings.localization.translator import tr
+
 
 class DicomValidator:
     def __init__(self, event_bus: Any = None):
         self.event_bus = event_bus
 
-    def validar_diretorio(self, caminho_origem: Path, callback: Optional[Callable] = None) -> Dict[str, Any]:
+    def validate_directory(self, caminho_origem: Path, callback: Optional[Callable] = None) -> Dict[str, Any]:
         if not caminho_origem.exists():
-            return {"sucesso": False, "erro": "Caminho não encontrado."}
+            return {"sucesso": False, "erro": tr("file_browser.create_folder_error", "Caminho não encontrado.")}
 
         series_map = defaultdict(list)
 
@@ -24,7 +27,7 @@ class DicomValidator:
 
         total_arquivos = len(arquivos)
         if total_arquivos == 0:
-            return {"sucesso": False, "erro": "Nenhum arquivo compatível encontrado na pasta."}
+            return {"sucesso": False, "erro": tr("dialogs.error.message", "Nenhum arquivo compatível encontrado na pasta.")}
 
         for i, arquivo in enumerate(arquivos):
             if callback and i % 10 == 0:
@@ -72,8 +75,9 @@ class DicomValidator:
                 continue
 
         if not series_map:
+            error_msg = "Nenhuma série tomográfica válida encontrada."
             if self.event_bus:
-                self.event_bus.emit(SceneEvents.ERROR_OCCURRED, message="Nenhuma série tomográfica válida encontrada.")
-            return {"sucesso": False, "erro": "Nenhuma série tomográfica válida encontrada."}
+                self.event_bus.emit(SceneEvents.ERROR_OCCURRED, message=error_msg)
+            return {"sucesso": False, "erro": error_msg}
 
         return {"sucesso": True, "series": dict(series_map)}

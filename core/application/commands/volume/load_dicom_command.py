@@ -18,7 +18,7 @@ class LoadDicomCommand(Command):
     def execute(self) -> bool:
         try:
             # 1. Carrega o volume usando a engine
-            self.volume_model = self.engine.carregar_volume(str(self.caminho_pasta))
+            self.volume_model = self.engine.load_volume(str(self.caminho_pasta))
 
             if not self.volume_model or not self.volume_model.is_valid:
                 return False

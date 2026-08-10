@@ -101,11 +101,13 @@ class ViewportInteractionController:
     def _on_mouse_move(self, obj, event):
         x, y = self._get_mouse_position()
 
-        handled = self.tool_manager.mouse_move(
-            x=x,
-            y=y,
-            modifiers=self._get_modifiers(),
-        )
+        handled = False
+        if hasattr(self.tool_manager, "mouse_move"):
+            handled = self.tool_manager.mouse_move(
+                x=x,
+                y=y,
+                modifiers=self._get_modifiers(),
+            )
 
         if not handled:
             self._delegate_to_style(obj, "OnMouseMove")

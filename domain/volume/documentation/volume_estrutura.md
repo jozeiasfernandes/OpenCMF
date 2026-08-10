@@ -66,9 +66,9 @@ core/
     │   ├── shape_analysis.py
     │   └── __init__.py
     │
-    ├── exporters/                        # [Camada 4] Saída e persistência de malhas
-    │   ├── mesh_exporters.py
-    │   └── __init__.py
+    ├── exporters/
+    │   ├── __init__.py
+    │   ├── volume_exporter.py
     │
     ├── visualization/                    # Recursos visuais e gerenciamento de cores
     |   ├── volume_viewer_widget.py

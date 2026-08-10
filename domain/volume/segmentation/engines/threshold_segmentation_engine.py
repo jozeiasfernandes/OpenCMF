@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional, Callable, Any
 from domain.volume.segmentation.strategies.threshold import ThresholdStrategy
 from domain.volume.processing.surface_extraction import SurfaceExtraction
-from domain.volume.exporters.mesh_exporters import MeshExporter
+from domain.volume.exporters.vti_exporter import MeshExporter
 
 try:
     from application.scene import SceneEvents
