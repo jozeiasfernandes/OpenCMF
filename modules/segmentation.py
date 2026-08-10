@@ -50,7 +50,7 @@ class Modulo(ModuloBase):
         self.widget_central.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
         self.widget_central.setMinimumSize(400, 300)
 
-        # Define o viewer principal para a ModuloBase gerenciar
+        # Define o volume_viewer principal para a ModuloBase gerenciar
         self.viewer = self.widget_central
 
         self._conectar_sinais()

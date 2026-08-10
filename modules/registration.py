@@ -69,7 +69,7 @@ class Modulo(ModuloBase):
         self.widget_objetos = ObjectManager_SidePanel(context=self.widget_context)
         self.widget_propriedades = ObjectProperties_SidePanel(context=self.widget_context)
 
-        # Define o viewer principal para a ModuloBase gerenciar
+        # Define o volume_viewer principal para a ModuloBase gerenciar
         self.viewer = self.widget_reg
 
     def _criar_scene_manager_padrao(self) -> SceneManager:

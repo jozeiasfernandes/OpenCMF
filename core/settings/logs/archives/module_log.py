@@ -52,8 +52,8 @@ class Module_Logger:
             "class_name": self.modulo.__class__.__name__,
             "module_id": getattr(self.modulo, "id", "undefined.id"),
             "module_name": getattr(self.modulo, "nome", "Módulo Genérico"),
-            "has_viewer": bool(getattr(self.modulo, "viewer", None)),
-            "viewer_type": type(self.modulo.viewer).__name__ if getattr(self.modulo, "viewer", None) else None
+            "has_viewer": bool(getattr(self.modulo, "volume_viewer", None)),
+            "viewer_type": type(self.modulo.viewer).__name__ if getattr(self.modulo, "volume_viewer", None) else None
         }
 
     def get_module_components(self) -> Dict[str, Any]:

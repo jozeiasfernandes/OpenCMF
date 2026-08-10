@@ -12,7 +12,7 @@ from PySide6 import QtWidgets, QtCore
 
 from core.components.toolbars.tomography_toolbar import TomographyToolbar
 from domain.volume.dicom.engines.dicom_engine import DicomEngine
-from domain.volume.visualization.volume_viewer_widget import VolumeViewerWidget
+from domain.volume.visualization.volume_viewer.volume_viewer_widget import VolumeViewerWidget
 from domain.volume.dicom.validators.dicom_validator import DicomValidator
 
 from application.scene.events.event_bus import EventBus

@@ -79,10 +79,10 @@ class PaginaConfig(QtWidgets.QWidget):
         )
 
         self._adicionar_aba_ao_tree(
-            tr("configs.viewer"), tr("configs.2d_viewer"), Tab2DViewer()
+            tr("configs.volume_viewer"), tr("configs.2d_viewer"), Tab2DViewer()
         )
         self._adicionar_aba_ao_tree(
-            tr("configs.viewer"), tr("configs.3d_viewer"), Tab3DViewer()
+            tr("configs.volume_viewer"), tr("configs.3d_viewer"), Tab3DViewer()
         )
 
         self._adicionar_aba_ao_tree(
