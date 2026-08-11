@@ -67,6 +67,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         # EventBus Subscriptions
         self.events.subscribe(SceneEvents.OBJECT_ADDED, self._on_object_added)
         self.events.subscribe(SceneEvents.OBJECT_REMOVED, self._on_object_removed)
+        self.events.subscribe("LAYOUT_CHANGED", self._on_layout_event_received)
 
         self._setup_ui()
 
@@ -86,6 +87,10 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         layout.addWidget(self.grid_container)
 
         self.configure_layout("4 Quadrants")
+
+    def _on_layout_event_received(self, layout: str):
+        """Ouve o evento global de layout e atualiza a interface automaticamente."""
+        self.configure_layout(layout)
 
     def _on_object_added(self, object_id: str, obj: SceneObject):
         if obj.type == "volume":

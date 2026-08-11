@@ -36,8 +36,10 @@ MENU_STYLE = """
 
 
 class ContextMenu2D(QtWidgets.QMenu):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, context=None, scene_manager=None):
         super().__init__(parent)
+        self.context = context
+        self.scene_manager = scene_manager
         self.setStyleSheet(MENU_STYLE)
         self._build_menu()
 

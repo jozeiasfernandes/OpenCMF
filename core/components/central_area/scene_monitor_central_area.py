@@ -5,6 +5,8 @@ from typing import Any
 
 from PySide6 import QtWidgets, QtCore, QtGui
 from core.components.bases.base_central_area import CentralAreaBase
+from core.application.scene.events.event_bus import EventBus
+from core.application.scene.events.scene_events import SceneEvents
 
 os.environ["QT_API"] = "pyside6"
 
@@ -20,7 +22,6 @@ class SceneMonitorArea(CentralAreaBase):
     itemSelected = QtCore.Signal(object)
 
     def __init__(self, modulo=None):
-        # Inicializa a base_tool com título e cor de identificação
         super().__init__(title="Monitor de Cena", cor_identificacao="#90CAF9")
         self._modulo = modulo
         self._bound_bus = None
@@ -29,7 +30,6 @@ class SceneMonitorArea(CentralAreaBase):
         self._object_items = {}
 
         self.vtkWidget.hide()
-
 
         self._setup_monitor_ui()
         self._bind_to_scene()
@@ -73,11 +73,11 @@ def _get_storage_path(obj: Any) -> str:
     return str(metadata.get("storage", "RAM")).upper()
 
 
+# Implementação principal dos métodos da classe
 class SceneMonitorArea(CentralAreaBase):
     itemSelected = QtCore.Signal(object)
 
     def __init__(self, modulo=None):
-        # Inicializa a base_tool com título e cor de identificação
         super().__init__(title="Monitor de Cena", cor_identificacao="#90CAF9")
         self._modulo = modulo
         self._bound_bus = None
@@ -85,41 +85,31 @@ class SceneMonitorArea(CentralAreaBase):
         self._group_items = {}
         self._object_items = {}
 
-        # Substitui o espaço do VTK (ou o posiciona) pelo nosso monitor
-        # Como o SceneMonitor não usa o renderizador VTK, removemos/escondemos o vtkWidget
         self.vtkWidget.hide()
 
-        # Cria o layout de conteúdo principal dentro da área central
         self._setup_monitor_ui()
         self._bind_to_scene()
 
     def _setup_monitor_ui(self):
-        # Container principal dentro do layout_principal da base_tool
         self.container = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
 
-        # Árvore de Objetos
         self.tree = QtWidgets.QTreeWidget()
         self.tree.setHeaderLabels(["Nome", "Tipo", "Status", "Actors", "Memória", "Local"])
-        self.tree.setStyleSheet("background: #2b2b2b; colors: #eee; border: none;")
+        self.tree.setStyleSheet("background: #2b2b2b; color: #eee; border: none;")
 
-        # Inspector
         self.inspector = QtWidgets.QTreeWidget()
         self.inspector.setHeaderLabels(["Propriedade", "Valor"])
-        self.inspector.setStyleSheet("background: #252526; colors: #eee; border: none;")
+        self.inspector.setStyleSheet("background: #252526; color: #eee; border: none;")
 
         self.container.addWidget(self.tree)
         self.container.addWidget(self.inspector)
 
-        # Adiciona ao layout original da classe base_tool
-        # Inserimos antes da barra inferior (índice 0)
         self.layout_principal.insertWidget(0, self.container)
 
-        # Configurações de UI reaproveitadas do seu código original
         self.tree.itemClicked.connect(self._handle_item_click)
         self._setup_toolbar_controls()
 
     def _setup_toolbar_controls(self):
-        """Adiciona controles específicos na barra inferior da CentralAreaBase"""
         btn_refresh = QtWidgets.QToolButton()
         btn_refresh.setText("↻")
         btn_refresh.clicked.connect(self._refresh_tree)
@@ -130,15 +120,16 @@ class SceneMonitorArea(CentralAreaBase):
 
     def _bind_to_scene(self):
         sm = self._scene_manager()
-        if not sm or not hasattr(sm, "events"): return
+        if not sm or not hasattr(sm, "events"):
+            return
 
         self._bound_bus = sm.events
         self._callbacks = [
-            (OBJECT_ADDED, self._on_object_added),
-            (OBJECT_REMOVED, self._on_object_removed),
-            (OBJECT_UPDATED, self._on_object_updated),
-            (VISIBILITY_CHANGED, self._on_visibility_changed),
-            (SELECTION_CHANGED, self._on_selection_changed),
+            (SceneEvents.OBJECT_ADDED, self._on_object_added),
+            (SceneEvents.OBJECT_REMOVED, self._on_object_removed),
+            (SceneEvents.OBJECT_UPDATED, self._on_object_updated),
+            (SceneEvents.VISIBILITY_CHANGED, self._on_visibility_changed),
+            (SceneEvents.SELECTION_CHANGED, self._on_selection_changed),
         ]
 
         for event, cb in self._callbacks:
@@ -153,20 +144,23 @@ class SceneMonitorArea(CentralAreaBase):
 
     def _refresh_tree(self):
         sm = self._scene_manager()
-        if not sm or not hasattr(sm, "objects"): return
+        if not sm or not hasattr(sm, "objects"):
+            return
 
         self.tree.clear()
         self._group_items.clear()
         self._object_items.clear()
 
         objects = sm.objects.all()
-        if not objects: return
+        if not objects:
+            return
 
         for obj in sorted(objects, key=lambda x: (getattr(x, 'name', '') or "").lower()):
             self._create_or_update_item(obj)
 
     def _get_group(self, name):
-        if name in self._group_items: return self._group_items[name]
+        if name in self._group_items:
+            return self._group_items[name]
 
         item = QtWidgets.QTreeWidgetItem([name])
         item.setFirstColumnSpanned(True)
@@ -177,7 +171,8 @@ class SceneMonitorArea(CentralAreaBase):
         return item
 
     def _create_or_update_item(self, obj):
-        if not hasattr(obj, 'id'): return
+        if not hasattr(obj, 'id'):
+            return
 
         runtime = self._get_runtime_state(obj)
         is_new = obj.id not in self._object_items
@@ -206,7 +201,8 @@ class SceneMonitorArea(CentralAreaBase):
         if hasattr(sm, "selection"):
             selection = sm.selection
             ids = getattr(selection, "selected_ids", [])
-            if callable(ids): ids = ids()
+            if callable(ids):
+                ids = ids()
             selected = obj.id in ids if isinstance(ids, (list, set, tuple)) else obj.id == ids
 
         return RuntimeState(
@@ -217,8 +213,10 @@ class SceneMonitorArea(CentralAreaBase):
 
     def _state_to_text(self, state):
         flags = ["VISIBLE" if state.visible else "HIDDEN"]
-        if state.selected: flags.append("SELECTED")
-        if state.orphan: flags.append("ORPHAN")
+        if state.selected:
+            flags.append("SELECTED")
+        if state.orphan:
+            flags.append("ORPHAN")
         return " | ".join(flags)
 
     def _apply_style(self, item, state):
@@ -233,7 +231,8 @@ class SceneMonitorArea(CentralAreaBase):
 
     def _get_actors_safe(self, obj_id) -> list:
         sm = self._scene_manager()
-        if not sm or not hasattr(sm, "actors"): return []
+        if not sm or not hasattr(sm, "actors"):
+            return []
 
         registry = sm.actors
         for method_name in ["get_actors_by_object", "get_by_object", "get"]:
@@ -241,7 +240,7 @@ class SceneMonitorArea(CentralAreaBase):
             if callable(method):
                 try:
                     return method(obj_id) or []
-                except:
+                except Exception:
                     continue
         return []
 
@@ -280,8 +279,9 @@ class SceneMonitorArea(CentralAreaBase):
 
     def _on_object_removed(self, object_id=None, **kwargs):
         oid = object_id or kwargs.get("object_id")
-        if item := self._object_items.pop(oid, None):
-            if parent := item.parent(): parent.removeChild(item)
+        if oid and (item := self._object_items.pop(oid, None)):
+            if parent := item.parent():
+                parent.removeChild(item)
 
     def _on_object_updated(self, object=None, **kwargs):
         obj = object or kwargs.get("object")
@@ -292,14 +292,16 @@ class SceneMonitorArea(CentralAreaBase):
         oid = object_id or kwargs.get("object_id")
         sm = self._scene_manager()
         if sm and oid:
-            if obj := sm.objects.get(oid): self._create_or_update_item(obj)
+            if obj := sm.objects.get(oid):
+                self._create_or_update_item(obj)
 
     def _on_selection_changed(self, selected_ids=None, **kwargs):
         ids = selected_ids or kwargs.get("selected_ids", [])
         sm = self._scene_manager()
-        if not sm: return
+        if not sm:
+            return
 
-        for obj_id, item in self._object_items.items():
+        for obj_id in self._object_items.keys():
             if obj := sm.objects.get(obj_id):
                 self._create_or_update_item(obj)
 
@@ -309,7 +311,8 @@ class SceneMonitorArea(CentralAreaBase):
 
     def _handle_item_click(self, item, _):
         obj_id = item.data(0, QtCore.Qt.UserRole)
-        if not obj_id: return
+        if not obj_id:
+            return
 
         sm = self._scene_manager()
         if sm:
@@ -321,49 +324,43 @@ class SceneMonitorArea(CentralAreaBase):
                 self._populate_inspector(obj)
 
 
+# Alias para manter compatibilidade com SceneMonitorCenter
+SceneMonitorCenter = SceneMonitorArea
+
+
 class Component(SceneMonitorCenter):
     toolbox_name = "Monitor de Cena"
 
 
 if __name__ == "__main__":
-    from application.scene import SceneObject
-    from application.scene import SceneState
-    from application.scene import SceneManager
-    from application.scene.events import EventBus
-    from application.scene import (
-        ObjectRegistry
-    )
-    from application.scene.registry.actor_registry import (
-        ActorRegistry
-    )
-    from application.scene import (
-        SelectionManager
-    )
+    from application.scene.scene_object import SceneObject
+    from application.scene.scene_state import SceneState
+    from application.scene.scene_manager import SceneManager
+    from application.scene.events.event_bus import EventBus
+    from application.scene.registry.object_registry import ObjectRegistry
+    from application.scene.registry.actor_registry import ActorRegistry
+    from application.scene.selection.selection_manager import SelectionManager
 
     app = QtWidgets.QApplication(sys.argv)
-
     app.setStyle("Fusion")
 
     class _Fake:
         def __init__(self):
             bus = EventBus()
+            scene_state = SceneState()  # Instancia o estado da cena
 
             self.scene_manager = SceneManager(
-                SceneState(),
+                scene_state,
                 bus,
                 ObjectRegistry(),
                 ActorRegistry(),
-                SelectionManager(event_bus=bus),
+                SelectionManager(scene_state, event_bus=bus),
             )
 
     window = QtWidgets.QMainWindow()
-
     fake = _Fake()
 
-    central = SceneMonitorCenter(
-        modulo=fake
-    )
-
+    central = SceneMonitorCenter(modulo=fake)
     window.setCentralWidget(central)
 
     fake.scene_manager.add_object(
@@ -393,7 +390,6 @@ if __name__ == "__main__":
     )
 
     window.resize(1200, 700)
-
     window.show()
 
     sys.exit(app.exec())

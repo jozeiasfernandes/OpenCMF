@@ -8,6 +8,7 @@ class SceneEvents:
     SELECTION_CHANGED = "SELECTION_CHANGED"
     VISIBILITY_CHANGED = "VISIBILITY_CHANGED"
     INTERACTION_MODE_CHANGED = "INTERACTION_MODE_CHANGED"
+    LAYOUT_CHANGED = "LAYOUT_CHANGED"
 
 class RegistrationEvents:
     """Eventos específicos para ferramentas de registro."""

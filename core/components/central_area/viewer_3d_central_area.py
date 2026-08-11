@@ -108,15 +108,15 @@ class Viewer3D_Widget_CentralArea(CentralAreaBase):
 
 
 if __name__ == "__main__":
-    from application.scene import SceneManager
-    from application.scene import SceneState
-    from application.scene.events import EventBus
-    from application.scene import ObjectRegistry
+    from application.scene.scene_manager import SceneManager
+    from application.scene.scene_state import SceneState
+    from application.scene.events.event_bus import EventBus
+    from application.scene.registry.object_registry import ObjectRegistry
     from application.scene.registry.actor_registry import ActorRegistry
-    from application.scene import SelectionManager
-    from application.scene import VTKActorFactory
-    from application.scene import SceneBridge
-    from application.scene import ObjectImporter
+    from application.scene.selection.selection_manager import SelectionManager
+    from application.scene.rendering.vtk_actor_factory import VTKActorFactory
+    from application.scene.rendering.scene_bridge import SceneBridge
+    from application.scene.io.importer import ObjectImporter
     import tempfile
 
     app = QtWidgets.QApplication(sys.argv)

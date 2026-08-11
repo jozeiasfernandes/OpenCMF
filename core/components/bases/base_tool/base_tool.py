@@ -8,10 +8,6 @@ from PySide6 import QtGui, QtWidgets
 from settings.paths.list_paths import ICONS_DIR
 from application.scene.scene_manager import SceneManager
 
-#   category = ToolCategory.SELECTION
-#   category = ToolCategory.TRANSFORMATION
-#   category = ToolCategory.TOMOGRAPHY
-
 
 class ToolCategory(Enum):
     ANNOTATION = auto()
@@ -30,7 +26,6 @@ class ToolCategory(Enum):
     OTHER = auto()
 
 
-
 @dataclass(slots=True)
 class InteractionContext:
     renderer: vtk.vtkRenderer
@@ -42,7 +37,7 @@ class InteractionContext:
 class BaseTool:
     name: str = "base_tool"
     display_name: str = "Base Tool"
-    category: ToolCategory = ToolCategory.OTHER  # Categoria padrão
+    category: ToolCategory = ToolCategory.OTHER
     icon: Optional[str] = None
     tool_tip: str = ""
     cursor: Optional[QtGui.QCursor] = None
@@ -61,13 +56,30 @@ class BaseTool:
         """Acesso facilitado ao EventBus via SceneManager."""
         return self.scene.events if self.scene else None
 
-    def create_button(self, callback) -> QtWidgets.QToolButton:
-        """Cria o botão para ser adicionado à toolbar_container."""
+    def create_button(self, callback) -> QtWidgets.QWidget:
+        """Cria o widget associado à ferramenta para a toolbar.
+        Se a ferramenta implementar create_widget, retorna o widget customizado (ex: QComboBox).
+        Se implementar toolbar_label, encapsula o widget e o rótulo (label) em um container."""
+        if hasattr(self, "create_widget") and callable(self.create_widget):
+            widget = self.create_widget()
+
+            if hasattr(self, "toolbar_label") and self.toolbar_label:
+                container = QtWidgets.QWidget()
+                layout = QtWidgets.QHBoxLayout(container)
+                layout.setContentsMargins(4, 0, 4, 0)
+                layout.setSpacing(4)
+
+                layout.addWidget(QtWidgets.QLabel(self.toolbar_label))
+                layout.addWidget(widget)
+                return container
+
+            return widget
+
         btn = QtWidgets.QToolButton()
         btn.setText(self.display_name)
         btn.setToolTip(self.tool_tip)
         btn.setIcon(self.get_qicon())
-        btn.setCheckable(True)  # Útil para ferramentas
+        btn.setCheckable(True)
         btn.clicked.connect(callback)
         return btn
 

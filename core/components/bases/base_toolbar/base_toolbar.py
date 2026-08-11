@@ -79,7 +79,27 @@ class BaseToolbar(QtWidgets.QToolBar):
         self._action_group = QtGui.QActionGroup(self)
         self._action_group.setExclusive(True)
 
-    def register_tool(self, tool: 'BaseTool') -> QtGui.QAction:
+    def register_tool(self, tool: 'BaseTool') -> QtWidgets.QWidget | QtGui.QAction:
+        """Registra uma ferramenta. Se ela possuir um widget customizado (ex: QComboBox),
+        o adiciona diretamente via addWidget. Caso contrário, cria o QAction padrão."""
+        if hasattr(tool, "create_widget") and callable(tool.create_widget):
+            widget = tool.create_widget()
+
+            # Se a ferramenta definir um rótulo (toolbar_label), encapsulamos em um container com Label
+            if hasattr(tool, "toolbar_label") and tool.toolbar_label:
+                container = QtWidgets.QWidget()
+                layout = QtWidgets.QHBoxLayout(container)
+                layout.setContentsMargins(4, 0, 4, 0)
+                layout.setSpacing(4)
+                layout.addWidget(QtWidgets.QLabel(tool.toolbar_label))
+                layout.addWidget(widget)
+                self.addWidget(container)
+                return container
+
+            self.addWidget(widget)
+            return widget
+
+        # Comportamento padrão para ferramentas que são botões
         action = QtGui.QAction(tool.get_qicon(), tool.display_name, self)
         action.setCheckable(True)
         action.setToolTip(tool.tool_tip)

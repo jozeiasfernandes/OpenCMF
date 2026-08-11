@@ -3,10 +3,17 @@ from PySide6 import QtWidgets, QtCore
 
 from core.components.bases.base_toolbar.base_toolbar import BaseToolbar, AppContext
 
-# Ferramentas
-from domain.volume.visualization.lut.lut_presets import LUTPresets
+# Tools
+
 from core.components.tools.volume.dicom.save_vti_tool import SaveVtiTool
-from tools.volume.dicom.layout_dicom_tool import LayoutDicomTool
+from core.components.tools.volume.dicom.layout_dicom_tool import LayoutDicomTool
+from core.components.tools.volume.dicom.load_dicom_tool import LoadDicomTool
+from core.components.tools.volume.dicom.reset_dicom_tool import ResetDicomTool
+from core.components.tools.volume.vizualizations.color_map_tool import ColorMapTool
+
+from domain.volume.visualization.lut.lut_presets import LUTPresets
+
+
 
 
 class TomographyToolbar(BaseToolbar):
@@ -19,16 +26,17 @@ class TomographyToolbar(BaseToolbar):
         self._validation_state = False
 
     def setup_ui(self):
-
-        self.btn_load = QtWidgets.QPushButton("⌛ Load Volume")
-        self.addWidget(self.btn_load)
-
-        self.add_separator()
-
-
         if self.tool_manager and hasattr(self.tool_manager, "register_tool"):
             try:
-                self.tool_manager.register_tool("save_vti", SaveVtiTool())
+                self.tool_manager.register_tool(LoadDicomTool.name, LoadDicomTool())
+            except TypeError:
+                try:
+                    self.tool_manager.register_tool(LoadDicomTool())
+                except Exception:
+                    pass
+
+            try:
+                self.tool_manager.register_tool(SaveVtiTool.name, SaveVtiTool())
             except TypeError:
                 try:
                     self.tool_manager.register_tool(SaveVtiTool())
@@ -43,32 +51,48 @@ class TomographyToolbar(BaseToolbar):
                 except Exception:
                     pass
 
-        tool_keys = ["open", "validate", "save", "save_vti", "reset", LayoutDicomTool.name]
+            try:
+                self.tool_manager.register_tool(ResetDicomTool.name, ResetDicomTool())
+            except TypeError:
+                try:
+                    self.tool_manager.register_tool(ResetDicomTool())
+                except Exception:
+                    pass
+
+            try:
+                self.tool_manager.register_tool(ColorMapTool.name, ColorMapTool())
+            except TypeError:
+                try:
+                    self.tool_manager.register_tool(ColorMapTool())
+                except Exception:
+                    pass
+
+        tool_keys = [
+            LoadDicomTool.name,
+            SaveVtiTool.name,
+            LayoutDicomTool.name,
+            ResetDicomTool.name,
+            ColorMapTool.name
+        ]
 
         for key in tool_keys:
             tool = self.tool_manager.get_tool(key) if self.tool_manager else None
-            if not tool and key == "save_vti":
+            if not tool and key == LoadDicomTool.name:
+                tool = LoadDicomTool()
+            elif not tool and key == SaveVtiTool.name:
                 tool = SaveVtiTool()
             elif not tool and key == LayoutDicomTool.name:
                 tool = LayoutDicomTool()
+            elif not tool and key == ResetDicomTool.name:
+                tool = ResetDicomTool()
+            elif not tool and key == ColorMapTool.name:
+                tool = ColorMapTool()
 
             if tool:
                 self.register_tool(tool)
 
         self.add_separator()
 
-        self.addWidget(QtWidgets.QLabel("Layout:"))
-        self.combo_layout = QtWidgets.QComboBox()
-        self.combo_layout.addItems(["4 Quadrantes", "3D Only", "Axial", "Sagittal", "Coronal"])
-        self.combo_layout.currentTextChanged.connect(self._on_layout_changed)
-        self.addWidget(self.combo_layout)
-
-        self.addWidget(QtWidgets.QLabel("LUT:"))
-        self.combo_color = QtWidgets.QComboBox()
-
-        self.combo_color.addItems(list(LUTPresets.PRESETS.keys()))
-        self.combo_color.currentTextChanged.connect(self._on_lut_changed)
-        self.addWidget(self.combo_color)
 
     def set_validation_state(self, state: bool):
         """Método chamado pelo módulo para indicar que o DICOM foi validado."""
@@ -76,7 +100,6 @@ class TomographyToolbar(BaseToolbar):
 
     def _on_layout_changed(self, text):
         if self.tool_manager:
-            # Tenta buscar pelo nome da tool ou por chave alternativa
             tool = self.tool_manager.get_tool(LayoutDicomTool.name) or self.tool_manager.get_tool("layout")
             if tool and hasattr(tool, "apply_layout"):
                 tool.apply_layout(text)
@@ -84,7 +107,7 @@ class TomographyToolbar(BaseToolbar):
 
     def _on_lut_changed(self, text):
         if self.tool_manager:
-            tool = self.tool_manager.get_tool("colors")
+            tool = self.tool_manager.get_tool(ColorMapTool.name) or self.tool_manager.get_tool("colors")
             if tool and hasattr(tool, "apply_lut"):
                 tool.apply_lut(text)
         self.lutChanged.emit(text)
@@ -105,6 +128,10 @@ if __name__ == "__main__":
                 tool = args[0]
                 if hasattr(tool, "name"):
                     self.tools[tool.name] = tool
+
+        def activate_tool(self, tool):
+            if hasattr(tool, "on_activate"):
+                tool.on_activate()
 
 
     class MockSceneManager:

@@ -1,10 +1,11 @@
 from __future__ import annotations
-from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
 
+from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
 
 class ResetDicomTool(BaseTool):
     name: str = "reset_view"
     display_name: str = "Resetar Visualização"
+    icon: str = "reset_wrench.svg"
     category: ToolCategory = ToolCategory.VIEWER
 
     def on_activate(self) -> None:
