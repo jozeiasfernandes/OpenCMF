@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any, List, Tuple
 from PySide6 import QtWidgets, QtCore, QtGui
 
 # Settings
@@ -15,7 +15,7 @@ class DicomImportWindow(QtWidgets.QDialog):
         self.selected_series_index: int = -1
 
         self.setWindowTitle(tr("import.volumes.dicom", "Importar DICOM / Tomografia"))
-        self.resize(800, 700)
+        self.resize(500, 400)
 
         self._init_ui()
         if self.series_list:
@@ -148,6 +148,7 @@ class DicomImportWindow(QtWidgets.QDialog):
     def _on_series_selection_changed(self):
         selected_rows = self.table_series.selectionModel().selectedRows()
         if not selected_rows:
+            self.selected_series_index = -1
             return
 
         self.selected_series_index = selected_rows[0].row()
@@ -182,7 +183,7 @@ class DicomImportWindow(QtWidgets.QDialog):
             return self.series_list[self.selected_series_index]
         return None
 
-    def get_sampling_factors(self) -> tuple[float, float, float]:
+    def get_sampling_factors(self) -> Tuple[float, float, float]:
         """Retorna os fatores de amostragem configurados (X, Y, Z)."""
         return (self.spin_x.value(), self.spin_y.value(), self.spin_z.value())
 
@@ -192,7 +193,6 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(sys.argv)
 
-    # Dados mockados para teste visual e depuração isolada da janela
     mock_series = [
         {
             "number": 10100,

@@ -1,0 +1,6 @@
+O Fluxo 1 (Atalho Direto) é iniciado por meio do acionamento da ferramenta de carregamento de DICOM e segue as etapas abaixo:
+
+* Ponto de Entrada e Seleção: O usuário clica no botão "Load Dicom" na barra de ferramentas de tomografia através da classe LoadDicomTool, o que abre um diálogo de seleção de diretórios do sistema operacional para escolher a pasta contendo os arquivos DICOM.
+* Validação Técnica: O caminho da pasta selecionada é enviado para o DicomValidator.validate_directory, que realiza uma varredura recursiva nos arquivos, filtra extensões irrelevantes, valida a presença da tag DICOM (b"DICM") e descarta exames do tipo scout ou localizer, mantendo apenas modalidades suportadas como CT, PT ou MR.
+* Seleção de Série e Configuração: Caso o diretório seja validado, as séries encontradas são exibidas na janela DicomImportWindow, onde o usuário seleciona a série desejada e define os fatores de amostragem $X$, $Y$ e $Z$.
+* Processamento e Renderização: Após a confirmação, o DicomEngine processa o carregamento dos metadados, faz a ordenação espacial das fatias ao longo do eixo $Z$ usando a tag ImagePositionPatient, aplica os coeficientes de escala (RescaleSlope e RescaleIntercept) e converte os pixels em um objeto vtk.vtkImageData. Por fim, o evento DICOM_LOADED é emitido para atualizar o VolumeViewerWidget na área central da aplicação.

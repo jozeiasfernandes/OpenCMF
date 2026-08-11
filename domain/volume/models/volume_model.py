@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pathlib import Path
 from typing import Any, Optional, Tuple, Union
 
@@ -18,7 +20,7 @@ class Volume:
         self.source_path: Optional[Path] = Path(source_path) if source_path else None
         self.name: str = name
 
-        # Geometria genérica (pode ser preenchida por adaptadores ou duck typing)
+        # Geometria genérica (preenchida via duck typing)
         self._dimensions: Tuple[int, int, int] = (0, 0, 0)
         self._spacing: Tuple[float, float, float] = (1.0, 1.0, 1.0)
         self._origin: Tuple[float, float, float] = (0.0, 0.0, 0.0)
@@ -27,10 +29,9 @@ class Volume:
 
     def _extract_geometry(self):
         """Tenta extrair propriedades geométricas usando métodos comuns (Duck Typing),
-        evitando importar ou checar tipos específicos do VTK ou ITK aqui dentro.
+        evitando acoplamento estrito com o VTK ou ITK.
         """
         try:
-            # Compatível com vtkImageData
             if hasattr(self._image_data, "GetDimensions"):
                 self._dimensions = tuple(self._image_data.GetDimensions())
                 self._spacing = tuple(self._image_data.GetSpacing())
@@ -38,9 +39,6 @@ class Volume:
                 return
         except Exception:
             pass
-
-        # Aqui você também poderia adicionar suporte nativo a ITK ou NumPy se necessário no futuro
-        # Ex: if 'itk' in type(self._image_data).__module__: ...
 
     @property
     def image_data(self) -> Any:
@@ -67,21 +65,21 @@ class Volume:
 
     @property
     def is_valid(self) -> bool:
-        return self._image_data is not None and sum(self._dimensions) > 0
+        return self._image_data is not None and all(dim > 0 for dim in self._dimensions)
 
     def get_voxel_count(self) -> int:
-        if self.is_valid:
-            return self._dimensions[0] * self._dimensions[1] * self._dimensions[2]
-        return 0
+        if not self.is_valid:
+            return 0
+        return self._dimensions[0] * self._dimensions[1] * self._dimensions[2]
 
     def get_physical_size(self) -> Tuple[float, float, float]:
-        if self.is_valid:
-            return (
-                self._dimensions[0] * self._spacing[0],
-                self._dimensions[1] * self._spacing[1],
-                self._dimensions[2] * self._spacing[2]
-            )
-        return (0.0, 0.0, 0.0)
+        if not self.is_valid:
+            return (0.0, 0.0, 0.0)
+        return (
+            self._dimensions[0] * self._spacing[0],
+            self._dimensions[1] * self._spacing[1],
+            self._dimensions[2] * self._spacing[2]
+        )
 
     def __repr__(self) -> str:
         return (

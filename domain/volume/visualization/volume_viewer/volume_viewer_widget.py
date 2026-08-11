@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 from typing import Optional, Any
@@ -9,12 +11,14 @@ import vtk
 from application.scene.scene_object import SceneObject
 from application.scene.events.scene_events import SceneEvents
 
-# Settings
-raiz_projeto = Path(__file__).resolve().parent.parent.parent.parent
-if str(raiz_projeto) not in sys.path:
-    sys.path.insert(0, str(raiz_projeto))
-
-from core.settings.paths.list_paths import PRESETS_DIR
+# Settings (Tratamento seguro para path raiz se necessário)
+try:
+    from core.settings.paths.list_paths import PRESETS_DIR
+except ImportError:
+    raiz_projeto = Path(__file__).resolve().parent.parent.parent.parent
+    if str(raiz_projeto) not in sys.path:
+        sys.path.insert(0, str(raiz_projeto))
+    from core.settings.paths.list_paths import PRESETS_DIR
 
 # Modular structure imports
 from domain.volume.visualization.volume_viewer.constants import VolumeViewerConstants
@@ -64,15 +68,15 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         # VTK Logic Controller
         self.controller = VolumeViewerController(self.vistas, self.path_presets)
 
-        # EventBus Subscriptions
+        # EventBus Subscriptions usando constantes centralizadas
         self.events.subscribe(SceneEvents.OBJECT_ADDED, self._on_object_added)
         self.events.subscribe(SceneEvents.OBJECT_REMOVED, self._on_object_removed)
-        self.events.subscribe("LAYOUT_CHANGED", self._on_layout_event_received)
+        self.events.subscribe(SceneEvents.LAYOUT_CHANGED, self._on_layout_event_received)
 
         self._setup_ui()
 
     def _init_paths(self):
-        self.path_presets = str(PRESETS_DIR)
+        self.path_presets = str(PRESETS_DIR) if PRESETS_DIR else ""
 
     def _setup_ui(self):
         layout = QtWidgets.QVBoxLayout(self)

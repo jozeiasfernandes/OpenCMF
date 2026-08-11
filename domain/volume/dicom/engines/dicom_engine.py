@@ -4,7 +4,7 @@ import vtk
 from vtkmodules.util import numpy_support
 
 from pathlib import Path
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Tuple, Any, Union
 
 from domain.volume.models.volume_model import Volume
 from domain.volume.dicom.validators.dicom_validator import DicomValidator
@@ -17,16 +17,16 @@ class DicomEngine:
         self.last_origin = (0.0, 0.0, 0.0)
         self.validator = DicomValidator(event_bus=event_bus)
 
-    def process_to_scene_object(self, caminho_pasta: str) -> Optional[Dict[str, Any]]:
+    def process_to_scene_object(self, caminho_pasta: Union[str, Path]) -> Optional[Dict[str, Any]]:
         volume_model = self.load_volume(caminho_pasta)
-        if not volume_model or not volume_model.is_valid:
+        if not volume_model or not getattr(volume_model, "is_valid", True):
             return None
 
         return {
             "metadata": {
-                "mesh_data": volume_model.vtk_data,
+                "mesh_data": getattr(volume_model, "vtk_data", None),
                 "volume_model": volume_model,
-                "source_path": caminho_pasta
+                "source_path": str(caminho_pasta)
             },
             "transforms": {
                 "position": self.last_origin,
@@ -34,7 +34,7 @@ class DicomEngine:
             }
         }
 
-    def load_volume(self, caminho_pasta: str) -> Optional[Volume]:
+    def load_volume(self, caminho_pasta: Union[str, Path]) -> Optional[Volume]:
         path_obj = Path(caminho_pasta)
 
         # 1. Validação prévia com o DicomValidator
@@ -42,7 +42,7 @@ class DicomEngine:
         if not validacao.get("sucesso", False):
             return None
 
-        arquivos = self._list_files(caminho_pasta)
+        arquivos = self._list_files(path_obj)
         dataset = self._read_metadata(arquivos)
 
         if not dataset:
@@ -67,7 +67,7 @@ class DicomEngine:
 
         # 2. Criação correta do modelo Volume usando image_data
         self._current_volume = Volume(image_data=vtk_img)
-        self._current_volume.source_path = caminho_pasta
+        self._current_volume.source_path = str(path_obj)
         self._current_volume.name = "Exame DICOM / TC"
 
         return self._current_volume
@@ -121,20 +121,24 @@ class DicomEngine:
         return volume
 
     def _numpy_to_vtk(self, nparray: np.ndarray) -> vtk.vtkImageData:
+        # Garante a ordem contígua da memória em C para o mapeamento correto do VTK
+        nparray_contiguous = np.ascontiguousarray(nparray)
+
         vtk_array = numpy_support.numpy_to_vtk(
-            nparray.ravel(order='C'), deep=True, array_type=vtk.VTK_FLOAT
+            nparray_contiguous.ravel(order='C'), deep=True, array_type=vtk.VTK_FLOAT
         )
 
         img_data = vtk.vtkImageData()
+        # Dimensões no VTK: (Width/Columns, Height/Rows, Depth/Slices)
         img_data.SetDimensions(nparray.shape[2], nparray.shape[1], nparray.shape[0])
         img_data.SetSpacing(self.last_spacing)
         img_data.SetOrigin(self.last_origin)
         img_data.GetPointData().SetScalars(vtk_array)
         return img_data
 
-    def _list_files(self, caminho: str) -> List[Path]:
+    def _list_files(self, caminho: Path) -> List[Path]:
         return [
-            f for f in Path(caminho).rglob("*")
+            f for f in caminho.rglob("*")
             if f.is_file() and not f.name.startswith('.')
         ]
 
@@ -154,8 +158,7 @@ class DicomEngine:
                 continue
         return result
 
-    def _select_best_series(self, datasets: List[pydicom.dataset.FileDataset]) -> List[
-        pydicom.dataset.FileDataset]:
+    def _select_best_series(self, datasets: List[pydicom.dataset.FileDataset]) -> List[pydicom.dataset.FileDataset]:
         if not datasets:
             return []
 
@@ -175,7 +178,7 @@ class DicomEngine:
     def current_volume(self) -> Optional[Volume]:
         return self._current_volume
 
-    def load_folder(self, caminho_pasta: str):
+    def load_folder(self, caminho_pasta: Union[str, Path]) -> Tuple[bool, Union[Volume, str]]:
         """Carrega a pasta DICOM e retorna o status de sucesso e o volume ou mensagem de erro."""
         try:
             volume = self.load_volume(caminho_pasta)
@@ -184,3 +187,37 @@ class DicomEngine:
             return False, "Falha ao carregar ou validar o volume DICOM."
         except Exception as e:
             return False, str(e)
+
+    def get_series_list(self, caminho_pasta: Union[str, Path]) -> List[Dict[str, Any]]:
+        """Varre o diretório, agrupa os arquivos por série DICOM e retorna uma lista de metadados das séries."""
+        path_obj = Path(caminho_pasta)
+        arquivos = self._list_files(path_obj)
+        datasets = self._read_metadata(arquivos)
+
+        if not datasets:
+            return []
+
+        grupos: Dict[str, List[pydicom.dataset.FileDataset]] = {}
+        for ds in datasets:
+            series_uid = getattr(ds, "SeriesInstanceUID", "unknown")
+            chave = f"{series_uid}_{ds.Rows}x{ds.Columns}"
+            grupos.setdefault(chave, []).append(ds)
+
+        series_disponiveis = []
+        for chave, fatias in grupos.items():
+            ds0 = fatias[0]
+            series_desc = getattr(ds0, "SeriesDescription", "Série sem descrição")
+            patient_name = str(getattr(ds0, "PatientName", "Desconhecido"))
+            modality = getattr(ds0, "Modality", "CT")
+
+            series_disponiveis.append({
+                "uid": getattr(ds0, "SeriesInstanceUID", chave),
+                "description": series_desc,
+                "modality": modality,
+                "patient_name": patient_name,
+                "slice_count": len(fatias),
+                "path": str(path_obj),
+                "datasets": fatias
+            })
+
+        return series_disponiveis

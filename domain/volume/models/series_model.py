@@ -1,16 +1,19 @@
+from __future__ import annotations
+
 from pathlib import Path
+from typing import Dict, Any, List
 
 
 class DicomFile:
     def __init__(
-        self,
-        path: Path,
-        instance_number: int,
+            self,
+            path: Path | str,
+            instance_number: int,
     ):
-        self.path = path
+        self.path = Path(path) if isinstance(path, str) else path
         self.instance_number = instance_number
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "path": str(self.path),
             "instance_number": self.instance_number,
@@ -18,14 +21,13 @@ class DicomFile:
 
 
 class Series:
-
     def __init__(
-        self,
-        series_uid: str,
-        description: str,
-        rows: int,
-        columns: int,
-        files: list[DicomFile],
+            self,
+            series_uid: str,
+            description: str,
+            rows: int,
+            columns: int,
+            files: List[DicomFile],
     ):
         self.series_uid = series_uid
         self.description = description
@@ -33,11 +35,18 @@ class Series:
         self.columns = columns
         self.files = files
 
+        # Opcional, mas recomendado: Garante que os arquivos estejam ordenados pelo número da instância
+        self.sort_files()
+
     @property
-    def slice_count(self):
+    def slice_count(self) -> int:
         return len(self.files)
 
-    def to_dict(self):
+    def sort_files(self):
+        """Ordena as fatias com base no número da instância."""
+        self.files.sort(key=lambda f: f.instance_number)
+
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "series_uid": self.series_uid,
             "description": self.description,

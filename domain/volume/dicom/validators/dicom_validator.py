@@ -76,8 +76,12 @@ class DicomValidator:
 
         if not series_map:
             error_msg = "Nenhuma série tomográfica válida encontrada."
-            if self.event_bus:
-                self.event_bus.emit(SceneEvents.ERROR_OCCURRED, message=error_msg)
+            # Opcional: só emite se o event_bus possuir suporte ao método emit
+            if self.event_bus and hasattr(self.event_bus, "emit"):
+                try:
+                    self.event_bus.emit("ERROR_OCCURRED", message=error_msg)
+                except Exception:
+                    pass
             return {"sucesso": False, "erro": error_msg}
 
         return {"sucesso": True, "series": dict(series_map)}

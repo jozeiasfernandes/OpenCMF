@@ -4,99 +4,70 @@ from PySide6 import QtWidgets, QtCore
 from core.components.bases.base_toolbar.base_toolbar import BaseToolbar, AppContext
 
 # Tools
-
+from core.components.tools.volume.dicom.load_dicom_tool import LoadDicomTool
 from core.components.tools.volume.dicom.save_vti_tool import SaveVtiTool
 from core.components.tools.volume.dicom.layout_dicom_tool import LayoutDicomTool
-from core.components.tools.volume.dicom.load_dicom_tool import LoadDicomTool
 from core.components.tools.volume.dicom.reset_dicom_tool import ResetDicomTool
 from core.components.tools.volume.vizualizations.color_map_tool import ColorMapTool
 
-from domain.volume.visualization.lut.lut_presets import LUTPresets
-
-
-
 
 class TomographyToolbar(BaseToolbar):
-    lutChanged = QtCore.Signal(str)
     layoutChanged = QtCore.Signal(str)
 
     def __init__(self, app_context: AppContext, parent=None):
         super().__init__("Tomografia", app_context, parent)
-
         self._validation_state = False
 
     def setup_ui(self):
+        tool_classes = [LoadDicomTool, SaveVtiTool, LayoutDicomTool, ResetDicomTool, ColorMapTool]
+        tool_keys = [tool.name for tool in tool_classes]
+
+        # Garante que as ferramentas estejam registradas no tool_manager se ele suportar
         if self.tool_manager and hasattr(self.tool_manager, "register_tool"):
-            try:
-                self.tool_manager.register_tool(LoadDicomTool.name, LoadDicomTool())
-            except TypeError:
+            for tool_class in tool_classes:
                 try:
-                    self.tool_manager.register_tool(LoadDicomTool())
+                    # Verifica se já não existe para evitar sobrescrever instâncias com estado
+                    if not self.tool_manager.get_tool(tool_class.name):
+                        self.tool_manager.register_tool(tool_class.name, tool_class())
                 except Exception:
                     pass
 
-            try:
-                self.tool_manager.register_tool(SaveVtiTool.name, SaveVtiTool())
-            except TypeError:
-                try:
-                    self.tool_manager.register_tool(SaveVtiTool())
-                except Exception:
-                    pass
-
-            try:
-                self.tool_manager.register_tool(LayoutDicomTool.name, LayoutDicomTool())
-            except TypeError:
-                try:
-                    self.tool_manager.register_tool(LayoutDicomTool())
-                except Exception:
-                    pass
-
-            try:
-                self.tool_manager.register_tool(ResetDicomTool.name, ResetDicomTool())
-            except TypeError:
-                try:
-                    self.tool_manager.register_tool(ResetDicomTool())
-                except Exception:
-                    pass
-
-            try:
-                self.tool_manager.register_tool(ColorMapTool.name, ColorMapTool())
-            except TypeError:
-                try:
-                    self.tool_manager.register_tool(ColorMapTool())
-                except Exception:
-                    pass
-
-        tool_keys = [
-            LoadDicomTool.name,
-            SaveVtiTool.name,
-            LayoutDicomTool.name,
-            ResetDicomTool.name,
-            ColorMapTool.name
-        ]
-
+        # Adiciona os widgets/ações correspondentes na toolbar
         for key in tool_keys:
             tool = self.tool_manager.get_tool(key) if self.tool_manager else None
-            if not tool and key == LoadDicomTool.name:
-                tool = LoadDicomTool()
-            elif not tool and key == SaveVtiTool.name:
-                tool = SaveVtiTool()
-            elif not tool and key == LayoutDicomTool.name:
-                tool = LayoutDicomTool()
-            elif not tool and key == ResetDicomTool.name:
-                tool = ResetDicomTool()
-            elif not tool and key == ColorMapTool.name:
-                tool = ColorMapTool()
+
+            # Fallback robusto caso o gerenciador não retorne
+            if not tool:
+                if key == LoadDicomTool.name:
+                    tool = LoadDicomTool()
+                elif key == SaveVtiTool.name:
+                    tool = SaveVtiTool()
+                elif key == LayoutDicomTool.name:
+                    tool = LayoutDicomTool()
+                elif key == ResetDicomTool.name:
+                    tool = ResetDicomTool()
+                elif key == ColorMapTool.name:
+                    tool = ColorMapTool()
 
             if tool:
                 self.register_tool(tool)
 
-        self.add_separator()
-
+        # Atualiza o estado inicial das ferramentas dependentes de validação
+        self._update_tools_availability()
 
     def set_validation_state(self, state: bool):
-        """Método chamado pelo módulo para indicar que o DICOM foi validado."""
+        """Método chamado pelo módulo/pipeline para indicar que o DICOM foi validado e carregado."""
         self._validation_state = state
+        self._update_tools_availability()
+
+    def _update_tools_availability(self):
+        """Habilita ou desabilita ferramentas dependentes de tomografia carregada."""
+        dependent_tools = [SaveVtiTool.name, LayoutDicomTool.name, ResetDicomTool.name, ColorMapTool.name]
+
+        for key in dependent_tools:
+            tool = self.tool_manager.get_tool(key) if self.tool_manager else None
+            if tool and hasattr(tool, "setEnabled"):
+                tool.setEnabled(self._validation_state)
 
     def _on_layout_changed(self, text):
         if self.tool_manager:
@@ -104,13 +75,6 @@ class TomographyToolbar(BaseToolbar):
             if tool and hasattr(tool, "apply_layout"):
                 tool.apply_layout(text)
         self.layoutChanged.emit(text)
-
-    def _on_lut_changed(self, text):
-        if self.tool_manager:
-            tool = self.tool_manager.get_tool(ColorMapTool.name) or self.tool_manager.get_tool("colors")
-            if tool and hasattr(tool, "apply_lut"):
-                tool.apply_lut(text)
-        self.lutChanged.emit(text)
 
 
 if __name__ == "__main__":

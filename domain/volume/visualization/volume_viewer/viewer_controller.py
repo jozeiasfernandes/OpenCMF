@@ -14,6 +14,7 @@ class VolumeViewerController:
 
         self.volume_data: Optional[vtk.vtkImageData] = None
         self.volume_actor: Optional[vtk.vtkVolume] = None
+        self.volume_object: Optional[Any] = None  # Declarado explicitamente para evitar avisos
         self.mappers_mpr: Dict[str, vtk.vtkImageResliceMapper] = {}
 
         self.opacity_function = vtk.vtkPiecewiseFunction()
@@ -33,11 +34,6 @@ class VolumeViewerController:
                 self.volume_actor = ViewerRenderers.configure_3d_renderer(
                     ren, volume, self.color_function, self.opacity_function
                 )
-                preset = getattr(pane, 'combo_presets', None)
-                preset_name = preset.currentText() if preset else ""
-                if preset_name:
-                    # Pode ser acionado externamente se necessário
-                    pass
             else:
                 axis = VolumeViewerConstants.DIM_MAP[nome]
                 actor = ViewerRenderers.configure_mpr_renderer(
@@ -74,7 +70,7 @@ class VolumeViewerController:
             return None
 
         axis = VolumeViewerConstants.DIM_MAP[plano]
-        pos_fisica = self.volume_data.GetOrigin()[axis] + (index * self.volume_data.GetSpacing()[axis])
+        pos_fisica = float(self.volume_data.GetOrigin()[axis] + (index * self.volume_data.GetSpacing()[axis]))
 
         ViewerRenderers.update_reslice_position(self.mappers_mpr[plano], axis, pos_fisica)
 
@@ -132,9 +128,9 @@ class VolumeViewerController:
         if not self.volume_actor:
             return
         self.opacity_function.RemoveAllPoints()
-        self.opacity_function.AddPoint(value - 100, 0.0)
-        self.opacity_function.AddPoint(value, 0.2)
-        self.opacity_function.AddPoint(value + 500, 0.8)
+        self.opacity_function.AddPoint(float(value - 100), 0.0)
+        self.opacity_function.AddPoint(float(value), 0.2)
+        self.opacity_function.AddPoint(float(value + 500), 0.8)
 
         viewer_3d = self.vistas.get("3D")
         if viewer_3d:
@@ -162,6 +158,8 @@ class VolumeViewerController:
     def clear_scene(self):
         self.volume_object = None
         self.volume_data = None
+        self.volume_actor = None
+        self.mappers_mpr.clear()
         for pane in self.vistas.values():
             rw = pane.vtkWidget.GetRenderWindow()
             ren = rw.GetRenderers().GetFirstRenderer()

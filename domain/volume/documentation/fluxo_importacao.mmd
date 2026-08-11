@@ -1,0 +1,30 @@
+graph TD
+    %% --- FLUXO 1: Atalho Direto (Load Dicom Tool) ---
+    subgraph Fluxo 1: Atalho Direto
+        A1[load_dicom_tool] -->|Seleciona pasta no SO| B1[Path da Pasta DICOM]
+        B1 -->|Validação técnica| C1[dicom_validator]
+    end
+
+    %% --- FLUXO 2: Janela Geral de Importação ---
+    subgraph Fluxo 2: Import Window
+        A2[ImportWindow] -->|Navega na árvore| B2[Categoria: Dicom]
+        B2 -->|Seleciona local/origem| C2[Projeto / Arquivo]
+        C2 -->|Obtém diretório| D2[Path da Pasta com DICOM]
+        D2 -->|Validação técnica| E2[dicom_validator]
+    end
+
+    %% --- Convergência para as Janelas e Processamento ---
+    C1 --> F[DicomImportDialog]
+    E2 --> F
+
+    F -->|Usuário escolhe série e amostragem XYZ| G[VolumeOrientationDialog]
+    G -->|Confirma ajustes, eixos e ROI| H[DicomImportPipeline.carregar_volume_final]
+
+    %% --- Motor e Renderização Final ---
+    H --> I[DicomEngine.load_folder]
+    I -->|Ordena Z, aplica slopes e espaçamento| J[DicomEngine._numpy_to_vtk]
+    J -->|Gera vtkImageData| K[Volume Model]
+
+    K -->|Emite DICOM_LOADED via EventBus| L[EventBus]
+    L -->|Adiciona objeto na cena ativa| M[VolumeViewerWidget]
+    M -->|Renderiza MPR e 3D| N[Central Area Viewers]

@@ -10,6 +10,14 @@ class SceneEvents:
     INTERACTION_MODE_CHANGED = "INTERACTION_MODE_CHANGED"
     LAYOUT_CHANGED = "LAYOUT_CHANGED"
 
+
+class VolumeEvents:
+    """Eventos específicos para manipulação de volumes e DICOM."""
+    DICOM_LOADED = "DICOM_LOADED"
+    VOLUME_MODIFIED = "VOLUME_MODIFIED"
+    WINDOW_LEVEL_CHANGED = "WINDOW_LEVEL_CHANGED"
+
+
 class RegistrationEvents:
     """Eventos específicos para ferramentas de registro."""
     IMPORT_REQUESTED = "REGISTRATION_IMPORT_REQUESTED"

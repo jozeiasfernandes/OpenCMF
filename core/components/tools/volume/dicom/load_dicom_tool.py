@@ -4,14 +4,15 @@ from typing import Optional
 from PySide6 import QtWidgets, QtCore
 
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
-from core.application.commands.volume.load_dicom_command import LoadDicomCommand
 
-from domain.volume.dicom.validators.dicom_validator import DicomValidator
-from domain.volume.windows.dicom_import_window import DicomImportWindow
+# Importa a Pipeline unificada
+from domain.volume.dicom.pipelines.dicom_import_pipeline import DicomImportPipeline
 
 # Settings
 from core.settings.localization.translator import tr
 
+ORG_NAME = "OpenCMF"
+APP_NAME = "TomographyModule"
 
 class LoadDicomTool(BaseTool):
     name: str = "load_dicom"
@@ -22,25 +23,24 @@ class LoadDicomTool(BaseTool):
 
     def __init__(self):
         super().__init__()
-        self.validator = DicomValidator()
+        # O validador, engine e regras agora ficam encapsulados na Pipeline
 
     def create_widget(self) -> QtWidgets.QWidget:
-        """Cria e retorna o widget personalizado com texto antes do ícone para a toolbar."""
+        """Cria e retorna um widget personalizado com o texto antes do ícone em um único bloco clicável."""
         container = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(4, 2, 4, 2)
-        layout.setSpacing(6)
+        layout.setSpacing(4)
 
-        # Abordagem com QLabel + ToolButton para garantir rigorosamente: Texto -> Ícone
-        layout.addWidget(QtWidgets.QLabel(tr("import.volumes.dicom", "Load Dicom")))
+        btn = QtWidgets.QToolButton()
+        btn.setToolTip(self.tool_tip)
+        btn.setText(tr("import.volumes.dicom", "Load Dicom"))
+        btn.setIcon(self.get_qicon())
+        btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+        btn.setCheckable(False)
+        btn.clicked.connect(self.execute_import)
 
-        icon_btn = QtWidgets.QToolButton()
-        icon_btn.setToolTip(self.tool_tip)
-        icon_btn.setIcon(self.get_qicon())
-        icon_btn.setCheckable(False)
-        icon_btn.clicked.connect(self.execute_import)
-        layout.addWidget(icon_btn)
-
+        layout.addWidget(btn)
         return container
 
     def on_activate(self) -> None:
@@ -50,76 +50,60 @@ class LoadDicomTool(BaseTool):
     def execute_import(self) -> None:
         parent_window = self.context.window if (self.context and hasattr(self.context, "window")) else None
 
+        # Recupera a última pasta salva no registro do sistema (retorna "" se não houver)
+        settings = QtCore.QSettings(ORG_NAME, APP_NAME)
+        last_dir = settings.value("last_dicom_directory", "")
+
         directory = QtWidgets.QFileDialog.getExistingDirectory(
             parent_window,
             tr("file_browser.select_directory_title", "Selecionar Pasta DICOM / Tomografia"),
-            "",
+            last_dir,  # Define o diretório inicial como a última pasta lembrada
             QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks
         )
 
         if not directory:
             return
 
-        caminho_pasta = Path(directory)
+        # Salva o novo diretório selecionado na memória persistente para uso futuro
+        settings.setValue("last_dicom_directory", directory)
 
-        resultado_validacao = self.validator.validate_directory(caminho_pasta)
-        if not resultado_validacao.get("sucesso", False):
-            erro_msg = resultado_validacao.get("erro", "Erro desconhecido ao validar diretório.")
-            QtWidgets.QMessageBox.warning(parent_window, tr("common.warning", "Aviso de Importação"), erro_msg)
-            return
+        # Busca o event_bus e a scene de forma robusta nas várias camadas da aplicação
+        event_bus = (
+            getattr(self, "events", None) or
+            getattr(self.context, "event_bus", None) or
+            getattr(parent_window, "event_bus", None) or
+            getattr(self, "eventBus", None)
+        )
 
-        series_disponiveis = resultado_validacao.get("series", [])
+        # Varredura recursiva nos widgets pais do Qt caso ainda não tenha encontrado
+        if not event_bus and parent_window:
+            p = parent_window.parent()
+            while p:
+                if hasattr(p, "event_bus"):
+                    event_bus = p.event_bus
+                    break
+                if hasattr(p, "events"):
+                    event_bus = p.events
+                    break
+                p = p.parent()
 
-        if not series_disponiveis:
-            series_disponiveis = [{
-                "number": 1,
-                "description": caminho_pasta.name,
-                "modality": "CT",
-                "path": str(caminho_pasta)
-            }]
+        # Se ainda assim o event_bus estiver vazio, tenta obtê-lo da aplicação global se houver
+        if not event_bus and hasattr(QtWidgets.QApplication.instance(), "event_bus"):
+            event_bus = QtWidgets.QApplication.instance().event_bus
 
-        import_dialog = DicomImportWindow(series_list=series_disponiveis, parent=parent_window)
-        if import_dialog.exec() != QtWidgets.QDialog.Accepted:
-            return
+        scene = (
+            getattr(self, "scene", None) or
+            getattr(self.context, "scene", None) or
+            getattr(parent_window, "scene", None)
+        )
 
-        selected_series = import_dialog.get_selected_series()
-        sampling_factors = import_dialog.get_sampling_factors()
+        pipeline = DicomImportPipeline(
+            parent=parent_window,
+            scene=scene,
+            event_bus=event_bus
+        )
 
-        if not selected_series:
-            return
-
-        target_path = Path(selected_series.get("path", caminho_pasta))
-
-        try:
-            if self.scene and hasattr(self.scene, "command_manager"):
-                command = LoadDicomCommand(target_path, self.scene, series_info=selected_series,
-                                           sampling_factors=sampling_factors)
-                success = self.scene.command_manager.execute(command)
-
-                if not success:
-                    QtWidgets.QMessageBox.critical(
-                        parent_window,
-                        tr("common.error", "Erro"),
-                        tr("dialogs.error.message", "Falha ao executar o comando de carga do volume tridimensional.")
-                    )
-                    return
-            else:
-                QtWidgets.QMessageBox.warning(
-                    parent_window,
-                    tr("common.warning", "Aviso"),
-                    "Gerenciador de comandos (CommandManager) ou Cena não encontrados no contexto."
-                )
-                return
-
-            if self.events and hasattr(self.events, "emit"):
-                self.events.emit("DICOM_LOADED", path=str(target_path), factors=sampling_factors)
-
-        except Exception as e:
-            QtWidgets.QMessageBox.critical(
-                parent_window,
-                tr("common.critical_error", "Erro Crítico"),
-                f"Ocorreu um erro inesperado ao processar os arquivos DICOM:\n{str(e)}"
-            )
+        pipeline.start(directory)
 
     def on_deactivate(self) -> None:
         pass

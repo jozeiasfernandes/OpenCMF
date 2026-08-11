@@ -40,7 +40,8 @@ class SettingsManager:
             "diretorios": {
                 "patients": "patients",
                 "flows_manager": "flows_manager",
-                "icons_manager": "icons_manager"
+                "icons_manager": "icons_manager",
+                "last_dicom_directory": ""
             },
             "side_panel": {
                 "show_by_default": True,
