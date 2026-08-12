@@ -1,4 +1,3 @@
-import sys
 from typing import Any, Optional
 from settings.logs.base_logger import setup_logger
 
@@ -6,10 +5,7 @@ scene_logger = setup_logger("OpenCMF.Scene.Debug", filename=None)
 
 
 class Scene_Logger:
-    """
-    Classe dedicada para gerenciar logs, debugs e monitoramento do subsistema de cena,
-    garantindo rastreabilidade das operações e emitindo as mensagens exclusivamente no terminal.
-    """
+    """Gerencia logs, debugs e monitoramento do subsistema de cena."""
 
     _instance = None
 
@@ -24,21 +20,12 @@ class Scene_Logger:
         return cls._instance
 
     def set_context(self, scene_manager: Any):
-        """Define o contexto do SceneManager para extração de dados em tempo de execução."""
+        """Define o contexto do SceneManager para extração de dados."""
         self._scene_context = scene_manager
 
-    def debug(self, message: str, object_id: str = None):
-        self._log_with_context("debug", message, object_id=object_id)
-
-    def info(self, message: str, object_id: str = None):
-        self._log_with_context("info", message, object_id=object_id)
-
-    def warning(self, message: str, object_id: str = None):
-        self._log_with_context("warning", message, object_id=object_id)
-
-    def error(self, message: str, object_id: str = None, exc_info: bool = False):
-        self._log_with_context("error", message, object_id=object_id, exc_info=exc_info)
-
+    # =========================================================================
+    # INTERNAL LOGGING HELPER
+    # =========================================================================
     def _log_with_context(self, level: str, message: str, object_id: str = None, exc_info: bool = False):
         try:
             prefix = f"[Scene Object: {object_id}] " if object_id else "[Scene] "
@@ -52,8 +39,26 @@ class Scene_Logger:
         except Exception as e:
             self.logger.error(f"Erro interno no Scene_Logger: {e} - Mensagem original: {message}")
 
+    # =========================================================================
+    # PUBLIC LOGGING METHODS
+    # =========================================================================
+    def debug(self, message: str, object_id: str = None):
+        self._log_with_context("debug", message, object_id=object_id)
+
+    def info(self, message: str, object_id: str = None):
+        self._log_with_context("info", message, object_id=object_id)
+
+    def warning(self, message: str, object_id: str = None):
+        self._log_with_context("warning", message, object_id=object_id)
+
+    def error(self, message: str, object_id: str = None, exc_info: bool = False):
+        self._log_with_context("error", message, object_id=object_id, exc_info=exc_info)
+
+    # =========================================================================
+    # INSPECTION & REPORTING
+    # =========================================================================
     def inspect_scene_state(self) -> dict:
-        """Extrai informações consolidadas do estado atual da cena e de seus componentes."""
+        """Extrai informações consolidadas do estado atual da cena."""
         info = {
             "objects_count": 0,
             "actors_count": 0,
@@ -88,7 +93,7 @@ class Scene_Logger:
         return info
 
     def log_full_state(self):
-        """Gera e registra um relatório completo estruturado da cena atual."""
+        """Gera e registra um relatório completo estruturado da cena."""
         state = self.inspect_scene_state()
 
         import pprint
@@ -105,7 +110,6 @@ class Scene_Logger:
         self.logger.info("\n" + "\n".join(report_lines))
 
 
-# Instância global para importação direta
 scene_logger_instance = Scene_Logger.get_instance()
 
 __all__ = [

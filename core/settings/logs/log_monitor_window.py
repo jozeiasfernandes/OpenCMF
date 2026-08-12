@@ -84,7 +84,7 @@ class AllLogsTabWidget(QtWidgets.QWidget):
 
 
 class LogMonitorWindow(QtWidgets.QDialog):
-    """Janela principal do Monitor de Logs contendo todas as abas com suporte a traduções."""
+    """Janela principal do Monitor de Logs contendo todas as abas com suporte a traduções e a aba de temas."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -100,7 +100,7 @@ class LogMonitorWindow(QtWidgets.QDialog):
         # Adicionando a aba de Todos os Logs primeiro para acesso rápido
         self.tab_all = AllLogsTabWidget()
 
-        # Abas individuais baseadas nos loggers do sistema (incluindo Patient após Home Page)
+        # Abas individuais baseadas nos loggers do sistema (incluindo Themes)
         self.tab_main = LogTabWidget("OpenCMF.Main")
         self.tab_home = LogTabWidget("OpenCMF.HomePage")
         self.tab_patient = LogTabWidget("OpenCMF.Patient.Debug")
@@ -109,6 +109,7 @@ class LogMonitorWindow(QtWidgets.QDialog):
         self.tab_module = LogTabWidget("OpenCMF.Module.Debug")
         self.tab_components = LogTabWidget("OpenCMF.Components.Debug")
         self.tab_scene = LogTabWidget("OpenCMF.Scene.Debug")
+        self.tab_themes = LogTabWidget("opencmf.themes")
 
         self.tab_widget.addTab(self.tab_all, tr("logs.tab_all", "All Logs"))
         self.tab_widget.addTab(self.tab_main, tr("logs.tab_main", "Main"))
@@ -119,6 +120,7 @@ class LogMonitorWindow(QtWidgets.QDialog):
         self.tab_widget.addTab(self.tab_module, tr("logs.tab_module", "Module"))
         self.tab_widget.addTab(self.tab_components, tr("logs.tab_components", "Components"))
         self.tab_widget.addTab(self.tab_scene, tr("logs.tab_scene", "Scene"))
+        self.tab_widget.addTab(self.tab_themes, tr("logs.tab_themes", "Themes"))
 
         # Botões Inferiores (Copy e Exit traduzidos)
         btn_layout = QtWidgets.QHBoxLayout()
@@ -158,5 +160,6 @@ if __name__ == "__main__":
     logging.getLogger("OpenCMF.Module.Debug").info("Log de teste na aba Module.")
     logging.getLogger("OpenCMF.Components.Debug").info("Log de teste na aba Components.")
     logging.getLogger("OpenCMF.Scene.Debug").info("Log de teste na aba Scene.")
+    logging.getLogger("opencmf.themes").info("Log de teste na aba Themes.")
 
     sys.exit(app.exec())

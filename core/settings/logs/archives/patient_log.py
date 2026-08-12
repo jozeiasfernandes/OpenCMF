@@ -2,64 +2,76 @@ import logging
 from typing import Dict, Any, Optional
 from settings.logs.base_logger import setup_logger
 
-# Configura o logger específico para o painel de debug/logs do paciente
 logger = setup_logger("OpenCMF.Patient.Debug", filename=None)
 
 
 class Patient_Logger:
-    """
-    Classe de logs e inspeção de estado do Paciente ativo no OpenCMF.
-    Monitora dados do info.json, caminhos, integridade e metadados da sessão.
-    """
+    """Logs e inspeção do estado do Paciente ativo no OpenCMF."""
 
     def __init__(self, patient_manager: Optional[Any] = None):
         self.patient_manager = patient_manager
 
+    # =========================================================================
+    # INSPECTION & REPORTING
+    # =========================================================================
     def inspect_full_state(self) -> Dict[str, Any]:
-        """Coleta um relatório completo e detalhado do paciente e estado atual da sessão."""
+        """Coleta o estado completo filtrando dados vazios."""
         if not self.patient_manager:
             return {"status": "PatientManager não vinculado"}
 
-        current_path = self.patient_manager.current_path
-        data = self.patient_manager.data
+        current_path = getattr(self.patient_manager, "current_path", "")
+        data = getattr(self.patient_manager, "data", {})
 
-        report = {
-            "session_info": {
-                "current_patient_path": current_path,
-                "has_active_patient": bool(current_path)
-            },
-            "patient_metadata": data if data else {}
+        report = {}
+
+        session_info = {
+            "path": current_path,
+            "has_active_patient": bool(current_path)
         }
+        if session_info["has_active_patient"]:
+            report["Sessão"] = session_info
+
+        if data:
+            report["Metadados (info.json)"] = data
+
         return report
 
     def log_full_state(self, level: int = logging.INFO) -> None:
-        """Gera e registra o relatório completo do paciente formatado em bloco único."""
+        """Gera um relatório estruturado e minimalista."""
         state = self.inspect_full_state()
 
+        if not state or (len(state) == 1 and "status" in state):
+            logger.log(level, f"👤 [PATIENT] {state.get('status', 'Estado vazio ou paciente não carregado.')}")
+            return
+
         report_lines = [
-            "=" * 60,
-            "🔍 [PATIENT DEBUG INSPECTOR] - RELATÓRIO DE ESTADO",
-            "=" * 60,
-            f"• Sessão & Caminho:\n{self._format_dict(state.get('session_info', {}))}",
-            f"• Dados / Metadados do Paciente (info.json):\n{self._format_dict(state.get('patient_metadata', {}))}",
-            "=" * 60
+            "PATIENT INSPECTOR:"
         ]
+
+        for section_name, section_data in state.items():
+            report_lines.append(f"├─ • {section_name}:")
+            formatted_content = self._format_compact(section_data, indent=6)
+            for line in formatted_content.splitlines():
+                report_lines.append(f"│   {line}")
+
+        report_lines.append("└──────────────────────────────────────")
 
         logger.log(level, "\n" + "\n".join(report_lines))
 
+    # =========================================================================
+    # FORMATTING UTILITIES
+    # =========================================================================
     @staticmethod
-    def _format_dict(data: Any, indent: int = 4) -> str:
-        """Formata dicionários e listas de forma limpa e estruturada para os logs."""
+    def _format_compact(data: Any, indent: int = 4) -> str:
+        """Formata estruturas de dados de forma minimalista."""
         import pprint
-
         if not data:
-            return "{}" if isinstance(data, dict) else "[]"
-
+            return "{}"
         return pprint.pformat(
             data,
             indent=indent,
-            width=70,
-            compact=False,
+            width=65,
+            compact=True,
             sort_dicts=False
         )
 

@@ -24,7 +24,7 @@ BASE_DIR = get_project_root()
 
 
 # ==============================================================================
-# RUNTIME (Declarados antes para uso em funções utilitárias)
+# RUNTIME
 # ==============================================================================
 
 LOGS_DIR = BASE_DIR / "logs"
@@ -37,7 +37,7 @@ PATIENTS_DIR = BASE_DIR / "patients"
 
 
 # ==============================================================================
-# UTILITÁRIOS
+# UTILITIES
 # ==============================================================================
 
 def resource(*parts: str) -> Path:
@@ -106,6 +106,7 @@ APPLICATION_DIR = CORE_DIR / "application"
 
 FAVORITE_FOLDERS_FILE = BASE_DIR / "core" / "application" / "file_browser" / "favorite_folders.json"
 
+
 # ==============================================================================
 # FLOWS
 # ==============================================================================
@@ -164,35 +165,21 @@ WORKSPACE_DIR = CORE_DIR / "workspace"
 
 WORKSPACE_COMPONENTS_LOADERS_DIR = WORKSPACE_DIR / "components_loaders"
 
-WORKSPACE_SIDE_PANEL_LOADERS_DIR = (
-    WORKSPACE_COMPONENTS_LOADERS_DIR / "side_panel_loaders"
-)
+WORKSPACE_SIDE_PANEL_LOADERS_DIR = (WORKSPACE_COMPONENTS_LOADERS_DIR / "side_panel_loaders")
 
-WORKSPACE_TOOLS_TAB_LOADERS_DIR = (
-    WORKSPACE_COMPONENTS_LOADERS_DIR / "tools_tab_loaders"
-)
+WORKSPACE_TOOLS_TAB_LOADERS_DIR = (WORKSPACE_COMPONENTS_LOADERS_DIR / "tools_tab_loaders")
 
 WORKSPACE_CONTAINERS_DIR = WORKSPACE_DIR / "containers"
 
-WORKSPACE_CENTRAL_AREA_DIR = (
-    WORKSPACE_CONTAINERS_DIR / "central_area_container"
-)
+WORKSPACE_CENTRAL_AREA_DIR = (WORKSPACE_CONTAINERS_DIR / "central_area_container")
 
-WORKSPACE_HEADER_DIR = (
-    WORKSPACE_CONTAINERS_DIR / "header_container"
-)
+WORKSPACE_HEADER_DIR = (WORKSPACE_CONTAINERS_DIR / "header_container")
 
-WORKSPACE_SIDE_PANEL_DIR = (
-    WORKSPACE_CONTAINERS_DIR / "side_panel_container"
-)
+WORKSPACE_SIDE_PANEL_DIR = (WORKSPACE_CONTAINERS_DIR / "side_panel_container")
 
-WORKSPACE_STATUS_BAR_DIR = (
-    WORKSPACE_CONTAINERS_DIR / "status_bar"
-)
+WORKSPACE_STATUS_BAR_DIR = (WORKSPACE_CONTAINERS_DIR / "status_bar")
 
-WORKSPACE_TOOLBAR_DIR = (
-    WORKSPACE_CONTAINERS_DIR / "toolbar_container"
-)
+WORKSPACE_TOOLBAR_DIR = (WORKSPACE_CONTAINERS_DIR / "toolbar_container")
 
 WORKSPACE_LAYOUT_DIR = WORKSPACE_DIR / "layout"
 

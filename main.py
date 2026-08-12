@@ -32,17 +32,21 @@ from core.application.scene.selection.selection_manager import SelectionManager
 # Settings
 from core.settings.icons_manager.icon_manager import IconManager
 from core.settings.localization.translator import tr
-from core.settings.themes_manager.theme_manager import ThemeManager
-from core.settings.logs.logger_manager import Main_Logger, main_logger
-from core.settings.paths.list_paths import BASE_DIR, ICONS_DIR, PATIENTS_DIR, THEMES_DIR
+from core.settings.paths.list_paths import BASE_DIR, ICONS_DIR, PATIENTS_DIR
 from core.settings.settings_app_manager import settings
 from core.settings.settings_page import PaginaConfig
+
+# Themes
+from core.settings.themes_manager.theme_manager import ThemeManager
+from core.settings.logs.logger_manager import themes_logger
 
 # Workspace & Modules
 from core.workspace.models.module_factory import ModuleFactory
 from core.workspace.workspace_manager import WorkspaceManager
 from modules.base_module.base_module import ModuloBase
 
+# Logs
+from core.settings.logs.logger_manager import Main_Logger, main_logger
 Main_Logger.setup_redirect()
 
 
@@ -231,6 +235,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def apply_theme_by_name(self, theme_name: str):
         """Aplica o tema utilizando o ThemeManager centralizado."""
+        themes_logger.info(f"Aplicando tema: {theme_name}", theme_name=theme_name)
         try:
             success = self.theme_manager.apply_static_theme(theme_name)
             if not success:
@@ -239,11 +244,11 @@ class MainWindow(QtWidgets.QMainWindow):
             if success:
                 settings.tema = theme_name
                 IconManager.get_instance().clear_cache()
-                main_logger.info(f"Tema alterado para: {theme_name}")
+                themes_logger.info(f"Tema alterado com sucesso para: {theme_name}", theme_name=theme_name)
             else:
-                main_logger.warning(f"Falha ao aplicar o tema: {theme_name}")
+                themes_logger.warning(f"Falha ao aplicar o tema: {theme_name}", theme_name=theme_name)
         except Exception as e:
-            main_logger.error(f"Erro ao aplicar tema '{theme_name}': {e}", exc_info=True)
+            themes_logger.error(f"Erro ao aplicar tema '{theme_name}': {e}", theme_name=theme_name, exc_info=True)
 
         self.setup_icon()
         self.theme_changed.emit()

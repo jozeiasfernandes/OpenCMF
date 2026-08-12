@@ -10,29 +10,29 @@ class ThemeManager:
         self.app = app
 
     def apply_static_theme(self, theme_name: str) -> bool:
-        theme_dir = THEMES_DIR / theme_name
-        if not theme_dir.exists():
-            theme_dir = THEMES_DIR
-
-        components_dir = theme_dir / "components" if (theme_dir / "components").exists() else THEMES_DIR
-        component_files = ["base.qss", "buttons.qss", "scrollbar.qss", "workspace.qss", "cards.qss"]
-
         stylesheet_parts = []
         try:
             loaded_any = False
-            for comp in component_files:
-                comp_path = components_dir / comp
-                if comp_path.exists():
-                    with open(comp_path, "r", encoding="utf-8") as f:
-                        stylesheet_parts.append(f.read())
-                        loaded_any = True
 
-            if not loaded_any:
-                single_file_path = THEMES_DIR / f"{theme_name}.qss"
-                if single_file_path.exists():
-                    with open(single_file_path, "r", encoding="utf-8") as f:
-                        stylesheet_parts.append(f.read())
-                        loaded_any = True
+            # 1. Tenta carregar primeiro como um arquivo .qss único na raiz (ex: dark.qss, atom.qss)
+            single_file_path = THEMES_DIR / f"{theme_name}.qss"
+            if single_file_path.exists():
+                with open(single_file_path, "r", encoding="utf-8") as f:
+                    stylesheet_parts.append(f.read())
+                    loaded_any = True
+            else:
+                # 2. Se não for arquivo único, tenta carregar como tema modular em pasta
+                theme_dir = THEMES_DIR / theme_name
+                if theme_dir.exists() and theme_dir.is_dir():
+                    components_dir = theme_dir / "components" if (theme_dir / "components").exists() else theme_dir
+                    component_files = ["base.qss", "buttons.qss", "scrollbar.qss", "workspace.qss", "cards.qss"]
+
+                    for comp in component_files:
+                        comp_path = components_dir / comp
+                        if comp_path.exists():
+                            with open(comp_path, "r", encoding="utf-8") as f:
+                                stylesheet_parts.append(f.read())
+                                loaded_any = True
 
             if loaded_any:
                 self.app.setStyleSheet("\n".join(stylesheet_parts))

@@ -5,6 +5,7 @@ from settings.logs.archives.containers import Containers_logger
 from settings.logs.archives.scene_log import Scene_Logger, scene_logger
 from settings.logs.archives.components_log import Component
 from settings.logs.archives.patient_log import Patient_Logger
+from settings.logs.archives.themes_logs import themes_logger
 
 
 __all__ = [
@@ -17,4 +18,5 @@ __all__ = [
     "Scene_Logger",
     "Component",
     "Patient_Logger",
+    "themes_logger",
 ]

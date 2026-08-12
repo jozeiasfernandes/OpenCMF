@@ -9,107 +9,85 @@ logger = setup_logger("OpenCMF.Workspace.Debug", filename=None)
 
 class Workspace_Logger:
     """
-    Classe completa de logs e inspeção para a Workspace do OpenCMF.
-    Mapeia a estrutura da workspace, dimensões de containers, dados do paciente,
-    módulo ativo, componentes ativos, scene e outras configurações.
+    Classe otimizada de logs e inspeção para a Workspace do OpenCMF.
+    Apresenta relatórios limpos, legíveis e minimalistas, ocultando valores vazios ou irrelevantes.
     """
 
     def __init__(self, workspace_manager: QtWidgets.QWidget):
         self.workspace = workspace_manager
 
+    # =========================================================================
+    # INSPECTION & REPORTING
+    # =========================================================================
     def inspect_full_state(self) -> Dict[str, Any]:
-        """Coleta um relatório completo e detalhado do estado atual da workspace."""
-        report = {
-            "workspace_info": self.get_workspace_dimensions(),
-            "patient_data": self.get_patient_data(),
-            "active_module": self.get_active_module_info(),
-            "components_active": self.get_active_components(),
-            "scene_info": self.get_scene_info(),
-            "other_configurations": self.get_other_configurations()
-        }
+        """Coleta o estado completo filtrando dados vazios para manter o log enxuto."""
+        report = {}
+
+        dims = self.get_workspace_dimensions()
+        if dims:
+            report["Dimensões & Containers"] = dims
+
+        patient = self.get_patient_data()
+        if patient.get("has_patient_loaded"):
+            report["Paciente"] = patient
+
+        module = self.get_active_module_info()
+        if module.get("active_module_name") != "Nenhum" or module.get("registry_active_modules"):
+            report["Módulo Ativo"] = module
+
+        components = self.get_active_components()
+        if any(components.values()):
+            report["Componentes Ativos"] = components
+
+        scene = self.get_scene_info()
+        if scene.get("has_scene"):
+            report["Scene / Viewport"] = scene
+
+        configs = self.get_other_configurations()
+        if configs:
+            report["Configurações"] = configs
+
         return report
 
     def log_full_state(self, level: int = logging.INFO) -> None:
-        """Gera e registra o relatório completo formatado em um único bloco nos logs da aplicação."""
+        """Gera um relatório estruturado e minimalista, exibindo apenas seções ativas."""
         state = self.inspect_full_state()
 
+        if not state:
+            logger.log(level, "[WORKSPACE] Estado vazio ou workspace não inicializada.")
+            return
+
         report_lines = [
-            "=" * 60,
-            "🔍 [WORKSPACE DEBUG INSPECTOR] - RELATÓRIO DE ESTADO",
-            "=" * 60,
-            f"• Dimensões da Workspace & Containers:\n{self._format_dict(state['workspace_info'])}",
-            f"• Dados do Paciente:\n{self._format_dict(state['patient_data'])}",
-            f"• Módulo Ativo:\n{self._format_dict(state['active_module'])}",
-            f"• Componentes Ativos:\n{self._format_dict(state['components_active'])}",
-            f"• Scene / Viewport Central:\n{self._format_dict(state['scene_info'])}",
-            f"• Outras Configurações:\n{self._format_dict(state['other_configurations'])}",
-            "=" * 60
+            "WORKSPACE:"
         ]
+
+        for section_name, section_data in state.items():
+            report_lines.append(f"├─ • {section_name}:")
+            formatted_content = self._format_compact(section_data, indent=6)
+            for line in formatted_content.splitlines():
+                report_lines.append(f"│   {line}")
+
+        report_lines.append("└───────────────────────────────────────────────")
 
         logger.log(level, "\n" + "\n".join(report_lines))
 
+    # =========================================================================
+    # STATE GATHERING HELPERS
+    # =========================================================================
     def get_workspace_dimensions(self) -> Dict[str, Any]:
-        """Obtém as dimensões (geometry, largura e altura) de cada container principal."""
+        """Obtém as dimensões resumidas dos containers ativos."""
         dims = {}
 
-        # Janela principal / WorkspaceManager
-        dims["workspace_window"] = {
-            "width": self.workspace.width(),
-            "height": self.workspace.height(),
-            "geometry": self.workspace.geometry().getRect()
-        }
+        if hasattr(self.workspace, "width"):
+            dims["window"] = f"{self.workspace.width()}x{self.workspace.height()}"
 
-        # Header Panel
-        if hasattr(self.workspace, "header") and self.workspace.header:
-            dims["header_container"] = {
-                "width": self.workspace.header.width(),
-                "height": self.workspace.header.height(),
-                "visible": self.workspace.header.isVisible()
-            }
-
-        # Toolbar Manager (Top e Bottom)
-        if hasattr(self.workspace, "toolbar_manager") and self.workspace.toolbar_manager:
-            dims["toolbar_top"] = {
-                "width": self.workspace.toolbar_manager.top_container.width(),
-                "height": self.workspace.toolbar_manager.top_container.height(),
-                "visible": self.workspace.toolbar_manager.top_container.isVisible()
-            }
-            dims["toolbar_bottom"] = {
-                "width": self.workspace.toolbar_manager.bottom_container.width(),
-                "height": self.workspace.toolbar_manager.bottom_container.height(),
-                "visible": self.workspace.toolbar_manager.bottom_container.isVisible()
-            }
-
-        # Splitter e áreas divididas (Central vs Side Panel)
         if hasattr(self.workspace, "splitter") and self.workspace.splitter:
-            dims["splitter_sizes"] = self.workspace.splitter.sizes()
+            dims["splitter"] = self.workspace.splitter.sizes()
 
-        # Central Area Container
         if hasattr(self.workspace, "central_manager") and self.workspace.central_manager:
             central_cont = self.workspace.central_manager.get_container()
-            dims["central_area"] = {
-                "width": central_cont.width(),
-                "height": central_cont.height(),
-                "current_widget": central_cont.currentWidget().__class__.__name__ if central_cont.currentWidget() else None
-            }
-
-        # Side Panel Container
-        if hasattr(self.workspace, "side_manager") and self.workspace.side_manager:
-            side_cont = getattr(self.workspace.side_manager, "container", None)
-            if side_cont:
-                dims["side_panel"] = {
-                    "width": side_cont.width(),
-                    "height": side_cont.height(),
-                    "visible": side_cont.isVisible(),
-                    "mode": getattr(side_cont, "current_mode", "unknown")
-                }
-
-        # Status Bar
-        if hasattr(self.workspace, "status_bar_manager") and self.workspace.status_bar_manager:
-            dims["status_bar"] = {
-                "height": self.workspace.status_bar_manager.height(),
-                "current_message": self.workspace.status_bar_manager.message_label.text()
-            }
+            if central_cont and central_cont.currentWidget():
+                dims["central_widget"] = central_cont.currentWidget().__class__.__name__
 
         return dims
 
@@ -122,118 +100,88 @@ class Workspace_Logger:
             state_patient = self.workspace.state.current_patient
 
         return {
-            "current_patient_path": patient_path,
-            "state_patient_path": state_patient,
+            "path": patient_path or state_patient,
             "has_patient_loaded": bool(patient_path or state_patient)
         }
 
     def get_active_module_info(self) -> Dict[str, Any]:
-        """Identifica o módulo ativo no momento (via abas ou registro)."""
+        """Identifica o módulo ativo no momento."""
         active_module = None
-        module_id = "Nenhum"
         module_name = "Nenhum"
 
         if hasattr(self.workspace, "get_modulo_ativo"):
             active_module = self.workspace.get_modulo_ativo()
 
         if active_module:
-            module_id = getattr(active_module, "id", "Desconhecido")
             module_name = getattr(active_module, "nome", "Desconhecido")
 
-        active_registry_list = []
-        if hasattr(self.workspace, "registry") and hasattr(self.workspace.registry, "list_active_modules"):
-            active_registry_list = self.workspace.registry.list_active_modules()
-
         return {
-            "active_module_id": module_id,
             "active_module_name": module_name,
-            "registry_active_modules": active_registry_list
+            "registry_active_modules": getattr(self.workspace, "registry", None) and getattr(self.workspace.registry, "list_active_modules", lambda: [])()
         }
 
     def get_active_components(self) -> Dict[str, List[str]]:
-        """Mapeia todos os componentes ativos nas toolbars, side panels e área central."""
-        components = {
-            "top_toolbars": [],
-            "bottom_toolbars": [],
-            "side_panels": [],
-            "central_widget": None
-        }
+        """Mapeia componentes ativos de forma concisa."""
+        components = {}
 
-        # Toolbars
         if hasattr(self.workspace, "toolbar_manager"):
-            if hasattr(self.workspace.toolbar_manager, "top_container"):
-                components["top_toolbars"] = list(self.workspace.toolbar_manager.top_container.toolbars.keys())
-            if hasattr(self.workspace.toolbar_manager, "bottom_container"):
-                components["bottom_toolbars"] = list(self.workspace.toolbar_manager.bottom_container.toolbars.keys())
+            tm = self.workspace.toolbar_manager
+            if hasattr(tm, "top_container") and tm.top_container.toolbars:
+                components["top_toolbars"] = list(tm.top_container.toolbars.keys())
+            if hasattr(tm, "bottom_container") and tm.bottom_container.toolbars:
+                components["bottom_toolbars"] = list(tm.bottom_container.toolbars.keys())
 
-        # Side Panels
         if hasattr(self.workspace, "side_manager"):
-            side_manager = self.workspace.side_manager
-            if hasattr(side_manager, "container") and hasattr(side_manager.container, "panels"):
-                components["side_panels"] = list(side_manager.container.panels.keys())
+            sm = self.workspace.side_manager
+            if hasattr(sm, "container") and hasattr(sm.container, "panels"):
+                components["side_panels"] = list(sm.container.panels.keys())
 
-        # Central Widget
-        if hasattr(self.workspace, "central_manager"):
-            central_cont = self.workspace.central_manager.get_container()
-            curr_widget = central_cont.currentWidget()
-            if curr_widget:
-                components["central_widget"] = curr_widget.__class__.__name__
-
-        return components
+        return {k: v for k, v in components.items() if v}
 
     def get_scene_info(self) -> Dict[str, Any]:
-        """Inspeciona se o widget central possui alguma Scene ativa (ex: VTK, GraphicsView, OpenCascade, etc.)."""
-        scene_info = {"has_scene": False, "scene_type": None, "details": {}}
+        """Inspeciona o estado da cena atual se disponível."""
+        scene_info = {"has_scene": False}
 
         if not hasattr(self.workspace, "central_manager"):
             return scene_info
 
         central_cont = self.workspace.central_manager.get_container()
-        widget = central_cont.currentWidget()
+        widget = central_cont.currentWidget() if central_cont else None
 
         if not widget:
             return scene_info
 
-        # Procura recursivamente ou diretamente por atributos comuns de renderização/scene
         target_obj = widget
         if hasattr(widget, "get_scene") and callable(widget.get_scene):
             target_obj = widget.get_scene()
-        elif hasattr(widget, "scene") and callable(widget.scene):
-            target_obj = widget.scene()
         elif hasattr(widget, "render_window"):
             target_obj = widget.render_window
 
         if target_obj and target_obj != widget:
             scene_info["has_scene"] = True
-            scene_info["scene_type"] = target_obj.__class__.__name__
-
-        # Verificações específicas para QGraphicsScene
-        if isinstance(target_obj, QtWidgets.QGraphicsScene):
-            scene_info["details"]["items_count"] = len(target_obj.items())
+            scene_info["type"] = target_obj.__class__.__name__
 
         return scene_info
 
     def get_other_configurations(self) -> Dict[str, Any]:
-        """Coleta configurações globais adicionais do state ou gerenciadores."""
-        configs = {}
+        """Coleta configurações adicionais se existentes."""
         if hasattr(self.workspace, "state") and hasattr(self.workspace.state, "get_all_settings"):
-            configs = self.workspace.state.get_all_settings()
-        return configs
+            return self.workspace.state.get_all_settings() or {}
+        return {}
 
+    # =========================================================================
+    # FORMATTING UTILITIES
+    # =========================================================================
     @staticmethod
-    def _format_dict(data: Any, indent: int = 4) -> str:
-        """Formata dicionários e listas de forma limpa e estruturada para os logs."""
+    def _format_compact(data: Any, indent: int = 4) -> str:
+        """Formata estruturas de dados de forma minimalista."""
         import pprint
-
-        # Se o dicionário ou lista estiver totalmente vazio, retorna uma representação concisa
         if not data:
-            return "{}" if isinstance(data, dict) else "[]"
-
-        # Usa pprint com indentação controlada e largura adequada para quebra de linhas em listas
+            return "{}"
         return pprint.pformat(
             data,
             indent=indent,
-            width=70,
-            compact=False,
+            width=65,
+            compact=True,
             sort_dicts=False
         )

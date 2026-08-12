@@ -18,6 +18,7 @@ from core.settings.localization.translator import tr
 import logging
 from core.settings.logs.logger_manager import home_page_logger, HomePageDebugLogger, Patient_Logger
 from core.settings.logs.log_monitor_window import LogMonitorWindow
+
 logger = logging.getLogger("OpenCMF.HomePage")
 
 # Home Page Extras
@@ -57,7 +58,6 @@ class Home_page(QtWidgets.QWidget):
         QtCore.QTimer.singleShot(0, self._connect_theme_signal)
         home_page_logger.info("Home_page inicializada com sucesso.")
         self.patient_logger = Patient_Logger(self.patient_manager)
-
 
     # ==========================================================================
     # UI INITIALIZATION
@@ -161,7 +161,6 @@ class Home_page(QtWidgets.QWidget):
         self.projects_view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.projects_view.customContextMenuRequested.connect(self._show_context_menu)
         self.projects_view.itemDoubleClicked.connect(self._open_selected_project_item)
-        self.projects_view.itemClicked.connect(self._on_list_item_clicked)
         self.view_container.addWidget(self.projects_view)
 
         self.grid_scroll = QtWidgets.QScrollArea()
@@ -201,7 +200,6 @@ class Home_page(QtWidgets.QWidget):
         layout.addWidget(scroll)
         return panel
 
-
     # ==========================================================================
     # PROJECT MANAGEMENT
     # ==========================================================================
@@ -214,7 +212,13 @@ class Home_page(QtWidgets.QWidget):
                 widget.deleteLater()
 
         projects = self.project_service.list_recent_projects()
-        self.debug_logger.info(f"Total de projetos recentes carregados: {len(projects)}")
+
+        # Evita log duplicado caso refresh seja chamado repetidamente no mesmo instante
+        import time
+        current_time = time.time()
+        if not hasattr(self, "_last_refresh_time") or (current_time - self._last_refresh_time) > 0.5:
+            self._last_refresh_time = current_time
+            self.debug_logger.info(f"Total de projetos recentes carregados: {len(projects)}")
 
         for idx, data in enumerate(projects):
             path = data.get("_path")
@@ -249,9 +253,10 @@ class Home_page(QtWidgets.QWidget):
     def _toggle_search(self):
         is_visible = self.search_input.isVisible()
         self.search_input.setVisible(not is_visible)
-        if not is_visible: self.search_input.setFocus()
-        else: self.search_input.clear()
-
+        if not is_visible:
+            self.search_input.setFocus()
+        else:
+            self.search_input.clear()
 
     # ==========================================================================
     # FLOW MANAGEMENT
@@ -269,7 +274,6 @@ class Home_page(QtWidgets.QWidget):
                 self.cards_layout.addWidget(card)
         self.cards_layout.addStretch()
 
-
     # ==========================================================================
     # EVENTS & INTERACTION HANDLERS
     # ==========================================================================
@@ -279,7 +283,8 @@ class Home_page(QtWidgets.QWidget):
 
     def _on_flow_selected(self, flow_path: str):
         if not self.patient_manager.current_path:
-            QtWidgets.QMessageBox.warning(self, tr("common.warning", "Aviso"), tr("home.select_patient_first_msg", "Por favor, selecione um paciente primeiro."))
+            QtWidgets.QMessageBox.warning(self, tr("common.warning", "Aviso"), tr("home.select_patient_first_msg",
+                                                                                  "Por favor, selecione um paciente primeiro."))
             return
         self.debug_logger.info("Fluxo selecionado com paciente ativo. Carregando Workspace.")
         self.fluxo_escolhido.emit(flow_path)
@@ -291,10 +296,6 @@ class Home_page(QtWidgets.QWidget):
             menu.addAction(tr("common.delete_project"), lambda: self._on_delete_project_requested(item))
             menu.exec(self.projects_view.mapToGlobal(position))
 
-    def _on_list_item_clicked(self, item):
-        if path := item.data(QtCore.Qt.UserRole):
-            self._select_patient(path)
-
     def _open_selected_project_item(self, item):
         if path := item.data(QtCore.Qt.UserRole):
             self._select_patient(path)
@@ -304,10 +305,20 @@ class Home_page(QtWidgets.QWidget):
             self._select_patient(path)
 
     def _select_patient(self, patient_path: str):
+        import time
+        current_time = time.time()
+        if hasattr(self, "_last_selected_path") and self._last_selected_path == patient_path:
+            if hasattr(self, "_last_select_time") and (current_time - self._last_select_time) < 1.0:
+                return
+
+        self._last_select_time = current_time
+        self._last_selected_path = patient_path
+
         self.patient_manager.set_active_patient(patient_path)
         if hasattr(self, "patient_logger") and self.patient_logger:
             self.patient_logger.log_full_state()
-        self.debug_logger.info("Paciente selecionado e carregado na sessão. Aguardando escolha do fluxo.", patient_path=patient_path)
+        self.debug_logger.info("Paciente selecionado e carregado na sessão. Aguardando escolha do fluxo.",
+                               patient_path=patient_path)
 
     def _on_remove_clicked(self):
         if item := self.projects_view.currentItem():
@@ -318,11 +329,13 @@ class Home_page(QtWidgets.QWidget):
     def _on_delete_project_requested(self, item):
         path = item.data(QtCore.Qt.UserRole)
         if not path: return
-        confirm = QtWidgets.QMessageBox.question(self, tr("home.confirm_deletion_title"), tr("home.confirm_deletion_message"), QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No, QtWidgets.QMessageBox.No)
+        confirm = QtWidgets.QMessageBox.question(self, tr("home.confirm_deletion_title"),
+                                                 tr("home.confirm_deletion_message"),
+                                                 QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No,
+                                                 QtWidgets.QMessageBox.No)
         if confirm == QtWidgets.QMessageBox.Yes:
             if self.project_service.remove_project(path):
                 self.refresh_projects()
-
 
     # ==========================================================================
     # UTILS & SYSTEM
