@@ -4,8 +4,8 @@ import json
 import logging
 from typing import Any, Dict, Optional
 
+# Paths
 from core.settings.paths.list_paths import CONFIG_FILE_PATH
-
 
 class SettingsManager:
     def __init__(self, file_name: Optional[str] = None):
@@ -13,6 +13,9 @@ class SettingsManager:
         self.data: Dict[str, Any] = {}
         self.load()
 
+    # =========================================================================
+    # I/O OPERATIONS
+    # =========================================================================
     def load(self) -> None:
         if self.path.exists():
             try:
@@ -25,6 +28,16 @@ class SettingsManager:
             self._apply_defaults()
             self.save()
 
+    def save(self) -> None:
+        try:
+            with open(self.path, "w", encoding="utf-8") as f:
+                json.dump(self.data, f, indent=4, ensure_ascii=False)
+        except IOError as e:
+            logging.error(f"Failed to save settings: {e}")
+
+    # =========================================================================
+    # INTERNAL UTILITIES
+    # =========================================================================
     def _apply_defaults(self) -> None:
         default_theme_colors = {
             "bg_main": "#282c34",
@@ -69,13 +82,9 @@ class SettingsManager:
             self.data[category] = {}
         self.data[category][key] = value
 
-    def save(self) -> None:
-        try:
-            with open(self.path, "w", encoding="utf-8") as f:
-                json.dump(self.data, f, indent=4, ensure_ascii=False)
-        except IOError as e:
-            logging.error(f"Failed to save settings: {e}")
-
+    # =========================================================================
+    # PROPERTIES
+    # =========================================================================
     @property
     def tema(self) -> str:
         return self.get("preferencias", "tema", "dark")
@@ -111,6 +120,5 @@ class SettingsManager:
     def last_dicom_directory(self, value: str):
         self.set("diretorios", "last_dicom_directory", value)
         self.save()
-
 
 settings = SettingsManager()
