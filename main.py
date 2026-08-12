@@ -104,13 +104,13 @@ class MainWindow(QtWidgets.QMainWindow):
             main_logger.critical(f"Erro na inicialização: {e}", exc_info=True)
             QtWidgets.QMessageBox.critical(
                 self,
-                "Erro",
+                tr("common.error", "Erro"),
                 f"Falha ao inicializar aplicação: {e}"
             )
             raise
 
     # =========================================================================
-    # SEÇÃO: CONFIGURAÇÃO E INICIALIZAÇÃO (_setup_*)
+    # CONFIGURATION AND INITIALIZATION (_setup_*)
     # =========================================================================
 
     def _setup_scene_components(self):
@@ -204,7 +204,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.showMaximized()
 
     # =========================================================================
-    # SEÇÃO: GERENCIAMENTO DE TEMA E ÍCONES
+    # THEME AND ICON MANAGEMENT
     # =========================================================================
 
     def apply_theme(self, theme_input: str):
@@ -257,7 +257,7 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QApplication.setWindowIcon(app_icon)
 
     # =========================================================================
-    # SEÇÃO: FLUXOS DE TRABALHO E WORKFLOWS
+    # WORKFLOWS AND PROCESS FLOWS
     # =========================================================================
 
     def start_workflow(self, config_path: str):
@@ -340,7 +340,7 @@ class MainWindow(QtWidgets.QMainWindow):
             module.inicializar(current_path)
 
     # =========================================================================
-    # SEÇÃO: NAVEGAÇÃO E EVENTOS DE USUÁRIO
+    # NAVIGATION AND USER EVENTS
     # =========================================================================
 
     def back_to_home(self):
@@ -354,7 +354,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if not self.patient_manager.current_path:
             QtWidgets.QMessageBox.warning(
                 self,
-                "Aviso",
+                tr("common.warning", "Aviso"),
                 "Por favor, selecione ou crie um paciente antes de abrir o gerenciador de importações."
             )
             return
@@ -371,7 +371,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.importer.patient_path = Path(new_path)
 
     # =========================================================================
-    # SEÇÃO: EXECUÇÃO DA APLICAÇÃO
+    # APPLICATION EXECUTION
     # =========================================================================
 
     @staticmethod

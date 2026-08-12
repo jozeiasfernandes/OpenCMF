@@ -4,25 +4,27 @@ from typing import Any, Optional
 from PySide6 import QtCore, QtWidgets
 
 # Patient
-from core.workspace.patient.state import WorkspaceState
 from application.patient.patient_manager import PatientManager
-from project_manager.project_service_home_page import ProjectServiceHomePage
 from settings.paths.list_paths import PATIENTS_DIR
+from core.workspace.patient.workspace_patient import WorkspacePatientMixin
+from core.workspace.patient.state import WorkspaceState
+
+# Project
+from project_manager.project_service_home_page import ProjectServiceHomePage
 
 # Settings
 from settings.settings_app_manager import settings
 
+# Logs
 from core.settings.logs.archives.workspace_log import Workspace_Logger
-
-logger = logging.getLogger("OpenCMF.Workspace")
 from settings.logs.archives.containers import container
+logger = logging.getLogger("OpenCMF.Workspace")
 
-# Workspace / Layout
-from module_manager.workspace_module_manager import WorkspaceModuleManager
-from core.workspace.patient.workspace_patient import WorkspacePatientMixin
-from core.workspace.layout.workspace_loaders_components import WorkspaceComponentHandler
-
+# Workspace
 from core.workspace.models.registry import WorkspaceRegistry
+
+# Module
+from module_manager.workspace_module_manager import WorkspaceModuleManager
 
 # Containers
 from core.workspace.containers.header_container.header_panel import HeaderPanel
@@ -31,6 +33,9 @@ from core.workspace.containers.central_area_container.central_area_manager impor
 from core.workspace.containers.side_panel_container.side_panel_container import SidePanelContainer
 from core.workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
 from core.workspace.containers.status_bar.status_bar import StatusBarManager
+
+# Loader Components
+from core.workspace.layout.workspace_loaders_components import WorkspaceComponentHandler
 
 
 class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
@@ -69,6 +74,10 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
         self._setup_layout()
         self._setup_components()
         self._configure_splitter()
+
+    # =====================================================================
+    # INITIAL CONFIGURATION AND LAYOUT (SETUP & SPLITTER)
+    # =====================================================================
 
     def _setup_layout(self):
         self.main_layout = QtWidgets.QVBoxLayout(self)
@@ -139,6 +148,14 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
         except Exception as e:
             logger.error(f"Erro ao rodar diagnóstico do side panel: {e}")
 
+    def showEvent(self, event):
+        super().showEvent(event)
+        QtCore.QTimer.singleShot(50, self._apply_initial_splitter_sizes)
+
+    # =====================================================================
+    # SIDE PANEL AND SPLITTER MANAGEMENT
+    # =====================================================================
+
     def _configure_splitter(self):
         current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
 
@@ -153,6 +170,26 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
 
         self.splitter.setStretchFactor(0, 7)
         self.splitter.setStretchFactor(1, 3)
+
+    def _apply_initial_splitter_sizes(self):
+        if not self.splitter or not self.splitter.isVisible():
+            return
+
+        current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
+        if current_mode == "floating":
+            self.splitter.setSizes([self.splitter.width(), 0])
+            return
+
+        total_width = self.splitter.width()
+        if total_width > 0:
+            central_width = int(total_width * 0.70)
+            side_width = total_width - central_width
+            if central_width < self.MIN_CENTRAL_WIDTH:
+                central_width = self.MIN_CENTRAL_WIDTH
+                side_width = total_width - self.MIN_CENTRAL_WIDTH
+            self.splitter.setSizes([central_width, side_width])
+        else:
+            self.splitter.setSizes([700, 300])
 
     def notificar_toggle_side_panel(self, colapsado: bool):
         current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
@@ -181,54 +218,6 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
             if container:
                 container.update()
                 container.repaint()
-
-    def _apply_initial_splitter_sizes(self):
-        if not self.splitter or not self.splitter.isVisible():
-            return
-
-        current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
-        if current_mode == "floating":
-            self.splitter.setSizes([self.splitter.width(), 0])
-            return
-
-        total_width = self.splitter.width()
-        if total_width > 0:
-            central_width = int(total_width * 0.70)
-            side_width = total_width - central_width
-            if central_width < self.MIN_CENTRAL_WIDTH:
-                central_width = self.MIN_CENTRAL_WIDTH
-                side_width = total_width - self.MIN_CENTRAL_WIDTH
-            self.splitter.setSizes([central_width, side_width])
-        else:
-            self.splitter.setSizes([700, 300])
-
-    def abrir_seletor_componentes(self):
-        logger.info("Solicitação para abrir o seletor de componentes.")
-        self.component_handler.abrir_seletor()
-
-    def log_debug_state(self, level: int = logging.INFO):
-        if hasattr(self, "debug_inspector") and self.debug_inspector:
-            self.debug_inspector.log_full_state(level=level)
-
-    def reset_workspace(self):
-        logger.info("Iniciando o reset completo do workspace.")
-        self.registry.clear_all()
-
-        if hasattr(self, "module_manager") and hasattr(self.module_manager, "tab_controller"):
-            if hasattr(self.module_manager.tab_controller, "clear_tabs"):
-                self.module_manager.tab_controller.clear_tabs()
-            elif hasattr(self.module_manager.tab_controller, "clear_all"):
-                self.module_manager.tab_controller.clear_all()
-            elif hasattr(self.module_manager.tab_controller, "clear"):
-                self.module_manager.tab_controller.clear()
-
-        self.toolbar_manager.clear_all()
-
-        if hasattr(self.side_manager, 'clear_all'):
-            self.side_manager.clear_all()
-
-        self.central_manager.clear()
-        logger.debug(f"Estado atual pós-reset - Módulos ativos: {self.registry.list_active_modules()}")
 
     def reconstruir_side_panel(self):
         if not hasattr(self, "side_manager") or not self.side_manager:
@@ -287,9 +276,9 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
             if panel:
                 panel.setVisible(True)
 
-    def showEvent(self, event):
-        super().showEvent(event)
-        QtCore.QTimer.singleShot(50, self._apply_initial_splitter_sizes)
+    # =====================================================================
+    # MODULE AND COMPONENT MANAGEMENT
+    # =====================================================================
 
     def get_modulo_ativo(self):
         if hasattr(self, 'module_manager'):
@@ -299,3 +288,35 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
     def on_module_changed(self, module_id: str):
         if hasattr(self, 'module_manager'):
             self.module_manager.on_module_changed(module_id)
+
+    def abrir_seletor_componentes(self):
+        logger.info("Solicitação para abrir o seletor de componentes.")
+        self.component_handler.abrir_seletor()
+
+    # =====================================================================
+    # Diagnóstico, Logs e Reset
+    # =====================================================================
+
+    def log_debug_state(self, level: int = logging.INFO):
+        if hasattr(self, "debug_inspector") and self.debug_inspector:
+            self.debug_inspector.log_full_state(level=level)
+
+    def reset_workspace(self):
+        logger.info("Iniciando o reset completo do workspace.")
+        self.registry.clear_all()
+
+        if hasattr(self, "module_manager") and hasattr(self.module_manager, "tab_controller"):
+            if hasattr(self.module_manager.tab_controller, "clear_tabs"):
+                self.module_manager.tab_controller.clear_tabs()
+            elif hasattr(self.module_manager.tab_controller, "clear_all"):
+                self.module_manager.tab_controller.clear_all()
+            elif hasattr(self.module_manager.tab_controller, "clear"):
+                self.module_manager.tab_controller.clear()
+
+        self.toolbar_manager.clear_all()
+
+        if hasattr(self.side_manager, 'clear_all'):
+            self.side_manager.clear_all()
+
+        self.central_manager.clear()
+        logger.debug(f"Estado atual pós-reset - Módulos ativos: {self.registry.list_active_modules()}")

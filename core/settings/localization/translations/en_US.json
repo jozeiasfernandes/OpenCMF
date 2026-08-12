@@ -89,7 +89,7 @@
             "others": "Others"
         },
         "volumes": {
-            "dicom": "DICOM",
+            "dicom": "Load Dicom",
             "vti": "VTI",
             "vtk_nrrd_nifti": "VTK, NRRD, NIfTI",
             "volume_vti": "Volume .vti"
