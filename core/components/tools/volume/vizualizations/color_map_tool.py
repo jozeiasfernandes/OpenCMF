@@ -4,6 +4,7 @@ from PySide6 import QtWidgets, QtGui
 
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
 from domain.volume.visualization.lut.lut_presets import LUTPresets
+from core.application.scene.events.scene_events import VolumeEvents
 
 
 class ColorMapTool(BaseTool):
@@ -42,7 +43,8 @@ class ColorMapTool(BaseTool):
                 self.combo_widget.setCurrentText(lut_name)
 
             if self.context and hasattr(self.context, "event_bus") and self.context.event_bus:
-                self.context.event_bus.emit("LUT_CHANGED", lut_name)
+                # Uso da constante em vez de string mágica
+                self.context.event_bus.emit(VolumeEvents.LUT_CHANGED, lut_name=lut_name)
             elif self.context and hasattr(self.context, "scene_manager") and self.context.scene_manager:
                 self.context.scene_manager.set_color_map(lut_name)
                 self.render()

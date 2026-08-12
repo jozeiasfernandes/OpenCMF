@@ -9,7 +9,7 @@ import vtk
 
 # Scene
 from application.scene.scene_object import SceneObject
-from application.scene.events.scene_events import SceneEvents
+from application.scene.events.scene_events import SceneEvents, VolumeEvents
 
 # Settings
 try:
@@ -72,7 +72,8 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.events.subscribe(SceneEvents.OBJECT_ADDED, self._on_object_added)
         self.events.subscribe(SceneEvents.OBJECT_REMOVED, self._on_object_removed)
         self.events.subscribe(SceneEvents.LAYOUT_CHANGED, self._on_layout_event_received)
-        self.events.subscribe("DICOM_LOADED", self._on_dicom_loaded_event)
+        self.events.subscribe(VolumeEvents.DICOM_LOADED, self._on_dicom_loaded_event)
+        self.events.subscribe(VolumeEvents.LUT_CHANGED, self._on_lut_event_received)
 
         self._setup_ui()
 
@@ -169,6 +170,12 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         vol = volume or kwargs.get("volume", None)
         if vol:
             self.set_volume(vol)
+
+    def _on_lut_event_received(self, lut_name: str = None, **kwargs):
+        """Callback acionado quando o mapa de cores (LUT) global é alterado."""
+        name = lut_name or kwargs.get("lut_name")
+        if name:
+            self.apply_global_lut(name)
 
 
 if __name__ == "__main__":

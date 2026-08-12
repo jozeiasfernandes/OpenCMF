@@ -30,8 +30,9 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
             # Exemplo de escuta para quando um DICOM for carregado
             if hasattr(event_bus, "subscribe"):
                 event_bus.subscribe("DICOM_LOADED", self._on_dicom_loaded)
+                event_bus.subscribe("LUT_CHANGED", self._on_lut_event_received)
             elif hasattr(event_bus, "connect"):  # Dependendo se usa Signal do Qt ou PubSub customizado
-                pass  # Ajuste conforme a API do seu event_bus (ex: event_bus.DICOM_LOADED.connect(..)
+                pass
 
     def _on_dicom_loaded(self, *args, **kwargs):
         # Captura tanto argumentos posicionais quanto nomeados (como 'volume', 'path', etc.)
@@ -127,3 +128,9 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
         if event.button() == QtCore.Qt.LeftButton:
             self._toggle_maximize()
         super().mouseDoubleClickEvent(event)
+
+    def _on_lut_event_received(self, lut_name: str = None, **kwargs):
+        """Captura o evento global de mudança de LUT emitido pelo ColorMapTool."""
+        name = lut_name or kwargs.get("lut_name")
+        if name:
+            self.apply_lut(name)
