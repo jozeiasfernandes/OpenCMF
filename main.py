@@ -57,7 +57,7 @@ from core.components.bases.base_tool.tool_manager import ToolManager
 # Workspace
 from core.workspace.models.module_factory import ModuleFactory
 from core.workspace.workspace_manager import WorkspaceManager
-from modules.base_module.base_module import FluxoBase
+from modules.base_module.base_module import ModuloBase
 
 
 class ApplicationContext:
@@ -283,7 +283,8 @@ class MainWindow(QtWidgets.QMainWindow):
                 config = json.load(f)
 
             self.workspace.reset_workspace()
-            self.workflow = FluxoBase(config)
+
+            self.workflow = ModuloBase(context=config)
 
             if self.patient_manager.current_path:
                 self.workspace.set_patient_path(self.patient_manager.current_path)

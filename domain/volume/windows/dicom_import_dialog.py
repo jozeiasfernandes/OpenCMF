@@ -5,6 +5,9 @@ from PySide6 import QtWidgets, QtCore, QtGui
 # Settings
 from core.settings.localization.translator import tr
 
+# Thumbnail
+from domain.volume.visualization.volume_viewer.thumbnail_generator.thumbnail_generator import DicomThumbnailGenerator
+
 
 class DicomImportWindow(QtWidgets.QDialog):
     """Janela de seleção, pré-visualização e importação de séries DICOM."""
@@ -15,7 +18,7 @@ class DicomImportWindow(QtWidgets.QDialog):
         self.selected_series_index: int = -1
 
         self.setWindowTitle(tr("import.volumes.dicom", "Importar DICOM / Tomografia"))
-        self.resize(500, 400)
+        self.resize(620, 480)
 
         self._init_ui()
         if self.series_list:
@@ -40,53 +43,54 @@ class DicomImportWindow(QtWidgets.QDialog):
         self.table_series.itemSelectionChanged.connect(self._on_series_selection_changed)
         main_layout.addWidget(self.table_series)
 
-        # 2. Abas Inferiores (Pré-visualização, Série, Dados da Imagem)
-        self.tab_widget = QtWidgets.QTabWidget()
-        self.tab_preview = QtWidgets.QWidget()
-        self.tab_series = QtWidgets.QWidget()
-        self.tab_metadata = QtWidgets.QWidget()
+        # 2. Painel Principal de Pré-visualização
+        preview_container = QtWidgets.QWidget()
+        preview_layout = QtWidgets.QVBoxLayout(preview_container)
+        preview_layout.setContentsMargins(5, 5, 5, 5)
+        preview_layout.setSpacing(6)
 
-        self.tab_widget.addTab(self.tab_preview, tr("import.panels.preview", "Pré-visualização"))
-        self.tab_widget.addTab(self.tab_series, tr("import.section.volume", "Série"))
-        self.tab_widget.addTab(self.tab_metadata, tr("import.panels.content", "Dados da Imagem"))
-
-        main_layout.addWidget(self.tab_widget)
-
-        # Conteúdo da aba de Pré-visualização
-        preview_layout = QtWidgets.QVBoxLayout(self.tab_preview)
-        preview_layout.setContentsMargins(10, 10, 10, 10)
-
-        self.lbl_patient_info = QtWidgets.QLabel(tr("home.unknown_patient", "NENHUM PACIENTE SELECIONADO - 00000"))
+        self.lbl_patient_info = QtWidgets.QLabel("NENHUM PACIENTE SELECIONADO - 00000")
+        self.lbl_patient_info.setStyleSheet("font-weight: bold; font-size: 13px;")
         preview_layout.addWidget(self.lbl_patient_info)
 
         self.lbl_series_date = QtWidgets.QLabel("---")
         preview_layout.addWidget(self.lbl_series_date)
 
-        card_layout = QtWidgets.QHBoxLayout()
-        card_layout.setSpacing(0)
+        # Bloco estilizado com fundo azul idêntico à referência
+        self.card_widget = QtWidgets.QWidget()
+        self.card_widget.setStyleSheet("""
+            QWidget {
+                background-color: #2b82c9;
+                border-radius: 4px;
+                color: white;
+            }
+        """)
+        card_layout = QtWidgets.QHBoxLayout(self.card_widget)
+        card_layout.setContentsMargins(8, 8, 8, 8)
+        card_layout.setSpacing(10)
 
+        # Miniatura
         self.lbl_thumbnail = QtWidgets.QLabel()
-        self.lbl_thumbnail.setFixedSize(160, 160)
+        self.lbl_thumbnail.setFixedSize(140, 140)
         self.lbl_thumbnail.setAlignment(QtCore.Qt.AlignCenter)
         self.lbl_thumbnail.setText("Sem Pré-via")
+        self.lbl_thumbnail.setStyleSheet("background-color: #1a1a1a; border-radius: 2px; color: #888888;")
         card_layout.addWidget(self.lbl_thumbnail)
 
-        self.widget_info_left = QtWidgets.QWidget()
-        layout_info_l = QtWidgets.QVBoxLayout(self.widget_info_left)
+        # Descrição central dentro do card azul
         self.lbl_series_desc = QtWidgets.QLabel("Selecione uma série acima...")
         self.lbl_series_desc.setWordWrap(True)
-        layout_info_l.addWidget(self.lbl_series_desc)
-        card_layout.addWidget(self.widget_info_left, stretch=1)
+        self.lbl_series_desc.setStyleSheet("background: transparent; color: white;")
+        card_layout.addWidget(self.lbl_series_desc, stretch=1)
 
-        self.widget_info_right = QtWidgets.QWidget()
-        layout_info_r = QtWidgets.QVBoxLayout(self.widget_info_right)
+        # Informações de voxels à direita dentro do card azul
         self.lbl_voxel_info = QtWidgets.QLabel("--- x --- x --- voxels\n0.00 x 0.00 x 0.00 mm\n---")
         self.lbl_voxel_info.setAlignment(QtCore.Qt.AlignCenter)
-        layout_info_r.addWidget(self.lbl_voxel_info)
-        card_layout.addWidget(self.widget_info_right, stretch=1)
+        self.lbl_voxel_info.setStyleSheet("background: transparent; color: white; font-weight: bold;")
+        card_layout.addWidget(self.lbl_voxel_info, stretch=1)
 
-        preview_layout.addLayout(card_layout)
-        preview_layout.addStretch()
+        preview_layout.addWidget(self.card_widget)
+        main_layout.addWidget(preview_container)
 
         # 3. Controles Inferiores: Fatores de amostragem + Botões OK/Cancel
         bottom_layout = QtWidgets.QHBoxLayout()
@@ -123,7 +127,7 @@ class DicomImportWindow(QtWidgets.QDialog):
         self.btn_ok.clicked.connect(self.accept)
         bottom_layout.addWidget(self.btn_ok)
 
-        self.btn_cancel = QtWidgets.QPushButton(tr("common.close_button", "Cancelar"))
+        self.btn_cancel = QtWidgets.QPushButton(tr("common.close_button", "Fechar"))
         self.btn_cancel.clicked.connect(self.reject)
         bottom_layout.addWidget(self.btn_cancel)
 
@@ -143,7 +147,6 @@ class DicomImportWindow(QtWidgets.QDialog):
             self.table_series.setItem(row, 5, QtWidgets.QTableWidgetItem(str(series.get("date", ""))))
 
         if self.series_list:
-            # Seleciona a primeira linha e força a atualização imediata do índice e da pré-via
             self.table_series.selectRow(0)
             self.selected_series_index = 0
             self._on_series_selection_changed()
@@ -152,13 +155,15 @@ class DicomImportWindow(QtWidgets.QDialog):
         selected_rows = self.table_series.selectionModel().selectedRows()
         if not selected_rows:
             self.selected_series_index = -1
+            self.lbl_thumbnail.clear()
+            self.lbl_thumbnail.setText("Sem Pré-via")
             return
 
         self.selected_series_index = selected_rows[0].row()
         if 0 <= self.selected_series_index < len(self.series_list):
             series = self.series_list[self.selected_series_index]
 
-            patient_name = series.get("patient_name", tr("home.unknown_patient", "PACIENTE DESCONHECIDO"))
+            patient_name = series.get("patient_name", "PACIENTE DESCONHECIDO")
             patient_id = series.get("patient_id", "00000")
             self.lbl_patient_info.setText(f"{patient_name} - {patient_id}")
 
@@ -180,6 +185,19 @@ class DicomImportWindow(QtWidgets.QDialog):
 
             self.lbl_voxel_info.setText(f"{w} x {h} x {c} voxels\n{sx:.2f} x {sy:.2f} x {sz:.2f} mm\n{tag}")
 
+            # Tenta carregar o vtk_image se disponível no dicionário da série
+            vtk_image = series.get("vtk_image", None)
+            if vtk_image:
+                pixmap = DicomThumbnailGenerator.generate_thumbnail(vtk_image, target_size=140)
+                if not pixmap.isNull():
+                    self.lbl_thumbnail.setPixmap(pixmap)
+                else:
+                    self.lbl_thumbnail.clear()
+                    self.lbl_thumbnail.setText("Erro na Pré-via")
+            else:
+                self.lbl_thumbnail.clear()
+                self.lbl_thumbnail.setText("Sem Imagem VTK")
+
     def get_selected_series(self) -> Optional[Dict[str, Any]]:
         """Retorna os dados da série atualmente selecionada na tabela."""
         if 0 <= self.selected_series_index < len(self.series_list):
@@ -189,7 +207,6 @@ class DicomImportWindow(QtWidgets.QDialog):
     def get_sampling_factors(self) -> Tuple[float, float, float]:
         """Retorna os fatores de amostragem configurados (X, Y, Z)."""
         return (self.spin_x.value(), self.spin_y.value(), self.spin_z.value())
-
 
 if __name__ == "__main__":
     import sys

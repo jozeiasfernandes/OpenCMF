@@ -4,6 +4,7 @@ from PySide6 import QtWidgets, QtGui
 
 from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory
 from domain.volume.visualization.lut.lut_presets import LUTPresets
+from domain.volume.visualization.lut.lut_delegate import LUTDelegate
 from core.application.scene.events.scene_events import VolumeEvents
 
 
@@ -23,10 +24,13 @@ class ColorMapTool(BaseTool):
     def create_widget(self) -> QtWidgets.QWidget:
         """Cria e retorna o QComboBox customizado para a toolbar."""
         self.combo_widget = QtWidgets.QComboBox()
-        for lut_name in LUTPresets.PRESETS.keys():
+        presets = list(LUTPresets.PRESETS.keys())
+        for lut_name in presets:
             self.combo_widget.addItem(lut_name, lut_name)
 
-        if self._current_lut in LUTPresets.PRESETS:
+        # Aplica o delegate que desenha o gradiente como fundo preenchido
+        self.combo_widget.setItemDelegate(LUTDelegate())
+        if self._current_lut in presets:
             self.combo_widget.setCurrentText(self._current_lut)
 
         self.combo_widget.currentTextChanged.connect(self.apply_lut)

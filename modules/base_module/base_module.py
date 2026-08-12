@@ -8,7 +8,7 @@ from core.application.scene.events.event_bus import EventBus
 
 
 class ModuloBase(QtWidgets.QWidget):
-    """Classe base para módulos que atuam como containers de componentes."""
+    """Classe base para módulos que atuam como containers de componentes e controlam fluxos."""
 
     id: str = "undefined.id"
     nome: str = "Módulo Genérico"
@@ -18,12 +18,20 @@ class ModuloBase(QtWidgets.QWidget):
         super().__init__(parent=parent)
 
         self.context = context
+
+        # Atributos de controle de fluxo (migrados de FluxoBase)
+        # Se o context for um dicionário de configuração ou possuir dados, extraímos de lá se houver
+        dados_config = context if isinstance(context, dict) else {}
+
+        self.nome = dados_config.get("nome", self.nome)
+        self.sequencia: List[str] = dados_config.get("sequencia", [])
+        self.configuracoes: Dict[str, Any] = dados_config.get("configuracoes", {})
+        self.indice_atual: int = 0
+
         self.setLayout(QtWidgets.QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
 
-        # --- GESTÃO AUTOMÁTICA DO EVENT BUS ---
         self._setup_event_bus()
-        # -------------------------------------
 
         self.viewer: Optional[QtWidgets.QWidget] = None
         self.module_logger = Module_Logger(modulo_instance=self)
@@ -50,6 +58,35 @@ class ModuloBase(QtWidgets.QWidget):
         self.event_bus = bus
         if self.context and hasattr(self.context, "__dict__"):
             setattr(self.context, "event_bus", self.event_bus)
+
+    # --- Métodos de Controle de Fluxo (Migrados de FluxoBase) ---
+
+    @property
+    def total_etapas(self) -> int:
+        return len(self.sequencia)
+
+    @property
+    def id_atual(self) -> Optional[str]:
+        return self.obter_id_por_indice(self.indice_atual)
+
+    def obter_id_por_indice(self, indice: int) -> Optional[str]:
+        if 0 <= indice < len(self.sequencia):
+            return self.sequencia[indice]
+        return None
+
+    def avancar(self) -> bool:
+        if self.indice_atual < self.total_etapas - 1:
+            self.indice_atual += 1
+            return True
+        return False
+
+    def retroceder(self) -> bool:
+        if self.indice_atual > 0:
+            self.indice_atual -= 1
+            return True
+        return False
+
+    # --- Métodos de Interface e Ciclo de Vida ---
 
     def get_central_area(self) -> QtWidgets.QWidget:
         """Retorna o widget principal da área central do módulo."""
@@ -87,5 +124,4 @@ class ModuloBase(QtWidgets.QWidget):
         return True
 
 
-# Registra formalmente a ModuloBase como uma subclasse virtual de IModule
 IModule.register(ModuloBase)
