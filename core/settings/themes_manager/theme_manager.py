@@ -27,7 +27,10 @@ class ThemeManager:
             "accent_color": "#61afef",
         }
 
-        return settings.get("theme_customization", "colors", default_theme)
+        stored_colors = settings.get("theme_customization", "colors", default_theme)
+        if not isinstance(stored_colors, dict):
+            return default_theme
+        return {**default_theme, **stored_colors}
 
     def apply_static_theme(self, theme_name: str) -> bool:
         """
@@ -95,17 +98,19 @@ class ThemeManager:
             with open(template_path, "r", encoding="utf-8") as f:
                 template_content = f.read()
 
-            default_colors = {
-                "bg_main": "#282c34",
-                "bg_secondary": "#21252b",
-                "bg_input": "#1b1f23",
-                "border_color": "#181a1f",
-                "text_color": "#abb2bf",
-                "accent_color": "#61afef",
+            replacements = {
+                "{bg_main}": colors["bg_main"],
+                "{bg_secondary}": colors["bg_secondary"],
+                "{bg_input}": colors["bg_input"],
+                "{border_color}": colors["border_color"],
+                "{text_color}": colors["text_color"],
+                "{accent_color}": colors["accent_color"],
             }
-            merged_colors = {**default_colors, **colors}
 
-            final_stylesheet = template_content.format(**merged_colors)
+            final_stylesheet = template_content
+            for token, value in replacements.items():
+                final_stylesheet = final_stylesheet.replace(token, value)
+
             self.app.setStyleSheet(final_stylesheet)
             return True
         except Exception as e:

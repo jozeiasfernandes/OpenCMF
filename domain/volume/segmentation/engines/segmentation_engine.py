@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Optional, Callable, Any
 from domain.volume.segmentation.strategies.threshold import ThresholdStrategy
 from domain.volume.processing.surface_extraction import SurfaceExtraction
-from domain.volume.exporters.vti_exporter import MeshExporter
+from domain.volume.segmentation.exporters.mesh_exporter import MeshExporter
 
 try:
     from application.scene import SceneEvents
@@ -27,11 +27,11 @@ class ThresholdSegmentationEngine:
         return ThresholdStrategy.executar(volume_data, lower_threshold=threshold_value)
 
     def exportar_stl(
-        self,
-        mask_data: vtk.vtkImageData,
-        caminho_saida: Path,
-        qualidade_index: int = 1,
-        callback_progresso: Optional[Callable[[str, int], None]] = None
+            self,
+            mask_data: vtk.vtkImageData,
+            caminho_saida: Path,
+            qualidade_index: int = 1,
+            callback_progresso: Optional[Callable[[str, int], None]] = None
     ) -> bool:
         """
         Coordena o pipeline completo de conversão da máscara em malha 3D e exportação para arquivo STL.

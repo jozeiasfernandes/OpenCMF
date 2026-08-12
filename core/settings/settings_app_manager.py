@@ -26,6 +26,15 @@ class SettingsManager:
             self.save()
 
     def _apply_defaults(self) -> None:
+        default_theme_colors = {
+            "bg_main": "#282c34",
+            "bg_secondary": "#21252b",
+            "bg_input": "#1b1f23",
+            "border_color": "#181a1f",
+            "text_color": "#abb2bf",
+            "accent_color": "#61afef",
+        }
+
         self.data = {
             "app_info": {
                 "id": "opencmf.surgicalplanning.1.0",
@@ -36,6 +45,9 @@ class SettingsManager:
                 "tema": "dark",
                 "idioma": "pt_BR",
                 "autosave": True
+            },
+            "theme_customization": {
+                "colors": default_theme_colors
             },
             "diretorios": {
                 "patients": "patients",

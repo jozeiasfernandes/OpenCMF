@@ -5,14 +5,20 @@ from pathlib import Path
 from typing import Any, Optional
 
 from PySide6 import QtCore, QtWidgets
-
 import vtk
-
 vtk.vtkObject.GlobalWarningDisplayOff()
 
-# Patient Manager
+# Components
+from core.components.bases.base_tool.tool_manager import ToolManager
+
+# Import Window
+from core.application.imports.import_window.import_window import ImportWindow
+
+# Home page & Patient Manager
+from core.application.home_page.flows_manager.flows_editor.flow_editor import PaginaEditorFluxo
+from core.application.home_page.home_page import Home_page
+from core.application.home_page.project_manager.project_service_home_page import ProjectServiceHomePage
 from core.application.patient.patient_manager import PatientManager
-from core.settings.paths.list_paths import BASE_DIR, PATIENTS_DIR
 
 # Scene
 from core.application.scene.events.event_bus import EventBus
@@ -23,41 +29,21 @@ from core.application.scene.scene_manager import SceneManager
 from core.application.scene.scene_state import SceneState
 from core.application.scene.selection.selection_manager import SelectionManager
 
-# Home page
-from core.application.home_page.flows_manager.flows_editor.flow_editor import PaginaEditorFluxo
-from core.application.home_page.home_page import Home_page
-from core.application.home_page.project_manager.project_service_home_page import ProjectServiceHomePage
-
-# Import Window
-from core.application.imports.import_window.import_window import ImportWindow
-
 # Settings
+from core.settings.icons_manager.icon_manager import IconManager
+from core.settings.localization.translator import tr
+from core.settings.themes_manager.theme_manager import ThemeManager
+from core.settings.logs.logger_manager import Main_Logger, main_logger
+from core.settings.paths.list_paths import BASE_DIR, ICONS_DIR, PATIENTS_DIR, THEMES_DIR
 from core.settings.settings_app_manager import settings
 from core.settings.settings_page import PaginaConfig
 
-# Icons
-from core.settings.icons_manager.icon_manager import IconManager
-from core.settings.paths.list_paths import ICONS_DIR
-
-# Themes
-from core.settings.themes_manager.theme_manager import ThemeManager
-from core.settings.paths.list_paths import THEMES_DIR
-
-# Localization
-from core.settings.localization.translator import tr
-
-# Logger
-from core.settings.logs.logger_manager import Main_Logger, main_logger
-Main_Logger.setup_redirect()
-
-
-# Components
-from core.components.bases.base_tool.tool_manager import ToolManager
-
-# Workspace
+# Workspace & Modules
 from core.workspace.models.module_factory import ModuleFactory
 from core.workspace.workspace_manager import WorkspaceManager
 from modules.base_module.base_module import ModuloBase
+
+Main_Logger.setup_redirect()
 
 
 class ApplicationContext:
@@ -103,7 +89,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.import_window_instance: Optional[ImportWindow] = None
 
             IconManager.get_instance().set_base_path(ICONS_DIR)
-
             self.theme_manager = ThemeManager(QtWidgets.QApplication.instance())
 
             # Inicializa serviços principais antes dos componentes de cena/contexto
@@ -123,6 +108,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 f"Falha ao inicializar aplicação: {e}"
             )
             raise
+
+    # =========================================================================
+    # SEÇÃO: CONFIGURAÇÃO E INICIALIZAÇÃO (_setup_*)
+    # =========================================================================
 
     def _setup_scene_components(self):
         """Inicializa os componentes da cena 3D."""
@@ -185,23 +174,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if debug_instance:
             debug_instance.set_context(self.context)
 
-    def open_import_window(self):
-        """Abre a janela avançada de importação com suporte ao SceneManager."""
-        if not self.patient_manager.current_path:
-            QtWidgets.QMessageBox.warning(
-                self,
-                "Aviso",
-                "Por favor, selecione ou crie um paciente antes de abrir o gerenciador de importações."
-            )
-            return
-
-        if self.import_window_instance is None:
-            self.import_window_instance = ImportWindow(scene_manager=self.scene_manager)
-
-        self.import_window_instance.show()
-        self.import_window_instance.raise_()
-        self.import_window_instance.activateWindow()
-
     def _setup_signals(self):
         """Conecta todos os sinais da aplicação."""
         self.home.fluxo_escolhido.connect(self.start_workflow)
@@ -221,6 +193,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.patient_manager.patient_changed.connect(self._on_patient_path_changed)
 
     def _setup_appearance(self):
+        """Configura a aparência inicial (título, tema, ícone e tamanho)."""
         self.setWindowTitle(
             tr("main.window_title", settings.get("app_info", "title", "OpenCMF"))
         )
@@ -229,6 +202,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.apply_theme(theme)
         self.setup_icon()
         self.showMaximized()
+
+    # =========================================================================
+    # SEÇÃO: GERENCIAMENTO DE TEMA E ÍCONES
+    # =========================================================================
 
     def apply_theme(self, theme_input: str):
         path = Path(theme_input)
@@ -253,11 +230,23 @@ class MainWindow(QtWidgets.QMainWindow):
         self.theme_changed.emit()
 
     def apply_theme_by_name(self, theme_name: str):
-        qss_path = THEMES_DIR / f"{theme_name}.qss"
-        if qss_path.exists():
-            QtWidgets.QApplication.instance().setStyleSheet(
-                qss_path.read_text(encoding="utf-8")
-            )
+        """Aplica o tema utilizando o ThemeManager centralizado."""
+        try:
+            success = self.theme_manager.apply_static_theme(theme_name)
+            if not success:
+                success = self.theme_manager.apply_custom_theme()
+
+            if success:
+                settings.tema = theme_name
+                IconManager.get_instance().clear_cache()
+                main_logger.info(f"Tema alterado para: {theme_name}")
+            else:
+                main_logger.warning(f"Falha ao aplicar o tema: {theme_name}")
+        except Exception as e:
+            main_logger.error(f"Erro ao aplicar tema '{theme_name}': {e}", exc_info=True)
+
+        self.setup_icon()
+        self.theme_changed.emit()
 
     def setup_icon(self):
         manager = IconManager.get_instance()
@@ -267,15 +256,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.setWindowIcon(app_icon)
             QtWidgets.QApplication.setWindowIcon(app_icon)
 
-    def back_to_home(self):
-        if hasattr(self.home, 'update_list'):
-            self.home.update_list()
-        self.patient_manager.clear()
-        self.stack.setCurrentWidget(self.home)
-
-    def _on_patient_path_changed(self, new_path: str):
-        if new_path and hasattr(self, 'importer'):
-            self.importer.patient_path = Path(new_path)
+    # =========================================================================
+    # SEÇÃO: FLUXOS DE TRABALHO E WORKFLOWS
+    # =========================================================================
 
     def start_workflow(self, config_path: str):
         try:
@@ -283,7 +266,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 config = json.load(f)
 
             self.workspace.reset_workspace()
-
             self.workflow = ModuloBase(context=config)
 
             if self.patient_manager.current_path:
@@ -356,6 +338,41 @@ class MainWindow(QtWidgets.QMainWindow):
         current_path = self.patient_manager.current_path
         if current_path and hasattr(module, 'inicializar'):
             module.inicializar(current_path)
+
+    # =========================================================================
+    # SEÇÃO: NAVEGAÇÃO E EVENTOS DE USUÁRIO
+    # =========================================================================
+
+    def back_to_home(self):
+        if hasattr(self.home, 'update_list'):
+            self.home.update_list()
+        self.patient_manager.clear()
+        self.stack.setCurrentWidget(self.home)
+
+    def open_import_window(self):
+        """Abre a janela avançada de importação com suporte ao SceneManager."""
+        if not self.patient_manager.current_path:
+            QtWidgets.QMessageBox.warning(
+                self,
+                "Aviso",
+                "Por favor, selecione ou crie um paciente antes de abrir o gerenciador de importações."
+            )
+            return
+
+        if self.import_window_instance is None:
+            self.import_window_instance = ImportWindow(scene_manager=self.scene_manager)
+
+        self.import_window_instance.show()
+        self.import_window_instance.raise_()
+        self.import_window_instance.activateWindow()
+
+    def _on_patient_path_changed(self, new_path: str):
+        if new_path and hasattr(self, 'importer'):
+            self.importer.patient_path = Path(new_path)
+
+    # =========================================================================
+    # SEÇÃO: EXECUÇÃO DA APLICAÇÃO
+    # =========================================================================
 
     @staticmethod
     def run():

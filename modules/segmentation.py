@@ -7,7 +7,7 @@ from modules.base_module.base_module import ModuloBase
 from application.scene.events.scene_events import SceneEvents
 from application.scene.utils.factory import SceneObjectFactory
 
-from domain.volume.segmentation.engines.threshold_segmentation_engine import ThresholdSegmentationEngine
+from domain.volume.segmentation.engines.segmentation_engine import ThresholdSegmentationEngine
 
 from core.components.side_panel.segmentation_sidepanel import Segmentation_SidePanel
 from core.components.central_area.viewer_3d_dicom_central_area import Viewer3D_Dicom_Widget_CentralArea
