@@ -143,7 +143,10 @@ class DicomImportWindow(QtWidgets.QDialog):
             self.table_series.setItem(row, 5, QtWidgets.QTableWidgetItem(str(series.get("date", ""))))
 
         if self.series_list:
+            # Seleciona a primeira linha e força a atualização imediata do índice e da pré-via
             self.table_series.selectRow(0)
+            self.selected_series_index = 0
+            self._on_series_selection_changed()
 
     def _on_series_selection_changed(self):
         selected_rows = self.table_series.selectionModel().selectedRows()

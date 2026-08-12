@@ -70,10 +70,10 @@ class Viewer3D_Dicom_Widget_CentralArea(CentralAreaBase):
         self._update_maximize_icon()
 
         # Utiliza o método auxiliar da classe base (CentralAreaBase) para adicionar os controles na barra superior
-        self.adicionar_controle(self.combo_presets)
-        self.adicionar_controle(self.slider_threshold)
-        self.adicionar_controle(self.lbl_value)
-        self.adicionar_controle(self.btn_maximize)
+        self.add_control(self.combo_presets)
+        self.add_control(self.slider_threshold)
+        self.add_control(self.lbl_value)
+        self.add_control(self.btn_maximize)
 
     def set_presets(self, preset_list: list):
         self.combo_presets.clear()

@@ -113,7 +113,7 @@ class SceneMonitorArea(CentralAreaBase):
         btn_refresh = QtWidgets.QToolButton()
         btn_refresh.setText("↻")
         btn_refresh.clicked.connect(self._refresh_tree)
-        self.adicionar_controle(btn_refresh)
+        self.add_control(btn_refresh)
 
     def _scene_manager(self):
         return getattr(self._modulo, "scene_manager", None)

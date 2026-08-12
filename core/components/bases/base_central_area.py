@@ -1,9 +1,19 @@
 import vtk
-from PySide6 import QtWidgets, QtCore
-from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+from PySide6 import QtWidgets, QtCore, QtGui
+
+# Scene
 from application.scene.events.scene_events import SceneEvents
+
+# Components
 from core.components.bases.base_component import BaseComponent
 from core.components.bases.base_tool.viewport_interaction_controller import ViewportInteractionController
+
+from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+fmt = QtGui.QSurfaceFormat()
+fmt.setRenderableType(QtGui.QSurfaceFormat.OpenGL)
+fmt.setVersion(3, 2)
+fmt.setProfile(QtGui.QSurfaceFormat.CoreProfile)
+QtGui.QSurfaceFormat.setDefaultFormat(fmt)
 
 
 class CentralAreaBase(QtWidgets.QWidget):
@@ -33,6 +43,10 @@ class CentralAreaBase(QtWidgets.QWidget):
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
         self._setup_base_ui()
+
+    # ==========================================
+    # PROPRIEDADES E GETTERS
+    # ==========================================
 
     @property
     def context(self):
@@ -64,6 +78,13 @@ class CentralAreaBase(QtWidgets.QWidget):
             return self.scene_manager.events
         return None
 
+    def get_ui(self):
+        return self
+
+    # ==========================================
+    # CONFIGURAÇÃO DE UI E COMPONENTES
+    # ==========================================
+
     def setup_component(self):
         """Implementação do contrato de inicialização alinhada ao BaseComponent."""
         if self._logic._loaded:
@@ -78,11 +99,12 @@ class CentralAreaBase(QtWidgets.QWidget):
         # Sincroniza o estado de carregamento no componente lógico de composição
         self._logic._loaded = True
 
-    def get_ui(self):
-        return self
+    def setup_ui(self):
+        """Método para ser sobrescrito pelas classes filhas."""
+        pass
 
     def _setup_base_ui(self):
-        """Configura a UI base de forma limpa e sem sobreposições de layout[cite: 1]."""
+        """Configura a UI base de forma limpa e sem sobreposições de layout."""
         if self.layout_principal is None:
             self.layout_principal = QtWidgets.QVBoxLayout(self)
             self.layout_principal.setContentsMargins(0, 0, 0, 0)
@@ -98,7 +120,7 @@ class CentralAreaBase(QtWidgets.QWidget):
             self.vtkWidget.SetInteractorStyle(style)
             self.vtkWidget.GetRenderWindow().AddRenderer(self.renderer)
 
-            # Assegura política expansiva para o widget VTK[cite: 1]
+            # Assegura política expansiva para o widget VTK
             self.vtkWidget.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
 
             self.indicator = QtWidgets.QLabel(self.title, self.vtkWidget)
@@ -114,8 +136,15 @@ class CentralAreaBase(QtWidgets.QWidget):
                     tool_manager=self.tool_manager
                 )
 
+    def add_control(self, widget: QtWidgets.QWidget):
+        self.area_controles.addWidget(widget)
+
+    # ==========================================
+    # GERENCIAMENTO DE SINAIS E EVENTOS
+    # ==========================================
+
     def _conectar_sinais_scene(self):
-        """Conecta sinais do barramento de eventos[cite: 1]."""
+        """Conecta sinais do barramento de eventos."""
         bus = self.event_bus
         if bus and hasattr(bus, 'subscribe'):
             try:
@@ -124,21 +153,37 @@ class CentralAreaBase(QtWidgets.QWidget):
                 pass
 
     def _on_scene_changed(self, **kwargs):
-        """Callback quando a cena muda[cite: 1]."""
+        """Callback quando a cena muda."""
         self.cena_atualizada.emit()
         self.render()
 
+    def resizeEvent(self, event):
+        """Força a limpeza e atualização imediata do renderizador VTK e do widget ao redimensionar."""
+        super().resizeEvent(event)
+        if self.vtkWidget:
+            try:
+                # Força o reajuste da janela de renderização do VTK
+                window = self.vtkWidget.GetRenderWindow()
+                if window:
+                    window.Render()
+                self.vtkWidget.update()
+                self.vtkWidget.repaint()
+            except Exception:
+                pass
+        self.update()
+        self.repaint()
+
+    # ==========================================
+    # RENDERIZAÇÃO E CICLO DE ENCERRAMENTO
+    # ==========================================
+
     def render(self):
-        """Renderiza a cena[cite: 1]."""
+        """Renderiza a cena."""
         if self.vtkWidget and self.vtkWidget.GetRenderWindow():
             self.vtkWidget.GetRenderWindow().Render()
 
-    def setup_ui(self):
-        """Método para ser sobrescrito pelas classes filhas[cite: 1]."""
-        pass
-
     def dispose(self):
-        """Limpeza necessária para evitar leaks e crashes do VTK e do BaseComponent[cite: 1]."""
+        """Limpeza necessária para evitar leaks e crashes do VTK e do BaseComponent."""
         bus = self.event_bus
         if bus and hasattr(bus, 'unsubscribe'):
             try:
@@ -154,22 +199,3 @@ class CentralAreaBase(QtWidgets.QWidget):
 
         if hasattr(self, '_logic'):
             self._logic.dispose()
-
-    def adicionar_controle(self, widget: QtWidgets.QWidget):
-        self.area_controles.addWidget(widget)
-
-    def resizeEvent(self, event):
-        """Força a limpeza e atualização imediata do renderizador VTK e do widget ao redimensionar[cite: 1]."""
-        super().resizeEvent(event)
-        if self.vtkWidget:
-            try:
-                # Força o reajuste da janela de renderização do VTK[cite: 1]
-                window = self.vtkWidget.GetRenderWindow()
-                if window:
-                    window.Render()
-                self.vtkWidget.update()
-                self.vtkWidget.repaint()
-            except Exception:
-                pass
-        self.update()
-        self.repaint()

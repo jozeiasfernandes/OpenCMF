@@ -91,5 +91,14 @@ class SettingsManager:
         self.set("side_panel", "mode", value)
         self.save()
 
+    @property
+    def last_dicom_directory(self) -> str:
+        return self.get("diretorios", "last_dicom_directory", "")
+
+    @last_dicom_directory.setter
+    def last_dicom_directory(self, value: str):
+        self.set("diretorios", "last_dicom_directory", value)
+        self.save()
+
 
 settings = SettingsManager()

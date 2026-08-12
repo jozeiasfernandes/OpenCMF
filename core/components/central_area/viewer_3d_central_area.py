@@ -54,7 +54,7 @@ class Viewer3D_Widget_CentralArea(CentralAreaBase):
         self.btn_maximize.clicked.connect(self._toggle_maximize)
         self._update_maximize_icon()
 
-        self.adicionar_controle(self.btn_maximize)
+        self.add_control(self.btn_maximize)
 
     def _setup_vtk_scene(self):
         if self.renderer:

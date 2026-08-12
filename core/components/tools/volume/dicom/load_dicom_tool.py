@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 from pathlib import Path
 from typing import Optional
 from PySide6 import QtWidgets, QtCore
@@ -10,6 +11,9 @@ from domain.volume.dicom.pipelines.dicom_import_pipeline import DicomImportPipel
 
 # Settings
 from core.settings.localization.translator import tr
+from core.settings.settings_app_manager import settings
+
+logger = logging.getLogger(f"OpenCMF.Tool.{__name__.split('.')[-1]}")
 
 ORG_NAME = "OpenCMF"
 APP_NAME = "TomographyModule"
@@ -21,9 +25,9 @@ class LoadDicomTool(BaseTool):
     tool_tip: str = tr("tools.import.tooltip", "Importar tomografia computadorizada (DICOM)")
     icon: Optional[str] = "folder.svg"
 
-    def __init__(self):
+    def __init__(self, event_bus: Optional[object] = None):
         super().__init__()
-        # O validador, engine e regras agora ficam encapsulados na Pipeline
+        self._injected_event_bus = event_bus
 
     def create_widget(self) -> QtWidgets.QWidget:
         """Cria e retorna um widget personalizado com o texto antes do ícone em um único bloco clicável."""
@@ -44,66 +48,120 @@ class LoadDicomTool(BaseTool):
         return container
 
     def on_activate(self) -> None:
-        self.execute_import()
-        QtCore.QTimer.singleShot(0, self.deactivate)
+        try:
+            self.execute_import()
+        except Exception as e:
+            logger.error(f"Erro ao ativar ferramenta: {e}", exc_info=True)
+        finally:
+            QtCore.QTimer.singleShot(0, self.deactivate)
 
     def execute_import(self) -> None:
-        parent_window = self.context.window if (self.context and hasattr(self.context, "window")) else None
+        """Executa a importação de arquivos DICOM."""
+        parent_window = self._get_parent_window()
 
-        # Recupera a última pasta salva no registro do sistema (retorna "" se não houver)
-        settings = QtCore.QSettings(ORG_NAME, APP_NAME)
-        last_dir = settings.value("last_dicom_directory", "")
+        directory = self._select_dicom_directory(parent_window)
+        if not directory:
+            logger.info("Importação cancelada pelo usuário")
+            return
 
-        directory = QtWidgets.QFileDialog.getExistingDirectory(
+        self._save_last_directory(directory)
+
+        event_bus = self._get_event_bus(parent_window)
+        scene = self._get_scene(parent_window)
+
+        try:
+            pipeline = DicomImportPipeline(
+                parent=parent_window,
+                scene=scene,
+                event_bus=event_bus
+            )
+            pipeline.start(directory)
+            logger.info(f"Importação DICOM iniciada: {directory}")
+        except Exception as e:
+            self._handle_import_error(e)
+            raise
+
+    def _get_parent_window(self):
+        """Obtém a janela pai de forma segura."""
+        return self.context.window if (self.context and hasattr(self.context, "window")) else None
+
+    def _select_dicom_directory(self, parent_window):
+        """Abre diálogo para seleção do diretório DICOM."""
+        last_dir = settings.last_dicom_directory or str(Path.home())
+
+        return QtWidgets.QFileDialog.getExistingDirectory(
             parent_window,
             tr("file_browser.select_directory_title", "Selecionar Pasta DICOM / Tomografia"),
-            last_dir,  # Define o diretório inicial como a última pasta lembrada
+            last_dir,
             QtWidgets.QFileDialog.ShowDirsOnly | QtWidgets.QFileDialog.DontResolveSymlinks
         )
 
-        if not directory:
-            return
+    def _save_last_directory(self, directory: str) -> None:
+        """Salva o diretório selecionado nas configurações."""
+        settings.last_dicom_directory = directory
 
-        # Salva o novo diretório selecionado na memória persistente para uso futuro
-        settings.setValue("last_dicom_directory", directory)
+    def _get_event_bus(self, parent_window):
+        """Obtém o event_bus de forma robusta e centralizada."""
+        sources = [
+            self._injected_event_bus,
+            getattr(self, "events", None),
+            getattr(self, "event_bus", None),
+            getattr(self.context, "event_bus", None) if self.context else None,
+            getattr(parent_window, "event_bus", None) if parent_window else None,
+            getattr(self, "eventBus", None),
+            getattr(QtWidgets.QApplication.instance(), "event_bus", None)
+        ]
 
-        # Busca o event_bus e a scene de forma robusta nas várias camadas da aplicação
-        event_bus = (
-            getattr(self, "events", None) or
-            getattr(self.context, "event_bus", None) or
-            getattr(parent_window, "event_bus", None) or
-            getattr(self, "eventBus", None)
+        for source in sources:
+            if source:
+                return source
+
+        if parent_window:
+            event_bus = self._find_event_bus_in_parents(parent_window)
+            if event_bus:
+                return event_bus
+
+        if self.context and hasattr(self.context, "app_context"):
+            app_context_bus = getattr(self.context.app_context, "event_bus", None)
+            if app_context_bus:
+                return app_context_bus
+
+        logger.warning("Event bus não encontrado nas fontes disponíveis.")
+        return None
+
+    def _find_event_bus_in_parents(self, widget):
+        """Busca event_bus na hierarquia de pais."""
+        current = widget.parent()
+        while current:
+            for attr in ["event_bus", "events"]:
+                if hasattr(current, attr) and getattr(current, attr):
+                    return getattr(current, attr)
+            current = current.parent()
+        return None
+
+    def _get_scene(self, parent_window):
+        """Obtém a scene de forma centralizada com checagens seguras."""
+        if getattr(self, "scene", None):
+            return self.scene
+
+        if self.context and hasattr(self.context, "scene") and self.context.scene:
+            return self.context.scene
+
+        if parent_window and hasattr(parent_window, "scene") and parent_window.scene:
+            return parent_window.scene
+
+        logger.warning("Scene não encontrada nas fontes disponíveis.")
+        return None
+
+    def _handle_import_error(self, error):
+        """Trata erros durante a importação."""
+        error_msg = str(error)
+        logger.error(f"Falha na importação DICOM: {error_msg}", exc_info=True)
+        QtWidgets.QMessageBox.critical(
+            None,
+            tr("error.import.title", "Erro na Importação"),
+            tr("error.import.message", "Não foi possível importar os arquivos DICOM:\n{error}").format(error=error_msg)
         )
-
-        # Varredura recursiva nos widgets pais do Qt caso ainda não tenha encontrado
-        if not event_bus and parent_window:
-            p = parent_window.parent()
-            while p:
-                if hasattr(p, "event_bus"):
-                    event_bus = p.event_bus
-                    break
-                if hasattr(p, "events"):
-                    event_bus = p.events
-                    break
-                p = p.parent()
-
-        # Se ainda assim o event_bus estiver vazio, tenta obtê-lo da aplicação global se houver
-        if not event_bus and hasattr(QtWidgets.QApplication.instance(), "event_bus"):
-            event_bus = QtWidgets.QApplication.instance().event_bus
-
-        scene = (
-            getattr(self, "scene", None) or
-            getattr(self.context, "scene", None) or
-            getattr(parent_window, "scene", None)
-        )
-
-        pipeline = DicomImportPipeline(
-            parent=parent_window,
-            scene=scene,
-            event_bus=event_bus
-        )
-
-        pipeline.start(directory)
 
     def on_deactivate(self) -> None:
         pass

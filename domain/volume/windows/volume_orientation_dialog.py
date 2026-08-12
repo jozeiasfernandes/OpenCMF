@@ -2,6 +2,21 @@ from __future__ import annotations
 from typing import Optional, Dict, Any, Tuple
 from PySide6 import QtWidgets, QtCore, QtGui
 
+import vtk
+from vtkmodules.all import vtkRenderer
+
+try:
+    from vtkmodules.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+except ImportError:
+    try:
+        from vtk.qt.QVTKRenderWindowInteractor import QVTKRenderWindowInteractor
+    except ImportError:
+        QVTKRenderWindowInteractor = None
+        print("Aviso: QVTKRenderWindowInteractor não pôde ser importado. Verifique a instalação do VTK.")
+
+from typing import Optional, Dict, Any, Tuple
+from PySide6 import QtWidgets, QtCore, QtGui
+
 # Settings
 from core.settings.localization.translator import tr
 
@@ -9,19 +24,15 @@ from core.settings.localization.translator import tr
 class VolumeOrientationWindow(QtWidgets.QDialog):
     """Janela de verificação, orientação e alinhamento prévio do volume DICOM."""
 
-    def __init__(self, volume_data: Optional[Any] = None, parent: Optional[QtWidgets.QWidget] = None):
+    def __init__(self, volume_data: Optional[Any] = None, dimensions: Optional[Tuple[int, int, int]] = None,
+                 parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
         self.volume_data = volume_data
 
-        # Armazena os ângulos de rotação atuais (X, Y, Z)
-        self.rotation_angles: Tuple[float, float, float] = (0.0, 0.0, 0.0)
+        # Define dimensões dinâmicas (padrão 500 caso não venha nada)
+        self.dims = dimensions or (500, 500, 500)
 
-        # Armazena os limites do volume pretendido (ROI)
-        self.roi_bounds: Dict[str, Tuple[int, int]] = {
-            "x": (0, 500),
-            "y": (0, 500),
-            "z": (0, 500)
-        }
+        self.rotation_angles: Tuple[float, float, float] = (0.0, 0.0, 0.0)
 
         self.setWindowTitle(tr("import.volume.orientation", "Orientação e Alinhamento do Volume"))
         self.resize(600, 400)
@@ -73,19 +84,29 @@ class VolumeOrientationWindow(QtWidgets.QDialog):
         main_layout.addLayout(footer_layout)
 
     def _create_viewport_container(self, title: str) -> QtWidgets.QGroupBox:
-        """Cria um container de visualização simulando as janelas de corte do exame."""
+        """Cria um container contendo um renderizador VTK real para as vistas ortogonais."""
         group = QtWidgets.QGroupBox(title)
         layout = QtWidgets.QVBoxLayout(group)
         layout.setContentsMargins(5, 5, 5, 5)
 
-        # QLabel escuro representando a área de renderização 2D/MIP
-        canvas = QtWidgets.QLabel()
-        canvas.setStyleSheet("background-color: black; color: white; border: 1px solid #333;")
-        canvas.setAlignment(QtCore.Qt.AlignCenter)
-        canvas.setText(f"[{title}] - Renderização / Gizmo de Orientação")
-        canvas.setMinimumHeight(200)
+        # Widget interativo do VTK substituindo o QLabel estático
+        vtk_widget = QVTKRenderWindowInteractor(group)
+        vtk_widget.setMinimumHeight(180)
 
-        layout.addWidget(canvas)
+        # Configuração básica do pipeline VTK para o slice
+        renderer = vtkRenderer()
+        renderer.SetBackground(0.0, 0.0, 0.0)  # Fundo preto
+        vtk_widget.GetRenderWindow().AddRenderer(renderer)
+
+        # Armazena referências para posterior manipulação dos cortes se necessário
+        if not hasattr(self, "_vtk_viewports"):
+            self._vtk_viewports = {}
+        self._vtk_viewports[title] = {
+            "widget": vtk_widget,
+            "renderer": renderer
+        }
+
+        layout.addWidget(vtk_widget)
         return group
 
     def _create_control_panel(self) -> QtWidgets.QScrollArea:
@@ -130,9 +151,16 @@ class VolumeOrientationWindow(QtWidgets.QDialog):
         group_roi = QtWidgets.QGroupBox("Volume Pretendido")
         layout_roi = QtWidgets.QFormLayout(group_roi)
 
-        self.spin_min_x, self.spin_max_x = self._create_min_max_spinbox("Eixo X", 0, 500, layout_roi)
-        self.spin_min_y, self.spin_max_y = self._create_min_max_spinbox("Eixo Y", 0, 500, layout_roi)
-        self.spin_min_z, self.spin_max_z = self._create_min_max_spinbox("Eixo Z", 0, 500, layout_roi)
+        # 🚀 Usa as dimensões reais repassadas na inicialização (X, Y, Z)
+        dx, dy, dz = self.dims
+        self.spin_min_x, self.spin_max_x = self._create_min_max_spinbox("Eixo X", 0, dx, layout_roi)
+        self.spin_min_y, self.spin_max_y = self._create_min_max_spinbox("Eixo Y", 0, dy, layout_roi)
+        self.spin_min_z, self.spin_max_z = self._create_min_max_spinbox("Eixo Z", 0, dz, layout_roi)
+
+        # Define os valores máximos iniciais como o topo do intervalo
+        self.spin_max_x.setValue(dx)
+        self.spin_max_y.setValue(dy)
+        self.spin_max_z.setValue(dz)
 
         layout.addWidget(group_roi)
         layout.addStretch()

@@ -3,6 +3,9 @@ from PySide6 import QtWidgets, QtCore
 from settings.logs.archives.module_log import Module_Logger
 from core.workspace.models.contracts import IModule
 
+# Scene
+from core.application.scene.events.event_bus import EventBus
+
 
 class ModuloBase(QtWidgets.QWidget):
     """Classe base para módulos que atuam como containers de componentes."""
@@ -18,9 +21,35 @@ class ModuloBase(QtWidgets.QWidget):
         self.setLayout(QtWidgets.QVBoxLayout())
         self.layout().setContentsMargins(0, 0, 0, 0)
 
-        self.viewer: Optional[QtWidgets.QWidget] = None
+        # --- GESTÃO AUTOMÁTICA DO EVENT BUS ---
+        self._setup_event_bus()
+        # -------------------------------------
 
+        self.viewer: Optional[QtWidgets.QWidget] = None
         self.module_logger = Module_Logger(modulo_instance=self)
+
+    def _setup_event_bus(self):
+        """Garante que tanto o módulo quanto o contexto possuem um EventBus funcional."""
+        bus = None
+
+        # 1. Tenta obter do contexto existente
+        if self.context and hasattr(self.context, "event_bus"):
+            bus = self.context.event_bus
+
+        # 2. Se não houver no contexto, tenta pegar da instância global da aplicação Qt
+        if not bus:
+            app_instance = QtWidgets.QApplication.instance()
+            if app_instance and hasattr(app_instance, "event_bus"):
+                bus = app_instance.event_bus
+
+        # 3. Se ainda não existir em lugar nenhum, cria um novo EventBus local/compartilhado
+        if not bus:
+            bus = EventBus()
+
+        # Atribui formalmente ao módulo e injeta no contexto para as ferramentas filhas
+        self.event_bus = bus
+        if self.context and hasattr(self.context, "__dict__"):
+            setattr(self.context, "event_bus", self.event_bus)
 
     def get_central_area(self) -> QtWidgets.QWidget:
         """Retorna o widget principal da área central do módulo."""
@@ -59,40 +88,4 @@ class ModuloBase(QtWidgets.QWidget):
 
 
 # Registra formalmente a ModuloBase como uma subclasse virtual de IModule
-# Isso faz com que isinstance(instance, IModule) retorne True sem causar conflito de metaclasse.
 IModule.register(ModuloBase)
-
-
-class FluxoBase:
-    """Classe base para definição e controle de fluxos."""
-
-    def __init__(self, dados: Dict[str, Any]):
-        self.nome: str = dados.get("nome", "Fluxo Padrão")
-        self.sequencia: List[str] = dados.get("sequencia", [])
-        self.configuracoes: Dict[str, Any] = dados.get("configuracoes", {})
-        self.indice_atual: int = 0
-
-    @property
-    def total_etapas(self) -> int:
-        return len(self.sequencia)
-
-    @property
-    def id_atual(self) -> Optional[str]:
-        return self.obter_id_por_indice(self.indice_atual)
-
-    def obter_id_por_indice(self, indice: int) -> Optional[str]:
-        if 0 <= indice < len(self.sequencia):
-            return self.sequencia[indice]
-        return None
-
-    def avancar(self) -> bool:
-        if self.indice_atual < self.total_etapas - 1:
-            self.indice_atual += 1
-            return True
-        return False
-
-    def retroceder(self) -> bool:
-        if self.indice_atual > 0:
-            self.indice_atual -= 1
-            return True
-        return False

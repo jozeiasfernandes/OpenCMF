@@ -11,7 +11,7 @@ import vtk
 from application.scene.scene_object import SceneObject
 from application.scene.events.scene_events import SceneEvents
 
-# Settings (Tratamento seguro para path raiz se necessário)
+# Settings
 try:
     from core.settings.paths.list_paths import PRESETS_DIR
 except ImportError:
@@ -72,6 +72,7 @@ class VolumeViewerWidget(QtWidgets.QWidget):
         self.events.subscribe(SceneEvents.OBJECT_ADDED, self._on_object_added)
         self.events.subscribe(SceneEvents.OBJECT_REMOVED, self._on_object_removed)
         self.events.subscribe(SceneEvents.LAYOUT_CHANGED, self._on_layout_event_received)
+        self.events.subscribe("DICOM_LOADED", self._on_dicom_loaded_event)
 
         self._setup_ui()
 
@@ -162,6 +163,12 @@ class VolumeViewerWidget(QtWidgets.QWidget):
     def _on_object_removed(self, object_id: str):
         if self.controller.volume_object and self.controller.volume_object.id == object_id:
             self.controller.clear_scene()
+
+    def _on_dicom_loaded_event(self, volume: vtk.vtkImageData = None, **kwargs):
+        """Callback acionado diretamente pelo EventBus quando a pipeline carrega o DICOM."""
+        vol = volume or kwargs.get("volume", None)
+        if vol:
+            self.set_volume(vol)
 
 
 if __name__ == "__main__":

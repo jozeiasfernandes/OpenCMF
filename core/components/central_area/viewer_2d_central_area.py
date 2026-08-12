@@ -17,9 +17,26 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
 
         self._setup_specific_ui()
         self._setup_interactions()
+        self._connect_events()
 
         if self.vtkWidget:
             self.vtkWidget.installEventFilter(self)
+
+    def _connect_events(self):
+        """Conecta os eventos globais do sistema de cenas e volumes ao visualizador 2D."""
+        if self.context and hasattr(self.context, "event_bus") and self.context.event_bus:
+            event_bus = self.context.event_bus
+
+            # Exemplo de escuta para quando um DICOM for carregado
+            if hasattr(event_bus, "subscribe"):
+                event_bus.subscribe("DICOM_LOADED", self._on_dicom_loaded)
+            elif hasattr(event_bus, "connect"):  # Dependendo se usa Signal do Qt ou PubSub customizado
+                pass  # Ajuste conforme a API do seu event_bus (ex: event_bus.DICOM_LOADED.connect(..)
+
+    def _on_dicom_loaded(self, *args, **kwargs):
+        # Captura tanto argumentos posicionais quanto nomeados (como 'volume', 'path', etc.)
+        volume = kwargs.get("volume") or (args[0] if args else None)
+
 
     def eventFilter(self, source, event):
         if source is self.vtkWidget and event.type() == QtCore.QEvent.MouseButtonDblClick:
@@ -57,11 +74,11 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
         self.btn_maximize.clicked.connect(self._toggle_maximize)
         self._update_maximize_icon()
 
-        self.adicionar_controle(self.combo_proj)
-        self.adicionar_controle(QtWidgets.QLabel(" Slice:"))
-        self.adicionar_controle(self.slider_corte)
-        self.adicionar_controle(self.lbl_mm)
-        self.adicionar_controle(self.btn_maximize)
+        self.add_control(self.combo_proj)
+        self.add_control(QtWidgets.QLabel(" Slice:"))
+        self.add_control(self.slider_corte)
+        self.add_control(self.lbl_mm)
+        self.add_control(self.btn_maximize)
 
         self.slider_corte.valueChanged.connect(self.sliceChanged.emit)
 
@@ -69,7 +86,6 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
         self.vtkWidget.customContextMenuRequested.connect(self._show_context_menu)
 
     def _show_context_menu(self, pos):
-        # Repassa o contexto atual (AppContext) para o ContextMenu2D manter a compatibilidade
         menu = ContextMenu2D(parent=self, context=self.context, scene_manager=self.scene_manager)
         menu.exec(self.vtkWidget.mapToGlobal(pos))
 
@@ -91,13 +107,18 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
         self.maximizeRequested.emit(self.is_maximized)
 
     def _setup_interactions(self):
-        if hasattr(self.vtkWidget, "AddObserver"):
-            self.vtkWidget.AddObserver("MouseWheelForwardEvent", self._handle_wheel)
-            self.vtkWidget.AddObserver("MouseWheelBackwardEvent", self._handle_wheel)
+        pass
 
-    def _handle_wheel(self, obj, event):
-        step = 1 if event == "MouseWheelForwardEvent" else -1
-        self.slider_corte.setValue(self.slider_corte.value() + step)
+    def wheelEvent(self, event: QtGui.QWheelEvent):
+        """Trata o evento de rolagem diretamente no nível do Widget Qt para evitar conflito com o zoom do VTK."""
+        angle = event.angleDelta().y()
+        if angle != 0:
+            step = 1 if angle > 0 else -1
+            novo_valor = self.slider_corte.value() + step
+            self.slider_corte.setValue(novo_valor)
+            event.accept()
+        else:
+            super().wheelEvent(event)
 
     def apply_lut(self, lut_name: str):
         self.lutChanged.emit(lut_name)
@@ -106,26 +127,3 @@ class Viewer2D_Widget_CentralArea(CentralAreaBase):
         if event.button() == QtCore.Qt.LeftButton:
             self._toggle_maximize()
         super().mouseDoubleClickEvent(event)
-
-
-if __name__ == "__main__":
-    import sys
-
-    app = QtWidgets.QApplication(sys.argv)
-
-    class MockContext:
-        def __init__(self):
-            self.scene_manager = None
-            self.tool_manager = None
-            self.event_bus = None
-
-    contexto_teste = MockContext()
-
-    viewer = Viewer2D_Widget_CentralArea(
-        context=contexto_teste,
-        title="Axial",
-        cor="#2b2b2b"
-    )
-    viewer.resize(800, 600)
-    viewer.show()
-    sys.exit(app.exec())
