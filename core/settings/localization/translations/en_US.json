@@ -8,7 +8,8 @@
         "flow_error": "Failed to load Flow",
         "missing_data": "Requirement Missing",
         "open_project": "Open Project",
-        "delete_project": "Delete Project"
+        "delete_project": "Delete Project",
+        "success": "Success"
     },
     "home": {
         "recent_projects_title": "Recent Projects",
@@ -123,6 +124,42 @@
         "btn": {
             "import_objects": "Import Objects"
         }
+    },
+    "patient": {
+        "name_placeholder": "Full name...",
+        "foreign_checkbox": "Foreigner",
+        "gender_male": "Male",
+        "gender_female": "Female",
+        "gender_other": "Other",
+        "group_info": "Patient Information",
+        "label_name": "Name:",
+        "label_cpf": "CPF:",
+        "label_cellphone": "Cellphone:",
+        "label_email": "E-mail:",
+        "label_birth": "Birth:",
+        "label_gender": "Gender:",
+        "btn_search": "Search",
+        "section_address": "Address",
+        "label_cep": "ZIP Code:",
+        "label_address": "Address Line:",
+        "label_city": "City:",
+        "label_state": "State:",
+        "label_country": "Country:",
+        "section_clinical": "Clinical Data",
+        "label_diagnosis": "Diagnosis:",
+        "label_medical_history": "Medical History:",
+        "label_allergies": "Allergies:",
+        "label_medications": "Medications:",
+        "label_habits": "Habits/Vices:",
+        "label_planning": "Planning:",
+        "btn_save": "Save patient data",
+        "btn_save_paths": "Save paths list",
+        "error_project_manager": "ProjectManager not initialized.",
+        "error_name_required": "Name is required.",
+        "error_save_failed": "Failed to save project.",
+        "success_save_msg": "Project saved:\n{base}",
+        "success_save_paths": "File paths saved successfully.",
+        "error_save_paths": "Could not save file paths."
     },
     "logs": {
         "monitor_title": "System Log Monitor - OpenCMF",

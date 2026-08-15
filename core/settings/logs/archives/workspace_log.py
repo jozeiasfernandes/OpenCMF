@@ -92,7 +92,7 @@ class Workspace_Logger:
         return dims
 
     def get_patient_data(self) -> Dict[str, Any]:
-        """Extrai os dados e o caminho do paciente atualmente vinculado."""
+        """Extrai os dados e o path do paciente atualmente vinculado."""
         patient_path = getattr(self.workspace, "current_patient_path", "")
         state_patient = ""
 

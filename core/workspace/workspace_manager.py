@@ -10,7 +10,7 @@ from core.workspace.patient.workspace_patient import WorkspacePatientMixin
 from core.workspace.patient.state import WorkspaceState
 
 # Project
-from project_manager.project_service_home_page import ProjectServiceHomePage
+from project_manager.project_service import ProjectServiceHomePage
 
 # Settings
 from settings.settings_app_manager import settings
@@ -24,7 +24,10 @@ logger = logging.getLogger("OpenCMF.Workspace")
 from core.workspace.models.registry import WorkspaceRegistry
 
 # Module
-from module_manager.workspace_module_manager import WorkspaceModuleManager
+from core.workspace.modules.module_manager import WorkspaceModuleManager
+
+# Loader Components
+from core.workspace.layout.loaders_components import WorkspaceComponentHandler
 
 # Containers
 from core.workspace.containers.header_container.header_panel import HeaderPanel
@@ -33,9 +36,6 @@ from core.workspace.containers.central_area_container.central_area_manager impor
 from core.workspace.containers.side_panel_container.side_panel_container import SidePanelContainer
 from core.workspace.containers.side_panel_container.side_panel_manager import SidePanelManager
 from core.workspace.containers.status_bar.status_bar import StatusBarManager
-
-# Loader Components
-from core.workspace.layout.workspace_loaders_components import WorkspaceComponentHandler
 
 
 class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
@@ -63,7 +63,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
         self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
         self.patient_manager = PatientManager.get_instance(self.project_service)
 
-        # Sincroniza o caminho inicial do paciente ativo se houver (usando a propriedade correta .current_path)
+        # Sincroniza o path inicial do paciente ativo se houver (usando a propriedade correta .current_path)
         self.current_patient_path = self.patient_manager.current_path or ""
 
         self.component_handler = WorkspaceComponentHandler(self)
@@ -76,7 +76,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
         self._configure_splitter()
 
     # =====================================================================
-    # INITIAL CONFIGURATION AND LAYOUT (SETUP & SPLITTER)
+    # INITIAL CONFIGURATION AND LAYOUT
     # =====================================================================
 
     def _setup_layout(self):
@@ -123,7 +123,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
 
         if hasattr(self.side_manager, "container") and self.side_manager.container:
             if hasattr(self.side_manager.container, "toggle_requested"):
-                self.side_manager.container.toggle_requested.connect(self.notificar_toggle_side_panel)
+                self.side_manager.container.toggle_requested.connect(self.toggle_side_panel_notification)
 
         current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
         if current_mode != "floating":
@@ -191,7 +191,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
         else:
             self.splitter.setSizes([700, 300])
 
-    def notificar_toggle_side_panel(self, colapsado: bool):
+    def toggle_side_panel_notification(self, colapsado: bool):
         current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
         if current_mode == "floating":
             return
@@ -219,7 +219,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
                 container.update()
                 container.repaint()
 
-    def reconstruir_side_panel(self):
+    def rebuild_side_panel(self):
         if not hasattr(self, "side_manager") or not self.side_manager:
             return
 
@@ -241,7 +241,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
         self.side_manager.container = new_container
 
         if hasattr(new_container, "toggle_requested"):
-            new_container.toggle_requested.connect(self.notificar_toggle_side_panel)
+            new_container.toggle_requested.connect(self.toggle_side_panel_notification)
 
         current_mode = getattr(settings, "side_panel_mode", "settings_page_tabs")
         if current_mode != "floating":
@@ -281,15 +281,15 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
     # =====================================================================
 
     def get_modulo_ativo(self):
-        if hasattr(self, 'module_manager'):
-            return self.module_manager.get_modulo_ativo()
+        if hasattr(self, 'modules'):
+            return self.module_manager.get_active_module()
         return None
 
     def on_module_changed(self, module_id: str):
-        if hasattr(self, 'module_manager'):
+        if hasattr(self, 'modules'):
             self.module_manager.on_module_changed(module_id)
 
-    def abrir_seletor_componentes(self):
+    def open_component_selector(self):
         logger.info("Solicitação para abrir o seletor de componentes.")
         self.component_handler.abrir_seletor()
 
@@ -305,7 +305,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
         logger.info("Iniciando o reset completo do workspace.")
         self.registry.clear_all()
 
-        if hasattr(self, "module_manager") and hasattr(self.module_manager, "tab_controller"):
+        if hasattr(self, "modules") and hasattr(self.module_manager, "tab_controller"):
             if hasattr(self.module_manager.tab_controller, "clear_tabs"):
                 self.module_manager.tab_controller.clear_tabs()
             elif hasattr(self.module_manager.tab_controller, "clear_all"):

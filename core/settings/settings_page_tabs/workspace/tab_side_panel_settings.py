@@ -84,4 +84,4 @@ class TabSidePanel(QtWidgets.QWidget):
         if mode is not None:
             settings.side_panel_mode = mode
             if self.workspace_manager and hasattr(self.workspace_manager, "reconstruir_side_panel"):
-                self.workspace_manager.reconstruir_side_panel()
+                self.workspace_manager.rebuild_side_panel()

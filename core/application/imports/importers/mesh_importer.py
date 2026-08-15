@@ -44,7 +44,7 @@ class MeshImporter(BaseImporter):
                 reader.SetFileName(str(path))
                 reader.Update()
 
-                # Armazena o vtkPolyData diretamente junto com o caminho de origem
+                # Armazena o vtkPolyData diretamente junto com o path de origem
                 meshes.append({
                     "path": path,
                     "poly_data": reader.GetOutput()

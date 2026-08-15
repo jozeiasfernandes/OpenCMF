@@ -17,8 +17,8 @@ class DicomEngine:
         self.last_origin = (0.0, 0.0, 0.0)
         self.validator = DicomValidator(event_bus=event_bus)
 
-    def process_to_scene_object(self, caminho_pasta: Union[str, Path]) -> Optional[Dict[str, Any]]:
-        volume_model = self.load_volume(caminho_pasta)
+    def process_to_scene_object(self, folder_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+        volume_model = self.load_volume(folder_path)
         if not volume_model or not getattr(volume_model, "is_valid", True):
             return None
 
@@ -26,7 +26,7 @@ class DicomEngine:
             "metadata": {
                 "mesh_data": getattr(volume_model, "vtk_data", None),
                 "volume_model": volume_model,
-                "source_path": str(caminho_pasta)
+                "source_path": str(folder_path)
             },
             "transforms": {
                 "position": self.last_origin,
@@ -34,8 +34,8 @@ class DicomEngine:
             }
         }
 
-    def load_volume(self, caminho_pasta: Union[str, Path]) -> Optional[Volume]:
-        path_obj = Path(caminho_pasta)
+    def load_volume(self, folder_path: Union[str, Path]) -> Optional[Volume]:
+        path_obj = Path(folder_path)
 
         # 1. Validação prévia com o DicomValidator
         validacao = self.validator.validate_directory(path_obj)
@@ -136,9 +136,9 @@ class DicomEngine:
         img_data.GetPointData().SetScalars(vtk_array)
         return img_data
 
-    def _list_files(self, caminho: Path) -> List[Path]:
+    def _list_files(self, path: Path) -> List[Path]:
         return [
-            f for f in caminho.rglob("*")
+            f for f in path.rglob("*")
             if f.is_file() and not f.name.startswith('.')
         ]
 
@@ -178,10 +178,10 @@ class DicomEngine:
     def current_volume(self) -> Optional[Volume]:
         return self._current_volume
 
-    def load_folder(self, caminho_pasta: Union[str, Path]) -> Tuple[bool, Union[Volume, str]]:
+    def load_folder(self, folder_path: Union[str, Path]) -> Tuple[bool, Union[Volume, str]]:
         """Carrega a pasta DICOM e retorna o status de sucesso e o volume ou mensagem de erro."""
         try:
-            volume = self.load_volume(caminho_pasta)
+            volume = self.load_volume(folder_path)
             if volume and getattr(volume, "is_valid", True):
                 return True, volume
             return False, "Falha ao carregar ou validar o volume DICOM."

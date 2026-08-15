@@ -13,16 +13,16 @@ logger = logging.getLogger("ComponentLoader")
 
 class ComponentLoader:
     @staticmethod
-    def carregar(caminho: Path, context: Any) -> Optional[Any]:
-        if not caminho.exists():
-            logger.error(f"Arquivo não encontrado: {caminho}")
+    def carregar(path: Path, context: Any) -> Optional[Any]:
+        if not path.exists():
+            logger.error(f"Arquivo não encontrado: {path}")
             return None
 
         try:
             # 1. Carregar módulo com nome determinístico via MD5
-            path_hash = hashlib.md5(str(caminho).encode("utf-8")).hexdigest()[:8]
-            module_name = f"dynamic_component_{caminho.stem}_{path_hash}"
-            spec = importlib.util.spec_from_file_location(module_name, caminho)
+            path_hash = hashlib.md5(str(path).encode("utf-8")).hexdigest()[:8]
+            module_name = f"dynamic_component_{path.stem}_{path_hash}"
+            spec = importlib.util.spec_from_file_location(module_name, path)
 
             if not spec or not spec.loader:
                 return None
@@ -45,7 +45,7 @@ class ComponentLoader:
 
             return None
         except Exception:
-            logger.error(f"Falha ao carregar {caminho.name}:\n{traceback.format_exc()}")
+            logger.error(f"Falha ao carregar {path.name}:\n{traceback.format_exc()}")
             return None
 
     @staticmethod

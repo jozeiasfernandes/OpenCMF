@@ -92,7 +92,7 @@ class HeaderPanel(QtWidgets.QWidget):
     def _open_components_loader(self):
         """Delega a abertura do seletor de componentes diretamente ao workspace_manager se disponível."""
         if self.workspace_manager and hasattr(self.workspace_manager, "abrir_seletor_componentes"):
-            self.workspace_manager.abrir_seletor_componentes()
+            self.workspace_manager.open_component_selector()
         else:
             self.components_loader_requested.emit()
 

@@ -54,7 +54,7 @@ BaseComponent (A Fundamentação): É o único que conhece o scene_manager e det
 
 Componentes (Toolbar, SidePanel, CentralArea): Herdam de BaseComponent. Eles são os "consumidores" da lógica. Eles existem para servir ao usuário final e manipular o scene_manager conforme necessário.
 
-ModuloBase (O Orquestrador): Não herda de BaseComponent. Ele é apenas o "container" que agrupa esses componentes. Ele recebe o contexto e atua como o distribuidor para seus filhos.
+ModuleBase (O Orquestrador): Não herda de BaseComponent. Ele é apenas o "container" que agrupa esses componentes. Ele recebe o contexto e atua como o distribuidor para seus filhos.
 
 Workspace (O Layout Final): É o palco onde os módulos são exibidos. Ele é agnóstico à lógica interna dos módulos.
 

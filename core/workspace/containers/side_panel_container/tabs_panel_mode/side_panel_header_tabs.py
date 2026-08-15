@@ -87,7 +87,7 @@ class SidePanelHeaderTabs(QtWidgets.QWidget):
         self.toggle_collapsed_changed.emit(self._collapsed)
 
         if self.workspace_manager and hasattr(self.workspace_manager, "notificar_toggle_side_panel"):
-            self.workspace_manager.notificar_toggle_side_panel(self._collapsed)
+            self.workspace_manager.toggle_side_panel_notification(self._collapsed)
 
     def mouseDoubleClickEvent(self, event: QtGui.QMouseEvent):
         if event.button() == QtCore.Qt.LeftButton:

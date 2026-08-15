@@ -4,7 +4,7 @@ class WorkspacePatientMixin:
     """Gerencia o estado e o vínculo do paciente com os módulos ativos."""
 
     def set_patient_path(self, path: str):
-        """Atualiza o caminho do paciente evitando chamadas redundantes."""
+        """Atualiza o path do paciente evitando chamadas redundantes."""
         if self.current_patient_path == path:
             return
         self.current_patient_path = path
@@ -16,7 +16,7 @@ class WorkspacePatientMixin:
             self._safe_inicializar(modulo)
 
     def _safe_inicializar(self, instancia: Any):
-        """Inicializa o módulo de forma segura caso o caminho seja diferente."""
+        """Inicializa o módulo de forma segura caso o path seja diferente."""
         if not self.current_patient_path:
             return
 

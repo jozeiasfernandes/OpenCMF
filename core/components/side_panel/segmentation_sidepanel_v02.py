@@ -1,6 +1,6 @@
 from PySide6 import QtWidgets, QtCore
 from typing import Optional, Any
-from modules.mod_patients.ui_components import criar_linha_arquivo
+from project_manager.new_project.new_project_ui import criar_linha_arquivo
 from core.components.bases.base_sidepanel import BaseSidePanel
 
 

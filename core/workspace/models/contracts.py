@@ -12,16 +12,16 @@ class IModule(Protocol):
     def nome(self) -> str:
         ...
 
-    def get_central_area(self) -> QtWidgets.QWidget:
+    def get_toolbar(self) -> Optional[QtWidgets.QToolBar]:
         ...
 
-    def get_toolbar(self) -> Optional[QtWidgets.QToolBar]:
+    def get_central_area(self) -> QtWidgets.QWidget:
         ...
 
     def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         ...
 
-    def inicializar(self, caminho_paciente: str) -> None:
+    def inicializar(self, path_pacient: str) -> None:
         ...
 
     def cleanup(self) -> None:

@@ -3,11 +3,6 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-
-# ==============================================================================
-# BASE
-# ==============================================================================
-
 def get_project_root() -> Path:
     """
     Retorna a raiz do projeto.
@@ -42,7 +37,7 @@ PATIENTS_DIR = BASE_DIR / "patients"
 
 def resource(*parts: str) -> Path:
     """
-    Retorna um caminho relativo à raiz do projeto.
+    Retorna um path relativo à raiz do projeto.
 
     Exemplo:
         resource("core", "settings", "icons_manager", "icons_manager", "save.svg")
@@ -69,49 +64,50 @@ def ensure_runtime_directories() -> None:
 
 CORE_DIR = BASE_DIR / "core"
 
+
+# Settings
 SETTINGS_DIR = BASE_DIR / "core" / "settings"
 
 CONFIG_FILE = SETTINGS_DIR / "config.json"
 
 CONFIG_FILE_PATH = CONFIG_FILE
 
-
-TRANSLATIONS_DIR = SETTINGS_DIR / "localization" / "translations"
-
-
-SETTINGS_SHORTCUTS_DIR = SETTINGS_DIR / "shortcuts"
-
-SHORTCUTS_FILE = SETTINGS_DIR / "shortcuts" / "shortcuts.json"
-
-SHORTCUTS_FILE_PATH = SHORTCUTS_FILE
-
-
-SETTINGS_HELP_DIR = SETTINGS_DIR / "help"
-
-
-SETTINGS_LOCALIZATION_DIR = SETTINGS_DIR / "localization" / "translations"
-
-SETTINGS_LOGS_DIR = SETTINGS_DIR / "logs"
-
-SETTINGS_LOGS_ARCHIVES_DIR = SETTINGS_LOGS_DIR / "archives"
-
 SETTINGS_PAGE_TABS_DIR = SETTINGS_DIR / "settings_page_tabs"
 
-
-# ==============================================================================
-# APPLICATION
-# ==============================================================================
 
 APPLICATION_DIR = CORE_DIR / "application"
 
 FAVORITE_FOLDERS_FILE = BASE_DIR / "core" / "application" / "file_browser" / "favorite_folders.json"
 
 
+# Localization
+SETTINGS_LOCALIZATION_DIR = SETTINGS_DIR / "localization" / "translations"
+
+TRANSLATIONS_DIR = SETTINGS_DIR / "localization" / "translations"
+
+# Shortcuts
+SETTINGS_SHORTCUTS_DIR = SETTINGS_DIR / "shortcuts"
+
+SHORTCUTS_FILE = SETTINGS_DIR / "shortcuts" / "shortcuts.json"
+
+SHORTCUTS_FILE_PATH = SHORTCUTS_FILE
+
+# Help
+SETTINGS_HELP_DIR = SETTINGS_DIR / "help"
+
+
+# Logs
+SETTINGS_LOGS_DIR = SETTINGS_DIR / "logs"
+
+SETTINGS_LOGS_ARCHIVES_DIR = SETTINGS_LOGS_DIR / "archives"
+
+
+
 # ==============================================================================
 # FLOWS
 # ==============================================================================
 
-FLOWS_DIR = BASE_DIR / "core" / "application" / "home_page" / "flows_manager" / "flows"
+FLOWS_DIR = BASE_DIR / "core" / "application" / "home_page.md" / "flows_manager" / "flows"
 
 DEFAULT_FLOW_FILE = FLOWS_DIR / "default_flow.json"
 
@@ -163,31 +159,36 @@ SCENE_UTILS_DIR = SCENE_DIR / "utils"
 
 WORKSPACE_DIR = CORE_DIR / "workspace"
 
+WORKSPACE_LAYOUT_DIR = WORKSPACE_DIR / "layout"
+
+WORKSPACE_MODELS_DIR = WORKSPACE_DIR / "models"
+
+WORKSPACE_MODULE_MANAGER_DIR = WORKSPACE_DIR / "modules"
+
+WORKSPACE_PATIENT_DIR = WORKSPACE_DIR / "patient"
+
+
 WORKSPACE_COMPONENTS_LOADERS_DIR = WORKSPACE_DIR / "components_loaders"
 
 WORKSPACE_SIDE_PANEL_LOADERS_DIR = (WORKSPACE_COMPONENTS_LOADERS_DIR / "side_panel_loaders")
 
 WORKSPACE_TOOLS_TAB_LOADERS_DIR = (WORKSPACE_COMPONENTS_LOADERS_DIR / "tools_tab_loaders")
 
+
+
 WORKSPACE_CONTAINERS_DIR = WORKSPACE_DIR / "containers"
 
-WORKSPACE_CENTRAL_AREA_DIR = (WORKSPACE_CONTAINERS_DIR / "central_area_container")
-
 WORKSPACE_HEADER_DIR = (WORKSPACE_CONTAINERS_DIR / "header_container")
+
+WORKSPACE_TOOLBAR_DIR = (WORKSPACE_CONTAINERS_DIR / "toolbar_container")
+
+WORKSPACE_CENTRAL_AREA_DIR = (WORKSPACE_CONTAINERS_DIR / "central_area_container")
 
 WORKSPACE_SIDE_PANEL_DIR = (WORKSPACE_CONTAINERS_DIR / "side_panel_container")
 
 WORKSPACE_STATUS_BAR_DIR = (WORKSPACE_CONTAINERS_DIR / "status_bar")
 
-WORKSPACE_TOOLBAR_DIR = (WORKSPACE_CONTAINERS_DIR / "toolbar_container")
 
-WORKSPACE_LAYOUT_DIR = WORKSPACE_DIR / "layout"
-
-WORKSPACE_MODELS_DIR = WORKSPACE_DIR / "models"
-
-WORKSPACE_MODULE_MANAGER_DIR = WORKSPACE_DIR / "module_manager"
-
-WORKSPACE_PATIENT_DIR = WORKSPACE_DIR / "patient"
 
 
 # ==============================================================================

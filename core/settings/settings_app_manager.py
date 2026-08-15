@@ -63,7 +63,7 @@ class SettingsManager:
                 "colors": default_theme_colors
             },
             "diretorios": {
-                "patients": "patients",
+                "new_project": "new_project",
                 "flows_manager": "flows_manager",
                 "icons_manager": "icons_manager",
                 "last_dicom_directory": ""

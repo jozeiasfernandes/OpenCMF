@@ -8,7 +8,8 @@
         "flow_error": "Falha ao carregar fluxo",
         "missing_data": "Requisito Ausente",
         "open_project": "Abrir Projeto",
-        "delete_project": "Remover Projeto"
+        "delete_project": "Remover Projeto",
+        "success": "Sucesso"
     },
     "home": {
         "recent_projects_title": "Projetos Recentes",
@@ -123,6 +124,42 @@
         "btn": {
             "import_objects": "Importar Objetos"
         }
+    },
+    "patient": {
+        "name_placeholder": "Nome completo...",
+        "foreign_checkbox": "Estrangeiro",
+        "gender_male": "Masculino",
+        "gender_female": "Feminino",
+        "gender_other": "Outro",
+        "group_info": "Informações do Paciente",
+        "label_name": "Nome:",
+        "label_cpf": "CPF:",
+        "label_cellphone": "Celular:",
+        "label_email": "E-mail:",
+        "label_birth": "Nasc.:",
+        "label_gender": "Sexo:",
+        "btn_search": "Buscar",
+        "section_address": "Endereço",
+        "label_cep": "CEP:",
+        "label_address": "Logradouro:",
+        "label_city": "Cidade:",
+        "label_state": "Estado:",
+        "label_country": "País:",
+        "section_clinical": "Dados clínicos",
+        "label_diagnosis": "Diagnóstico:",
+        "label_medical_history": "História Médica:",
+        "label_allergies": "Alergias:",
+        "label_medications": "Medicações:",
+        "label_habits": "Hábitos/Vícios:",
+        "label_planning": "Planejamento:",
+        "btn_save": "Salvar dados do paciente",
+        "btn_save_paths": "Salvar lista de caminhos",
+        "error_project_manager": "ProjectManager não inicializado.",
+        "error_name_required": "Nome é obrigatório.",
+        "error_save_failed": "Falha ao salvar projeto.",
+        "success_save_msg": "Projeto salvo:\n{base}",
+        "success_save_paths": "Caminhos de arquivos salvos com sucesso.",
+        "error_save_paths": "Não foi possível salvar os caminhos."
     },
     "logs": {
         "monitor_title": "Monitor de Logs do Sistema - OpenCMF",

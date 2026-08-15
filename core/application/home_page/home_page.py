@@ -2,11 +2,11 @@ from PySide6 import QtCore, QtWidgets
 
 # Project
 from core.application.patient.patient_manager import PatientManager
-from core.application.home_page.project_manager.project_service_home_page import ProjectServiceHomePage
+from core.application.home_page.project_manager.project_service import ProjectServiceHomePage
 from core.settings.paths.list_paths import PATIENTS_DIR
 
 # Flows
-from core.application.home_page.flows_manager.flow_service_home_page import FlowServiceHomePage
+from core.application.home_page.flows_manager.flow_service import FlowServiceHomePage
 from core.settings.paths.list_paths import FLOWS_DIR, REGISTRATION_FLOW_NAME
 
 # Settings
@@ -24,10 +24,7 @@ logger = logging.getLogger("OpenCMF.HomePage")
 # Home Page Extras
 from core.application.home_page.extras.credits_screen import Janela_Creditos
 from core.application.home_page.flows_manager.fluxo_card import FluxoCard
-from core.application.home_page.project_manager.project_list_formatter import (
-    create_project_card,
-    format_and_add_to_list,
-)
+from core.application.home_page.project_manager.project_list_formatter import create_project_card, format_and_add_to_list
 
 
 class ClickableLabel(QtWidgets.QLabel):
@@ -204,21 +201,21 @@ class Home_page(QtWidgets.QWidget):
     # PROJECT MANAGEMENT
     # ==========================================================================
     def refresh_projects(self):
+        projects = self.project_service.list_recent_projects()
+
+        # Evita log duplicado se chamado várias vezes em menos de 1 segundo
+        import time
+        current_time = time.time()
+        if not hasattr(self, "_last_refresh_time") or (current_time - self._last_refresh_time) > 1.0:
+            self._last_refresh_time = current_time
+            self.debug_logger.info(f"Total de projetos recentes carregados: {len(projects)}")
+
         self.projects_view.clear()
         while self.grid_layout.count():
             item = self.grid_layout.takeAt(0)
             widget = item.widget()
             if widget:
                 widget.deleteLater()
-
-        projects = self.project_service.list_recent_projects()
-
-        # Evita log duplicado caso refresh seja chamado repetidamente no mesmo instante
-        import time
-        current_time = time.time()
-        if not hasattr(self, "_last_refresh_time") or (current_time - self._last_refresh_time) > 0.5:
-            self._last_refresh_time = current_time
-            self.debug_logger.info(f"Total de projetos recentes carregados: {len(projects)}")
 
         for idx, data in enumerate(projects):
             path = data.get("_path")
@@ -286,6 +283,13 @@ class Home_page(QtWidgets.QWidget):
             QtWidgets.QMessageBox.warning(self, tr("common.warning", "Aviso"), tr("home.select_patient_first_msg",
                                                                                   "Por favor, selecione um paciente primeiro."))
             return
+
+        import time
+        current_time = time.time()
+        if hasattr(self, "_last_flow_time") and (current_time - self._last_flow_time) < 1.0:
+            return
+        self._last_flow_time = current_time
+
         self.debug_logger.info("Fluxo selecionado com paciente ativo. Carregando Workspace.")
         self.fluxo_escolhido.emit(flow_path)
 
@@ -307,9 +311,10 @@ class Home_page(QtWidgets.QWidget):
     def _select_patient(self, patient_path: str):
         import time
         current_time = time.time()
-        if hasattr(self, "_last_selected_path") and self._last_selected_path == patient_path:
-            if hasattr(self, "_last_select_time") and (current_time - self._last_select_time) < 1.0:
-                return
+
+        if getattr(self, "_last_selected_path", None) == patient_path and hasattr(self, "_last_select_time") and (
+                current_time - self._last_select_time) < 1.0:
+            return
 
         self._last_select_time = current_time
         self._last_selected_path = patient_path
@@ -317,8 +322,12 @@ class Home_page(QtWidgets.QWidget):
         self.patient_manager.set_active_patient(patient_path)
         if hasattr(self, "patient_logger") and self.patient_logger:
             self.patient_logger.log_full_state()
-        self.debug_logger.info("Paciente selecionado e carregado na sessão. Aguardando escolha do fluxo.",
-                               patient_path=patient_path)
+
+        # Garante que o log de debug só ocorra uma única vez por seleção real
+        if not getattr(self, "_logged_patient_path", None) == patient_path:
+            self._logged_patient_path = patient_path
+            self.debug_logger.info("Paciente selecionado e carregado na sessão. Aguardando escolha do fluxo.",
+                                   patient_path=patient_path)
 
     def _on_remove_clicked(self):
         if item := self.projects_view.currentItem():

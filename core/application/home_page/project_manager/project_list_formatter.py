@@ -55,7 +55,7 @@ class ProjectItemWidget(QtWidgets.QWidget):
 
 
 class ProjectCardWidget(QtWidgets.QFrame):
-  # Emite o caminho (path) para padronizar com a seleção da lista
+  # Emite o path (path) para padronizar com a seleção da lista
   clicado = QtCore.Signal(str)
 
   def __init__(self, data: dict):

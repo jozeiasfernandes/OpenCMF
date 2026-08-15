@@ -43,10 +43,10 @@ class SidePanelManager:
         if hasattr(self.container, "remove_panel"):
             self.container.remove_panel(panel_id)
 
-    def remover_widget_por_caminho(self, caminho: Path):
-        """Repassa a solicitação de remoção por caminho para o container."""
-        if hasattr(self.container, "remover_widget_por_caminho"):
-            self.container.remover_widget_por_caminho(caminho)
+    def remove_widget_by_path(self, path: Path):
+        """Repassa a solicitação de remoção por path para o container."""
+        if hasattr(self.container, "remove_widget_by_path"):
+            self.container.remove_widget_by_path(path)
 
     def clear_all(self):
         """Limpa todos os painéis e fecha a janela flutuante se ativa."""
@@ -55,12 +55,12 @@ class SidePanelManager:
         if self.container.floating_window:
             self.container.floating_window.hide()
 
-    def atualizar_largura_painel(self, width: int):
+    def update_panel_width(self, width: int):
         """Redimensiona a janela flutuante se o modo ativo for floating."""
         if settings.side_panel_mode == "floating" and self.container.floating_window:
             self.container.floating_window.resize(width, self.container.floating_window.height())
 
-    def _criar_janela_flutuante(self):
+    def _create_floating_window(self):
         """Método auxiliar de compatibilidade que retorna a janela flutuante do container."""
         if not self.container.floating_window and hasattr(self.container, "_setup_floating_window"):
             self.container._setup_floating_window("Side Panel")

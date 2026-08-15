@@ -9,7 +9,7 @@ class WindowsRegistrationMenu(BaseContextMenu):
         super().__init__(parent)
 
     def setup_menu(self):
-        # Define o caminho do ícone
+        # Define o path do ícone
         base_dir = Path(__file__).parent.parent.parent.parent
         icon_path = base_dir / "appearance" / "icons_manager" / "vistas" / "frontal.svg"
 

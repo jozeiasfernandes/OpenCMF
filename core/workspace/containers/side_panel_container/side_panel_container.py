@@ -167,11 +167,11 @@ class SidePanelContainer(QtWidgets.QWidget, SidePanelDrawerMixin):
             panel.setVisible(False)
             panel.setParent(None)
 
-    def remover_widget_por_caminho(self, caminho: Path):
-        """Remove um painel com base no caminho do módulo correspondente."""
+    def remove_widget_by_path(self, path: Path):
+        """Remove um painel com base no path do módulo correspondente."""
         for panel_id, panel in list(self.panels.items()):
             mod_path = panel.property("__module_path__")
-            if mod_path and Path(mod_path) == Path(caminho):
+            if mod_path and Path(mod_path) == Path(path):
                 self.remove_panel(panel_id)
                 break
 

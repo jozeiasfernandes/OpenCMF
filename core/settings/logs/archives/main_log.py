@@ -69,7 +69,7 @@ class Main_Logger:
 
         ctx = self._application_context
 
-        # Extrai caminho do paciente do ProjectService ou Workspace
+        # Extrai path do paciente do ProjectService ou Workspace
         try:
             if hasattr(ctx, "workspace_manager") and ctx.workspace_manager:
                 if hasattr(ctx.workspace_manager, "current_patient_path"):
@@ -97,7 +97,7 @@ class Main_Logger:
         try:
             if hasattr(ctx, "workspace_manager") and ctx.workspace_manager:
                 if hasattr(ctx.workspace_manager, "get_modulo_ativo"):
-                    active_mod = ctx.workspace_manager.get_modulo_ativo()
+                    active_mod = ctx.workspace_manager.get_active_module()
                     if active_mod:
                         info["active_module"] = getattr(active_mod, "nome", type(active_mod).__name__)
         except Exception:

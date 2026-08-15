@@ -8,16 +8,11 @@ from PySide6 import QtCore, QtWidgets
 import vtk
 vtk.vtkObject.GlobalWarningDisplayOff()
 
-# Components
-from core.components.bases.base_tool.tool_manager import ToolManager
 
-# Import Window
-from core.application.imports.import_window.import_window import ImportWindow
-
-# Home page & Patient Manager
+# Home page & Project Manager
 from core.application.home_page.flows_manager.flows_editor.flow_editor import PaginaEditorFluxo
 from core.application.home_page.home_page import Home_page
-from core.application.home_page.project_manager.project_service_home_page import ProjectServiceHomePage
+from core.application.home_page.project_manager.project_service import ProjectServiceHomePage
 from core.application.patient.patient_manager import PatientManager
 
 # Scene
@@ -29,23 +24,39 @@ from core.application.scene.scene_manager import SceneManager
 from core.application.scene.scene_state import SceneState
 from core.application.scene.selection.selection_manager import SelectionManager
 
-# Settings
-from core.settings.icons_manager.icon_manager import IconManager
-from core.settings.localization.translator import tr
-from core.settings.paths.list_paths import BASE_DIR, ICONS_DIR, PATIENTS_DIR
-from core.settings.settings_app_manager import settings
-from core.settings.settings_page import PaginaConfig
+# Components
+from core.components.bases.base_tool.tool_manager import ToolManager
 
-# Themes
-from core.settings.themes_manager.theme_manager import ThemeManager
-from core.settings.logs.logger_manager import themes_logger
+# Import Window
+from core.application.imports.import_window.import_window import ImportWindow
+
 
 # Workspace & Modules
 from core.workspace.models.module_factory import ModuleFactory
 from core.workspace.workspace_manager import WorkspaceManager
-from modules.base_module.base_module import ModuloBase
 
-# Logs
+    ## Modules
+from core.workspace.modules.base.base_module import ModuleBase
+from core.workspace.modules.base.flow_base_module import FlowModuleBase
+
+
+# Settings
+from core.settings.localization.translator import tr
+
+from core.settings.paths.list_paths import BASE_DIR, PATIENTS_DIR
+
+from core.settings.settings_app_manager import settings
+from core.settings.settings_page import PaginaConfig
+
+    ## Icons
+from core.settings.icons_manager.icon_manager import IconManager
+from core.settings.paths.list_paths import BASE_DIR, ICONS_DIR
+
+    ## Themes
+from core.settings.themes_manager.theme_manager import ThemeManager
+from core.settings.logs.logger_manager import themes_logger
+
+    ## Logs
 from core.settings.logs.logger_manager import Main_Logger, main_logger
 Main_Logger.setup_redirect()
 
@@ -271,7 +282,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 config = json.load(f)
 
             self.workspace.reset_workspace()
-            self.workflow = ModuloBase(context=config)
+            self.workflow = FlowModuleBase(context=config)
 
             if self.patient_manager.current_path:
                 self.workspace.set_patient_path(self.patient_manager.current_path)
@@ -289,9 +300,9 @@ class MainWindow(QtWidgets.QMainWindow):
             return
 
         main_logger.info(
-            f"[MainWindow] Carregando fluxo '{self.workflow.nome}' com a sequência de etapas: {self.workflow.sequencia}")
+            f"[MainWindow] Carregando fluxo '{self.workflow.name}' com a sequência de etapas: {self.workflow.sequencia}")
 
-        if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'tab_controller'):
+        if hasattr(self.workspace, 'modules') and hasattr(self.workspace.module_manager, 'tab_controller'):
             if hasattr(self.workspace.module_manager.tab_controller, 'clear_tabs'):
                 self.workspace.module_manager.tab_controller.clear_tabs()
 
@@ -322,13 +333,13 @@ class MainWindow(QtWidgets.QMainWindow):
         main_logger.info("[MainWindow] Exibindo o widget da workspace na pilha principal (QStackedWidget)...")
         self.stack.setCurrentWidget(self.workspace)
 
-        if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'load_modules'):
+        if hasattr(self.workspace, 'modules') and hasattr(self.workspace.module_manager, 'load_modules'):
             self.workspace.module_manager.load_modules()
 
         if self.patient_manager.current_path:
             self.workspace.set_patient_path(self.patient_manager.current_path)
 
-        if hasattr(self.workspace, 'module_manager') and self.workspace.module_manager.tab_controller.tabs:
+        if hasattr(self.workspace, 'modules') and self.workspace.module_manager.tab_controller.tabs:
             self.workspace.module_manager.tab_controller.set_active(0)
             self.sync_active_module()
 

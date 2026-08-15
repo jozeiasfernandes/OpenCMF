@@ -77,6 +77,6 @@ class BaseSidePanel(QtWidgets.QWidget):
         return self
 
     def dispose(self) -> None:
-        """Limpeza de recursos do painel e do logic."""
+        """Limpeza de recursos do painel e do utils."""
         if hasattr(self, '_logic'):
             self._logic.dispose()

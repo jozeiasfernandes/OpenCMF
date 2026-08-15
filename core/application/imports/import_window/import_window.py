@@ -120,7 +120,7 @@ class ImportWindow(QMainWindow):
             return
 
         try:
-            # Assegura que o caminho seja processado corretamente seja string ou Path
+            # Assegura que o path seja processado corretamente seja string ou Path
             file_path = Path(selected_file_path)
 
             # 1. Processa os dados brutos gerando o SceneObject através do ImportManager
