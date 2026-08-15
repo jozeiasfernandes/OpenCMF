@@ -6,7 +6,7 @@ from core.application.home_page.project_manager.project_service import ProjectSe
 from core.settings.paths.list_paths import PATIENTS_DIR
 
 # Flows
-from core.application.home_page.flows_manager.flow_service import FlowServiceHomePage
+from application.flows.flow_service import FlowServiceHomePage
 from core.settings.paths.list_paths import FLOWS_DIR, REGISTRATION_FLOW_NAME
 
 # Settings
@@ -23,9 +23,10 @@ logger = logging.getLogger("OpenCMF.HomePage")
 
 # Home Page Extras
 from core.application.home_page.extras.credits_screen import Janela_Creditos
-from core.application.home_page.flows_manager.fluxo_card import FluxoCard
 from core.application.home_page.project_manager.project_list_formatter import create_project_card, format_and_add_to_list
 
+# Flows
+from core.application.flows.flow_card import FluxoCard
 
 class ClickableLabel(QtWidgets.QLabel):
     clicked = QtCore.Signal()

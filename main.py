@@ -10,7 +10,7 @@ vtk.vtkObject.GlobalWarningDisplayOff()
 
 
 # Home page & Project Manager
-from core.application.home_page.flows_manager.flows_editor.flow_editor import PaginaEditorFluxo
+from application.flows.flows_editor.flows_editor import PaginaEditorFluxo
 from core.application.home_page.home_page import Home_page
 from core.application.home_page.project_manager.project_service import ProjectServiceHomePage
 from core.application.patient.patient_manager import PatientManager
@@ -36,14 +36,13 @@ from core.workspace.models.module_factory import ModuleFactory
 from core.workspace.workspace_manager import WorkspaceManager
 
     ## Modules
-from core.workspace.modules.base.base_module import ModuleBase
 from core.workspace.modules.base.flow_base_module import FlowModuleBase
 
 
 # Settings
 from core.settings.localization.translator import tr
 
-from core.settings.paths.list_paths import BASE_DIR, PATIENTS_DIR
+from core.settings.paths.list_paths import PATIENTS_DIR
 
 from core.settings.settings_app_manager import settings
 from core.settings.settings_page import PaginaConfig

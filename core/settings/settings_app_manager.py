@@ -64,7 +64,7 @@ class SettingsManager:
             },
             "diretorios": {
                 "new_project": "new_project",
-                "flows_manager": "flows_manager",
+                "flows": "flows",
                 "icons_manager": "icons_manager",
                 "last_dicom_directory": ""
             },

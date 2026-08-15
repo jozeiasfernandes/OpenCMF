@@ -107,7 +107,7 @@ SETTINGS_LOGS_ARCHIVES_DIR = SETTINGS_LOGS_DIR / "archives"
 # FLOWS
 # ==============================================================================
 
-FLOWS_DIR = BASE_DIR / "core" / "application" / "home_page.md" / "flows_manager" / "flows"
+FLOWS_DIR = BASE_DIR / "core" / "application" / "flows" / "list_flows"
 
 DEFAULT_FLOW_FILE = FLOWS_DIR / "default_flow.json"
 
