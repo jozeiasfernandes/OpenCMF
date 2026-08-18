@@ -219,14 +219,16 @@ class Home_page(QtWidgets.QWidget):
 
         for idx, data in enumerate(projects):
             path = data.get("_path")
-            if not path: continue
+            if not path:
+                continue
             if self.is_grid_view:
                 card = create_project_card(data)
                 card.clicado.connect(lambda p=path: self._select_patient(p))
                 self.grid_layout.addWidget(card, idx // 4, idx % 4)
             else:
                 item = format_and_add_to_list(self.projects_view, data)
-                if item: item.setData(QtCore.Qt.UserRole, path)
+                if item:
+                    item.setData(QtCore.Qt.UserRole, path)
 
     def _toggle_view_mode(self):
         self.is_grid_view = not self.is_grid_view

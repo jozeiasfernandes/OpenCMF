@@ -30,6 +30,8 @@ TEMP_DIR = BASE_DIR / "temp"
 
 PATIENTS_DIR = BASE_DIR / "patients"
 
+MODULES_DIR = BASE_DIR / "modules"
+
 
 # ==============================================================================
 # UTILITIES

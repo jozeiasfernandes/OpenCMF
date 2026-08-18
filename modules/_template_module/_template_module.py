@@ -2,7 +2,7 @@ from typing import Dict, Any, Optional
 from PySide6 import QtWidgets
 
 
-class ModuloTemplate:
+class Module:
     def __init__(self, **kwargs):
         self.id = "template.modulo"
         self._is_initialized = False

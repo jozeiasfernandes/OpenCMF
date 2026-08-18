@@ -1,6 +1,3 @@
-# Regra de negócio dos módulos
-# Carregar, limpar, inicializar via registro e contexto do paciente.
-
 import logging
 from typing import Optional
 

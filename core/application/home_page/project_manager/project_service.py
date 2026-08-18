@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import importlib.util
 import json
 import logging
 import shutil
@@ -122,19 +121,3 @@ class ProjectServiceHomePage:
         except Exception as e:
             logging.warning(f"Não foi possível ler o arquivo JSON em {path}: {e}")
         return None
-
-    def get_module_class(self, id_modulo: str) -> Optional[type]:
-        try:
-            mapeamento = {"Paciente": "new_project", "modulo.paciente": "new_project"}
-            target = mapeamento.get(id_modulo, id_modulo.lower())
-            path = target if target.startswith("modules.") else f"modules.{target}"
-
-            spec = importlib.util.find_spec(path)
-            if not spec:
-                return None
-
-            module_obj = importlib.import_module(path)
-            return getattr(module_obj, "Module", None)
-        except Exception as e:
-            logging.error(f"Erro ao importar {id_modulo}: {e}")
-            return None

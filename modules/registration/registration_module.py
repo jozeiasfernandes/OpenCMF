@@ -38,7 +38,7 @@ class RegistrationContext:
         self.event_bus = event_bus or getattr(scene_manager, "event_bus", None)
 
 
-class Modulo(ModuleBase):
+class Module(ModuleBase):
     """Módulo de Registro/Alinhamento. Atua como Provedor de Componentes para o ModuleDistributor."""
 
     def __init__(self, context: Any = None, parent: Optional[QtWidgets.QWidget] = None, **kwargs):
@@ -198,7 +198,7 @@ if __name__ == "__main__":
 
     contexto_mock = MockContext()
 
-    ModuleFactory.register("modulo.registration", Modulo)
+    ModuleFactory.register("modulo.registration", Module)
     ModuleFactory.set_context(contexto_mock)
 
     try:

@@ -1,5 +1,6 @@
 import logging
 from typing import Dict, Type, Optional, Any
+
 from core.workspace.models.contracts import IModule
 
 logger = logging.getLogger(__name__)

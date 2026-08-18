@@ -16,7 +16,7 @@ from core.components.central_area.viewer_3d_dicom_central_area import Viewer3D_D
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
-class Modulo(ModuleBase):
+class Module(ModuleBase):
     def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None, **kwargs):
         super().__init__(context=context, parent=parent)
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
         event_bus=EventBus()
     )
 
-    ModuleFactory.register("modulo.segmentacao", Modulo)
+    ModuleFactory.register("modulo.segmentacao", Module)
     ModuleFactory.set_context(contexto_mock)
 
     window = WorkspaceManager()

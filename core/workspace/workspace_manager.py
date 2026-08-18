@@ -281,12 +281,12 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
     # =====================================================================
 
     def get_modulo_ativo(self):
-        if hasattr(self, 'modules'):
+        if hasattr(self, 'module_manager'):
             return self.module_manager.get_active_module()
         return None
 
     def on_module_changed(self, module_id: str):
-        if hasattr(self, 'modules'):
+        if hasattr(self, 'module_manager'):
             self.module_manager.on_module_changed(module_id)
 
     def open_component_selector(self):

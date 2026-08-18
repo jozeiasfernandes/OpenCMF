@@ -33,7 +33,7 @@ from core.application.imports.import_window.import_window import ImportWindow
 # Workspace & Modules
 from core.workspace.models.module_factory import ModuleFactory
 from core.workspace.workspace_manager import WorkspaceManager
-
+from core.workspace.modules.module_service import ModuleService
 from core.workspace.modules.base.flow_base_module import FlowModuleBase
 
 
@@ -299,20 +299,24 @@ class MainWindow(QtWidgets.QMainWindow):
         main_logger.info(
             f"[MainWindow] Carregando fluxo '{self.workflow.name}' com a sequência de etapas: {self.workflow.sequencia}")
 
-        if hasattr(self.workspace, 'modules') and hasattr(self.workspace.module_manager, 'tab_controller'):
+        if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'tab_controller'):
             if hasattr(self.workspace.module_manager.tab_controller, 'clear_tabs'):
                 self.workspace.module_manager.tab_controller.clear_tabs()
 
         self.workspace.reset_workspace()
 
+        module_service = ModuleService()
+
         for module_id in self.workflow.sequencia:
             try:
-                main_logger.info(f"[MainWindow] Buscando classe para o module_id: '{module_id}' via project_service...")
-                module_class = self.project_service.get_module_class(module_id)
+                main_logger.info(f"[MainWindow] Buscando classe para o module_id: '{module_id}' via module_service...")
+                module_class = module_service.get_module_class(module_id)
 
                 if not module_class:
-                    main_logger.error(
-                        f"[MainWindow] FALHA: Módulo '{module_id}' retornado como None pelo project_service.get_module_class()!")
+                    error_msg = f"Módulo '{module_id}' não encontrado."
+                    main_logger.error(f"[MainWindow] FALHA: {error_msg}")
+                    if hasattr(self.workspace, 'status_bar_manager') and self.workspace.status_bar_manager:
+                        self.workspace.status_bar_manager.showMessage(error_msg, 4000)
                     continue
 
                 ModuleFactory.register(module_id, module_class)
@@ -330,13 +334,15 @@ class MainWindow(QtWidgets.QMainWindow):
         main_logger.info("[MainWindow] Exibindo o widget da workspace na pilha principal (QStackedWidget)...")
         self.stack.setCurrentWidget(self.workspace)
 
-        if hasattr(self.workspace, 'modules') and hasattr(self.workspace.module_manager, 'load_modules'):
+        # Correção aqui: referenciando corretamente 'module_manager'
+        if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'load_modules'):
             self.workspace.module_manager.load_modules()
 
         if self.patient_manager.current_path:
             self.workspace.set_patient_path(self.patient_manager.current_path)
 
-        if hasattr(self.workspace, 'modules') and self.workspace.module_manager.tab_controller.tabs:
+        # Correção aqui também para ativar a primeira aba do fluxo
+        if hasattr(self.workspace, 'module_manager') and self.workspace.module_manager.tab_controller.tabs:
             self.workspace.module_manager.tab_controller.set_active(0)
             self.sync_active_module()
 

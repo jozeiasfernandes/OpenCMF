@@ -9,7 +9,7 @@ from core.workspace.modules.base.base_module import ModuleBase
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
-class Modulo(ModuleBase):
+class Module(ModuleBase):
     def __init__(self, context: Any = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(context=context, parent=parent)
 
@@ -105,7 +105,7 @@ if __name__ == "__main__":
             self.app = app
             self.settings = {}
 
-    modulo = Modulo(context=MockContext())
+    modulo = Module(context=MockContext())
     modulo.inicializar("./debug_paciente")
 
     janela = QtWidgets.QMainWindow()

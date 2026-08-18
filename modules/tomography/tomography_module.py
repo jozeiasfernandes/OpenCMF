@@ -149,7 +149,7 @@ if __name__ == "__main__":
     setattr(contexto_mock, "object_registry", ActorRegistry())
     setattr(contexto_mock, "project_service", None)
 
-    modulo = Modulo(context=contexto_mock)
+    modulo = Module(context=contexto_mock)
     modulo.initialize(path_teste)
 
     janela_teste = QtWidgets.QMainWindow()

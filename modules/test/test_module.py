@@ -11,7 +11,7 @@ from core.workspace.layout.layout import ModuleDistributor
 logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
-class Modulo(ModuleBase):
+class Module(ModuleBase):
     """Módulo de teste para o sistema."""
 
     def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None):
@@ -111,7 +111,7 @@ if __name__ == "__main__":
 
     try:
         # Registra e cria o módulo via Factory
-        ModuleFactory.register("modulo.teste", Modulo)
+        ModuleFactory.register("modulo.teste", Module)
         ModuleFactory.set_context(contexto_mock)
 
         meu_modulo = ModuleFactory.create("modulo.teste")
