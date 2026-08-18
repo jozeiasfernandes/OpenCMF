@@ -6,13 +6,18 @@ from core.application.home_page.project_manager.project_service import ProjectSe
 from core.settings.paths.list_paths import PATIENTS_DIR
 
 # Flows
-from application.flows.flow_service import FlowServiceHomePage
+from application.flows.flow_service import FlowService
+from core.application.flows.flow_card import FluxoCard
 from core.settings.paths.list_paths import FLOWS_DIR, REGISTRATION_FLOW_NAME
 
 # Settings
 from core.settings.settings_app_manager import settings
 from core.settings.icons_manager.icon_manager import IconManager
 from core.settings.localization.translator import tr
+
+# Home Page Extras
+from core.application.home_page.extras.credits_screen import Janela_Creditos
+from core.application.home_page.project_manager.project_list_formatter import create_project_card, format_and_add_to_list
 
 # Logs
 import logging
@@ -21,12 +26,6 @@ from core.settings.logs.log_monitor_window import LogMonitorWindow
 
 logger = logging.getLogger("OpenCMF.HomePage")
 
-# Home Page Extras
-from core.application.home_page.extras.credits_screen import Janela_Creditos
-from core.application.home_page.project_manager.project_list_formatter import create_project_card, format_and_add_to_list
-
-# Flows
-from core.application.flows.flow_card import FluxoCard
 
 class ClickableLabel(QtWidgets.QLabel):
     clicked = QtCore.Signal()
@@ -46,7 +45,7 @@ class Home_page(QtWidgets.QWidget):
         self.is_grid_view = False
 
         self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
-        self.flow_service = FlowServiceHomePage(FLOWS_DIR)
+        self.flow_service = FlowService(FLOWS_DIR)
         self.patient_manager = PatientManager.get_instance(self.project_service)
 
         self.init_ui()

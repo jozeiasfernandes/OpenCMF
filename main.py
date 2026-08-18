@@ -30,12 +30,10 @@ from core.components.bases.base_tool.tool_manager import ToolManager
 # Import Window
 from core.application.imports.import_window.import_window import ImportWindow
 
-
 # Workspace & Modules
 from core.workspace.models.module_factory import ModuleFactory
 from core.workspace.workspace_manager import WorkspaceManager
 
-    ## Modules
 from core.workspace.modules.base.flow_base_module import FlowModuleBase
 
 

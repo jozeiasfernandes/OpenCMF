@@ -5,11 +5,10 @@ import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-
 from core.settings.paths.list_paths import FLOWS_DIR
 
 
-class FlowServiceHomePage:
+class FlowService:
     def __init__(self, flows_dir: Optional[Path] = None):
         self.flows_dir = Path(flows_dir) if flows_dir else FLOWS_DIR
         self._ensure_base_directory()
