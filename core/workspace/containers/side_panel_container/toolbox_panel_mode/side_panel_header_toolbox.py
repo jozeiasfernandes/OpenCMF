@@ -17,8 +17,8 @@ class SidePanelHeaderToolbox(QtWidgets.QWidget):
         self.workspace_manager = workspace_manager
         self._collapsed = False
 
-        # Define o diretório de assets com base na estrutura padrão (C:\OpenCMF\appearance\icons_manager)
-        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "appearance" / "icons_manager"
+        # Define o diretório de assets com base na estrutura padrão (C:\OpenCMF\appearance\icons)
+        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "appearance" / "icons"
         self.icon_right_path = self.assets_dir / "arrow_right.svg"
         self.icon_left_path = self.assets_dir / "arrow_left.svg"
 

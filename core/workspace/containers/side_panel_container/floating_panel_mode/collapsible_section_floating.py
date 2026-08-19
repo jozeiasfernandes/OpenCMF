@@ -11,8 +11,8 @@ class CollapsibleSectionFloating(QtWidgets.QWidget):
     def __init__(self, title: str, content_widget: QtWidgets.QWidget, parent=None):
         super().__init__(parent)
 
-        # Caminho absoluto para a pasta de ícones (C:\OpenCMF\appearance\icons_manager)
-        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "appearance" / "icons_manager"
+        # Caminho absoluto para a pasta de ícones (C:\OpenCMF\appearance\icons)
+        self.assets_dir = Path(__file__).resolve().parent.parent.parent.parent.parent / "appearance" / "icons"
 
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)

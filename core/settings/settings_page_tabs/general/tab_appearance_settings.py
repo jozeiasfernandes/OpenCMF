@@ -7,7 +7,7 @@ from core.settings.localization.translator import tr
 from core.settings.settings_app_manager import settings
 
 # Themes
-from core.settings.themes_manager.theme_manager import ThemeManager
+from core.settings.themes.theme_manager import ThemeManager
 from core.settings.paths.list_paths import THEMES_DIR
 
 

@@ -12,7 +12,7 @@ from core.settings.paths.list_paths import FLOWS_DIR, REGISTRATION_FLOW_NAME
 
 # Settings
 from core.settings.settings_app_manager import settings
-from core.settings.icons_manager.icon_manager import IconManager
+from core.settings.icons.icon_manager import IconManager
 from core.settings.localization.translator import tr
 
 # Home Page Extras

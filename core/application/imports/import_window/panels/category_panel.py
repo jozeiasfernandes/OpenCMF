@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QTreeWidgetItem, QTreeWidget, QVBoxLayout, QWidget
 
 # Settings
-from core.settings.icons_manager.icon_manager import IconManager
+from core.settings.icons.icon_manager import IconManager
 from core.settings.localization.translator import tr
 
 class CategoryPanel(QWidget):

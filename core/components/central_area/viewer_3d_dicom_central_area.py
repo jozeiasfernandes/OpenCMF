@@ -30,7 +30,7 @@ class Viewer3D_Dicom_Widget_CentralArea(CentralAreaBase):
 
         from pathlib import Path
         base_dir = Path(__file__).resolve().parent
-        self.path_icons = base_dir.parent.parent.parent / "icons_manager"
+        self.path_icons = base_dir.parent.parent.parent / "icons"
 
         self.setup_component()
 

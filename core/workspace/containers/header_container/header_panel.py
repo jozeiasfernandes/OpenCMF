@@ -7,7 +7,7 @@ from core.workspace.containers.header_container.btn_home import HomeButton
 # Settings
 from core.settings.help.help_page import HelpPage
 from settings.settings_page import PaginaConfig
-from settings.icons_manager.icon_manager import IconManager
+from settings.icons.icon_manager import IconManager
 from settings.settings_app_manager import settings
 
 

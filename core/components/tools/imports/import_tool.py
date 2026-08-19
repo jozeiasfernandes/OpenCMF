@@ -8,7 +8,7 @@ from core.components.bases.base_tool.base_tool import BaseTool, ToolCategory, In
 
 # Settings
 from core.settings.localization.translator import tr
-from core.settings.icons_manager.icon_manager import IconManager
+from core.settings.icons.icon_manager import IconManager
 
 # Import Window Integration
 from core.application.imports.import_window.import_window import ImportWindow

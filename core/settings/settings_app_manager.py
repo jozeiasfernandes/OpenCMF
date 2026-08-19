@@ -65,7 +65,7 @@ class SettingsManager:
             "diretorios": {
                 "new_project": "new_project",
                 "flows": "flows",
-                "icons_manager": "icons_manager",
+                "icons": "icons",
                 "last_dicom_directory": ""
             },
             "side_panel": {

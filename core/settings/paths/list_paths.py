@@ -42,7 +42,7 @@ def resource(*parts: str) -> Path:
     Retorna um path relativo à raiz do projeto.
 
     Exemplo:
-        resource("core", "settings", "icons_manager", "icons_manager", "save.svg")
+        resource("core", "settings", "icons", "icons", "save.svg")
     """
     return BASE_DIR.joinpath(*parts)
 
@@ -124,14 +124,13 @@ REGISTRATION_FLOW_NAME = REGISTRATION_FLOW_FILE.name
 
 APPEARANCE_DIR = SETTINGS_DIR
 
-SETTINGS_ICONS_DIR = SETTINGS_DIR / "icons_manager"
+SETTINGS_ICONS_DIR = SETTINGS_DIR / "icons"
 
-ICONS_DIR = SETTINGS_DIR / "icons_manager" / "icons"
+ICONS_DIR = SETTINGS_DIR / "icons" / "list_icons"
 
-SETTINGS_THEMES_DIR = SETTINGS_DIR / "themes_manager"
+SETTINGS_THEMES_DIR = SETTINGS_DIR / "themes"
 
-THEMES_DIR = SETTINGS_DIR / "themes_manager" / "themes"
-
+THEMES_DIR = SETTINGS_DIR / "themes" / "list_themes"
 
 
 # ==============================================================================

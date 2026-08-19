@@ -26,13 +26,13 @@ class ImportSource(Enum):
     PROJECT = ImportSourceInfo(
         name_key="imports.sources.project_manager.name",
         desc_key="imports.sources.project_manager.description",
-        icon=":/icons_manager/project_manager.svg",
+        icon=":/icons/project_manager.svg",
     )
 
     FILE = ImportSourceInfo(
         name_key="imports.sources.file.name",
         desc_key="imports.sources.file.description",
-        icon=":/icons_manager/folder.svg",
+        icon=":/icons/folder.svg",
     )
 
     @property

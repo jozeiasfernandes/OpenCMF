@@ -46,11 +46,11 @@ from core.settings.settings_app_manager import settings
 from core.settings.settings_page import PaginaConfig
 
     ## Icons
-from core.settings.icons_manager.icon_manager import IconManager
+from core.settings.icons.icon_manager import IconManager
 from core.settings.paths.list_paths import BASE_DIR, ICONS_DIR
 
     ## Themes
-from core.settings.themes_manager.theme_manager import ThemeManager
+from core.settings.themes.theme_manager import ThemeManager
 from core.settings.logs.logger_manager import themes_logger
 
     ## Logs

@@ -23,42 +23,42 @@ class ImportCategory(Enum):
 
     VOLUME = CategoryInfo(
         name_key="imports.categories.volume",
-        icon=":/icons_manager/volume.svg",
+        icon=":/icons/volume.svg",
         supports_project=True,
         supports_file=True,
     )
 
     RADIOGRAPHY = CategoryInfo(
         name_key="imports.categories.radiography",
-        icon=":/icons_manager/radiography.svg",
+        icon=":/icons/radiography.svg",
         supports_project=True,
         supports_file=True,
     )
 
     SCAN = CategoryInfo(
         name_key="imports.categories.scan",
-        icon=":/icons_manager/scan.svg",
+        icon=":/icons/scan.svg",
         supports_project=True,
         supports_file=True,
     )
 
     PHOTO = CategoryInfo(
         name_key="imports.categories.photo",
-        icon=":/icons_manager/photo.svg",
+        icon=":/icons/photo.svg",
         supports_project=True,
         supports_file=True,
     )
 
     MESH = CategoryInfo(
         name_key="imports.categories.mesh",
-        icon=":/icons_manager/mesh.svg",
+        icon=":/icons/mesh.svg",
         supports_project=True,
         supports_file=True,
     )
 
     LIBRARY = CategoryInfo(
         name_key="imports.categories.library",
-        icon=":/icons_manager/library.svg",
+        icon=":/icons/library.svg",
         supports_project=True,
         supports_file=False,
         supports_online=True,
@@ -66,7 +66,7 @@ class ImportCategory(Enum):
 
     FACIAL_IMPLANT = CategoryInfo(
         name_key="imports.categories.facial_implant",
-        icon=":/icons_manager/facial_implant.svg",
+        icon=":/icons/facial_implant.svg",
         supports_project=True,
         supports_file=False,
         supports_online=True,
@@ -74,7 +74,7 @@ class ImportCategory(Enum):
 
     DENTAL_IMPLANT = CategoryInfo(
         name_key="imports.categories.dental_implant",
-        icon=":/icons_manager/dental_implant.svg",
+        icon=":/icons/dental_implant.svg",
         supports_project=True,
         supports_file=False,
         supports_online=True,
