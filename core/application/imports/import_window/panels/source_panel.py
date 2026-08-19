@@ -26,7 +26,7 @@ class SourcePanel(QWidget):
 
     self.sources_structure = [
         {
-            "key": "import.sources.project_manager.name",
+            "key": "import.sources.project.name",
             "id": "source_project",
             "children": [],
         },

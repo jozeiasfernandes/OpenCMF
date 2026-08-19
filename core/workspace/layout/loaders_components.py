@@ -10,7 +10,7 @@ class WorkspaceComponentHandler:
     """Gerencia a carga, injeção e remoção dinâmica de componentes avulsos vindos da Components_List."""
 
     def __init__(self, workspace_manager):
-        # Usamos weakref ou referência direta para interagir com o workspace e seus project_manager
+        # Usamos weakref ou referência direta para interagir com o workspace e seus project
         self.workspace = workspace_manager
         self._config_window: Optional[QtWidgets.QWidget] = None
 

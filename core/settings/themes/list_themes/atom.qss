@@ -32,6 +32,10 @@ QPushButton[tipo="primary"]:hover {
     background-color: #528bff;
 }
 
+QPushButton:pressed {
+    background-color: #1e3d1a;
+}
+
 /* Inputs */
 QLineEdit, QComboBox, QAbstractSpinBox {
     background-color: #1b1f23;

@@ -8,19 +8,22 @@ from PySide6 import QtCore, QtWidgets
 import vtk
 vtk.vtkObject.GlobalWarningDisplayOff()
 
+# Patient
+from core.application.patient.patient_manager import PatientManager
+from core.application.patient.patient_config_manager import PatientConfigManager
+from core.settings.paths.list_paths import PATIENTS_DIR
 
 # Home page & Project Manager
-from application.flows.flows_editor.flows_editor import PaginaEditorFluxo
 from core.application.home_page.home_page import Home_page
 from core.application.home_page.project_manager.project_service import ProjectServiceHomePage
-from core.application.patient.patient_manager import PatientManager
+from application.flows.flows_editor.flows_editor import PaginaEditorFluxo
 
 # Scene
+from core.application.scene.scene_manager import SceneManager
 from core.application.scene.events.event_bus import EventBus
 from core.application.scene.io.importer import ObjectImporter
 from core.application.scene.registry.actor_registry import ActorRegistry
 from core.application.scene.registry.object_registry import ObjectRegistry
-from core.application.scene.scene_manager import SceneManager
 from core.application.scene.scene_state import SceneState
 from core.application.scene.selection.selection_manager import SelectionManager
 
@@ -39,8 +42,6 @@ from core.workspace.modules.base.flow_base_module import FlowModuleBase
 
 # Settings
 from core.settings.localization.translator import tr
-
-from core.settings.paths.list_paths import PATIENTS_DIR
 
 from core.settings.settings_app_manager import settings
 from core.settings.settings_page import PaginaConfig
@@ -105,7 +106,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
             # Inicializa serviços principais antes dos componentes de cena/contexto
             self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
-            self.patient_manager = PatientManager.get_instance(self.project_service)
+            self.config_manager = PatientConfigManager()
+            self.patient_manager = PatientManager(config_manager=self.config_manager)
 
             self._setup_scene_components()
             self._setup_core_widgets()

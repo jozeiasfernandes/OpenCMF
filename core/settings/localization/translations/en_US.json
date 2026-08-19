@@ -138,6 +138,7 @@
         "label_email": "E-mail:",
         "label_birth": "Birth:",
         "label_gender": "Gender:",
+        "age": "Age",
         "btn_search": "Search",
         "section_address": "Address",
         "label_cep": "ZIP Code:",
@@ -159,7 +160,20 @@
         "error_save_failed": "Failed to save project.",
         "success_save_msg": "Project saved:\n{base}",
         "success_save_paths": "File paths saved successfully.",
-        "error_save_paths": "Could not save file paths."
+        "error_save_paths": "Could not save file paths.",
+        "folder_created_log": "Patient physical structure successfully created/verified at: {root}",
+        "folder_removed_log": "Patient physical folder successfully removed: {target}",
+        "folder_remove_error_log": "Error removing patient physical folder at {root_path}: {e}",
+        "load_config_error": "Error reading patient record at {record_path}: {e}",
+        "save_config_success": "Patient record successfully saved at: {record_path}",
+        "save_config_error": "Error saving patient record at {record_path}: {e}",
+        "explorer": {
+            "open_browser": "Open in Browser",
+            "delete": "Delete",
+            "error_delete_root": "It is not allowed to delete the patient's root folder from here.",
+            "confirm_delete": "Do you want to permanently delete?",
+            "error_delete": "Failed to delete file/folder"
+        }
     },
     "logs": {
         "monitor_title": "System Log Monitor - OpenCMF",
@@ -209,7 +223,8 @@
             "supported": "Supported Files",
             "meshes": "3D Meshes",
             "dicom": "DICOM / Tomography",
-            "all": "All Files"
+            "all": "All Files",
+            "zip": "Zip Files"
         },
         "import": {
             "title": "Import File"
@@ -231,6 +246,52 @@
         "registration": "Registration",
         "patients": "Patients",
         "segmentation": "Segmentation",
-        "tomography": "Tomography"
+        "tomography": "Tomography",
+        "register_success_log": "[ModuleFactory] Module ID '{module_id}' successfully registered using class '{module_class.__name__}'. Currently registered modules: {list(cls._modules.keys())}",
+        "set_context_log": "[ModuleFactory] Application context defined in Factory: {type(context).__name__}",
+        "create_request_log": "[ModuleFactory] Creation request for module ID: '{module_id}' (force_new={force_new}).",
+        "cache_return_log": "[ModuleFactory] Returning cached instance for module '{module_id}'.",
+        "not_registered_error": "[ModuleFactory] CRITICAL ERROR: Module ID '{module_id}' is NOT registered in the Factory! Available modules in registry: {list(cls._modules.keys())}",
+        "instantiating_log": "[ModuleFactory] Instantiating class '{module_class.__name__}' for ID '{module_id}'...",
+        "instance_success_context_log": "[ModuleFactory] Instance successfully created passing 'context'.",
+        "instance_fallback_warning": "[ModuleFactory] Class '{module_class.__name__}' refused argument 'context' ({te}). Attempting to instantiate without contextual arguments...",
+        "instance_success_no_context_log": "[ModuleFactory] Instance successfully created without context defined.",
+        "instantiate_error_log": "[ModuleFactory] Failed to instantiate module class '{module_id}': {e}",
+        "instantiate_runtime_error": "Error instantiating module '{module_id}': {e}",
+        "contract_error": "[ModuleFactory] CONTRACT ERROR: Class '{module_class.__name__}' instantiated for '{module_id}' does not comply with the IModule protocol.",
+        "cache_store_log": "[ModuleFactory] Module '{module_id}' successfully stored in instance cache.",
+        "clear_cache_log": "[ModuleFactory] Clearing module instance cache...",
+        "cleanup_error_log": "Error during module cleanup '{module_id}': {e}",
+        "dispose_error_log": "Error during module dispose '{module_id}': {e}",
+        "clear_cache_success_log": "[ModuleFactory] Factory cache successfully cleared.",
+        "patient": {
+            "tabs": {
+                "personal_data": "Personal data",
+                "file_list": "File list",
+                "photos": "Photographs",
+                "project": "Project"
+            },
+            "logs": {
+                "project_imported": "🚀 Project Imported",
+                "cleanup": "🧹 Cleaning patient module resources..."
+            },
+            "project": {
+                "status_management": "Package and File Management",
+                "btn_open_folder": "Open Project Folder",
+                "btn_export": "Export Project (.zip)",
+                "btn_import": "Import Project (.zip)",
+                "files_label": "Files in the patient directory:",
+                "size_default": "Total size: 0 KB",
+                "patient_prefix": "Patient",
+                "total_size_prefix": "Total size",
+                "export_title": "Export Project",
+                "export_success": "Export completed.",
+                "export_error": "Failed to export: {error}",
+                "import_title": "Import Project",
+                "overwrite_msg": "The folder '{name}' already exists. Do you want to overwrite it?",
+                "import_success": "Import completed.",
+                "import_error": "Failed to import: {error}"
+            }
+        }
     }
 }

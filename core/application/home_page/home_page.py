@@ -1,5 +1,8 @@
 from PySide6 import QtCore, QtWidgets
 
+# Patient
+from core.application.patient.patient_config_manager import PatientConfigManager
+
 # Project
 from core.application.patient.patient_manager import PatientManager
 from core.application.home_page.project_manager.project_service import ProjectServiceHomePage
@@ -46,7 +49,8 @@ class Home_page(QtWidgets.QWidget):
 
         self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
         self.flow_service = FlowService(FLOWS_DIR)
-        self.patient_manager = PatientManager.get_instance(self.project_service)
+        self.config_manager = PatientConfigManager()
+        self.patient_manager = PatientManager(config_manager=self.config_manager)
 
         self.init_ui()
         self.refresh_projects()

@@ -24,9 +24,9 @@ class ImportSource(Enum):
     """Import sources supported by OpenCMF."""
 
     PROJECT = ImportSourceInfo(
-        name_key="imports.sources.project_manager.name",
-        desc_key="imports.sources.project_manager.description",
-        icon=":/icons/project_manager.svg",
+        name_key="imports.sources.project.name",
+        desc_key="imports.sources.project.description",
+        icon=":/icons/project.svg",
     )
 
     FILE = ImportSourceInfo(

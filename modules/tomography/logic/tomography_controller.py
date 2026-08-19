@@ -32,14 +32,19 @@ class TomographyController:
     # CONFIGURATION & INITIALIZATION
     # =========================================================================
     def load_project_configs(self, path_paciente: str) -> None:
-        """Agora delega a inicialização e obtenção do path DICOM para o PatientManager."""
+        """Agora delega a inicialização e obtenção do path DICOM para o PatientManager injetado."""
         self.pasta_paciente = path_paciente
         if not self.pasta_paciente:
             return
 
-        # Tenta obter a instância global do PatientManager
         try:
-            patient_manager = PatientManager.get_instance()
+            patient_manager = getattr(self, 'patient_manager', None)
+            if not patient_manager and hasattr(self, 'context') and self.context:
+                patient_manager = getattr(self.context, 'patient_manager', None)
+
+            if not patient_manager:
+                logger.error("[TomographyController] PatientManager não foi injetado ou encontrado no contexto.")
+                return
 
             # Garante que o patient_manager está com este paciente ativo
             if patient_manager.current_path != str(Path(path_paciente).resolve()):

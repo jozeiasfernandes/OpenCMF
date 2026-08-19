@@ -32,7 +32,7 @@ class Patient_Logger:
             report["Sessão"] = session_info
 
         if data:
-            report["Metadados (info.json)"] = data
+            report["Metadados (patient_record.json)"] = data
 
         return report
 

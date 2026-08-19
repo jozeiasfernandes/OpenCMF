@@ -138,6 +138,7 @@
         "label_email": "E-mail:",
         "label_birth": "Nasc.:",
         "label_gender": "Sexo:",
+        "age": "Idade",
         "btn_search": "Buscar",
         "section_address": "Endereço",
         "label_cep": "CEP:",
@@ -159,7 +160,47 @@
         "error_save_failed": "Falha ao salvar projeto.",
         "success_save_msg": "Projeto salvo:\n{base}",
         "success_save_paths": "Caminhos de arquivos salvos com sucesso.",
-        "error_save_paths": "Não foi possível salvar os caminhos."
+        "error_save_paths": "Não foi possível salvar os caminhos.",
+        "folder_created_log": "Estrutura física do paciente criada/verificada com sucesso em: {root}",
+        "folder_removed_log": "Pasta física do paciente removida com sucesso: {target}",
+        "folder_remove_error_log": "Erro ao remover a pasta física do paciente em {root_path}: {e}",
+        "load_config_error": "Erro ao ler o registro do paciente em {record_path}: {e}",
+        "save_config_success": "Registro do paciente salvo com sucesso em: {record_path}",
+        "save_config_error": "Erro ao salvar o registro do paciente em {record_path}: {e}",
+        "tabs": {
+            "personal_data": "Dados pessoais",
+            "file_list": "Lista de arquivos",
+            "photos": "Fotografias",
+            "project": "Projeto"
+        },
+        "logs": {
+            "project_imported": "🚀 Projeto Importado",
+            "cleanup": "🧹 Limpando recursos do módulo paciente..."
+        },
+        "project": {
+            "status_management": "Gerenciamento de Pacotes e Arquivos",
+            "btn_open_folder": "Abrir Pasta do Projeto",
+            "btn_export": "Exportar Projeto (.zip)",
+            "btn_import": "Importar Projeto (.zip)",
+            "files_label": "Arquivos no diretório do paciente:",
+            "size_default": "Tamanho total: 0 KB",
+            "patient_prefix": "Paciente",
+            "total_size_prefix": "Tamanho total",
+            "export_title": "Exportar Projeto",
+            "export_success": "Exportação concluída.",
+            "export_error": "Falha ao exportar: {error}",
+            "import_title": "Importar Projeto",
+            "overwrite_msg": "A pasta '{name}' já existe. Deseja sobrescrevê-la?",
+            "import_success": "Importação concluída.",
+            "import_error": "Falha ao importar: {error}"
+        },
+        "explorer": {
+            "open_browser": "Abrir no Navegador",
+            "delete": "Excluir",
+            "error_delete_root": "Não é permitido excluir a pasta raiz do paciente por aqui.",
+            "confirm_delete": "Deseja excluir permanentemente?",
+            "error_delete": "Falha ao excluir arquivo/pasta"
+        }
     },
     "logs": {
         "monitor_title": "Monitor de Logs do Sistema - OpenCMF",
@@ -209,7 +250,8 @@
             "supported": "Arquivos Suportados",
             "meshes": "Malhas 3D",
             "dicom": "DICOM / Tomografia",
-            "all": "Todos os Arquivos"
+            "all": "Todos os Arquivos",
+            "zip": "Arquivos Zip"
         },
         "import": {
             "title": "Importar Arquivo"
@@ -231,6 +273,30 @@
         "registration": "Alinhar objetos",
         "patients": "Paciente",
         "segmentation": "Segmentação",
-        "tomography": "Tomografia"
+        "tomography": "Tomografia",
+        "segmentation_density": "Filtro de Densidade:",
+        "segmentation_resolution": "Resolução:",
+        "segmentation_high": "Alta",
+        "segmentation_medium": "Média",
+        "segmentation_low": "Baixa",
+        "segmentation_generate_mask": "Gerar Máscara",
+        "segmentation_export_stl": "Exportar STL",
+        "register_success_log": "[ModuleFactory] Módulo ID '{module_id}' registrado com sucesso usando a classe '{module_class.__name__}'. Módulos registrados atualmente: {list(cls._modules.keys())}",
+        "set_context_log": "[ModuleFactory] Contexto da aplicação definido na Factory: {type(context).__name__}",
+        "create_request_log": "[ModuleFactory] Solicitação de criação para o módulo ID: '{module_id}' (force_new={force_new}).",
+        "cache_return_log": "[ModuleFactory] Retornando instância em cache para o módulo '{module_id}'.",
+        "not_registered_error": "[ModuleFactory] ERRO CRÍTICO: O módulo ID '{module_id}' NÃO está registrado na Factory! Módulos disponíveis no registro: {list(cls._modules.keys())}",
+        "instantiating_log": "[ModuleFactory] Instanciando a classe '{module_class.__name__}' para o ID '{module_id}'...",
+        "instance_success_context_log": "[ModuleFactory] Instância criada com sucesso passando o 'context'.",
+        "instance_fallback_warning": "[ModuleFactory] A classe '{module_class.__name__}' recusou o argumento 'context' ({te}). Tentando instanciar sem argumentos contextuais...",
+        "instance_success_no_context_log": "[ModuleFactory] Instância criada com sucesso sem contexto definido.",
+        "instantiate_error_log": "[ModuleFactory] Falha ao instanciar a classe do módulo '{module_id}': {e}",
+        "instantiate_runtime_error": "Erro ao instanciar o módulo '{module_id}': {e}",
+        "contract_error": "[ModuleFactory] ERRO DE CONTRATO: A classe '{module_class.__name__}' instanciada para '{module_id}' não atende ao protocolo IModule.",
+        "cache_store_log": "[ModuleFactory] Módulo '{module_id}' armazenado com sucesso no cache de instâncias.",
+        "clear_cache_log": "[ModuleFactory] Limpando cache de instâncias dos módulos...",
+        "cleanup_error_log": "Erro no cleanup do módulo '{module_id}': {e}",
+        "dispose_error_log": "Erro no dispose do módulo '{module_id}': {e}",
+        "clear_cache_success_log": "[ModuleFactory] Cache da Factory limpo com sucesso."
     }
 }

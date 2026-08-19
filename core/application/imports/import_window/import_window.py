@@ -110,8 +110,11 @@ class ImportWindow(QMainWindow):
 
     def _handle_import_action(self, selected_file_path: str | Path) -> None:
         """Executa a importação utilizando o PatientManager, o ImportManager e o SceneManager."""
-        patient_mgr = PatientManager.get_instance()
-        if not patient_mgr.current_path:
+        patient_mgr = getattr(self, 'patient_manager', None)
+        if not patient_mgr and hasattr(self, 'context') and self.context:
+            patient_mgr = getattr(self.context, 'patient_manager', None)
+
+        if not patient_mgr or not patient_mgr.current_path:
             QMessageBox.warning(
                 self,
                 "Aviso",
@@ -157,7 +160,6 @@ class ImportWindow(QMainWindow):
                 "Erro de Importação",
                 f"Não foi possível importar o arquivo:\n{str(e)}"
             )
-
 
 if __name__ == "__main__":
     import sys

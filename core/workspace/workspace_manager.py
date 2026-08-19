@@ -5,6 +5,7 @@ from PySide6 import QtCore, QtWidgets
 
 # Patient
 from application.patient.patient_manager import PatientManager
+from core.application.patient.patient_config_manager import PatientConfigManager
 from settings.paths.list_paths import PATIENTS_DIR
 from core.workspace.patient.workspace_patient import WorkspacePatientMixin
 from core.workspace.patient.state import WorkspaceState
@@ -47,7 +48,6 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
     def __init__(self, context: Optional[Any] = None, parent: Optional[QtWidgets.QWidget] = None):
         super().__init__(parent)
 
-        # Debug/Inspeção dos containers acoplada à inicialização da Workspace
         containers_logger = container.containers_logger()
         state_info = containers_logger.inspect_container_state(container)
         containers_logger.info(
@@ -59,9 +59,14 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
         self.state = WorkspaceState()
         self.registry = WorkspaceRegistry()
 
-        # Integração com o PatientManager global
+        # Integração com o PatientManager via contexto injetado (ou fallback seguro)
         self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
-        self.patient_manager = PatientManager.get_instance(self.project_service)
+
+        if self.context and hasattr(self.context, 'patient_manager') and self.context.patient_manager:
+            self.patient_manager = self.context.patient_manager
+        else:
+            self.config_manager = PatientConfigManager()
+            self.patient_manager = PatientManager(config_manager=self.config_manager)
 
         # Sincroniza o path inicial do paciente ativo se houver (usando a propriedade correta .current_path)
         self.current_patient_path = self.patient_manager.current_path or ""

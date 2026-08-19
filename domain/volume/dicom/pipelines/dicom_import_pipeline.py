@@ -86,19 +86,26 @@ class DicomImportPipeline:
             sucesso, volume_model = self.engine.load_folder(Path(target_path))
 
             if sucesso and volume_model:
-                # Proteção caso o PatientManager exija inicialização prévia
+                # Acesso seguro ao patient_manager via contexto da aplicação (sem Singleton)
                 try:
-                    patient_manager = PatientManager.get_instance()
+                    patient_manager = getattr(self, 'patient_manager', None)
+                    if not patient_manager and hasattr(self, 'context') and self.context:
+                        patient_manager = getattr(self.context, 'patient_manager', None)
+
                     if patient_manager and hasattr(patient_manager, 'current_path'):
                         current_patient = patient_manager.current_path
                         if current_patient and hasattr(volume_model, 'patient_dir'):
                             volume_model.patient_dir = current_patient
                 except Exception:
-                    pass  # Ignora se o PatientManager não foi inicializado nesta tela
+                    pass  # Ignora se o PatientManager não estiver acessível neste escopo
 
                 # Emite o evento global de forma segura se o event_bus estiver configurado
-                if self.event_bus and hasattr(self.event_bus, 'emit'):
-                    self.event_bus.emit("DICOM_LOADED", volume=volume_model.image_data)
+                event_bus = getattr(self, 'event_bus', None)
+                if not event_bus and hasattr(self, 'context') and self.context:
+                    event_bus = getattr(self.context, 'event_bus', None)
+
+                if event_bus and hasattr(event_bus, 'emit'):
+                    event_bus.emit("DICOM_LOADED", volume=volume_model.image_data)
                 else:
                     print("Volume DICOM carregado com sucesso (EventBus não configurado).")
             else:
