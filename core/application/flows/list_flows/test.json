@@ -1,6 +1,6 @@
 {
-    "nome": "Teste",
-    "sequencia": [
+    "name": "Teste",
+    "sequence": [
         "test_module",
         "cephalometry_module",
         "registration_module",
@@ -8,5 +8,5 @@
         "segmentation_module",
         "tomography_module"
     ],
-    "cor_fundo": {"r": 80, "g": 80, "b": 90}
+    "background_color": {"r": 80, "g": 80, "b": 90}
 }

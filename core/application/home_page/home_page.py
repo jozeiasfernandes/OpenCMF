@@ -7,7 +7,7 @@ from core.settings.paths.list_paths import PATIENTS_DIR
 
 # Flows
 from application.flows.flow_service import FlowService
-from core.application.flows.flow_card import FluxoCard
+from core.application.flows.flow_card import FlowsCard
 from core.settings.paths.list_paths import FLOWS_DIR, REGISTRATION_FLOW_NAME
 
 # Settings
@@ -223,7 +223,7 @@ class Home_page(QtWidgets.QWidget):
                 continue
             if self.is_grid_view:
                 card = create_project_card(data)
-                card.clicado.connect(lambda p=path: self._select_patient(p))
+                card.clicked.connect(lambda p=path: self._select_patient(p))
                 self.grid_layout.addWidget(card, idx // 4, idx % 4)
             else:
                 item = format_and_add_to_list(self.projects_view, data)
@@ -268,8 +268,8 @@ class Home_page(QtWidgets.QWidget):
 
         for data in self.flow_service.list_flows(exclude_file=REGISTRATION_FLOW_NAME):
             if path := data.get("_file_path"):
-                card = FluxoCard(data, path)
-                card.clicado.connect(lambda p=path: self._on_flow_selected(p))
+                card = FlowsCard(data, path)
+                card.clicked.connect(lambda p=path: self._on_flow_selected(p))
                 self.cards_layout.addWidget(card)
         self.cards_layout.addStretch()
 

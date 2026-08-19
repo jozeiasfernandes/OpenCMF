@@ -23,4 +23,4 @@ class WorkspacePatientMixin:
         path_modulo = getattr(instancia, 'pasta_paciente', None)
         if str(path_modulo) != str(self.current_patient_path):
             if hasattr(instancia, 'inicializar'):
-                instancia.inicializar(self.current_patient_path)
+                instancia.initialize(self.current_patient_path)

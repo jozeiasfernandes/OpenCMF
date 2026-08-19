@@ -1,14 +1,8 @@
 from __future__ import annotations
 
-import sys
-import os
 import logging
 from typing import Dict, Optional, Any
 from PySide6 import QtWidgets, QtCore
-
-# Scene
-from application.scene.events.event_bus import EventBus
-from application.scene.registry.actor_registry import ActorRegistry
 
 # Module
 from core.workspace.modules.base.base_module import ModuleBase
@@ -21,7 +15,8 @@ logger = logging.getLogger(f"OpenCMF.Module.{__name__.split('.')[-1]}")
 
 
 class Module(ModuleBase):
-    id = "tomography"
+    id = "tomography_module"
+    nome = "Tomografia"
     name = "Tomografia"
 
     def __init__(self, context: Any, parent: Optional[QtWidgets.QWidget] = None):
@@ -48,8 +43,10 @@ class Module(ModuleBase):
     # =========================================================================
     # COMPONENTS
     # =========================================================================
-    def get_workspace_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
-        return self.components.get_workspace_toolbar(tool_manager=tool_manager)
+    def get_toolbar(self, tool_manager: Any = None) -> Optional[QtWidgets.QToolBar]:
+        if hasattr(self.components, "get_workspace_toolbar"):
+            return self.components.get_workspace_toolbar(tool_manager=tool_manager)
+        return super().get_toolbar()
 
     def get_central_area(self) -> QtWidgets.QWidget:
         return self.components.get_central_area()
@@ -61,7 +58,7 @@ class Module(ModuleBase):
     # LIFECYCLE & CONFIGURATION
     # =========================================================================
     def configure_resources(self, caminho_paciente: str) -> None:
-        """Método chamado pelo ModuleBase.inicializar() do Workspace."""
+        """Método chamado pelo ModuleBase.initialize() do Workspace."""
         logger.info(f"[Module Tomografia] Configurando recursos para o paciente: {caminho_paciente}")
         self.controller.load_project_configs(caminho_paciente)
 
@@ -84,8 +81,97 @@ class Module(ModuleBase):
 
         logger.info(f"Cleanup do módulo {self.name} executado com sucesso.")
 
+        if __name__ == "__main__":
+            import sys
+            import os
+            from core.application.scene.events.event_bus import EventBus
+            from core.application.scene.registry.actor_registry import ActorRegistry
+            from core.application.home_page.project_manager.project_service import ProjectServiceHomePage
+            from PySide6.QtCore import QEvent
+            from core.components.bases.base_component import AppContext
+
+            class DebugEventFilter(QtCore.QObject):
+                def eventFilter(self, obj, event):
+                    if event.type() == QEvent.MouseButtonPress:
+                        print(f"[DEBUG CLIQUE] Mouse pressionado em: {obj}")
+                    return super().eventFilter(obj, event)
+
+            app = QtWidgets.QApplication(sys.argv)
+            app.setStyle("Fusion")
+
+            filter_inst = DebugEventFilter()
+            app.installEventFilter(filter_inst)
+
+            path_teste = os.path.abspath("../debug_paciente")
+            os.makedirs(os.path.join(path_teste, "projeto"), exist_ok=True)
+
+            class InteractiveMockToolManager:
+                def __init__(self, context_ref):
+                    self.tools = {}
+                    self.active_tool = None
+                    self.context_ref = context_ref
+
+                def get_tool(self, key):
+                    return self.tools.get(key)
+
+                def register_tool(self, *args):
+                    if len(args) == 2:
+                        self.tools[args[0]] = args[1]
+                    elif len(args) == 1 and hasattr(args[0], "name"):
+                        self.tools[args[0].name] = args[0]
+
+                def activate_tool(self, tool):
+                    self.active_tool = tool
+                    if hasattr(tool, "on_activate"):
+                        tool.on_activate()
+
+            class MockSettings:
+                def get(self, key, default=None): return default
+
+                def set(self, key, value): pass
+
+            event_bus_inst = EventBus()
+            project_service_mock = ProjectServiceHomePage(os.path.dirname(path_teste))
+
+            contexto_mock = AppContext(
+                tool_manager=None,
+                scene_manager=None,
+                settings=MockSettings(),
+                event_bus=event_bus_inst
+            )
+
+            tool_manager_mock = InteractiveMockToolManager(contexto_mock)
+            contexto_mock.tool_manager = tool_manager_mock
+
+            setattr(contexto_mock, "object_registry", ActorRegistry())
+            setattr(contexto_mock, "project_service", project_service_mock)
+
+            modulo = Module(context=contexto_mock)
+            modulo.initialize(path_teste)
+
+            janela_teste = QtWidgets.QMainWindow()
+            janela_teste.setWindowTitle(f"Debug Mode Interativo: {modulo.name}")
+            janela_teste.resize(1200, 800)
+
+            # Corrigido para chamar get_toolbar em vez de get_workspace_toolbar
+            toolbar = modulo.get_toolbar(tool_manager=tool_manager_mock)
+            if toolbar:
+                janela_teste.addToolBar(toolbar)
+
+            janela_teste.setCentralWidget(modulo.get_central_area())
+            janela_teste.show()
+
+            try:
+                sys.exit(app.exec())
+            finally:
+                modulo.cleanup()
 
 if __name__ == "__main__":
+    import sys
+    import os
+    from core.application.scene.events.event_bus import EventBus
+    from core.application.scene.registry.actor_registry import ActorRegistry
+    from core.application.home_page.project_manager.project_service import ProjectServiceHomePage
     from PySide6.QtCore import QEvent
     from core.components.bases.base_component import AppContext
 
@@ -135,6 +221,7 @@ if __name__ == "__main__":
 
 
     event_bus_inst = EventBus()
+    project_service_mock = ProjectServiceHomePage(os.path.dirname(path_teste))
 
     contexto_mock = AppContext(
         tool_manager=None,
@@ -147,7 +234,7 @@ if __name__ == "__main__":
     contexto_mock.tool_manager = tool_manager_mock
 
     setattr(contexto_mock, "object_registry", ActorRegistry())
-    setattr(contexto_mock, "project_service", None)
+    setattr(contexto_mock, "project_service", project_service_mock)
 
     modulo = Module(context=contexto_mock)
     modulo.initialize(path_teste)
@@ -156,7 +243,8 @@ if __name__ == "__main__":
     janela_teste.setWindowTitle(f"Debug Mode Interativo: {modulo.name}")
     janela_teste.resize(1200, 800)
 
-    toolbar = modulo.get_workspace_toolbar(tool_manager=tool_manager_mock)
+    # Corrigido para chamar get_toolbar em vez de get_workspace_toolbar
+    toolbar = modulo.get_toolbar(tool_manager=tool_manager_mock)
     if toolbar:
         janela_teste.addToolBar(toolbar)
 

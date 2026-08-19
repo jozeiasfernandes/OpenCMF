@@ -203,7 +203,7 @@ if __name__ == "__main__":
 
     try:
         modulo = ModuleFactory.create("modulo.registration")
-        modulo.inicializar("./teste_paciente")
+        modulo.initialize("./teste_paciente")
 
         workspace = WorkspaceManager()
         workspace.resize(1200, 800)

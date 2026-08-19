@@ -12,14 +12,14 @@ ProjectCardWidget:hover {
 }
 
 /* =========================================================================
-   FluxoCard (Editor de Fluxos)
+   FlowsCard (Editor de Fluxos)
    ========================================================================= */
 
-FluxoCard {
+FlowsCard {
     background-color: transparent;
 }
 
-FluxoCard:hover {
+FlowsCard:hover {
     background-color: #2c313c;
 }
 

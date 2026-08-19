@@ -111,14 +111,14 @@ WorkspaceTabWidget QPushButton#TabCloseButton:hover {
 }
 
 /* =========================================================================
-   Estilos de Cores do Componente FluxoCard
+   Estilos de Cores do Componente FlowsCard
    ========================================================================= */
 
-FluxoCard {
+FlowsCard {
     background-color: transparent;
 }
 
-FluxoCard:hover {
+FlowsCard:hover {
     background-color: #2c313c;
 }
 

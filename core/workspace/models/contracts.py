@@ -21,7 +21,7 @@ class IModule(Protocol):
     def get_side_panel(self) -> Dict[str, QtWidgets.QWidget]:
         ...
 
-    def inicializar(self, path_pacient: str) -> None:
+    def initialize(self, path_pacient: str) -> None:
         ...
 
     def cleanup(self) -> None:

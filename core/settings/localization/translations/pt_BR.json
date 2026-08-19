@@ -77,7 +77,7 @@
             "volume": "Volume"
         },
         "volumes": {
-            "dicom": "Load Dicom",
+            "dicom": "Carregar DICOM",
             "vti": "VTI",
             "vtk_nrrd_nifti": "VTK, NRRD, NIfTI",
             "volume_vti": "Salvar volume .vti"
@@ -224,5 +224,13 @@
             "display_name": "Importar",
             "tooltip": "Importar arquivo para a cena (STL, VTK, DICOM, etc.)"
         }
+    },
+    "modules": {
+        "test": "Teste",
+        "cephalometry": "Cefalometria",
+        "registration": "Alinhar objetos",
+        "patients": "Paciente",
+        "segmentation": "Segmentação",
+        "tomography": "Tomografia"
     }
 }

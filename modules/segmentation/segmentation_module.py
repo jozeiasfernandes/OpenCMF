@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
     modulo_instancia = ModuleFactory.create("modulo.segmentacao")
     if modulo_instancia:
-        modulo_instancia.inicializar("./debug_paciente")
+        modulo_instancia.initialize("./debug_paciente")
         ModuleDistributor.distribute(
             modulo_instancia,
             window.toolbar_manager,

@@ -224,5 +224,13 @@
             "display_name": "Import",
             "tooltip": "Import file into the scene (STL, VTK, DICOM, etc.)"
         }
+    },
+    "modules": {
+        "test": "Test",
+        "cephalometry": "Cephalometry",
+        "registration": "Registration",
+        "patients": "Patients",
+        "segmentation": "Segmentation",
+        "tomography": "Tomography"
     }
 }

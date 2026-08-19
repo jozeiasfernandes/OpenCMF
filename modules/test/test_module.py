@@ -122,7 +122,7 @@ if __name__ == "__main__":
         workspace = WorkspaceManager()
 
         # Inicializa módulo com path dummy
-        meu_modulo.inicializar("./debug_paciente")
+        meu_modulo.initialize("./debug_paciente")
 
         # Distribui o módulo no workspace
         ModuleDistributor.distribute(

@@ -356,7 +356,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         current_path = self.patient_manager.current_path
         if current_path and hasattr(module, 'inicializar'):
-            module.inicializar(current_path)
+            module.initialize(current_path)
 
     # =========================================================================
     # NAVIGATION AND USER EVENTS

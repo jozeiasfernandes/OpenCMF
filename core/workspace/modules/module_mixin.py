@@ -43,7 +43,7 @@ class WorkspaceModulesMixin:
             if patient_path and hasattr(module, "inicializar"):
                 last_initialized = getattr(module, "_last_initialized_path", None)
                 if last_initialized != patient_path:
-                    module.inicializar(patient_path)
+                    module.initialize(patient_path)
                     module._last_initialized_path = patient_path
                     logger.info(f"Módulo '{module_id}' inicializado com o paciente: {patient_path}")
                 else:

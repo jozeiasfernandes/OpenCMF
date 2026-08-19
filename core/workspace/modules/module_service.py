@@ -1,51 +1,58 @@
 from __future__ import annotations
 
-import importlib.util
 import logging
 from pathlib import Path
+import importlib.util
 from typing import Optional
 
 from core.settings.paths.list_paths import MODULES_DIR
-
 
 class ModuleService:
     """Serviço responsável pelo gerenciamento, resolução e carregamento dinâmico dos módulos da aplicação de forma automatizada."""
 
     def __init__(self, modules_dir: str | Path | None = None):
-        # Utiliza o MODULES_DIR importado por padrão, permitindo override opcional se necessário
+        # Utiliza o diretório padrão de módulos
         self.modules_dir = Path(modules_dir) if modules_dir is not None else Path(MODULES_DIR)
 
-        # Mapeamento para casos legados, apelidos especiais ou abreviações
-        self._mapeamento = {
-            "Pacient": "new_project",
-            "modulo.pacient": "new_project",
-            "test": "test_module"
-        }
+    def _resolve_module_path(self, id_modulo: str) -> Optional[tuple[str, Path]]:
+        """Varre o diretório dinamicamente para encontrar a pasta correspondente ao ID do módulo."""
+        clean_id = id_modulo.lower().strip()
+        if clean_id.endswith("_module"):
+            clean_name = clean_id[:-7]
+        else:
+            clean_name = clean_id
+
+        # Procura diretamente na pasta correspondente
+        module_folder = self.modules_dir / clean_name
+        module_file = module_folder / f"{clean_name}_module.py"
+
+        if module_file.is_file():
+            return clean_name, module_file
+
+        # Fallback de busca dinâmica caso o ID venha em formato diferente (varre as pastas existentes)
+        if self.modules_dir.is_dir():
+            for child in self.modules_dir.iterdir():
+                if child.is_dir():
+                    folder_name = child.name.lower()
+                    if folder_name == clean_name or f"{folder_name}_module" == clean_id:
+                        candidate_file = child / f"{folder_name}_module.py"
+                        if candidate_file.is_file():
+                            return folder_name, candidate_file
+
+        return None
 
     def get_module_class(self, id_modulo: str) -> Optional[type]:
-        """Busca e retorna dinamicamente a classe 'Module' associada ao identificador informado, lendo o diretório."""
+        """Busca e retorna dinamicamente a classe 'Module' associada ao identificador informado, varrendo o diretório."""
         try:
-            # 1. Resolve o nome base do módulo (considerando apelidos ou convertendo para minúsculo)
-            target = self._mapeamento.get(id_modulo, id_modulo.lower())
-
-            # Remove o sufixo '_module' se já vier no id_modulo para evitar duplicação (ex: 'teste_module' -> 'teste')
-            if target.endswith("_module"):
-                clean_name = target[:-7]
-            else:
-                clean_name = target
-
-            # 2. Conforme sua regra: MODULES_DIR / module / (module + "_module.py")
-            module_folder_name = clean_name
-            module_file_name = f"{clean_name}_module.py"
-
-            module_file_path = self.modules_dir / module_folder_name / module_file_name
-
-            if not module_file_path.is_file():
-                logging.warning(f"Arquivo do módulo não encontrado no caminho esperado: {module_file_path}")
+            resolved = self._resolve_module_path(id_modulo)
+            if not resolved:
+                logging.warning(f"Módulo '{id_modulo}' não encontrado no diretório de módulos.")
                 return None
 
-            # 3. Monta o caminho do pacote Python para importação dinâmica
-            module_package_str = f"{self.modules_dir.name}.{module_folder_name}.{clean_name}_module"
+            clean_name, module_file_path = resolved
+
+            # Monta o caminho do pacote Python para importação dinâmica
+            module_package_str = f"{self.modules_dir.name}.{clean_name}.{clean_name}_module"
 
             spec = importlib.util.spec_from_file_location(module_package_str, module_file_path)
             if not spec or not spec.loader:
