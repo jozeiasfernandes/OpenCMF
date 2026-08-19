@@ -363,12 +363,13 @@ class MainWindow(QtWidgets.QMainWindow):
                                                                                           "log_debug_state") else None)
 
     def sync_active_module(self):
-        module = self.workspace.get_modulo_ativo()
+        module = self.workspace.get_active_module()
         if not module:
             return
 
         current_path = self.patient_manager.current_path
-        if current_path and hasattr(module, 'inicializar'):
+
+        if current_path and hasattr(module, 'initialize'):
             module.initialize(current_path)
 
     # =========================================================================

@@ -12,7 +12,7 @@ class WorkspacePatientMixin:
         if hasattr(self, "state"):
             self.state.current_patient = path
 
-        if modulo := self.get_modulo_ativo():
+        if modulo := self.get_active_module():
             self._safe_inicializar(modulo)
 
     def _safe_inicializar(self, instancia: Any):

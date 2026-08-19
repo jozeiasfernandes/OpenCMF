@@ -110,7 +110,7 @@ class Workspace_Logger:
         module_name = "Nenhum"
 
         if hasattr(self.workspace, "get_modulo_ativo"):
-            active_module = self.workspace.get_modulo_ativo()
+            active_module = self.workspace.get_active_module()
 
         if active_module:
             module_name = getattr(active_module, "nome", "Desconhecido")

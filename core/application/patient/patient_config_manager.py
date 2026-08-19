@@ -20,19 +20,23 @@ class PatientConfigManager:
         super().__init__()
 
     def load_patient_record(self, root_path: Union[str, Path, None] = None) -> Optional[Dict[str, Any]]:
-        root = Path(root_path) if root_path else PATIENTS_DIR
+        logging.debug(f"[DEBUG] Tentando carregar de: {root_path}")
+
+        if not root_path:
+            logging.warning("[DEBUG] root_path fornecido ao load_patient_record é NULO ou VAZIO!")
+            return None
+
+        root = Path(root_path)
         record_path = root / self.PROJECT_SUBFOLDER / self.RECORD_FILE
+
+        logging.debug(f"[DEBUG] Caminho final montado: {record_path}")
+        logging.debug(f"[DEBUG] O arquivo existe? {record_path.exists()}")
 
         try:
             if record_path.exists():
                 return json.loads(record_path.read_text(encoding="utf-8"))
         except Exception as e:
-            logging.error(
-                tr(
-                    "patient.load_config_error",
-                    f"Erro ao ler o registro do paciente em {record_path}: {e}",
-                )
-            )
+            logging.error(f"Erro ao ler o registro em {record_path}: {e}")
         return None
 
     def save_patient_record(self, root_path: Union[str, Path, None] = None, data: Dict[str, Any] = None) -> bool:

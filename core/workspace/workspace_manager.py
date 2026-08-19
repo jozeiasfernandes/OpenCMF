@@ -285,7 +285,7 @@ class WorkspaceManager(QtWidgets.QWidget, WorkspacePatientMixin):
     # MODULE AND COMPONENT MANAGEMENT
     # =====================================================================
 
-    def get_modulo_ativo(self):
+    def get_active_module(self):
         if hasattr(self, 'module_manager'):
             return self.module_manager.get_active_module()
         return None
