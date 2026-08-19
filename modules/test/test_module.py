@@ -98,14 +98,12 @@ if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     app.setApplicationName("OpenCMF - Teste Módulo")
 
-
     # Contexto mock (em produção, seria o contexto real)
     class MockContext:
         def __init__(self):
             self.app = app
             self.settings = {}
             self.user_data = {}
-
 
     contexto_mock = MockContext()
 
@@ -121,8 +119,8 @@ if __name__ == "__main__":
         # Cria e configura Workspace
         workspace = WorkspaceManager()
 
-        # Inicializa módulo com path dummy
-        meu_modulo.initialize("./debug_paciente")
+        # Inicializa o módulo sem criar pastas físicas de teste
+        meu_modulo.initialize("")
 
         # Distribui o módulo no workspace
         ModuleDistributor.distribute(

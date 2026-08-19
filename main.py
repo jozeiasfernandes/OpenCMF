@@ -347,19 +347,28 @@ class MainWindow(QtWidgets.QMainWindow):
         main_logger.info("[MainWindow] Exibindo o widget da workspace na pilha principal (QStackedWidget)...")
         self.stack.setCurrentWidget(self.workspace)
 
-        # Correção aqui: referenciando corretamente 'module_manager'
         if hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager, 'load_modules'):
             self.workspace.module_manager.load_modules()
 
         if self.patient_manager.current_path:
             self.workspace.set_patient_path(self.patient_manager.current_path)
 
-        # Correção aqui também para ativar a primeira aba do fluxo
-        if hasattr(self.workspace, 'module_manager') and self.workspace.module_manager.tab_controller.tabs:
-            self.workspace.module_manager.tab_controller.set_active(0)
+
+        active_modules = self.workspace.registry.list_active_modules() if hasattr(self.workspace, 'registry') else []
+
+        if active_modules:
+            first_module = active_modules[0]
+            main_logger.info(f"[MainWindow] Ativando automaticamente o primeiro módulo do fluxo: '{first_module}'")
+
+            if hasattr(self.workspace, 'on_module_changed'):
+                self.workspace.on_module_changed(first_module)
+            elif hasattr(self.workspace, 'module_manager') and hasattr(self.workspace.module_manager,
+                                                                       'set_active_module'):
+                self.workspace.module_manager.set_active_module(first_module)
+
             self.sync_active_module()
 
-        QtCore.QTimer.singleShot(150, lambda: self.workspace.log_debug_state() if hasattr(self.workspace,
+        QtCore.QTimer.singleShot(50, lambda: self.workspace.log_debug_state() if hasattr(self.workspace,
                                                                                           "log_debug_state") else None)
 
     def sync_active_module(self):
