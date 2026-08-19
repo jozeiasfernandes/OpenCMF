@@ -1,0 +1,153 @@
+/* =========================================================================
+   Paleta Atom One Dark (Apenas Cores)
+   ========================================================================= */
+
+QWidget {
+    background-color: #282c34;
+    color: #abb2bf;
+}
+
+/* Painéis e containers */
+QFrame[tipo="sidebar"], QListWidget {
+    background-color: #21252b;
+}
+
+/* Botões */
+QPushButton {
+    background-color: #2c313c;
+    color: #ffffff;
+}
+
+QPushButton:hover {
+    background-color: #3e4451;
+    color: #ffffff;
+}
+
+QPushButton[tipo="primary"] {
+    background-color: #61afef;
+    color: #282c34;
+}
+
+QPushButton[tipo="primary"]:hover {
+    background-color: #528bff;
+}
+
+/* Inputs */
+QLineEdit, QComboBox, QAbstractSpinBox {
+    background-color: #1b1f23;
+    color: #ffffff;
+}
+
+/* ScrollBar */
+QScrollBar:vertical {
+    background: #282c34;
+}
+
+QScrollBar::handle:vertical {
+    background: #4b5263;
+}
+
+QScrollBar::handle:vertical:hover {
+    background: #5c6370;
+}
+
+/* Listas */
+QListWidget::item:selected {
+    background-color: #3e4451;
+    color: #61afef;
+}
+
+/* Cards de Projeto */
+ProjectCardWidget {
+    background-color: #282c34;
+}
+
+ProjectCardWidget:hover {
+    background-color: #2c313c;
+}
+
+/* Títulos */
+QLabel#AppTitleLabel {
+    color: #ffffff;
+}
+
+QLabel#AppTitleLabel:hover {
+    color: #61afef;
+}
+
+/* Abas da Workspace */
+WorkspaceTabWidget {
+    background-color: #21252b;
+}
+
+WorkspaceTabWidget QLabel {
+    background-color: transparent;
+    color: #abb2bf;
+}
+
+WorkspaceTabWidget[ativo="true"] {
+    background-color: #2c313c;
+    color: #61afef;
+}
+
+WorkspaceTabWidget[ativo="true"] QLabel {
+    color: #61afef;
+}
+
+/* Botão de Fechar da Aba */
+WorkspaceTabWidget QPushButton#TabCloseButton {
+    background-color: transparent;
+    color: transparent;
+}
+
+WorkspaceTabWidget[ativo="true"] QPushButton#TabCloseButton,
+WorkspaceTabWidget:hover QPushButton#TabCloseButton {
+    color: #abb2bf;
+}
+
+WorkspaceTabWidget QPushButton#TabCloseButton:hover {
+    background-color: #e06c75;
+    color: #ffffff;
+}
+
+/* =========================================================================
+   Estilos de Cores do Componente FlowsCard
+   ========================================================================= */
+
+FlowsCard {
+    background-color: transparent;
+}
+
+FlowsCard:hover {
+    background-color: #2c313c;
+}
+
+/* Bloco Principal do Fluxo */
+QFrame#FluxoCardMainBlock {
+    background-color: #3b4048;
+}
+
+QFrame#FluxoCardMainBlock:hover {
+    background-color: #4b5263;
+}
+
+QLabel#FluxoCardTitleLabel {
+    color: #ffffff;
+    background-color: transparent;
+}
+
+/* Seta de Conexão entre Módulos */
+QLabel#FluxoCardArrow {
+    color: #5c6370;
+    background-color: transparent;
+}
+
+/* Blocos Individuais de Módulos */
+QLabel#FluxoCardModuleLabel {
+    background-color: #21252b;
+    color: #abb2bf;
+}
+
+QLabel#FluxoCardModuleLabel:hover {
+    color: #61afef;
+}

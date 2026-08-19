@@ -8,5 +8,5 @@
         "segmentation_module",
         "tomography_module"
     ],
-    "background_color": {"r": 80, "g": 80, "b": 90}
+    "background_color": {"r": 0, "g": 180, "b": 0}
 }

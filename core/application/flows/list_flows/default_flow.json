@@ -1,5 +1,12 @@
 {
-    "nome": "Padrão",
-    "sequencia": ["segmentation", "tomography"],
-    "cor_fundo": {"r": 80, "g": 80, "b": 90}
+    "name": "Padrão",
+    "sequence": [
+        "segmentation_module",
+        "tomography_module"
+    ],
+    "background_color": {
+        "r": 80,
+        "g": 80,
+        "b": 90
+    }
 }

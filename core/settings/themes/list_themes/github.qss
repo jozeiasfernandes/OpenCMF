@@ -1,0 +1,121 @@
+/* Paleta GitHub Dark:
+   Fundo principal: #161b22
+   Fundo secundário/cards: #0d1117
+   Borda: #30363d
+   Destaque: #58a6ff (Azul), #3fb950 (Verde), #f85149 (Vermelho)
+   Texto: #c9d1d9
+*/
+
+QWidget {
+    background-color: #161b22;
+    color: #c9d1d9;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 10pt;
+}
+
+/* Botões Estilo GitHub */
+QPushButton {
+    background-color: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 5px 16px;
+    font-weight: 500;
+}
+QPushButton:hover {
+    background-color: #30363d;
+    border-color: #8b949e;
+}
+
+/* Botões de Ação (Aplica no código como: btn.setProperty("tipo", "primary")) */
+QPushButton[tipo="primary"] {
+    background-color: #238636;
+    border-color: rgba(240, 246, 252, 0.1);
+    color: #ffffff;
+}
+QPushButton[tipo="primary"]:hover {
+    background-color: #2ea043;
+}
+
+/* Campos de entrada */
+QComboBox, QAbstractSpinBox, QLineEdit {
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 5px;
+    color: #c9d1d9;
+}
+QComboBox:focus, QLineEdit:focus {
+    border: 1px solid #58a6ff;
+    outline: none;
+}
+
+/* Cards e Paineis */
+QFrame[tipo="panel"] {
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+}
+
+/* Listas */
+QListWidget {
+    background-color: #0d1117;
+    border: 1px solid #30363d;
+}
+QListWidget::item:selected {
+    background-color: #1f242c;
+    border-left: 2px solid #f78166; /* Destaque laranja do GitHub */
+}
+
+/* ScrollBar (Minimalista GitHub) */
+QScrollBar:vertical {
+    width: 10px;
+    background: #161b22;
+}
+QScrollBar::handle:vertical {
+    background: #30363d;
+    border-radius: 5px;
+}
+
+ProjectCardWidget {
+    border: 1px solid #444;
+    border-radius: 8px;
+    background-color: #282c34;
+}
+
+ProjectCardWidget:hover {
+    background-color: #26262B;
+}
+
+
+
+
+
+/* Estilos específicos do FloatingContainer */
+#FloatingContainer {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+}
+#FloatingHeader {
+    background-color: #0d1117;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border-bottom: 1px solid #30363d;
+}
+#FloatingTitleLabel {
+    color: #c9d1d9;
+    font-weight: bold;
+    font-size: 10pt;
+}
+#FloatingCloseButton {
+    background-color: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    font-weight: 500;
+}
+#FloatingCloseButton:hover {
+    background-color: #30363d;
+    border-color: #8b949e;
+    color: #f85149;
+}

@@ -281,6 +281,17 @@ class MainWindow(QtWidgets.QMainWindow):
             self.workspace.reset_workspace()
             self.workflow = FlowModuleBase(context=config)
 
+            self.workflow.name = config.get("name") or config.get("nome", "Unnamed Flow")
+
+            raw_sequence = config.get("sequence") or config.get("sequencia", [])
+
+            if isinstance(raw_sequence, dict):
+                self.workflow.sequencia = list(raw_sequence.keys())
+            elif isinstance(raw_sequence, list):
+                self.workflow.sequencia = raw_sequence
+            else:
+                self.workflow.sequencia = []
+
             if self.patient_manager.current_path:
                 self.workspace.set_patient_path(self.patient_manager.current_path)
 

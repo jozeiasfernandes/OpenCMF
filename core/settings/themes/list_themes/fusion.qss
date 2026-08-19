@@ -1,0 +1,155 @@
+/* Paleta de Cores Fusion:
+   Fundo principal: #0F172A
+   Superfícies (Cards): #1E293B
+   Destaque: #8B5CF6 (Violeta Fusion)
+   Texto: #F1F5F9
+*/
+
+QWidget {
+    background-color: #0F172A;
+    color: #F1F5F9;
+    selection-background-color: #8B5CF6;
+    selection-color: #FFFFFF;
+}
+
+/* Botões Estilo Fusion */
+QPushButton {
+    background-color: #1E293B;
+    border-color: #334155;
+}
+QPushButton:hover {
+    background-color: #334155;
+    border-color: #475569;
+}
+QPushButton:pressed {
+    background-color: #0F172A;
+}
+
+/* Ações de Sucesso/Erro */
+QPushButton[status="sucesso"] { background-color: #10B981; }
+QPushButton[status="sucesso"]:hover { background-color: #059669; }
+
+QPushButton[status="erro"] { background-color: #EF4444; }
+QPushButton[status="erro"]:hover { background-color: #DC2626; }
+
+/* Entradas (Inputs) */
+QComboBox, QAbstractSpinBox, QLineEdit {
+    background-color: #1E293B;
+    border-color: #334155;
+    color: #F1F5F9;
+}
+QComboBox:hover, QLineEdit:focus {
+    border-color: #8B5CF6;
+}
+
+/* Containers (Cards) */
+QFrame[tipo="card"] {
+    background-color: #1E293B;
+    border-color: #334155;
+}
+
+/* ScrollBar Fusion */
+QScrollBar:vertical {
+    background: transparent;
+}
+QScrollBar::handle:vertical {
+    background: #334155;
+}
+QScrollBar::handle:vertical:hover {
+    background: #475569;
+}
+
+ProjectCardWidget {
+    border-color: #334155;
+    background-color: #1E293B;
+}
+
+ProjectCardWidget:hover {
+    background-color: #334155;
+}
+
+/* Estilização de Abas baseada na estrutura do Atom */
+QTabWidget::pane {
+    background-color: #1E293B;
+    border-color: #334155;
+}
+
+QTabBar {
+    background-color: #0F172A;
+}
+
+QTabBar::tab {
+    background-color: #1E293B;
+    color: #94A3B8;
+    border-color: #334155;
+}
+
+QTabBar::tab:hover {
+    background-color: #334155;
+    color: #F1F5F9;
+}
+
+QTabBar::tab:selected {
+    background-color: #334155;
+    border-bottom-color: #8B5CF6;
+    color: #8B5CF6;
+}
+
+/* Estilização personalizada para WorkspaceTabWidget (caso o projeto utilize custom widgets para abas) */
+WorkspaceTabWidget {
+    background-color: #1E293B;
+    border-color: #334155;
+}
+
+WorkspaceTabWidget QLabel {
+    background-color: transparent;
+    color: #94A3B8;
+}
+
+WorkspaceTabWidget[ativo="true"] {
+    background-color: #334155;
+    border-bottom-color: #8B5CF6;
+    color: #8B5CF6;
+}
+
+WorkspaceTabWidget[ativo="true"] QLabel {
+    color: #8B5CF6;
+}
+
+WorkspaceTabWidget QPushButton#TabCloseButton {
+    background-color: transparent;
+    color: transparent;
+}
+
+WorkspaceTabWidget[ativo="true"] QPushButton#TabCloseButton,
+WorkspaceTabWidget:hover QPushButton#TabCloseButton {
+    color: #94A3B8;
+}
+
+WorkspaceTabWidget QPushButton#TabCloseButton:hover {
+    background-color: #EF4444;
+    color: #FFFFFF;
+}
+
+/* Estilos específicos do FloatingContainer para o tema Fusion */
+#FloatingContainer {
+    background-color: #0F172A;
+    border-color: #334155;
+}
+#FloatingHeader {
+    background-color: #1E293B;
+    border-bottom-color: #334155;
+}
+#FloatingTitleLabel {
+    color: #F1F5F9;
+}
+#FloatingCloseButton {
+    background-color: #1E293B;
+    color: #F1F5F9;
+    border-color: #334155;
+}
+#FloatingCloseButton:hover {
+    background-color: #EF4444;
+    border-color: #EF4444;
+    color: #FFFFFF;
+}

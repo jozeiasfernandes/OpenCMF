@@ -16,8 +16,8 @@ class FlowService:
     def _ensure_base_directory(self) -> None:
         self.flows_dir.mkdir(parents=True, exist_ok=True)
 
-    def load_flow(self, flow_path: Path) -> Optional[Dict[str, Any]]:
-        return self._load_json(flow_path)
+    def load_flow(self, flow_path: Path | str) -> Optional[Dict[str, Any]]:
+        return self._load_json(Path(flow_path))
 
     def list_flows(self, exclude_file: Optional[str] = None) -> List[Dict[str, Any]]:
         flows = []

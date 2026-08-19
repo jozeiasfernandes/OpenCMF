@@ -1,5 +1,11 @@
 {
-    "nome": "Cadastro de Paciente",
-    "sequencia": ["Paciente"],
-    "cor_fundo": {"r": 30, "g": 30, "b": 30}
+    "name": "Cadastro de Paciente",
+    "sequence": [
+        "patients_module"
+    ],
+    "background_color": {
+        "r": 30,
+        "g": 30,
+        "b": 30
+    }
 }

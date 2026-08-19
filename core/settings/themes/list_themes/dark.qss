@@ -1,0 +1,99 @@
+/* --- Elementos do Workspace (Abas) --- */
+QToolButton#botaoHomeWorkspace {
+    background-color: transparent;
+    border: none;
+    font-size: 18px;
+    margin-left: 5px;
+}
+
+QToolButton#botaoHomeWorkspace:hover {
+    border-radius: 5px;
+}
+
+QTabBar {
+    border: none;
+}
+
+QTabWidget::pane {
+    border-top: 1px solid palette(mid);
+}
+
+/* --- Novos Elementos da Tela Inicial --- */
+
+/* Botão de Configurações (Engrenagem) */
+QPushButton#btn_settings {
+    background-color: transparent;
+    border-radius: 10px;
+}
+
+QPushButton#btn_settings:hover {
+    background-color: rgba(128, 128, 128, 0.15);
+}
+
+/* Botões de Ação (Verdes) */
+QPushButton[class="botao-acao"] {
+    background-color: #2ecc71;
+    font-weight: bold;
+    color: white;
+    border-radius: 4px;
+}
+
+QPushButton[class="botao-acao"]:hover {
+    background-color: #27ae60;
+}
+
+/* Container dos Cards de Fluxo */
+QFrame#card_container {
+    border-radius: 5px;
+}
+
+QFrame#card_container:hover {
+    border: 1px solid #3498db;
+}
+
+/* Labels dentro dos Cards */
+QLabel#label_fluxo {
+    font-weight: bold;
+    font-size: 14px;
+    border: none;
+    background: transparent;
+}
+
+QLabel#label_modulo {
+    font-weight: 500;
+    font-size: 15px;
+    border: none;
+}
+
+/* --- Ajuste Fino para ListWidgets (Projetos Recentes) --- */
+QListWidget {
+    border-radius: 4px;
+    outline: none;
+    padding: 0px;
+}
+
+QListWidget::item {
+    padding: 1px 2px;
+    margin: 1px 2px;
+    border-radius: 4px;
+    border: none;
+}
+
+QListWidget::item:hover {
+    background-color: rgba(128, 128, 128, 0.1);
+}
+
+QListWidget::item:selected {
+    background-color: #34495e;
+    color: #ffffff;
+    font-weight: 400;
+}
+
+QListWidget::item:focus {
+    border: none;
+    outline: none;
+}
+
+ProjectCardWidget {
+    border-radius: 8px;
+}

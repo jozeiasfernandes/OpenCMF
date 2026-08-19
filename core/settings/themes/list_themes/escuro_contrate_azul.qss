@@ -1,0 +1,53 @@
+QMainWindow, QWidget {
+    background-color: #121212;
+    color: #E0E0E0;
+}
+
+QTabBar::tab {
+    background: #1e1e1e;
+    color: #aaa;
+    border-bottom-color: #333;
+}
+
+QTabBar::tab:selected {
+    background: #2d2d2d;
+    border-bottom-color: #00d4ff;
+    color: white;
+}
+
+QTabBar::tab:east {
+    background: #1e1e1e;
+    color: #aaa;
+    border-left-color: #333;
+}
+
+QTabBar::tab:east:selected {
+    background: #00d4ff;
+    color: #000;
+}
+
+QPushButton {
+    background-color: #333;
+    border-color: #444;
+    color: #E0E0E0;
+}
+
+QPushButton:hover {
+    background-color: #444;
+    border-color: #00d4ff;
+}
+
+QPushButton:pressed {
+    background-color: #00d4ff;
+    color: black;
+}
+
+ProjectCardWidget {
+    border-color: #444;
+    background-color: #121212;
+    color: #E0E0E0;
+}
+
+ProjectCardWidget:hover {
+    background-color: #181515;
+}

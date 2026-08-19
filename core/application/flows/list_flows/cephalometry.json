@@ -1,5 +1,11 @@
 {
-    "nome": "Cefalometria",
-    "sequencia": ["cephalometry"],
-    "cor_fundo": {"r": 80, "g": 80, "b": 90}
+    "name": "Cefalometria",
+    "sequence": [
+        "cephalometry_module"
+    ],
+    "background_color": {
+        "r": 80,
+        "g": 0,
+        "b": 90
+    }
 }
