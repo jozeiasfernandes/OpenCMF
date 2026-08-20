@@ -158,7 +158,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stack = QtWidgets.QStackedWidget()
         self.setCentralWidget(self.stack)
 
-        self.home = Home_page()
+        self.home = Home_page(patient_manager=self.patient_manager)
         self.flow_editor = PaginaEditorFluxo()
         self.workspace = WorkspaceManager()
         self.settings_page = PaginaConfig(workspace_manager=self.workspace)

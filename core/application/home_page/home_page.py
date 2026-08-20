@@ -1,3 +1,4 @@
+from typing import Optional, Any
 from PySide6 import QtCore, QtWidgets
 
 # Patient
@@ -42,15 +43,19 @@ class Home_page(QtWidgets.QWidget):
     editor_solicitado = QtCore.Signal()
     config_solicitada = QtCore.Signal()
 
-    def __init__(self):
+    def __init__(self, patient_manager: Optional[PatientManager] = None):
         super().__init__()
         self.debug_logger = HomePageDebugLogger()
         self.is_grid_view = False
 
         self.project_service = ProjectServiceHomePage(PATIENTS_DIR)
         self.flow_service = FlowService(FLOWS_DIR)
-        self.config_manager = PatientConfigManager()
-        self.patient_manager = PatientManager(config_manager=self.config_manager)
+
+        if patient_manager:
+            self.patient_manager = patient_manager
+        else:
+            self.config_manager = PatientConfigManager()
+            self.patient_manager = PatientManager(config_manager=self.config_manager)
 
         self.init_ui()
         self.refresh_projects()
