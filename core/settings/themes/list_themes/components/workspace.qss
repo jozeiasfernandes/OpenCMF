@@ -1,60 +1,46 @@
-QTabBar {
-    border: none;
-}
+/* =========================================================================
+   Estilos Estruturais para o Workspace e Abas Customizadas
+   ========================================================================= */
 
 QTabWidget::pane {
     border-top-width: 1px;
     border-top-style: solid;
 }
 
+/* Configuração estrutural do WorkspaceTabWidget */
 WorkspaceTabWidget {
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-left-width: 1px;
+    border-left-style: solid;
+    border-right-width: 1px;
+    border-right-style: solid;
     min-height: 32px;
+    margin-right: 1px;
 }
 
 WorkspaceTabWidget QLabel {
-    padding: 0px 2px;
+    padding: 0px 4px;
+    background-color: transparent;
 }
 
 WorkspaceTabWidget QPushButton#TabCloseButton {
     border: none;
     font-weight: bold;
-    font-size: 14pt;
+    font-size: 11pt;
     margin-right: 4px;
-}
-
-WorkspaceTabWidget[ativo="true"] QPushButton#TabCloseButton,
-WorkspaceTabWidget:hover QPushButton#TabCloseButton {
-    /* Sem propriedades de cor */
+    background-color: transparent;
 }
 
 WorkspaceTabWidget QPushButton#TabCloseButton:hover {
     border-radius: 2px;
 }
 
-/* Adicionar nos componentes de abas (ex: workspace.qss) */
-
-QTabWidget::tab-bar:east {
-    alignment: top;
-}
-
-QTabBar::tab {
-    padding: 6px 15px;
-    border-top-left-radius: 1px;
-    border-top-right-radius: 1px;
-    margin-right: 1px;
-}
-
-QTabBar::tab:east {
-    padding: 1px 4px;
-    border-left-width: 1px;
-    border-left-style: solid;
-    margin-bottom: 1px;
-    border-top-left-radius: 1px;
-    border-bottom-left-radius: 1px;
-}
-
+/* =========================================================================
+   Floating Container (Estrutura)
+   ========================================================================= */
 
 #FloatingContainer {
     border-width: 1px;

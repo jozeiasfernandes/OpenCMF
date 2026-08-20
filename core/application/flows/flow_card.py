@@ -102,21 +102,20 @@ class FlowsCard(QtWidgets.QFrame):
         return translated
 
     def _apply_dynamic_background(self) -> None:
-        """Extrai a cor de fundo do dicionário de dados e aplica um destaque visual customizado."""
-        # Atualizado para 'background_color' mantendo o padrão em inglês
+        """Extrai a cor de fundo do dicionário de dados e define propriedade dinâmica para o tema."""
         bg_color = self.data.get("background_color") or self.data.get("cor_fundo")
         if isinstance(bg_color, dict):
             r = bg_color.get("r", 80)
             g = bg_color.get("g", 80)
             b = bg_color.get("b", 90)
 
-            style = (
-                f"#FlowsCard {{"
-                f"   border-left: 5px solid rgb({r}, {g}, {b});"
-                f"   background-color: rgba({r}, {g}, {b}, 25);"
-                f"}}"
+            # Define uma propriedade customizada ou armazena para uso,
+            # ou aplica via paleta/setProperty se preferir estilizar via QSS.
+            # Alternativa limpa mantendo a cor dinâmica do banco/json:
+            self.setProperty("has_custom_color", "true")
+            self.setStyleSheet(
+                f"#FlowsCard {{ border-left: 5px solid rgb({r}, {g}, {b}); }}"
             )
-            self.setStyleSheet(style)
 
     # =========================================================================
     # EVENT HANDLERS

@@ -40,7 +40,6 @@ class WorkspaceTabWidget(QtWidgets.QFrame):
         super().mousePressEvent(event)
 
     def enterEvent(self, event):
-        # O hover visual é gerenciado pelo QSS (:hover)
         super().enterEvent(event)
 
     def leaveEvent(self, event):

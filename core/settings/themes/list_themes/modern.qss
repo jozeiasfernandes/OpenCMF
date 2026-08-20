@@ -3,7 +3,7 @@
    ========================================================================= */
 
 QWidget {
-    background-color: #E2E8F0;
+    background-color: #BFC3C6;
     color: #1E293B;
     selection-background-color: #CBD5E1;
     selection-color: #1D4ED8;
@@ -48,6 +48,38 @@ QComboBox:focus, QLineEdit:focus, QAbstractSpinBox:focus {
     border-color: #1D4ED8;
 }
 
+/* Listas e Cards de Listagem (Fundo do card separado e texto transparente) */
+QListWidget {
+    background-color: transparent;
+    border: none;
+}
+
+/* Cor de fundo do card/item da lista */
+QListWidget::item {
+    background-color: #F1F5F9;
+    border-color: #CBD5E1;
+    color: #1E293B;
+}
+
+/* Garante que qualquer texto/label dentro do item da lista fique com fundo transparente */
+QListWidget QLabel {
+    background-color: transparent;
+    color: inherit;
+}
+
+QListWidget::item:hover {
+    background-color: #FFFFFF;
+    border-color: #94A3B8;
+    color: #1E293B;
+}
+
+QListWidget::item:selected {
+    background-color: #C7D2FE;
+    color: #1D4ED8;
+    border-color: #1D4ED8;
+    border-left-color: #1D4ED8;
+}
+
 /* Painéis e Cards */
 QFrame[tipo="panel"], QFrame#card_container {
     background-color: #FFFFFF;
@@ -58,20 +90,48 @@ QFrame#card_container:hover {
     border-color: #1D4ED8;
 }
 
-/* Listas */
-QListWidget {
+/* =========================================================================
+   FlowsCard (Editor de Fluxos - Cores)
+   ========================================================================= */
+
+FlowsCard {
     background-color: #FFFFFF;
     border-color: #CBD5E1;
 }
 
-QListWidget::item:hover {
-    background-color: #F1F5F9;
+FlowsCard:hover {
+    background-color: #F8FAFC;
+    border-color: #1D4ED8;
 }
 
-QListWidget::item:selected {
-    background-color: #E0E7FF;
-    color: #1D4ED8;
-    border-left-color: #1D4ED8;
+QFrame#FluxoCardMainBlock {
+    background-color: #F1F5F9;
+    border-color: #CBD5E1;
+}
+
+QFrame#FluxoCardMainBlock:hover {
+    border-color: #1D4ED8;
+}
+
+QLabel#FluxoCardTitleLabel {
+    color: #1E293B;
+    background-color: transparent;
+}
+
+QLabel#FluxoCardArrow {
+    color: #64748B;
+    background-color: transparent;
+}
+
+QLabel#FluxoCardModuleLabel {
+    background-color: #F1F5F9;
+    border-color: #CBD5E1;
+    color: #1E293B;
+}
+
+QLabel#FluxoCardModuleLabel:hover {
+    background-color: #FFFFFF;
+    border-color: #1D4ED8;
 }
 
 /* ScrollBar Minimalista */
@@ -98,39 +158,27 @@ ProjectCardWidget:hover {
     border-color: #1D4ED8;
 }
 
-/* Abas e Workspace */
+/* Workspace e Painel de Abas */
 QTabWidget::pane {
     background-color: #FFFFFF;
     border-color: #CBD5E1;
     border-top-color: #1D4ED8;
+    border-top-width: 1px;
+    border-top-style: solid;
 }
 
-QTabBar {
-    background-color: #CBD5E1;
-}
-
-QTabBar::tab {
-    background-color: #94A3B8;
+/* WorkspaceTabWidget Específico (Abas Customizadas) */
+WorkspaceTabWidget {
+    background-color: #9197A1;
+    border: 1px solid #64748B;
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
     color: #F8FAFC;
-    border-color: #64748B;
 }
 
-QTabBar::tab:hover {
+WorkspaceTabWidget:hover {
     background-color: #CBD5E1;
     color: #0F172A;
-}
-
-QTabBar::tab:selected {
-    background-color: #FFFFFF;
-    color: #1D4ED8;
-    border-bottom-color: #FFFFFF;
-}
-
-/* WorkspaceTabWidget Específico */
-WorkspaceTabWidget {
-    background-color: #CBD5E1;
-    border-color: #94A3B8;
-    color: #475569;
 }
 
 WorkspaceTabWidget QLabel {
@@ -140,7 +188,8 @@ WorkspaceTabWidget QLabel {
 
 WorkspaceTabWidget[ativo="true"] {
     background-color: #FFFFFF;
-    border-bottom-color: #1D4ED8;
+    border: 1px solid #CBD5E1;
+    border-bottom: 2px solid #1D4ED8;
     color: #1D4ED8;
 }
 
@@ -153,16 +202,17 @@ WorkspaceTabWidget QPushButton#TabCloseButton {
     color: transparent;
 }
 
+
 WorkspaceTabWidget[ativo="true"] QPushButton#TabCloseButton,
 WorkspaceTabWidget:hover QPushButton#TabCloseButton {
     color: #475569;
 }
 
+
 WorkspaceTabWidget QPushButton#TabCloseButton:hover {
     background-color: #FEE2E2;
     color: #DC2626;
 }
-
 /* FloatingContainer */
 #FloatingContainer {
     background-color: #FFFFFF;

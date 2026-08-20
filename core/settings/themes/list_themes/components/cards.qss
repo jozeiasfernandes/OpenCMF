@@ -1,51 +1,73 @@
 /* =========================================================================
-   Estilos Estruturais para Cards (Projetos e Fluxos)
+   Cards e Listas (Components)
    ========================================================================= */
 
-/* Cards de Projeto */
-ProjectCardWidget {
-    /* Sem propriedades de cor ou tamanho (tratado no código Python) */
+QListWidget {
+    border: none;
+    padding: 4px;
 }
 
-ProjectCardWidget:hover {
-    /* Sem propriedades de cor */
+QListWidget::item {
+    border-radius: 3px;
+    padding: 1px 2px;
+    margin-bottom: 1px;
 }
+
+QListWidget::item:hover {
+    border-width: 4px;
+    border-style: solid;
+}
+
+QListWidget::item:selected {
+    border-left-width: 4px;
+    border-left-style: solid;
+}
+
+/* Estrutura dos ProjectCards */
+ProjectCardWidget {
+    border-radius: 8px;
+    border-width: 1px;
+    border-style: solid;
+    padding: 10px;
+    margin: 4px;
+}
+
 
 /* =========================================================================
-   FlowsCard (Editor de Fluxos)
+   FlowsCard (Components)
    ========================================================================= */
 
 FlowsCard {
-    background-color: transparent;
+    border-radius: 8px;
+    border-width: 1px;
+    border-style: solid;
+    margin: 4px;
 }
 
-FlowsCard:hover {
-    /* Sem propriedades de cor */
-}
-
-/* Bloco Principal do Fluxo */
 QFrame#FluxoCardMainBlock {
-    /* Sem propriedades de cor */
-}
-
-QFrame#FluxoCardMainBlock:hover {
-    /* Sem propriedades de cor */
+    border-radius: 6px;
+    min-width: 200px;
+    max-width: 200px;
+    min-height: 80px;
+    max-height: 80px;
 }
 
 QLabel#FluxoCardTitleLabel {
     background-color: transparent;
 }
 
-/* Seta de Conexão entre Módulos */
 QLabel#FluxoCardArrow {
     background-color: transparent;
+    font-size: 14pt;
+    font-weight: bold;
 }
 
-/* Blocos Individuais de Módulos */
 QLabel#FluxoCardModuleLabel {
-    /* Sem propriedades de cor */
-}
-
-QLabel#FluxoCardModuleLabel:hover {
-    /* Sem propriedades de cor */
+    border-radius: 6px;
+    border-width: 1px;
+    border-style: solid;
+    min-width: 140px;
+    max-width: 140px;
+    min-height: 70px;
+    max-height: 70px;
 }

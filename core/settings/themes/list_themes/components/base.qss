@@ -7,11 +7,6 @@ QLabel {
     background-color: transparent;
 }
 
-QListWidget::item:selected {
-    border-left-width: 2px;
-    border-left-style: solid;
-}
-
 QScrollArea {
     background-color: transparent;
     border: none;
