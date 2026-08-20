@@ -1,9 +1,6 @@
-/* Paleta de Cores Fusion:
-   Fundo principal: #0F172A
-   Superfícies (Cards): #1E293B
-   Destaque: #8B5CF6 (Violeta Fusion)
-   Texto: #F1F5F9
-*/
+/* =========================================================================
+   Paleta Tema Fusion (Apenas Cores)
+   ========================================================================= */
 
 QWidget {
     background-color: #0F172A;
@@ -17,20 +14,51 @@ QPushButton {
     background-color: #1E293B;
     border-color: #334155;
 }
+
 QPushButton:hover {
     background-color: #334155;
     border-color: #475569;
 }
+
 QPushButton:pressed {
     background-color: #0F172A;
 }
 
 /* Ações de Sucesso/Erro */
-QPushButton[status="sucesso"] { background-color: #10B981; }
-QPushButton[status="sucesso"]:hover { background-color: #059669; }
+QPushButton[status="sucesso"] {
+    background-color: #10B981;
+}
 
-QPushButton[status="erro"] { background-color: #EF4444; }
-QPushButton[status="erro"]:hover { background-color: #DC2626; }
+QPushButton[status="sucesso"]:hover {
+    background-color: #059669;
+}
+
+QPushButton[status="erro"] {
+    background-color: #EF4444;
+}
+
+QPushButton[status="erro"]:hover {
+    background-color: #DC2626;
+}
+
+/* Botões de Ação Específicos */
+QPushButton[class="botao-acao"] {
+    background-color: #10B981;
+    color: #FFFFFF;
+}
+
+QPushButton[class="botao-acao"]:hover {
+    background-color: #059669;
+}
+
+/* Botão de Configurações (Engrenagem) */
+QPushButton#btn_settings {
+    background-color: transparent;
+}
+
+QPushButton#btn_settings:hover {
+    background-color: rgba(139, 92, 246, 0.15);
+}
 
 /* Entradas (Inputs) */
 QComboBox, QAbstractSpinBox, QLineEdit {
@@ -38,27 +66,35 @@ QComboBox, QAbstractSpinBox, QLineEdit {
     border-color: #334155;
     color: #F1F5F9;
 }
-QComboBox:hover, QLineEdit:focus {
+
+QComboBox:hover, QLineEdit:focus, QAbstractSpinBox:focus {
     border-color: #8B5CF6;
 }
 
 /* Containers (Cards) */
-QFrame[tipo="card"] {
+QFrame[tipo="card"], QFrame#card_container {
     background-color: #1E293B;
     border-color: #334155;
+}
+
+QFrame#card_container:hover {
+    border-color: #8B5CF6;
 }
 
 /* ScrollBar Fusion */
 QScrollBar:vertical {
     background: transparent;
 }
+
 QScrollBar::handle:vertical {
     background: #334155;
 }
+
 QScrollBar::handle:vertical:hover {
     background: #475569;
 }
 
+/* Cards de Projeto */
 ProjectCardWidget {
     border-color: #334155;
     background-color: #1E293B;
@@ -66,12 +102,14 @@ ProjectCardWidget {
 
 ProjectCardWidget:hover {
     background-color: #334155;
+    border-color: #8B5CF6;
 }
 
-/* Estilização de Abas baseada na estrutura do Atom */
+/* Estilização de Abas e Workspace */
 QTabWidget::pane {
     background-color: #1E293B;
     border-color: #334155;
+    border-top-color: #8B5CF6;
 }
 
 QTabBar {
@@ -95,7 +133,7 @@ QTabBar::tab:selected {
     color: #8B5CF6;
 }
 
-/* Estilização personalizada para WorkspaceTabWidget (caso o projeto utilize custom widgets para abas) */
+/* WorkspaceTabWidget Específico */
 WorkspaceTabWidget {
     background-color: #1E293B;
     border-color: #334155;
@@ -131,23 +169,38 @@ WorkspaceTabWidget QPushButton#TabCloseButton:hover {
     color: #FFFFFF;
 }
 
+/* Listas e Itens Recentes */
+QListWidget::item:hover {
+    background-color: rgba(139, 92, 246, 0.1);
+}
+
+QListWidget::item:selected {
+    background-color: #334155;
+    color: #8B5CF6;
+}
+
 /* Estilos específicos do FloatingContainer para o tema Fusion */
 #FloatingContainer {
     background-color: #0F172A;
     border-color: #334155;
 }
+
 #FloatingHeader {
     background-color: #1E293B;
     border-bottom-color: #334155;
 }
+
 #FloatingTitleLabel {
     color: #F1F5F9;
+    background-color: transparent;
 }
+
 #FloatingCloseButton {
     background-color: #1E293B;
     color: #F1F5F9;
     border-color: #334155;
 }
+
 #FloatingCloseButton:hover {
     background-color: #EF4444;
     border-color: #EF4444;

@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 from PySide6 import QtWidgets
-from core.settings.paths.list_paths import THEMES_DIR
+
+# Paths
+from core.settings.paths.list_paths import THEMES_DIR, THEMES_COMPONENTS_DIR
+
+# Settings
 from core.settings.settings_app_manager import settings
 
 
 class ThemeManager:
-    """Gerencia temas estáticos modulares e customizações dinâmicas."""
+    """Gerencia temas estáticos modulares (estrutura + cores) e customizações dinâmicas."""
 
     def __init__(self, app: QtWidgets.QApplication):
         self.app = app
@@ -14,25 +20,23 @@ class ThemeManager:
         try:
             loaded_any = False
 
-            # 1. Tenta carregar primeiro como um arquivo .qss único na raiz (ex: dark.qss, atom.qss)
-            single_file_path = THEMES_DIR / f"{theme_name}.qss"
-            if single_file_path.exists():
-                with open(single_file_path, "r", encoding="utf-8") as f:
+            components_dir = THEMES_COMPONENTS_DIR
+            component_files = ["base.qss", "buttons.qss", "scrollbar.qss", "workspace.qss", "cards.qss"]
+
+            if components_dir.exists() and components_dir.is_dir():
+                for comp in component_files:
+                    comp_path = components_dir / comp
+                    if comp_path.exists():
+                        with open(comp_path, "r", encoding="utf-8") as f:
+                            stylesheet_parts.append(f.read())
+                            loaded_any = True
+
+
+            theme_file_path = THEMES_DIR / f"{theme_name}.qss"
+            if theme_file_path.exists():
+                with open(theme_file_path, "r", encoding="utf-8") as f:
                     stylesheet_parts.append(f.read())
                     loaded_any = True
-            else:
-                # 2. Se não for arquivo único, tenta carregar como tema modular em pasta
-                theme_dir = THEMES_DIR / theme_name
-                if theme_dir.exists() and theme_dir.is_dir():
-                    components_dir = theme_dir / "components" if (theme_dir / "components").exists() else theme_dir
-                    component_files = ["base.qss", "buttons.qss", "scrollbar.qss", "workspace.qss", "cards.qss"]
-
-                    for comp in component_files:
-                        comp_path = components_dir / comp
-                        if comp_path.exists():
-                            with open(comp_path, "r", encoding="utf-8") as f:
-                                stylesheet_parts.append(f.read())
-                                loaded_any = True
 
             if loaded_any:
                 self.app.setStyleSheet("\n".join(stylesheet_parts))

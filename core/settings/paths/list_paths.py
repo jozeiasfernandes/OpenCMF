@@ -132,6 +132,8 @@ SETTINGS_THEMES_DIR = SETTINGS_DIR / "themes"
 
 THEMES_DIR = SETTINGS_DIR / "themes" / "list_themes"
 
+THEMES_COMPONENTS_DIR = THEMES_DIR / "components"
+
 
 # ==============================================================================
 # SCENE

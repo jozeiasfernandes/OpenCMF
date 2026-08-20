@@ -1,14 +1,14 @@
 /* =========================================================================
-   Estilos de Cores para Cards (Projetos e Fluxos)
+   Estilos Estruturais para Cards (Projetos e Fluxos)
    ========================================================================= */
 
 /* Cards de Projeto */
 ProjectCardWidget {
-    background-color: #282c34;
+    /* Sem propriedades de cor ou tamanho (tratado no código Python) */
 }
 
 ProjectCardWidget:hover {
-    background-color: #2c313c;
+    /* Sem propriedades de cor */
 }
 
 /* =========================================================================
@@ -20,35 +20,32 @@ FlowsCard {
 }
 
 FlowsCard:hover {
-    background-color: #2c313c;
+    /* Sem propriedades de cor */
 }
 
 /* Bloco Principal do Fluxo */
 QFrame#FluxoCardMainBlock {
-    background-color: #3b4048;
+    /* Sem propriedades de cor */
 }
 
 QFrame#FluxoCardMainBlock:hover {
-    background-color: #4b5263;
+    /* Sem propriedades de cor */
 }
 
 QLabel#FluxoCardTitleLabel {
-    color: #ffffff;
     background-color: transparent;
 }
 
 /* Seta de Conexão entre Módulos */
 QLabel#FluxoCardArrow {
-    color: #5c6370;
     background-color: transparent;
 }
 
 /* Blocos Individuais de Módulos */
 QLabel#FluxoCardModuleLabel {
-    background-color: #21252b;
-    color: #abb2bf;
+    /* Sem propriedades de cor */
 }
 
 QLabel#FluxoCardModuleLabel:hover {
-    color: #61afef;
+    /* Sem propriedades de cor */
 }

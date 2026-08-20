@@ -1,30 +1,30 @@
+from __future__ import annotations
+
 import sys
 from pathlib import Path
-from PySide6 import QtWidgets, QtGui, QtCore
-from components_loaders.tools_tab_loaders.tools_tab_loaders import ToolsTab
+from typing import Any, Optional
 from functools import partial
+
+from PySide6 import QtWidgets, QtGui, QtCore
+
+# Tabs
+from components_loaders.tools_tab_loaders.tools_tab_loaders import ToolsTab
 
 
 class ComponentCard(QtWidgets.QFrame):
     toggled = QtCore.Signal(bool)
 
-    def __init__(self, name: str, file_path: Path):
-        super().__init__()
+    def __init__(self, name: str, file_path: Path, parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(parent)
         self.thumb_path = file_path.with_suffix(".png")
         self._setup_ui(name)
 
-    def _setup_ui(self, name):
+    # =========================================================================
+    # UI SETUP & LAYOUT
+    # =========================================================================
+    def _setup_ui(self, name: str) -> None:
         self.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Fixed)
-        self.setStyleSheet("""
-            ComponentCard {
-                background-colors: transparent;
-                border-radius: 4px;
-                border: 1px solid #D0D0D0;
-            }
-            ComponentCard:hover {
-                border: 1px solid #A0A0A0;
-            }
-        """)
+
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(10)
@@ -32,15 +32,16 @@ class ComponentCard(QtWidgets.QFrame):
         header = QtWidgets.QHBoxLayout()
         self.selector = QtWidgets.QCheckBox()
         self.selector.setFixedSize(20, 18)
+
         title = QtWidgets.QLabel(name)
         title.setStyleSheet("font-size: 11px")
+
         header.addWidget(self.selector)
         header.addWidget(title)
         header.addStretch()
 
         self.preview = QtWidgets.QLabel()
         self.preview.setFixedHeight(32)
-        self.preview.setStyleSheet("background-colors: #8c8c8c; border-radius: 2px;")
 
         if self.thumb_path.exists():
             pix = QtGui.QPixmap(str(self.thumb_path))
@@ -57,7 +58,7 @@ class ComponentCard(QtWidgets.QFrame):
 class Components_List(QtWidgets.QDialog):
     componente_alterado = QtCore.Signal(str, Path, bool)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.root_dir = Path(__file__).resolve().parent.parent.parent
         self.components_path = self.root_dir / "core" / "components"
@@ -66,7 +67,10 @@ class Components_List(QtWidgets.QDialog):
         self.resize(900, 600)
         self.setup_ui()
 
-    def setup_ui(self):
+    # =========================================================================
+    # UI SETUP & TABS
+    # =========================================================================
+    def setup_ui(self) -> None:
         main_layout = QtWidgets.QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
@@ -75,15 +79,13 @@ class Components_List(QtWidgets.QDialog):
         self.tabs.setTabPosition(QtWidgets.QTabWidget.West)
         self.tabs.setStyleSheet("QTabBar::tab { height: 80px; width: 40px; }")
 
-
-        def get_name(item):
+        def get_name(item: Any) -> str:
             if isinstance(item, dict):
                 return item.get("display_name", "Desconhecido")
             return item.stem.replace("_", " ").title()
 
         self.tools_tab = ToolsTab(self.components_path, get_name)
 
-        self.tools_tab = ToolsTab(self.components_path, get_name)
         self.tabs.addTab(self.tools_tab, "Tools")
         self.tabs.addTab(self._create_group("toolbars", mode="card"), "Toolbars")
         self.tabs.addTab(self._create_group("side_panel", mode="check"), "Side Panel")
@@ -100,13 +102,12 @@ class Components_List(QtWidgets.QDialog):
         footer.addWidget(self.btn_confirmar)
         main_layout.addLayout(footer)
 
-    def _create_group(self, folder_name, mode):
+    def _create_group(self, folder_name: str, mode: str) -> QtWidgets.QScrollArea:
         scroll = QtWidgets.QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QtWidgets.QFrame.NoFrame)
 
         content = QtWidgets.QWidget()
-        # Opcional: definir política de tamanho para melhorar o layout
         content.setSizePolicy(QtWidgets.QSizePolicy.Preferred, QtWidgets.QSizePolicy.Preferred)
 
         layout = QtWidgets.QVBoxLayout(content)
@@ -118,7 +119,7 @@ class Components_List(QtWidgets.QDialog):
         group = QtWidgets.QButtonGroup(content) if mode == "radio" else None
 
         for path in files:
-            display_name = self._obter_nome_componente(path)
+            display_name = self._get_component_name(path)
 
             if mode == "card":
                 widget = ComponentCard(display_name, path)
@@ -134,9 +135,8 @@ class Components_List(QtWidgets.QDialog):
             if group:
                 group.addButton(selector)
 
-            # Conectando apenas uma vez via partial
             selector.toggled.connect(
-                partial(self._emitir_alteracao, folder_name, path)
+                partial(self._issue_change, folder_name, path)
             )
 
             layout.addWidget(widget)
@@ -145,15 +145,18 @@ class Components_List(QtWidgets.QDialog):
         scroll.setWidget(content)
         return scroll
 
-    def _emitir_alteracao(self, folder, path, checked):
+    # =========================================================================
+    # PRIVATE HELPERS & SLOTS
+    # =========================================================================
+    def _issue_change(self, folder: str, path: Path, checked: bool) -> None:
         self.componente_alterado.emit(folder, path, checked)
 
-    def _get_files_recursively(self, directory: Path):
+    def _get_files_recursively(self, directory: Path) -> list[Path]:
         if not directory.exists():
             return []
         return sorted([f for f in directory.glob("*.py") if f.name != "__init__.py"])
 
-    def _obter_nome_componente(self, caminho_arquivo: Path) -> str:
+    def _get_component_name(self, caminho_arquivo: Path) -> str:
         try:
             import importlib.util
             import inspect

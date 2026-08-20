@@ -1,3 +1,12 @@
+QTabBar {
+    border: none;
+}
+
+QTabWidget::pane {
+    border-top-width: 1px;
+    border-top-style: solid;
+}
+
 WorkspaceTabWidget {
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
@@ -5,15 +14,11 @@ WorkspaceTabWidget {
 }
 
 WorkspaceTabWidget QLabel {
-    background-color: transparent;
-    color: inherit;
     padding: 0px 2px;
 }
 
 WorkspaceTabWidget QPushButton#TabCloseButton {
-    background-color: transparent;
     border: none;
-    color: transparent;
     font-weight: bold;
     font-size: 14pt;
     margin-right: 4px;
@@ -21,11 +26,56 @@ WorkspaceTabWidget QPushButton#TabCloseButton {
 
 WorkspaceTabWidget[ativo="true"] QPushButton#TabCloseButton,
 WorkspaceTabWidget:hover QPushButton#TabCloseButton {
-    color: var(--tab-close-color);
+    /* Sem propriedades de cor */
 }
 
 WorkspaceTabWidget QPushButton#TabCloseButton:hover {
-    background-color: var(--tab-close-hover-bg);
-    color: #FFFFFF;
     border-radius: 2px;
+}
+
+/* Adicionar nos componentes de abas (ex: workspace.qss) */
+
+QTabWidget::tab-bar:east {
+    alignment: top;
+}
+
+QTabBar::tab {
+    padding: 6px 15px;
+    border-top-left-radius: 1px;
+    border-top-right-radius: 1px;
+    margin-right: 1px;
+}
+
+QTabBar::tab:east {
+    padding: 1px 4px;
+    border-left-width: 1px;
+    border-left-style: solid;
+    margin-bottom: 1px;
+    border-top-left-radius: 1px;
+    border-bottom-left-radius: 1px;
+}
+
+
+#FloatingContainer {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 6px;
+}
+
+#FloatingHeader {
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    padding: 8px;
+}
+
+#FloatingTitleLabel {
+    background-color: transparent;
+    font-weight: bold;
+}
+
+#FloatingCloseButton {
+    border-radius: 4px;
+    padding: 4px 8px;
+    border-width: 1px;
+    border-style: solid;
 }

@@ -64,8 +64,6 @@ class ProjectCardWidget(QtWidgets.QFrame):
     def __init__(self, data: dict):
         super().__init__()
         self.data = data
-        self.setFixedSize(100, 120)
-        self.setCursor(QtCore.Qt.PointingHandCursor)
 
         layout = QtWidgets.QVBoxLayout(self)
         nome = data.get("paciente", {}).get("nome", tr("home.unknown_patient", "Paciente Desconhecido"))

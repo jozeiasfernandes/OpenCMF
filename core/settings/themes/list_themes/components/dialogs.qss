@@ -1,33 +1,27 @@
 /* =========================================================================
-   Estilos para Diálogos e Janelas de Importação (DICOM)
+   Estilos Estruturais para Diálogos e Janelas de Importação (DICOM)
    ========================================================================= */
 
 QDialog {
-    background-color: #282c34;
-    color: #abb2bf;
+    /* Sem propriedades de cor */
 }
 
 QTableWidget {
-    background-color: #21252b;
-    color: #abb2bf;
-    gridline-color: #181a1f;
-    border: 1px solid #181a1f;
-    selection-background-color: #3e4451;
-    selection-color: #61afef;
+    border-width: 1px;
+    border-style: solid;
+    /* Cores de fundo, texto, grid, seleção e borda removidas */
 }
 
 QHeaderView::section {
-    background-color: #282c34;
-    color: #ffffff;
     padding: 5px;
-    border: 1px solid #181a1f;
+    border-width: 1px;
+    border-style: solid;
     font-weight: bold;
 }
 
 QDoubleSpinBox {
-    background-color: #1b1f23;
-    color: #ffffff;
-    border: 1px solid #181a1f;
+    border-width: 1px;
+    border-style: solid;
     padding: 4px;
     border-radius: 2px;
 }

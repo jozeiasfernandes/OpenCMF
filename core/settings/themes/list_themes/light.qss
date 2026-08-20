@@ -1,12 +1,10 @@
 /* =========================================================================
-   Paleta Tema Claro (Light Theme)
+   Paleta Tema Claro (Apenas Cores)
    ========================================================================= */
 
 QWidget {
     background-color: #F8F9FA;
     color: #212529;
-    font-family: "Segoe UI", "Roboto", "Helvetica Neue", sans-serif;
-    font-size: 10pt;
     selection-background-color: #A9D0F5;
     selection-color: #212529;
 }
@@ -16,83 +14,51 @@ QLabel {
     color: #212529;
 }
 
-QLabel[text^="<h3>"], QLabel[text^="<h2>"] {
-    color: #2C3E50;
-    font-weight: bold;
-    margin-bottom: 5px;
-}
-
-/* Painéis laterais e containers (Regras específicas antes das genéricas) */
+/* Painéis laterais e containers */
 QFrame[tipo="sidebar"], QListWidget {
     background-color: #FFFFFF;
-    border: 1px solid #E0E0E0;
+    border-color: #E0E0E0;
 }
 
 QFrame[frameShape="StyledPanel"] {
     background-color: #FFFFFF;
-    border: 1px solid #E0E0E0;
-    border-radius: 8px;
-    padding: 5px;
+    border-color: #E0E0E0;
 }
 
-QFrame {
-    border: none;
-}
-
-QScrollArea {
-    background-color: transparent;
-    border: none;
-}
-
+/* ScrollBar (Apenas Cores) */
 QScrollBar:vertical {
     background-color: #F1F1F1;
-    width: 12px;
-    margin: 0px;
-    border-radius: 6px;
 }
 
 QScrollBar::handle:vertical {
     background-color: #C1C1C1;
-    min-height: 20px;
-    border-radius: 6px;
-    margin: 2px;
 }
 
 QScrollBar::handle:vertical:hover {
     background-color: #A0A0A0;
 }
 
-QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-    border: none;
-    background: none;
-}
-
 /* Inputs */
 QLineEdit, QComboBox, QAbstractSpinBox {
     background-color: #FFFFFF;
-    border: 1px solid #D0D0D0;
-    border-radius: 4px;
-    padding: 3px;
+    border-color: #D0D0D0;
     color: #212529;
 }
+
 QLineEdit:focus, QComboBox:focus, QAbstractSpinBox:focus {
-    border: 1px solid #3498DB;
+    border-color: #3498DB;
 }
 
 /* Botões */
 QPushButton {
     background-color: #FFFFFF;
-    border: 1px solid #D0D0D0;
-    border-radius: 4px;
+    border-color: #D0D0D0;
     color: #212529;
-    font-weight: bold;
-    padding: 8px 15px;
-    min-height: 20px;
 }
 
 QPushButton:hover {
     background-color: #F0F0F0;
-    border: 1px solid #C0C0C0;
+    border-color: #C0C0C0;
 }
 
 QPushButton:pressed {
@@ -102,13 +68,12 @@ QPushButton:pressed {
 QPushButton:disabled {
     background-color: #F5F5F5;
     color: #A0A0A0;
-    border: 1px solid #E0E0E0;
+    border-color: #E0E0E0;
 }
 
 QPushButton[tipo="primary"] {
     background-color: #3498DB;
     color: #FFFFFF;
-    border: none;
 }
 
 QPushButton[tipo="primary"]:hover {
@@ -116,19 +81,15 @@ QPushButton[tipo="primary"]:hover {
 }
 
 /* Listas */
-QListWidget::item {
-    padding: 5px;
-}
 QListWidget::item:selected {
     background-color: #E8F4FD;
     color: #2980B9;
-    border-left: 3px solid #3498DB;
+    border-left-color: #3498DB;
 }
 
-/* Project Card Adaptado para Tema Claro */
+/* Project Card (Apenas Cores) */
 ProjectCardWidget {
-    border: 1px solid #D0D0D0;
-    border-radius: 8px;
+    border-color: #D0D0D0;
     background-color: #FFFFFF;
 }
 
@@ -137,12 +98,10 @@ ProjectCardWidget:hover {
     border-color: #BCBDBF;
 }
 
-/* Estilização Específica para Botões de Ferramentas / Cabeçalho */
+/* Ferramentas e Cabeçalho */
 QToolButton#HeaderToolButton,
 QToolButton#botaoHomeWorkspace {
     background-color: transparent;
-    border: none;
-    border-radius: 4px;
 }
 
 QToolButton#HeaderToolButton:hover,
@@ -156,8 +115,6 @@ QToolButton#botaoHomeWorkspace:pressed {
 }
 
 QLabel#AppTitleLabel {
-    font-weight: bold;
-    font-size: 16px;
     color: #212529;
     background-color: transparent;
 }
@@ -166,39 +123,28 @@ QLabel#AppTitleLabel:hover {
     color: #3498DB;
 }
 
-/* --- Estilização Específica para as Abas da Workspace --- */
-
+/* Abas da Workspace */
 WorkspaceTabWidget {
     background-color: #CED4DA;
-    border: 1px solid #ADB5BD;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
+    border-color: #ADB5BD;
     color: #495057;
-    min-height: 32px;
 }
 
 WorkspaceTabWidget QLabel {
     background-color: transparent;
     color: inherit;
-    padding: 0px 2px;
 }
 
 WorkspaceTabWidget[ativo="true"] {
     background-color: #FFFFFF;
-    border-bottom: 2px solid #3498DB;
+    border-bottom-color: #3498DB;
     color: #3498DB;
-    font-weight: bold;
 }
 
-/* --- Configuração do Botão de Fechar das Abas --- */
-
+/* Botão de Fechar da Aba */
 WorkspaceTabWidget QPushButton#TabCloseButton {
     background-color: transparent;
-    border: none;
     color: transparent;
-    font-weight: bold;
-    font-size: 14pt;
-    margin-right: 4px;
 }
 
 WorkspaceTabWidget[ativo="true"] QPushButton#TabCloseButton,
@@ -209,5 +155,4 @@ WorkspaceTabWidget:hover QPushButton#TabCloseButton {
 WorkspaceTabWidget QPushButton#TabCloseButton:hover {
     background-color: #E03131;
     color: #FFFFFF;
-    border-radius: 2px;
 }
