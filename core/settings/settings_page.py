@@ -49,7 +49,7 @@ class PaginaConfig(QtWidgets.QWidget):
         # Chamado após adicionar as abas para garantir que os grupos fiquem abertos
         self.tree.expandAll()
 
-        self.btn_voltar = QtWidgets.QPushButton(tr("common.back", "Voltar"))
+        self.btn_voltar = QtWidgets.QPushButton(tr("commons.back", "Voltar"))
         self.btn_voltar.clicked.connect(self.voltar_solicitado.emit)
 
         content_layout.addWidget(self.tree)

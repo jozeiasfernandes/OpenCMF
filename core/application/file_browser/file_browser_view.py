@@ -273,7 +273,7 @@ class FileBrowserView(QWidget):
         if not target_path or not os.path.exists(target_path):
             QMessageBox.warning(
                 self,
-                tr("common.warning", "Aviso"),
+                tr("commons.warning", "Aviso"),
                 tr("file_browser.invalid_folder_warning", "Selecione uma pasta válida para favoritar.")
             )
             return
@@ -309,7 +309,7 @@ class FileBrowserView(QWidget):
             else:
                 QMessageBox.critical(
                     self,
-                    tr("common.error", "Erro"),
+                    tr("commons.error", "Erro"),
                     tr("file_browser.create_folder_error", "Não foi possível criar a pasta.")
                 )
 
@@ -367,7 +367,7 @@ class FileBrowserView(QWidget):
             self._populate_favorites()
             QMessageBox.information(
                 self,
-                tr("common.success", "Sucesso"),
+                tr("commons.success", "Sucesso"),
                 tr("file_browser.favorite_removed", "Pasta removida dos favoritos.")
             )
 

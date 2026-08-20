@@ -130,7 +130,7 @@ class LogMonitorWindow(QtWidgets.QDialog):
         self.btn_copy.clicked.connect(self.copy_current_logs)
         btn_layout.addWidget(self.btn_copy)
 
-        self.btn_exit = QtWidgets.QPushButton(tr("common.close_button", "Exit"))
+        self.btn_exit = QtWidgets.QPushButton(tr("commons.close_button", "Exit"))
         self.btn_exit.clicked.connect(self.close)
         btn_layout.addWidget(self.btn_exit)
 

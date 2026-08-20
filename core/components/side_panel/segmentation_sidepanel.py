@@ -13,7 +13,7 @@ from core.components.bases.base_sidepanel import BaseSidePanel
 from core.settings.localization.translator import tr
 
 #ui
-from core.application.ui.create_file_row import create_file_row
+from ui.commons.create_file_row import create_file_row
 
 
 class Segmentation_SidePanel(BaseSidePanel):

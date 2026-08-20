@@ -127,7 +127,7 @@ class DicomImportWindow(QtWidgets.QDialog):
         self.btn_ok.clicked.connect(self.accept)
         bottom_layout.addWidget(self.btn_ok)
 
-        self.btn_cancel = QtWidgets.QPushButton(tr("common.close_button", "Fechar"))
+        self.btn_cancel = QtWidgets.QPushButton(tr("commons.close_button", "Fechar"))
         self.btn_cancel.clicked.connect(self.reject)
         bottom_layout.addWidget(self.btn_cancel)
 

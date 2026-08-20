@@ -71,11 +71,11 @@ class VolumeOrientationWindow(QtWidgets.QDialog):
         footer_layout = QtWidgets.QHBoxLayout()
         footer_layout.addStretch()
 
-        self.btn_cancel = QtWidgets.QPushButton(tr("common.close_button", "Cancelar"))
+        self.btn_cancel = QtWidgets.QPushButton(tr("commons.close_button", "Cancelar"))
         self.btn_cancel.clicked.connect(self.reject)
         footer_layout.addWidget(self.btn_cancel)
 
-        self.btn_confirm = QtWidgets.QPushButton(tr("common.confirm", "Confirmar Orientação"))
+        self.btn_confirm = QtWidgets.QPushButton(tr("commons.confirm", "Confirmar Orientação"))
         self.btn_confirm.setObjectName("okButton")
         self.btn_confirm.setDefault(True)
         self.btn_confirm.clicked.connect(self.accept)

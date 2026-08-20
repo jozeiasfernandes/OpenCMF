@@ -142,7 +142,7 @@ class Home_page(QtWidgets.QWidget):
         self.btn_new_project.setFixedSize(150, 35)
         self.btn_new_project.clicked.connect(lambda: self._on_new_project_clicked())
 
-        self.btn_remove_project = QtWidgets.QPushButton(tr("common.delete_project"))
+        self.btn_remove_project = QtWidgets.QPushButton(tr("commons.delete_project"))
         self.btn_remove_project.setFixedSize(150, 35)
         self.btn_remove_project.clicked.connect(self._on_remove_clicked)
 
@@ -291,7 +291,7 @@ class Home_page(QtWidgets.QWidget):
 
     def _on_flow_selected(self, flow_path: str):
         if not self.patient_manager.current_path:
-            QtWidgets.QMessageBox.warning(self, tr("common.warning", "Aviso"), tr("home.select_patient_first_msg",
+            QtWidgets.QMessageBox.warning(self, tr("commons.warning", "Aviso"), tr("home.select_patient_first_msg",
                                                                                   "Por favor, selecione um paciente primeiro."))
             return
 
@@ -307,8 +307,8 @@ class Home_page(QtWidgets.QWidget):
     def _show_context_menu(self, position):
         if item := self.projects_view.itemAt(position):
             menu = QtWidgets.QMenu(self)
-            menu.addAction(tr("common.open_project"), lambda: self._select_patient_from_item(item))
-            menu.addAction(tr("common.delete_project"), lambda: self._on_delete_project_requested(item))
+            menu.addAction(tr("commons.open_project"), lambda: self._select_patient_from_item(item))
+            menu.addAction(tr("commons.delete_project"), lambda: self._on_delete_project_requested(item))
             menu.exec(self.projects_view.mapToGlobal(position))
 
     def _open_selected_project_item(self, item):
@@ -344,7 +344,7 @@ class Home_page(QtWidgets.QWidget):
         if item := self.projects_view.currentItem():
             self._on_delete_project_requested(item)
         else:
-            QtWidgets.QMessageBox.warning(self, tr("common.warning"), tr("home.select_project_msg"))
+            QtWidgets.QMessageBox.warning(self, tr("commons.warning"), tr("home.select_project_msg"))
 
     def _on_delete_project_requested(self, item):
         path = item.data(QtCore.Qt.UserRole)

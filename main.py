@@ -118,7 +118,7 @@ class MainWindow(QtWidgets.QMainWindow):
             main_logger.critical(f"Erro na inicialização: {e}", exc_info=True)
             QtWidgets.QMessageBox.critical(
                 self,
-                tr("common.error", "Erro"),
+                tr("commons.error", "Erro"),
                 f"Falha ao inicializar aplicação: {e}"
             )
             raise
@@ -396,7 +396,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if not self.patient_manager.current_path:
             QtWidgets.QMessageBox.warning(
                 self,
-                tr("common.warning", "Aviso"),
+                tr("commons.warning", "Aviso"),
                 "Por favor, selecione ou crie um paciente antes de abrir o gerenciador de importações."
             )
             return
